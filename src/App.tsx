@@ -15,6 +15,7 @@ import AnalyticsPage from "@/pages/admin/AnalyticsPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
 import SchoolLandingPage from "@/pages/public/SchoolLandingPage";
 import EnrollPage from "@/pages/public/EnrollPage";
+import FullSchedulePage from "@/pages/public/FullSchedulePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/s/:schoolSlug" element={<PublicLayout />}>
             <Route index element={<SchoolLandingPage />} />
             <Route path="enroll" element={<EnrollPage />} />
+            <Route path="schedule" element={<FullSchedulePage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
