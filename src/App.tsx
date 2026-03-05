@@ -37,6 +37,10 @@ const App = () => (
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
+          <Route path="/s/:schoolSlug" element={<PublicLayout />}>
+            <Route index element={<SchoolLandingPage />} />
+            <Route path="enroll" element={<EnrollPage />} />
+          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
