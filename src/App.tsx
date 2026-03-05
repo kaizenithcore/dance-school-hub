@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import { PublicLayout } from "@/components/layout/PublicLayout";
 import DashboardPage from "@/pages/admin/DashboardPage";
 import SchedulePage from "@/pages/admin/SchedulePage";
 import ClassesPage from "@/pages/admin/ClassesPage";
@@ -12,6 +13,8 @@ import EnrollmentsPage from "@/pages/admin/EnrollmentsPage";
 import PaymentsPage from "@/pages/admin/PaymentsPage";
 import AnalyticsPage from "@/pages/admin/AnalyticsPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
+import SchoolLandingPage from "@/pages/public/SchoolLandingPage";
+import EnrollPage from "@/pages/public/EnrollPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +36,10 @@ const App = () => (
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="settings" element={<SettingsPage />} />
+          </Route>
+          <Route path="/s/:schoolSlug" element={<PublicLayout />}>
+            <Route index element={<SchoolLandingPage />} />
+            <Route path="enroll" element={<EnrollPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
