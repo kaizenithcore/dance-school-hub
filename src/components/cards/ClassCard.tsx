@@ -1,7 +1,8 @@
-import { Clock, User, MapPin, DollarSign, Users } from "lucide-react";
+import { Clock, User, MapPin, Users, Repeat, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface ClassCardProps {
+export interface ClassCardData {
+  id: string;
   name: string;
   teacher: string;
   time: string;
@@ -10,8 +11,14 @@ interface ClassCardProps {
   spotsLeft: number;
   totalSpots: number;
   day: string;
+  recurrence: "weekly" | "once";
+  date?: string; // for punctual classes
+}
+
+interface ClassCardProps extends ClassCardData {
   selected?: boolean;
   onSelect?: () => void;
+  compact?: boolean;
 }
 
 export function ClassCard({
@@ -22,8 +29,11 @@ export function ClassCard({
   price,
   spotsLeft,
   totalSpots,
+  recurrence,
+  date,
   selected,
   onSelect,
+  compact,
 }: ClassCardProps) {
   const almostFull = spotsLeft <= 3 && spotsLeft > 0;
   const full = spotsLeft === 0;
@@ -38,26 +48,42 @@ export function ClassCard({
         selected
           ? "border-primary bg-accent shadow-medium ring-1 ring-primary/20"
           : "border-border bg-card shadow-soft",
-        full && "opacity-50 cursor-not-allowed hover:shadow-soft hover:border-border"
+        full && "opacity-50 cursor-not-allowed hover:shadow-soft hover:border-border",
+        compact && "p-3"
       )}
     >
       <div className="flex items-start justify-between mb-2">
-        <h4 className="text-sm font-semibold text-foreground">{name}</h4>
-        <span className="text-sm font-semibold text-primary">${price}</span>
+        <h4 className={cn("font-semibold text-foreground", compact ? "text-xs" : "text-sm")}>{name}</h4>
+        <span className={cn("font-semibold text-primary", compact ? "text-xs" : "text-sm")}>${price}</span>
       </div>
 
       <div className="space-y-1.5">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <User className="h-3 w-3" />
+          <User className="h-3 w-3 shrink-0" />
           <span>{teacher}</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" />
+          <Clock className="h-3 w-3 shrink-0" />
           <span>{time}</span>
         </div>
+        {!compact && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3 shrink-0" />
+            <span>{room}</span>
+          </div>
+        )}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3" />
-          <span>{room}</span>
+          {recurrence === "weekly" ? (
+            <>
+              <Repeat className="h-3 w-3 shrink-0" />
+              <span>Semanal</span>
+            </>
+          ) : (
+            <>
+              <CalendarDays className="h-3 w-3 shrink-0" />
+              <span>{date || "Clase puntual"}</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -74,12 +100,12 @@ export function ClassCard({
                 : "text-muted-foreground"
             )}
           >
-            {full ? "Full" : `${spotsLeft}/${totalSpots} spots`}
+            {full ? "Completo" : `${spotsLeft}/${totalSpots} lugares`}
           </span>
         </div>
         {selected && (
           <span className="text-xs font-medium text-primary animate-fade-in">
-            Selected ✓
+            Seleccionada ✓
           </span>
         )}
       </div>
