@@ -16,14 +16,14 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 const navItems = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-  { title: "Schedule", url: "/admin/schedule", icon: Calendar },
-  { title: "Classes", url: "/admin/classes", icon: GraduationCap },
-  { title: "Students", url: "/admin/students", icon: Users },
-  { title: "Enrollments", url: "/admin/enrollments", icon: ClipboardList },
-  { title: "Payments", url: "/admin/payments", icon: CreditCard },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
-  { title: "Settings", url: "/admin/settings", icon: Settings },
+  { title: "Panel", url: "/admin", icon: LayoutDashboard },
+  { title: "Horarios", url: "/admin/schedule", icon: Calendar },
+  { title: "Clases", url: "/admin/classes", icon: GraduationCap },
+  { title: "Alumnos", url: "/admin/students", icon: Users },
+  { title: "Inscripciones", url: "/admin/enrollments", icon: ClipboardList },
+  { title: "Pagos", url: "/admin/payments", icon: CreditCard },
+  { title: "Analíticas", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Configuración", url: "/admin/settings", icon: Settings },
 ];
 
 export function AdminSidebar() {
@@ -37,7 +37,6 @@ export function AdminSidebar() {
         collapsed ? "w-[68px]" : "w-[260px]"
       )}
     >
-      {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-border">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
           <Music className="h-5 w-5 text-primary-foreground" />
@@ -49,7 +48,6 @@ export function AdminSidebar() {
         )}
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         {navItems.map((item) => {
           const isActive =
@@ -78,7 +76,6 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      {/* Collapse toggle */}
       <div className="border-t border-border p-3">
         <button
           onClick={() => setCollapsed(!collapsed)}

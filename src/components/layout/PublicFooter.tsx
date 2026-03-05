@@ -12,7 +12,7 @@ export function PublicFooter() {
             <span className="text-sm font-medium text-foreground">DanceHub</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Powered by DanceHub. All rights reserved.
+            © {new Date().getFullYear()} Desarrollado con DanceHub. Todos los derechos reservados.
           </p>
         </div>
       </div>
