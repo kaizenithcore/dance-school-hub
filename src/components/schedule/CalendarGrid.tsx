@@ -44,6 +44,7 @@ export function CalendarGrid({
         const room = selectedRoom === "all" ? DEFAULT_ROOM : selectedRoom;
 
         if (data.type === "new") {
+          const blockRoom = data.room || (selectedRoom === "all" ? DEFAULT_ROOM : selectedRoom);
           onAddBlock({
             classId: data.classId,
             name: data.name,
@@ -51,7 +52,7 @@ export function CalendarGrid({
             day,
             startHour: hour,
             duration: data.duration,
-            room,
+            room: blockRoom,
           });
         } else if (data.type === "move") {
           onMoveBlock(data.blockId, day, hour);
