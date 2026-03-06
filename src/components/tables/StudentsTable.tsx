@@ -81,7 +81,7 @@ export function StudentsTable({ students, onViewProfile, onEdit, onDelete }: Stu
       </div>
 
       <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
-        <div className="min-w-[640px]">
+        <Table className="min-w-[640px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="text-xs">Nombre</TableHead>
