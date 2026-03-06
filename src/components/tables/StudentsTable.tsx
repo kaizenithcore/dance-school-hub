@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, ChevronLeft, ChevronRight, GraduationCap } from "lucide-react";
+import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, GraduationCap, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
@@ -15,14 +15,22 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   inactive: { label: "Inactivo", className: "bg-muted text-muted-foreground border-border" },
 };
 
+const PAYMENT_LABELS: Record<string, string> = {
+  monthly: "Mensual",
+  per_class: "Por clase",
+  none: "—",
+};
+
 const PAGE_SIZE = 8;
 
 interface StudentsTableProps {
   students: StudentRecord[];
   onViewProfile: (student: StudentRecord) => void;
+  onEdit: (student: StudentRecord) => void;
+  onDelete: (student: StudentRecord) => void;
 }
 
-export function StudentsTable({ students, onViewProfile }: StudentsTableProps) {
+export function StudentsTable({ students, onViewProfile, onEdit, onDelete }: StudentsTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
@@ -41,9 +49,13 @@ export function StudentsTable({ students, onViewProfile }: StudentsTableProps) {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  const getMonthlyTotal = (student: StudentRecord) => {
+    if (student.paymentType !== "monthly") return null;
+    return student.enrolledClasses.reduce((sum, c) => sum + c.monthlyPrice, 0);
+  };
+
   return (
     <div className="space-y-4">
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -66,7 +78,6 @@ export function StudentsTable({ students, onViewProfile }: StudentsTableProps) {
         </Select>
       </div>
 
-      {/* Table */}
       <div className="rounded-lg border border-border bg-card shadow-soft overflow-hidden">
         <Table>
           <TableHeader>
@@ -75,6 +86,7 @@ export function StudentsTable({ students, onViewProfile }: StudentsTableProps) {
               <TableHead className="text-xs hidden md:table-cell">Email</TableHead>
               <TableHead className="text-xs hidden lg:table-cell">Teléfono</TableHead>
               <TableHead className="text-xs text-center">Clases</TableHead>
+              <TableHead className="text-xs text-right">Mensualidad</TableHead>
               <TableHead className="text-xs text-center">Estado</TableHead>
               <TableHead className="text-xs text-right">Acciones</TableHead>
             </TableRow>
@@ -82,13 +94,14 @@ export function StudentsTable({ students, onViewProfile }: StudentsTableProps) {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">
                   No se encontraron alumnos
                 </TableCell>
               </TableRow>
             ) : (
               paginated.map((student) => {
                 const status = STATUS_MAP[student.status];
+                const monthlyTotal = getMonthlyTotal(student);
                 return (
                   <TableRow key={student.id} className="cursor-pointer" onClick={() => onViewProfile(student)}>
                     <TableCell>
@@ -110,15 +123,33 @@ export function StudentsTable({ students, onViewProfile }: StudentsTableProps) {
                         <span className="text-sm text-foreground font-medium">{student.enrolledClasses.length}</span>
                       </div>
                     </TableCell>
+                    <TableCell className="text-right">
+                      {monthlyTotal !== null ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="text-sm font-semibold text-foreground">${monthlyTotal}</span>
+                          <span className="text-[10px] text-muted-foreground">/mes</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{PAYMENT_LABELS[student.paymentType]}</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-center">
                       <Badge variant="outline" className={cn("text-[10px] font-medium", status.className)}>
                         {status.label}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onViewProfile(student); }}>
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onViewProfile(student)}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(student)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(student)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -128,7 +159,6 @@ export function StudentsTable({ students, onViewProfile }: StudentsTableProps) {
         </Table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">

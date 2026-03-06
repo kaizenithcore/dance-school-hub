@@ -2,10 +2,16 @@ import { StudentRecord } from "@/lib/data/mockStudents";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, Calendar, GraduationCap, Clock, User, Shield, StickyNote } from "lucide-react";
+import { Mail, Phone, Calendar, GraduationCap, Clock, User, Shield, StickyNote, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+
+const PAYMENT_LABELS: Record<string, string> = {
+  monthly: "Mensual",
+  per_class: "Por clase",
+  none: "Sin pago",
+};
 
 interface StudentProfileDrawerProps {
   open: boolean;
@@ -22,6 +28,10 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
   const statusClass = student.status === "active"
     ? "bg-success/15 text-success border-success/20"
     : "bg-muted text-muted-foreground border-border";
+
+  const monthlyTotal = student.paymentType === "monthly"
+    ? student.enrolledClasses.reduce((sum, c) => sum + c.monthlyPrice, 0)
+    : null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -44,7 +54,6 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
         </SheetHeader>
 
         <div className="space-y-5">
-          {/* Contact Info */}
           <section className="space-y-3">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Datos de Contacto</h4>
             <div className="space-y-2.5">
@@ -52,12 +61,12 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
               <InfoRow icon={Phone} label="Teléfono" value={student.phone} />
               <InfoRow icon={Calendar} label="Nacimiento" value={`${format(new Date(student.birthdate), "d MMM yyyy", { locale: es })} (${age} años)`} />
               <InfoRow icon={Calendar} label="Inscripción" value={format(new Date(student.joinDate), "d MMM yyyy", { locale: es })} />
+              <InfoRow icon={DollarSign} label="Tipo de pago" value={PAYMENT_LABELS[student.paymentType]} />
             </div>
           </section>
 
           <Separator />
 
-          {/* Guardian */}
           {student.guardian && (
             <>
               <section className="space-y-3">
@@ -74,7 +83,6 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
             </>
           )}
 
-          {/* Classes */}
           <section className="space-y-3">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <GraduationCap className="h-3 w-3" /> Clases Inscriptas ({student.enrolledClasses.length})
@@ -92,13 +100,19 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
                         <span>{cls.day} · {cls.time}</span>
                       </div>
                     </div>
+                    <span className="text-sm font-medium text-foreground">${cls.monthlyPrice}</span>
                   </div>
                 ))}
+                {monthlyTotal !== null && (
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <span className="text-sm font-semibold text-foreground">Total mensual</span>
+                    <span className="text-base font-bold text-primary">${monthlyTotal}</span>
+                  </div>
+                )}
               </div>
             )}
           </section>
 
-          {/* Notes */}
           {student.notes && (
             <>
               <Separator />
