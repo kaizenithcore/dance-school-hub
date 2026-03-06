@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/table";
 import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, GraduationCap, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   active: { label: "Activo", className: "bg-success/15 text-success border-success/20" },
@@ -94,8 +96,8 @@ export function StudentsTable({ students, onViewProfile, onEdit, onDelete }: Stu
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">
-                  No se encontraron alumnos
+                <TableCell colSpan={7}>
+                  <EmptyState type={search || statusFilter !== "all" ? "search" : "students"} />
                 </TableCell>
               </TableRow>
             ) : (
@@ -140,15 +142,21 @@ export function StudentsTable({ students, onViewProfile, onEdit, onDelete }: Stu
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onViewProfile(student)}>
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(student)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(student)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip><TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onViewProfile(student)}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger><TooltipContent side="bottom"><p>Ver perfil</p></TooltipContent></Tooltip>
+                        <Tooltip><TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(student)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger><TooltipContent side="bottom"><p>Editar</p></TooltipContent></Tooltip>
+                        <Tooltip><TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(student)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger><TooltipContent side="bottom"><p>Eliminar</p></TooltipContent></Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
