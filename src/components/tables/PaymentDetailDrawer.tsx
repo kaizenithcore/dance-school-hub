@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, Calendar, CreditCard, FileText, StickyNote, CheckCircle, RotateCcw } from "lucide-react";
+import { Mail, User, Calendar, CreditCard, FileText, StickyNote, CheckCircle, RotateCcw, Receipt, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -21,14 +21,16 @@ interface PaymentDetailDrawerProps {
   payment: PaymentRecord | null;
   onMarkPaid: (id: string) => void;
   onMarkRefunded: (id: string) => void;
+  onGenerateReceipt: (payment: PaymentRecord) => void;
 }
 
-export function PaymentDetailDrawer({ open, onOpenChange, payment, onMarkPaid, onMarkRefunded }: PaymentDetailDrawerProps) {
+export function PaymentDetailDrawer({ open, onOpenChange, payment, onMarkPaid, onMarkRefunded, onGenerateReceipt }: PaymentDetailDrawerProps) {
   if (!payment) return null;
 
   const statusCfg = STATUS_CONFIG[payment.status];
   const canMarkPaid = payment.status === "pending" || payment.status === "overdue";
   const canRefund = payment.status === "paid";
+  const payerDiffers = payment.payerName !== payment.studentName;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -43,12 +45,13 @@ export function PaymentDetailDrawer({ open, onOpenChange, payment, onMarkPaid, o
         </SheetHeader>
 
         <div className="space-y-5">
-          {/* Student */}
+          {/* Student & Payer */}
           <section className="space-y-3">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Datos del Alumno</h4>
             <div className="space-y-2.5">
-              <InfoRow icon={Mail} label="Nombre" value={payment.studentName} />
+              <InfoRow icon={User} label="Alumno" value={payment.studentName} />
               <InfoRow icon={Mail} label="Email" value={payment.studentEmail} />
+              <InfoRow icon={User} label="Pagador" value={payment.payerName} highlight={payerDiffers} />
             </div>
           </section>
 
@@ -68,6 +71,27 @@ export function PaymentDetailDrawer({ open, onOpenChange, payment, onMarkPaid, o
               <span className="text-lg font-bold text-primary">${payment.amount.toLocaleString()}</span>
             </div>
           </section>
+
+          {/* Receipt status */}
+          {payment.status === "paid" && (
+            <>
+              <Separator />
+              <section className="space-y-3">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recibo</h4>
+                {payment.receiptGenerated ? (
+                  <div className="flex items-center gap-2 rounded-md border border-success/20 bg-success/10 px-3 py-2.5">
+                    <FileCheck className="h-4 w-4 text-success" />
+                    <span className="text-sm text-foreground">Recibo generado</span>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => onGenerateReceipt(payment)}>
+                    <Receipt className="h-3.5 w-3.5 mr-1" />
+                    Generar Recibo
+                  </Button>
+                )}
+              </section>
+            </>
+          )}
 
           {/* Notes */}
           {payment.notes && (
@@ -121,13 +145,13 @@ export function PaymentDetailDrawer({ open, onOpenChange, payment, onMarkPaid, o
   );
 }
 
-function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function InfoRow({ icon: Icon, label, value, highlight }: { icon: any; label: string; value: string; highlight?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
       <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-muted-foreground">{label}</p>
-        <p className="text-sm text-foreground">{value}</p>
+        <p className={cn("text-sm truncate", highlight ? "text-primary font-medium" : "text-foreground")}>{value}</p>
       </div>
     </div>
   );
