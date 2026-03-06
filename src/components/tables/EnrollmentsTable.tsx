@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/table";
 import { Search, Eye, ChevronLeft, ChevronRight, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EmptyState } from "@/components/ui/empty-state";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -103,8 +105,8 @@ export function EnrollmentsTable({ enrollments, onViewDetail }: EnrollmentsTable
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">
-                  No se encontraron inscripciones
+                <TableCell colSpan={7}>
+                  <EmptyState type={search || statusFilter !== "all" ? "search" : "enrollments"} />
                 </TableCell>
               </TableRow>
             ) : (
@@ -135,9 +137,11 @@ export function EnrollmentsTable({ enrollments, onViewDetail }: EnrollmentsTable
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onViewDetail(enrollment); }}>
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
+                      <Tooltip><TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onViewDetail(enrollment); }}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger><TooltipContent side="bottom"><p>Ver detalle</p></TooltipContent></Tooltip>
                     </TableCell>
                   </TableRow>
                 );
