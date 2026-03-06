@@ -29,6 +29,12 @@ export default function PaymentsPage() {
     toast.success("Pago marcado como reembolsado");
   }, []);
 
+  const handleGenerateReceipt = useCallback((payment: PaymentRecord) => {
+    setPayments((prev) => prev.map((p) => (p.id === payment.id ? { ...p, receiptGenerated: true } : p)));
+    setSelectedPayment((prev) => prev && prev.id === payment.id ? { ...prev, receiptGenerated: true } : prev);
+    toast.success(`Recibo generado para ${payment.studentName} — ${payment.month}`);
+  }, []);
+
   const handleRecordPayment = useCallback((data: Omit<PaymentRecord, "id">) => {
     const newPayment: PaymentRecord = { id: `p${Date.now()}`, ...data };
     setPayments((prev) => [newPayment, ...prev]);
@@ -45,6 +51,7 @@ export default function PaymentsPage() {
         payments={payments}
         onViewDetail={handleViewDetail}
         onAddPayment={() => setModalOpen(true)}
+        onGenerateReceipt={handleGenerateReceipt}
       />
 
       <PaymentDetailDrawer
@@ -53,6 +60,7 @@ export default function PaymentsPage() {
         payment={selectedPayment}
         onMarkPaid={handleMarkPaid}
         onMarkRefunded={handleMarkRefunded}
+        onGenerateReceipt={handleGenerateReceipt}
       />
 
       <RecordPaymentModal

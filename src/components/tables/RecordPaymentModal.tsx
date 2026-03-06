@@ -6,14 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { MOCK_STUDENTS } from "@/lib/data/mockStudents";
-import { PaymentRecord, PaymentMethod } from "@/lib/data/mockPayments";
-
-const PAYMENT_METHODS: PaymentMethod[] = [
-  "Transferencia bancaria",
-  "Mercado Pago",
-  "Efectivo",
-  "Tarjeta de crédito/débito",
-];
+import { PaymentRecord, PaymentMethod, PAYMENT_METHODS } from "@/lib/data/mockPayments";
 
 interface RecordPaymentModalProps {
   open: boolean;
@@ -23,6 +16,7 @@ interface RecordPaymentModalProps {
 
 export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPaymentModalProps) {
   const [studentId, setStudentId] = useState("");
+  const [payerName, setPayerName] = useState("");
   const [concept, setConcept] = useState("");
   const [month, setMonth] = useState(() => {
     const now = new Date();
@@ -35,12 +29,27 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
   const activeStudents = MOCK_STUDENTS.filter((s) => s.status === "active");
   const selectedStudent = activeStudents.find((s) => s.id === studentId);
 
+  const handleStudentChange = (id: string) => {
+    setStudentId(id);
+    const student = activeStudents.find((s) => s.id === id);
+    if (student) {
+      // Auto-fill payer: use guardian if exists, otherwise student
+      setPayerName(student.guardian ? student.guardian.name : student.name);
+      if (student.enrolledClasses.length > 0) {
+        const total = student.enrolledClasses.reduce((s, c) => s + c.monthlyPrice, 0);
+        setAmount(String(total));
+        setConcept("Mensualidad — " + student.enrolledClasses.map((c) => c.name).join(" + "));
+      }
+    }
+  };
+
   const handleSave = () => {
-    if (!selectedStudent || !concept.trim() || !amount || !month) return;
+    if (!selectedStudent || !concept.trim() || !amount || !payerName.trim() || !month) return;
     onSave({
       studentId: selectedStudent.id,
       studentName: selectedStudent.name,
       studentEmail: selectedStudent.email,
+      payerName: payerName.trim(),
       concept: concept.trim(),
       month,
       amount: parseFloat(amount),
@@ -51,22 +60,13 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
     });
     // Reset
     setStudentId("");
+    setPayerName("");
     setConcept("");
     setAmount("");
     setNotes("");
   };
 
-  const handleStudentChange = (id: string) => {
-    setStudentId(id);
-    const student = activeStudents.find((s) => s.id === id);
-    if (student && student.enrolledClasses.length > 0) {
-      const total = student.enrolledClasses.reduce((s, c) => s + c.monthlyPrice, 0);
-      setAmount(String(total));
-      setConcept("Mensualidad — " + student.enrolledClasses.map((c) => c.name).join(" + "));
-    }
-  };
-
-  const isValid = studentId && concept.trim() && amount && parseFloat(amount) > 0 && month;
+  const isValid = studentId && concept.trim() && payerName.trim() && amount && parseFloat(amount) > 0 && month;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,6 +89,17 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Payer name */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Nombre del Pagador *</Label>
+            <Input
+              value={payerName}
+              onChange={(e) => setPayerName(e.target.value)}
+              placeholder="Nombre de quien realiza el pago"
+              className="h-9 text-sm"
+            />
           </div>
 
           {/* Concept */}
