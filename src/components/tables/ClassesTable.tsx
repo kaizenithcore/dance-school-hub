@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/table";
 import { Pencil, Trash2, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   active: { label: "Activa", className: "bg-success/15 text-success border-success/20" },
@@ -87,8 +89,8 @@ export function ClassesTable({ classes, onEdit, onDelete }: ClassesTableProps) {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-sm text-muted-foreground">
-                  No se encontraron clases
+                <TableCell colSpan={8}>
+                  <EmptyState type={search || statusFilter !== "all" ? "search" : "classes"} />
                 </TableCell>
               </TableRow>
             ) : (
@@ -130,12 +132,16 @@ export function ClassesTable({ classes, onEdit, onDelete }: ClassesTableProps) {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(cls)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(cls)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip><TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(cls)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger><TooltipContent side="bottom"><p>Editar</p></TooltipContent></Tooltip>
+                        <Tooltip><TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(cls)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger><TooltipContent side="bottom"><p>Eliminar</p></TooltipContent></Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
