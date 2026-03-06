@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/table";
 import { Search, Eye, ChevronLeft, ChevronRight, Plus, Receipt, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EmptyState } from "@/components/ui/empty-state";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -177,8 +179,8 @@ export function PaymentsTable({ payments, onViewDetail, onAddPayment, onGenerate
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">
-                  No se encontraron pagos
+                <TableCell colSpan={7}>
+                  <EmptyState type={search || statusFilter !== "all" || methodFilter !== "all" || monthFilter !== "all" ? "search" : "payments"} />
                 </TableCell>
               </TableRow>
             ) : (
@@ -215,22 +217,25 @@ export function PaymentsTable({ payments, onViewDetail, onAddPayment, onGenerate
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-0.5">
                         {payment.status === "paid" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title={payment.receiptGenerated ? "Recibo generado" : "Generar recibo"}
-                            onClick={(e) => { e.stopPropagation(); onGenerateReceipt(payment); }}
-                          >
-                            {payment.receiptGenerated
-                              ? <FileCheck className="h-3.5 w-3.5 text-success" />
-                              : <Receipt className="h-3.5 w-3.5" />
-                            }
-                          </Button>
+                          <Tooltip><TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => { e.stopPropagation(); onGenerateReceipt(payment); }}
+                            >
+                              {payment.receiptGenerated
+                                ? <FileCheck className="h-3.5 w-3.5 text-success" />
+                                : <Receipt className="h-3.5 w-3.5" />
+                              }
+                            </Button>
+                          </TooltipTrigger><TooltipContent side="bottom"><p>{payment.receiptGenerated ? "Recibo generado" : "Generar recibo"}</p></TooltipContent></Tooltip>
                         )}
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onViewDetail(payment); }}>
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip><TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onViewDetail(payment); }}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger><TooltipContent side="bottom"><p>Ver detalle</p></TooltipContent></Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
