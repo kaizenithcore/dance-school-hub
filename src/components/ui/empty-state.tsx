@@ -2,12 +2,13 @@ import { Search, GraduationCap, Users, CreditCard, ClipboardList, Inbox } from "
 import { motion } from "framer-motion";
 
 interface EmptyStateProps {
-  type: "students" | "classes" | "enrollments" | "payments" | "search";
+  type: "students" | "teachers" | "classes" | "enrollments" | "payments" | "search";
   message?: string;
 }
 
 const CONFIGS = {
   students: { icon: Users, title: "Sin alumnos", description: "Aún no hay alumnos registrados. Comenzá agregando el primero." },
+  teachers: { icon: Users, title: "Sin profesores", description: "Aún no hay profesores registrados. Comenzá agregando el primero." },
   classes: { icon: GraduationCap, title: "Sin clases", description: "No hay clases creadas todavía. Creá tu primera clase para empezar." },
   enrollments: { icon: ClipboardList, title: "Sin inscripciones", description: "No se encontraron inscripciones. Las solicitudes aparecerán aquí." },
   payments: { icon: CreditCard, title: "Sin pagos", description: "No hay pagos registrados. Los pagos aparecerán aquí al registrarlos." },

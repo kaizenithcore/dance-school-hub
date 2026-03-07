@@ -8,11 +8,14 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import DashboardPage from "@/pages/admin/DashboardPage";
 import SchedulePage from "@/pages/admin/SchedulePage";
 import ClassesPage from "@/pages/admin/ClassesPage";
+import RoomsPage from "@/pages/admin/RoomsPage";
+import TeachersPage from "@/pages/admin/TeachersPage";
 import StudentsPage from "@/pages/admin/StudentsPage";
 import EnrollmentsPage from "@/pages/admin/EnrollmentsPage";
 import PaymentsPage from "@/pages/admin/PaymentsPage";
 import AnalyticsPage from "@/pages/admin/AnalyticsPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
+import FormBuilderPage from "@/pages/admin/FormBuilderPage";
 import SchoolLandingPage from "@/pages/public/SchoolLandingPage";
 import EnrollPage from "@/pages/public/EnrollPage";
 import FullSchedulePage from "@/pages/public/FullSchedulePage";
@@ -51,10 +54,13 @@ const App = () => (
             <Route index element={<DashboardPage />} />
             <Route path="schedule" element={<SchedulePage />} />
             <Route path="classes" element={<ClassesPage />} />
+            <Route path="rooms" element={<RoomsPage />} />
+            <Route path="teachers" element={<TeachersPage />} />
             <Route path="students" element={<StudentsPage />} />
             <Route path="enrollments" element={<EnrollmentsPage />} />
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="form-builder" element={<FormBuilderPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="/s/:schoolSlug" element={<PublicLayout />}>

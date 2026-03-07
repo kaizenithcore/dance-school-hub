@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { login } from "@/lib/auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -23,12 +24,22 @@ export default function LoginPage() {
       return;
     }
     setIsLoading(true);
-    // TODO: Integrar con backend real
-    setTimeout(() => {
+    
+    try {
+      const result = await login({ email, password });
+
+      if (result.success) {
+        toast.success("Inicio de sesión exitoso. Bienvenido!");
+        navigate("/admin");
+      } else {
+        toast.error(result.error || "Credenciales inválidas.");
+      }
+    } catch (error) {
+      toast.error("Error inesperado. Por favor, intenta de nuevo.");
+      console.error("Login error:", error);
+    } finally {
       setIsLoading(false);
-      toast.success("Inicio de sesión simulado correctamente.");
-      navigate("/admin");
-    }, 1500);
+    }
   };
 
   return (

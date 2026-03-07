@@ -6,15 +6,16 @@ import { cn } from "@/lib/utils";
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"] as const;
 const HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] as const;
 const PIXELS_PER_HOUR = 64;
-const DEFAULT_ROOM = "Sala A";
 
 interface CalendarGridProps {
   blocks: ScheduleBlock[];
   onMoveBlock: (blockId: string, day: string, startHour: number) => void;
   onAddBlock: (block: Omit<ScheduleBlock, "id" | "color">) => void;
   onRemoveBlock: (blockId: string) => void;
-  hasConflict: (blockId: string, day: string, startHour: number, duration: number, room: string) => boolean;
+  hasConflict: (blockId: string, day: string, startHour: number, duration: number, roomId: string) => boolean;
   selectedRoom: string;
+  defaultRoomId?: string;
+  defaultRoomName?: string;
 }
 
 export function CalendarGrid({
@@ -24,6 +25,8 @@ export function CalendarGrid({
   onRemoveBlock,
   hasConflict,
   selectedRoom,
+  defaultRoomId,
+  defaultRoomName,
 }: CalendarGridProps) {
   const [dragOverCell, setDragOverCell] = useState<{ day: string; hour: number } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -41,10 +44,15 @@ export function CalendarGrid({
 
       try {
         const data = JSON.parse(e.dataTransfer.getData("application/json"));
-        const room = selectedRoom === "all" ? DEFAULT_ROOM : selectedRoom;
 
         if (data.type === "new") {
-          const blockRoom = data.room || (selectedRoom === "all" ? DEFAULT_ROOM : selectedRoom);
+          const blockRoomId = data.roomId || (selectedRoom === "all" ? defaultRoomId : selectedRoom);
+          const blockRoomName = data.roomName || defaultRoomName || "Sin aula";
+
+          if (!blockRoomId) {
+            return;
+          }
+
           onAddBlock({
             classId: data.classId,
             name: data.name,
@@ -52,7 +60,8 @@ export function CalendarGrid({
             day,
             startHour: hour,
             duration: data.duration,
-            room: blockRoom,
+            roomId: blockRoomId,
+            room: blockRoomName,
           });
         } else if (data.type === "move") {
           onMoveBlock(data.blockId, day, hour);
@@ -114,7 +123,7 @@ export function CalendarGrid({
                     {cellBlocks.map((block) => {
                       const offsetPx = (block.startHour - hour) * PIXELS_PER_HOUR;
                       const conflict = hasConflict(
-                        block.id, block.day, block.startHour, block.duration, block.room
+                        block.id, block.day, block.startHour, block.duration, block.roomId
                       );
                       return (
                         <div key={block.id} style={{ position: "absolute", top: `${offsetPx}px`, left: 0, right: 0 }}>

@@ -6,29 +6,20 @@ export interface ClassItem {
   name: string;
   teacher: string;
   duration: number;
-  room: string;
+  roomId?: string;
+  roomName?: string;
   capacity: number;
   spotsLeft: number;
 }
 
-const AVAILABLE_CLASSES: ClassItem[] = [
-  { id: "c1", name: "Ballet Principiantes", teacher: "Prof. Rivera", duration: 1.5, room: "Sala A", capacity: 15, spotsLeft: 6 },
-  { id: "c2", name: "Danza Contemporánea", teacher: "Prof. Lima", duration: 1.5, room: "Sala B", capacity: 12, spotsLeft: 3 },
-  { id: "c3", name: "Hip Hop Niños", teacher: "Prof. Costa", duration: 1, room: "Sala A", capacity: 15, spotsLeft: 8 },
-  { id: "c4", name: "Jazz Fusión", teacher: "Prof. Costa", duration: 1.5, room: "Sala B", capacity: 12, spotsLeft: 0 },
-  { id: "c5", name: "Ballet Avanzado", teacher: "Prof. Rivera", duration: 1.5, room: "Sala A", capacity: 15, spotsLeft: 4 },
-  { id: "c6", name: "Salsa y Bachata", teacher: "Prof. Reyes", duration: 1.5, room: "Sala C", capacity: 20, spotsLeft: 10 },
-  { id: "c7", name: "Tango Intensivo", teacher: "Prof. Morales", duration: 2, room: "Sala A", capacity: 10, spotsLeft: 5 },
-  { id: "c8", name: "Danza Moderna", teacher: "Prof. Lima", duration: 1.5, room: "Sala B", capacity: 12, spotsLeft: 7 },
-  { id: "c9", name: "Stretching & Barre", teacher: "Prof. Rivera", duration: 1, room: "Sala A", capacity: 15, spotsLeft: 9 },
-  { id: "c10", name: "Folklore", teacher: "Prof. García", duration: 1.5, room: "Sala C", capacity: 20, spotsLeft: 14 },
-];
-
 interface ClassSidebarProps {
+  classes: ClassItem[];
+  defaultRoomId?: string;
+  defaultRoomName?: string;
   onDragStart: (classData: { name: string; teacher: string; duration: number; classId: string; room: string }) => void;
 }
 
-export function ClassSidebar({ onDragStart }: ClassSidebarProps) {
+export function ClassSidebar({ classes, defaultRoomId, defaultRoomName, onDragStart }: ClassSidebarProps) {
   return (
     <div className="w-full lg:w-[240px] shrink-0 rounded-lg border border-border bg-card shadow-soft overflow-hidden">
       <div className="p-3 border-b border-border">
@@ -39,9 +30,11 @@ export function ClassSidebar({ onDragStart }: ClassSidebarProps) {
         <p className="text-[10px] text-muted-foreground mt-0.5">Arrastrá una clase al calendario</p>
       </div>
       <div className="p-2 space-y-1 max-h-[600px] overflow-y-auto">
-        {AVAILABLE_CLASSES.map((cls) => {
+        {classes.map((cls) => {
           const almostFull = cls.spotsLeft <= 3 && cls.spotsLeft > 0;
           const full = cls.spotsLeft === 0;
+          const roomId = cls.roomId || defaultRoomId || "";
+          const roomName = cls.roomName || defaultRoomName || "Sin aula";
 
           return (
             <div
@@ -55,9 +48,10 @@ export function ClassSidebar({ onDragStart }: ClassSidebarProps) {
                   name: cls.name,
                   teacher: cls.teacher,
                   duration: cls.duration,
-                  room: cls.room,
+                  roomId,
+                  roomName,
                 }));
-                onDragStart({ name: cls.name, teacher: cls.teacher, duration: cls.duration, classId: cls.id, room: cls.room });
+                onDragStart({ name: cls.name, teacher: cls.teacher, duration: cls.duration, classId: cls.id, room: roomName });
               }}
               className={cn(
                 "flex flex-col gap-1.5 rounded-md border bg-background p-2.5 transition-all select-none",
@@ -75,7 +69,7 @@ export function ClassSidebar({ onDragStart }: ClassSidebarProps) {
                   <Clock className="h-2.5 w-2.5 shrink-0" />{cls.duration}h
                 </span>
                 <span className="flex items-center gap-0.5">
-                  <MapPin className="h-2.5 w-2.5 shrink-0" />{cls.room}
+                  <MapPin className="h-2.5 w-2.5 shrink-0" />{roomName}
                 </span>
               </div>
               <div className="flex items-center gap-1">

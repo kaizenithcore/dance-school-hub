@@ -1,6 +1,6 @@
 import {
-  LayoutDashboard, Calendar, GraduationCap, Users, ClipboardList,
-  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X,
+  LayoutDashboard, Calendar, GraduationCap, Users, BookOpen, ClipboardList,
+  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -13,8 +13,11 @@ const navItems = [
   { title: "Panel", url: "/admin", icon: LayoutDashboard },
   { title: "Horarios", url: "/admin/schedule", icon: Calendar },
   { title: "Clases", url: "/admin/classes", icon: GraduationCap },
+  { title: "Aulas", url: "/admin/rooms", icon: DoorOpen },
+  { title: "Profesores", url: "/admin/teachers", icon: BookOpen },
   { title: "Alumnos", url: "/admin/students", icon: Users },
   { title: "Inscripciones", url: "/admin/enrollments", icon: ClipboardList },
+    { title: "Editor Matrícula", url: "/admin/form-builder", icon: FileEdit },
   { title: "Pagos", url: "/admin/payments", icon: CreditCard },
   { title: "Analíticas", url: "/admin/analytics", icon: BarChart3 },
   { title: "Configuración", url: "/admin/settings", icon: Settings },

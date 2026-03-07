@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { registerSchool } from "@/lib/auth";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -51,12 +52,29 @@ export default function RegisterPage() {
       return;
     }
     setIsLoading(true);
-    // TODO: Integrar con backend real
-    setTimeout(() => {
+    
+    try {
+      const result = await registerSchool({
+        schoolName,
+        ownerName: name,
+        ownerEmail: email,
+        ownerPassword: password,
+        phone: phone || undefined,
+        city: city || undefined,
+      });
+
+      if (result.success) {
+        toast.success("Registro exitoso. Redirigiendo al panel...");
+        navigate("/admin");
+      } else {
+        toast.error(result.error || "Error al registrar la escuela.");
+      }
+    } catch (error) {
+      toast.error("Error inesperado. Por favor, intenta de nuevo.");
+      console.error("Registration error:", error);
+    } finally {
       setIsLoading(false);
-      toast.success("Registro simulado correctamente. Revisa tu correo.");
-      navigate("/auth/login");
-    }, 1500);
+    }
   };
 
   return (
