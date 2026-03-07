@@ -1,4 +1,5 @@
 import { Music } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function PublicFooter() {
   return (
@@ -11,10 +12,20 @@ export function PublicFooter() {
             </div>
             <span className="text-sm font-medium text-foreground">DanceHub</span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Desarrollado con DanceHub. Todos los derechos reservados.
-          </p>
+          <nav className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <Link to="/legal/privacy" className="hover:text-foreground hover:underline">Privacidad</Link>
+            <span>·</span>
+            <Link to="/legal/terms" className="hover:text-foreground hover:underline">Términos</Link>
+            <span>·</span>
+            <Link to="/legal/cookies" className="hover:text-foreground hover:underline">Cookies</Link>
+            <span>·</span>
+            <Link to="/legal/notice" className="hover:text-foreground hover:underline">Aviso Legal</Link>
+          </nav>
         </div>
+        <p className="mt-4 text-center text-xs text-muted-foreground sm:text-left">
+          © {new Date().getFullYear()} Desarrollado por{" "}
+          <a href="https://kaizenith.es" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Kaizenith</a>. Todos los derechos reservados.
+        </p>
       </div>
     </footer>
   );
