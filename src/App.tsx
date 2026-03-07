@@ -16,6 +16,15 @@ import SettingsPage from "@/pages/admin/SettingsPage";
 import SchoolLandingPage from "@/pages/public/SchoolLandingPage";
 import EnrollPage from "@/pages/public/EnrollPage";
 import FullSchedulePage from "@/pages/public/FullSchedulePage";
+import LoginPage from "@/pages/auth/LoginPage";
+import RegisterPage from "@/pages/auth/RegisterPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
+import LegalLayout from "@/pages/legal/LegalLayout";
+import PrivacyPolicyPage from "@/pages/legal/PrivacyPolicyPage";
+import CookiePolicyPage from "@/pages/legal/CookiePolicyPage";
+import TermsOfServicePage from "@/pages/legal/TermsOfServicePage";
+import LegalNoticePage from "@/pages/legal/LegalNoticePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +36,17 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/admin" replace />} />
+          <Route path="/" element={<Navigate to="/auth/login" replace />} />
+          <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/auth/register" element={<RegisterPage />} />
+          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/legal" element={<LegalLayout />}>
+            <Route path="privacy" element={<PrivacyPolicyPage />} />
+            <Route path="cookies" element={<CookiePolicyPage />} />
+            <Route path="terms" element={<TermsOfServicePage />} />
+            <Route path="notice" element={<LegalNoticePage />} />
+          </Route>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="schedule" element={<SchedulePage />} />
