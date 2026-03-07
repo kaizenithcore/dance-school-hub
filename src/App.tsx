@@ -13,6 +13,7 @@ import EnrollmentsPage from "@/pages/admin/EnrollmentsPage";
 import PaymentsPage from "@/pages/admin/PaymentsPage";
 import AnalyticsPage from "@/pages/admin/AnalyticsPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
+import FormBuilderPage from "@/pages/admin/FormBuilderPage";
 import SchoolLandingPage from "@/pages/public/SchoolLandingPage";
 import EnrollPage from "@/pages/public/EnrollPage";
 import FullSchedulePage from "@/pages/public/FullSchedulePage";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="enrollments" element={<EnrollmentsPage />} />
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="form-builder" element={<FormBuilderPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="/s/:schoolSlug" element={<PublicLayout />}>
