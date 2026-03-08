@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
         touchActivity();
-        await refreshAuthContext();
+        void refreshAuthContext();
         if (loginAlertsEnabled) {
           toast.info("Nuevo inicio de sesión detectado");
         }

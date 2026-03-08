@@ -15,6 +15,7 @@ export interface ScheduleBlock {
   room: string;
   color: string;
   isPersisted?: boolean;
+  isLocked?: boolean;
 }
 
 const COLORS = [
@@ -62,6 +63,9 @@ interface AvailableScheduleClass {
   capacity: number;
   spotsLeft: number;
   duration: number;
+  weeklyFrequency: number;
+  scheduledCount: number;
+  remainingToSchedule: number;
   roomId?: string;
   roomName?: string;
 }
@@ -78,13 +82,13 @@ function toTime(decimalHour: number): string {
 }
 
 function signature(block: ScheduleBlock): string {
-  return [block.classId, block.roomId, block.day, block.startHour, block.duration].join("|");
+  return [block.classId, block.roomId, block.day, block.startHour, block.duration, block.isLocked ? "1" : "0"].join("|");
 }
 
 export function useScheduleEditor() {
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [availableClasses, setAvailableClasses] = useState<AvailableScheduleClass[]>([]);
+  const [classCatalog, setClassCatalog] = useState<AvailableScheduleClass[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [deletedPersistedIds, setDeletedPersistedIds] = useState<string[]>([]);
@@ -128,6 +132,7 @@ export function useScheduleEditor() {
           room: schedule.roomName || room?.name || "Sin aula",
           color: COLORS[index % COLORS.length],
           isPersisted: true,
+          isLocked: Boolean(schedule.is_locked),
         };
       });
 
@@ -140,6 +145,9 @@ export function useScheduleEditor() {
           capacity: klass.capacity,
           spotsLeft: klass.capacity,
           duration: 1.5,
+          weeklyFrequency: Math.max(klass.weeklyFrequency || 1, 1),
+          scheduledCount: 0,
+          remainingToSchedule: Math.max(klass.weeklyFrequency || 1, 1),
           roomId: klass.roomId || activeRooms[0]?.id,
           roomName: (klass.roomId ? roomById.get(klass.roomId)?.name : activeRooms[0]?.name) || "Sin aula",
         }));
@@ -157,7 +165,7 @@ export function useScheduleEditor() {
       effectiveFromByIdRef.current = effectiveFrom;
       setDeletedPersistedIds([]);
       setRooms(activeRooms);
-      setAvailableClasses(mappedClasses);
+      setClassCatalog(mappedClasses);
       setBlocks(mappedBlocks);
     } catch (error) {
       console.error("Error loading schedule editor data:", error);
@@ -174,16 +182,35 @@ export function useScheduleEditor() {
     ? blocks
     : blocks.filter((b) => b.roomId === selectedRoom);
 
+  const availableClasses = classCatalog.map((klass) => {
+    const scheduledCount = blocks.filter((block) => block.classId === klass.id).length;
+    const weeklyFrequency = Math.max(klass.weeklyFrequency || 1, 1);
+    const remainingToSchedule = Math.max(weeklyFrequency - scheduledCount, 0);
+
+    return {
+      ...klass,
+      weeklyFrequency,
+      scheduledCount,
+      remainingToSchedule,
+    };
+  });
+
   const addBlock = useCallback((block: Omit<ScheduleBlock, "id" | "color">) => {
-    setBlocks((prev) => [
-      ...prev,
-      { ...block, id: `tmp-${Date.now()}`, color: nextColor(), isPersisted: false },
-    ]);
-  }, []);
+    setBlocks((prev) => {
+      const target = Math.max(classCatalog.find((klass) => klass.id === block.classId)?.weeklyFrequency || 1, 1);
+      const current = prev.filter((item) => item.classId === block.classId).length;
+
+      if (current >= target) {
+        return prev;
+      }
+
+      return [...prev, { ...block, id: `tmp-${Date.now()}`, color: nextColor(), isPersisted: false }];
+    });
+  }, [classCatalog]);
 
   const moveBlock = useCallback((blockId: string, day: string, startHour: number) => {
     setBlocks((prev) =>
-      prev.map((b) => (b.id === blockId ? { ...b, day, startHour } : b))
+      prev.map((b) => (b.id === blockId ? (b.isLocked ? b : { ...b, day, startHour }) : b))
     );
   }, []);
 
@@ -196,11 +223,20 @@ export function useScheduleEditor() {
   const removeBlock = useCallback((blockId: string) => {
     setBlocks((prev) => {
       const found = prev.find((b) => b.id === blockId);
+      if (found?.isLocked) {
+        return prev;
+      }
       if (found?.isPersisted) {
         setDeletedPersistedIds((ids) => Array.from(new Set([...ids, blockId])));
       }
       return prev.filter((b) => b.id !== blockId);
     });
+  }, []);
+
+  const toggleLock = useCallback((blockId: string) => {
+    setBlocks((prev) =>
+      prev.map((b) => (b.id === blockId ? { ...b, isLocked: !b.isLocked } : b))
+    );
   }, []);
 
   const updateBlockRoom = useCallback((blockId: string, roomId: string, roomName: string) => {
@@ -234,6 +270,7 @@ export function useScheduleEditor() {
         endTime: toTime(block.startHour + block.duration),
         effectiveFrom: new Date().toISOString().split("T")[0],
         isActive: true,
+        isLocked: block.isLocked ?? false,
       }));
 
     const updates = blocks
@@ -249,6 +286,7 @@ export function useScheduleEditor() {
         effectiveFrom:
           effectiveFromByIdRef.current[block.id] || new Date().toISOString().split("T")[0],
         isActive: true,
+        isLocked: block.isLocked ?? false,
       }));
 
     const deletes = Array.from(new Set(deletedPersistedIds));
@@ -283,6 +321,7 @@ export function useScheduleEditor() {
     resizeBlock,
     removeBlock,
     updateBlockRoom,
+    toggleLock,
     hasConflict,
     saveChanges,
   };

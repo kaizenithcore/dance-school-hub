@@ -2,12 +2,18 @@ export interface ClassRecord {
   id: string;
   name: string;
   teacher: string;
+  teacherId?: string;
   discipline: string;
+  disciplineId?: string;
   category: string;
+  categoryId?: string;
   price: number;
   capacity: number;
+  weeklyFrequency?: number;
+  scheduledCount?: number;
   enrolled: number;
   room: string;
+  roomId?: string;
   status: "active" | "inactive" | "draft";
 }
 

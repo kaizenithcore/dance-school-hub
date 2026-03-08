@@ -11,6 +11,7 @@ export interface ClassSchedule {
   effective_from: string;
   effective_to?: string;
   is_active: boolean;
+  is_locked?: boolean;
   recurrence?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -30,6 +31,7 @@ export interface CreateScheduleRequest {
   effectiveFrom: string;
   effectiveTo?: string;
   isActive?: boolean;
+  isLocked?: boolean;
 }
 
 export interface UpdateScheduleRequest {
@@ -41,6 +43,7 @@ export interface UpdateScheduleRequest {
   effectiveFrom?: string;
   effectiveTo?: string;
   isActive?: boolean;
+  isLocked?: boolean;
 }
 
 export interface BatchScheduleOperation {
@@ -96,6 +99,35 @@ export interface ScheduleInsightsResult {
     avgRoomUtilizationPct: number;
   };
   alerts: ScheduleInsight[];
+}
+
+export interface ScheduleProposalCreateOperation {
+  classId: string;
+  roomId: string;
+  weekday: number;
+  startTime: string;
+  endTime: string;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  isActive: boolean;
+}
+
+export interface ScheduleProposal {
+  id: string;
+  label: "A" | "B" | "C";
+  strategy: string;
+  score: number;
+  summary: {
+    requestedSessions: number;
+    plannedSessions: number;
+    unplannedSessions: number;
+  };
+  creates: ScheduleProposalCreateOperation[];
+}
+
+export interface ScheduleProposalsResponse {
+  generatedAt: string;
+  proposals: ScheduleProposal[];
 }
 
 export async function getSchedules(query?: ListSchedulesQuery): Promise<ScheduleWithRelations[]> {
@@ -179,5 +211,42 @@ export async function getPublicSchedule(
 
 export async function getScheduleInsights(): Promise<ScheduleInsightsResult | null> {
   const response = await apiRequest<ScheduleInsightsResult>("/api/admin/schedule/insights");
+  return response.success ? response.data || null : null;
+}
+
+export async function generateScheduleProposals(): Promise<ScheduleProposalsResponse | null> {
+  const response = await apiRequest<ScheduleProposalsResponse>("/api/admin/schedule/proposals/generate", {
+    method: "POST",
+    body: JSON.stringify({ includeExisting: true }),
+  });
+
+  return response.success ? response.data || null : null;
+}
+
+export async function applyScheduleProposal(proposal: ScheduleProposal): Promise<{
+  proposalId: string;
+  result: {
+    created: ScheduleWithRelations[];
+    updated: ScheduleWithRelations[];
+    deleted: string[];
+    errors: Array<{ operation: string; error: string }>;
+  };
+} | null> {
+  const response = await apiRequest<{
+    proposalId: string;
+    result: {
+      created: ScheduleWithRelations[];
+      updated: ScheduleWithRelations[];
+      deleted: string[];
+      errors: Array<{ operation: string; error: string }>;
+    };
+  }>("/api/admin/schedule/proposals/apply", {
+    method: "POST",
+    body: JSON.stringify({
+      proposalId: proposal.id,
+      creates: proposal.creates,
+    }),
+  });
+
   return response.success ? response.data || null : null;
 }

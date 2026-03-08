@@ -10,6 +10,7 @@ const baseScheduleInput = {
   effectiveFrom: z.string().date("Formato de fecha inválido"),
   effectiveTo: z.string().date("Formato de fecha inválido").optional(),
   isActive: z.boolean().default(true),
+  isLocked: z.boolean().optional(),
 };
 
 // Create schedule
@@ -38,6 +39,7 @@ export const updateScheduleSchema = z
     effectiveFrom: z.string().date().optional(),
     effectiveTo: z.string().date().optional(),
     isActive: z.boolean().optional(),
+    isLocked: z.boolean().optional(),
   })
   .refine((data) => !data.startTime || !data.endTime || data.startTime < data.endTime, {
     message: "La hora de fin debe ser posterior a la hora de inicio",

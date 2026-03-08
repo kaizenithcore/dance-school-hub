@@ -34,9 +34,19 @@ export async function resolveAccessToken(): Promise<string | null> {
   try {
     const raw = window.localStorage.getItem(key);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { access_token?: string };
-    if (parsed.access_token) {
-      return parsed.access_token;
+    const parsed = JSON.parse(raw) as {
+      access_token?: string;
+      currentSession?: { access_token?: string };
+      session?: { access_token?: string };
+    };
+
+    const token =
+      parsed.access_token
+      || parsed.currentSession?.access_token
+      || parsed.session?.access_token;
+
+    if (token) {
+      return token;
     }
 
     const {
@@ -57,13 +67,15 @@ export async function apiRequest<T>(
 ): Promise<ApiResponse<T>> {
   const accessToken = await resolveAccessToken();
 
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...options.headers,
-  };
+  const headers = new Headers(options.headers || undefined);
+
+  // Only set JSON content type when the request has a body.
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   if (accessToken) {
-    headers["Authorization"] = `Bearer ${accessToken}`;
+    headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
   try {

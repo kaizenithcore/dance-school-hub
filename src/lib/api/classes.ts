@@ -4,12 +4,15 @@ interface ClassApiModel {
   id: string;
   tenant_id: string;
   name: string;
-  discipline: string;
-  category: string | null;
+  discipline_id?: string | null;
+  category_id?: string | null;
+  discipline?: string;
+  category?: string | null;
   description: string | null;
   teacher_id: string | null;
   room_id: string | null;
   capacity: number;
+  weekly_frequency?: number;
   price_cents: number;
   status: "active" | "inactive" | "draft";
   created_by: string | null;
@@ -27,6 +30,7 @@ export interface ClassWithRelations {
   teacherId: string | null;
   roomId: string | null;
   capacity: number;
+  weeklyFrequency: number;
   price: number;
   status: "active" | "inactive" | "draft";
   createdAt: string;
@@ -42,6 +46,7 @@ export interface CreateClassRequest {
   teacher_id?: string;
   room_id?: string;
   capacity: number;
+  weeklyFrequency?: number;
   price: number;
   status?: "active" | "inactive" | "draft";
 }
@@ -54,6 +59,7 @@ export interface UpdateClassRequest {
   teacher_id?: string;
   room_id?: string;
   capacity?: number;
+  weeklyFrequency?: number;
   price?: number;
   status?: "active" | "inactive" | "draft";
 }
@@ -63,12 +69,13 @@ function mapClassFromApi(item: ClassApiModel): ClassWithRelations {
     id: item.id,
     tenantId: item.tenant_id,
     name: item.name,
-    discipline: item.discipline_id || "",
-    category: item.category_id || "",
+    discipline: item.discipline_id || item.discipline || "",
+    category: item.category_id || item.category || "",
     description: item.description,
     teacherId: item.teacher_id,
     roomId: item.room_id,
     capacity: item.capacity,
+    weeklyFrequency: item.weekly_frequency ?? 1,
     price: Math.round(item.price_cents / 100),
     status: item.status,
     createdAt: item.created_at,
@@ -86,6 +93,7 @@ function mapClassCreateToApi(data: CreateClassRequest) {
     teacher_id: data.teacher_id ?? null,
     room_id: data.room_id ?? null,
     capacity: data.capacity,
+    weekly_frequency: data.weeklyFrequency ?? 1,
     price_cents: Math.round(data.price * 100),
     status: data.status ?? "active",
   };
@@ -100,6 +108,7 @@ function mapClassUpdateToApi(data: UpdateClassRequest) {
     ...(data.teacher_id !== undefined ? { teacher_id: data.teacher_id } : {}),
     ...(data.room_id !== undefined ? { room_id: data.room_id } : {}),
     ...(data.capacity !== undefined ? { capacity: data.capacity } : {}),
+    ...(data.weeklyFrequency !== undefined ? { weekly_frequency: data.weeklyFrequency } : {}),
     ...(data.price !== undefined ? { price_cents: Math.round(data.price * 100) } : {}),
     ...(data.status !== undefined ? { status: data.status } : {}),
   };

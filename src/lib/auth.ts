@@ -22,6 +22,25 @@ export interface AuthResult {
   context?: AuthContextResponse;
 }
 
+const AUTH_CONTEXT_TIMEOUT_MS = 10000;
+
+async function getAuthContextWithTimeout(): Promise<Awaited<ReturnType<typeof getAuthContext>>> {
+  return Promise.race([
+    getAuthContext(),
+    new Promise((resolve) => {
+      window.setTimeout(() => {
+        resolve({
+          success: false,
+          error: {
+            code: "timeout",
+            message: "No se pudo validar la sesión a tiempo.",
+          },
+        });
+      }, AUTH_CONTEXT_TIMEOUT_MS);
+    }),
+  ]) as Awaited<ReturnType<typeof getAuthContext>>;
+}
+
 /**
  * Generates a URL-friendly slug from school name
  */
@@ -90,7 +109,7 @@ export async function login(credentials: LoginCredentials): Promise<AuthResult> 
     }
 
     // Fetch tenant context from backend
-    const contextResult = await getAuthContext();
+    const contextResult = await getAuthContextWithTimeout();
 
     if (!contextResult.success || !contextResult.data) {
       // Auth succeeded but no tenant membership found

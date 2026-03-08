@@ -12,6 +12,7 @@ interface CalendarGridProps {
   onMoveBlock: (blockId: string, day: string, startHour: number) => void;
   onAddBlock: (block: Omit<ScheduleBlock, "id" | "color">) => void;
   onRemoveBlock: (blockId: string) => void;
+  onToggleLock: (blockId: string) => void;
   hasConflict: (blockId: string, day: string, startHour: number, duration: number, roomId: string) => boolean;
   selectedRoom: string;
   defaultRoomId?: string;
@@ -25,6 +26,7 @@ export function CalendarGrid({
   onMoveBlock,
   onAddBlock,
   onRemoveBlock,
+  onToggleLock,
   hasConflict,
   selectedRoom,
   defaultRoomId,
@@ -70,6 +72,10 @@ export function CalendarGrid({
             room: blockRoomName,
           });
         } else if (data.type === "move") {
+          const draggedBlock = blocks.find((block) => block.id === data.blockId);
+          if (draggedBlock?.isLocked) {
+            return;
+          }
           onMoveBlock(data.blockId, day, hour);
         }
       } catch {
@@ -142,6 +148,7 @@ export function CalendarGrid({
                           <ClassBlock
                             block={block}
                             onRemove={() => onRemoveBlock(block.id)}
+                            onToggleLock={() => onToggleLock(block.id)}
                             onDragStart={() => {}}
                             conflict={conflict}
                             pixelsPerHour={PIXELS_PER_HOUR}

@@ -18,6 +18,7 @@ export interface ClassSchedule {
   effective_from: string;
   effective_to: string | null;
   is_active: boolean;
+  is_locked: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -243,6 +244,7 @@ export const scheduleService = {
           effective_from: input.effectiveFrom,
           effective_to: input.effectiveTo || null,
           is_active: input.isActive ?? true,
+          is_locked: input.isLocked ?? false,
         },
       ])
       .select()
@@ -299,6 +301,7 @@ export const scheduleService = {
     if (input.effectiveFrom) updateData.effective_from = input.effectiveFrom;
     if (input.effectiveTo !== undefined) updateData.effective_to = input.effectiveTo;
     if (input.isActive !== undefined) updateData.is_active = input.isActive;
+    if (input.isLocked !== undefined) updateData.is_locked = input.isLocked;
 
     const { data, error } = await supabaseAdmin
       .from("class_schedules")

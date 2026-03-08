@@ -27,6 +27,7 @@ const EMPTY: Omit<ClassRecord, "id" | "enrolled"> = {
   category: "",
   price: 0,
   capacity: 15,
+  weeklyFrequency: 1,
   room: "Sala A",
   status: "draft",
 };
@@ -70,7 +71,13 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
   useEffect(() => {
     if (classData) {
       const { id, enrolled, ...rest } = classData;
-      setForm(rest);
+      setForm({
+        ...rest,
+        teacher: classData.teacherId || classData.teacher,
+        discipline: classData.disciplineId || classData.discipline,
+        category: classData.categoryId || classData.category,
+        room: classData.roomId || classData.room,
+      });
     } else {
       setForm(EMPTY);
     }
@@ -90,6 +97,7 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
     if (!form.category) e.category = "Obligatorio";
     if (form.price <= 0) e.price = "Debe ser mayor a 0";
     if (form.capacity <= 0) e.capacity = "Debe ser mayor a 0";
+    if ((form.weeklyFrequency || 0) <= 0) e.weeklyFrequency = "Debe ser mayor a 0";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -142,6 +150,7 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
         discipline_id: form.discipline,
         category_id: form.category,
         teacher_id: form.teacher,
+        weeklyFrequency: form.weeklyFrequency || 1,
       };
       const ok = await onSave(dataToSave as any);
       if (ok) {
@@ -242,7 +251,7 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div className="space-y-1.5">
               <Label className="text-sm">Precio ($) *</Label>
               <Input type="number" value={form.price} onChange={(e) => set("price", Number(e.target.value))} className={errors.price ? "border-destructive" : ""} />
@@ -252,6 +261,17 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
               <Label className="text-sm">Capacidad *</Label>
               <Input type="number" value={form.capacity} onChange={(e) => set("capacity", Number(e.target.value))} className={errors.capacity ? "border-destructive" : ""} />
               {errors.capacity && <p className="text-xs text-destructive">{errors.capacity}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Clases/semana *</Label>
+              <Input
+                type="number"
+                min={1}
+                value={form.weeklyFrequency || 1}
+                onChange={(e) => set("weeklyFrequency", Math.max(1, Number(e.target.value || 1)))}
+                className={errors.weeklyFrequency ? "border-destructive" : ""}
+              />
+              {errors.weeklyFrequency && <p className="text-xs text-destructive">{errors.weeklyFrequency}</p>}
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Estado</Label>

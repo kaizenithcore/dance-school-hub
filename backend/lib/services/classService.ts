@@ -10,6 +10,7 @@ export interface Class {
   teacher_id: string | null;
   room_id: string | null;
   capacity: number;
+  weekly_frequency: number;
   price_cents: number;
   description: string | null;
   status: string;
@@ -66,6 +67,7 @@ export const classService = {
         teacher_id: input.teacher_id ?? null,
         room_id: input.room_id ?? null,
         capacity: input.capacity,
+        weekly_frequency: input.weekly_frequency ?? 1,
         price_cents: input.price_cents,
         description: input.description ?? null,
         status: input.status ?? "active",
@@ -95,6 +97,7 @@ export const classService = {
         teacher_id: input.teacher_id,
         room_id: input.room_id,
         capacity: input.capacity,
+        weekly_frequency: input.weekly_frequency,
         price_cents: input.price_cents,
         description: input.description,
         status: input.status,

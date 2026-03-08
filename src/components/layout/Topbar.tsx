@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Bell, CheckCheck, Clock3, CreditCard, KeyRound, LogOut, Search, Settings2, ShieldCheck, User } from "lucide-react";
+import { AlertTriangle, Bell, CheckCheck, Clock3, ExternalLink, LogOut, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -12,13 +12,9 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStudents } from "@/lib/api/students";
 import { getClasses } from "@/lib/api/classes";
 import { getEnrollments } from "@/lib/api/enrollments";
@@ -26,10 +22,8 @@ import { getPayments } from "@/lib/api/payments";
 import { getTeachers } from "@/lib/api/teachers";
 import { getRooms } from "@/lib/api/rooms";
 import { getSchoolSettings } from "@/lib/api/settings";
-import { getCurrentAuthContext, logout } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
-import type { AuthContextResponse } from "@/lib/api/auth";
-import { validateStrongPassword } from "@/lib/security";
+import { logout } from "@/lib/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -60,20 +54,14 @@ interface NotificationItem {
   read: boolean;
 }
 
-interface SecurityRuntimeSettings {
-  requireStrongPassword: boolean;
-  allowTwoFactor: boolean;
-  sessionTimeoutMinutes: string;
-  loginAlerts: boolean;
-}
-
-interface BillingRuntimeSettings {
-  planType: string;
-}
-
 interface NotificationsRuntimeSettings {
   emailNewEnrollment: boolean;
   emailPaymentOverdue: boolean;
+}
+
+interface SchoolIdentity {
+  name: string;
+  slug: string;
 }
 
 const NOTIFICATION_READ_STORAGE_KEY = "dance-school-hub.notifications.read";
@@ -108,53 +96,31 @@ export function Topbar({ title }: TopbarProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(new Set());
   const [loadedOnce, setLoadedOnce] = useState(false);
-  const [authContext, setAuthContext] = useState<AuthContextResponse | null>(null);
   const [signingOut, setSigningOut] = useState(false);
-  const [updatingPassword, setUpdatingPassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [securitySettings, setSecuritySettings] = useState<SecurityRuntimeSettings>({
-    requireStrongPassword: true,
-    allowTwoFactor: false,
-    sessionTimeoutMinutes: "120",
-    loginAlerts: true,
-  });
-  const [billingSettings, setBillingSettings] = useState<BillingRuntimeSettings>({
-    planType: "starter",
-  });
   const [notificationSettings, setNotificationSettings] = useState<NotificationsRuntimeSettings>({
     emailNewEnrollment: true,
     emailPaymentOverdue: true,
   });
-
-  const loadAuthContext = useCallback(async () => {
-    try {
-      const context = await getCurrentAuthContext();
-      setAuthContext(context);
-    } catch {
-      setAuthContext(null);
-    }
-  }, []);
+  const [schoolIdentity, setSchoolIdentity] = useState<SchoolIdentity | null>(null);
+  const { authContext } = useAuth();
 
   const loadRuntimeSettings = useCallback(async () => {
     try {
       const settings = await getSchoolSettings();
-      const security = (settings?.security || {}) as Partial<SecurityRuntimeSettings>;
-      const billing = (settings?.billing || {}) as Partial<BillingRuntimeSettings>;
+      if (settings?.school?.slug) {
+        setSchoolIdentity({
+          name: settings.school.name,
+          slug: settings.school.slug,
+        });
+      }
       const notifications = (settings?.notifications || {}) as Partial<NotificationsRuntimeSettings>;
 
-      setSecuritySettings((prev) => ({ ...prev, ...security }));
-      setBillingSettings((prev) => ({ ...prev, ...billing }));
       setNotificationSettings((prev) => ({ ...prev, ...notifications }));
     } catch {
+      setSchoolIdentity(null);
       // Keep defaults on runtime settings if settings fetch fails
     }
   }, []);
-
-  useEffect(() => {
-    void loadAuthContext();
-  }, [loadAuthContext]);
 
   useEffect(() => {
     void loadRuntimeSettings();
@@ -489,10 +455,32 @@ export function Topbar({ title }: TopbarProps) {
     return "Sin rol";
   }, [authContext]);
 
-  const handleOpenSettings = useCallback(() => {
-    setOpenProfile(false);
-    navigate("/admin/settings");
-  }, [navigate]);
+  const schoolName = useMemo(
+    () => activeMembership?.tenantName || schoolIdentity?.name || title || "Escuela",
+    [activeMembership?.tenantName, schoolIdentity?.name, title]
+  );
+
+  const schoolSlug = useMemo(
+    () => activeMembership?.tenantSlug || schoolIdentity?.slug || null,
+    [activeMembership?.tenantSlug, schoolIdentity?.slug]
+  );
+
+  const publicSchoolUrl = useMemo(() => {
+    if (!schoolSlug) {
+      return null;
+    }
+
+    return `${window.location.origin}/s/${schoolSlug}`;
+  }, [schoolSlug]);
+
+  const handleOpenPublicSchool = useCallback(() => {
+    if (!publicSchoolUrl) {
+      toast.error("No se encontró un slug público para esta escuela");
+      return;
+    }
+
+    window.location.assign(publicSchoolUrl);
+  }, [publicSchoolUrl]);
 
   const handleSignOut = useCallback(async () => {
     if (signingOut) {
@@ -512,79 +500,28 @@ export function Topbar({ title }: TopbarProps) {
     }
   }, [navigate, signingOut]);
 
-  const handleUpdatePassword = useCallback(async () => {
-    if (updatingPassword) {
-      return;
-    }
-
-    if (!currentPassword.trim()) {
-      toast.error("Introduce tu contraseña actual");
-      return;
-    }
-
-    if (!newPassword || !confirmPassword) {
-      toast.error("Completa los campos de nueva contraseña");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast.error("La confirmación no coincide");
-      return;
-    }
-
-    if (securitySettings.requireStrongPassword) {
-      const policy = validateStrongPassword(newPassword);
-      if (!policy.valid) {
-        toast.error(`Contraseña insegura: ${policy.errors[0]}`);
-        return;
-      }
-    } else if (newPassword.length < 8) {
-      toast.error("La contraseña debe tener al menos 8 caracteres");
-      return;
-    }
-
-    setUpdatingPassword(true);
-    try {
-      const signInResult = await supabase.auth.signInWithPassword({
-        email: authContext?.user.email || "",
-        password: currentPassword,
-      });
-
-      if (signInResult.error) {
-        toast.error("La contraseña actual es incorrecta");
-        return;
-      }
-
-      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-      if (updateError) {
-        toast.error(updateError.message || "No se pudo actualizar la contraseña");
-        return;
-      }
-
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      toast.success("Contraseña actualizada correctamente");
-    } catch {
-      toast.error("No se pudo actualizar la contraseña");
-    } finally {
-      setUpdatingPassword(false);
-    }
-  }, [authContext?.user.email, confirmPassword, currentPassword, newPassword, securitySettings.requireStrongPassword, updatingPassword]);
-
-  const planLabel = useMemo(() => {
-    if (billingSettings.planType === "enterprise") return "Enterprise";
-    if (billingSettings.planType === "pro") return "Pro";
-    return "Starter";
-  }, [billingSettings.planType]);
-
   return (
     <>
       <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          {title && (
-            <h1 className="text-lg font-semibold text-foreground">{title}</h1>
-          )}
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="min-w-0 rounded-md px-2 py-1 text-left">
+            <p className="truncate text-sm font-semibold text-foreground">{schoolName}</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {schoolSlug ? `/s/${schoolSlug}` : "Slug público no disponible"}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={handleOpenPublicSchool}
+            disabled={!publicSchoolUrl}
+            title={publicSchoolUrl ? "Abrir página pública" : "Slug público no disponible"}
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Ver página pública
+          </Button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -663,8 +600,8 @@ export function Topbar({ title }: TopbarProps) {
               </ScrollArea>
             </PopoverContent>
           </Popover>
-          <Dialog open={openProfile} onOpenChange={setOpenProfile}>
-            <DialogTrigger asChild>
+          <Popover open={openProfile} onOpenChange={setOpenProfile}>
+            <PopoverTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
@@ -673,145 +610,22 @@ export function Topbar({ title }: TopbarProps) {
               >
                 <User className="h-4 w-4" />
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[620px]">
-              <DialogHeader>
-                <DialogTitle>Perfil y cuenta</DialogTitle>
-                <DialogDescription>
-                  Gestiona tu cuenta, seguridad y plan de forma sencilla.
-                </DialogDescription>
-              </DialogHeader>
-
-              <Tabs defaultValue="account" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="account">Cuenta</TabsTrigger>
-                  <TabsTrigger value="security">Seguridad</TabsTrigger>
-                  <TabsTrigger value="billing">Plan</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="account" className="space-y-4 pt-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-email">Email</Label>
-                      <Input
-                        id="profile-email"
-                        value={authContext?.user.email || "Sin correo"}
-                        readOnly
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-role">Rol</Label>
-                      <Input id="profile-role" value={roleLabel} readOnly />
-                    </div>
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="profile-tenant">Escuela</Label>
-                      <Input
-                        id="profile-tenant"
-                        value={activeMembership?.tenantName || "Sin escuela"}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
-                    Próximamente podrás gestionar nombre visible, foto y preferencias desde esta sección.
-                  </div>
-                  <Button type="button" variant="outline" onClick={handleOpenSettings}>
-                    <Settings2 className="mr-2 h-4 w-4" />
-                    Abrir ajustes de cuenta
-                  </Button>
-                </TabsContent>
-
-                <TabsContent value="security" className="space-y-4 pt-4">
-                  <div className="grid gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="current-password">Contraseña actual</Label>
-                      <Input
-                        id="current-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={currentPassword}
-                        onChange={(event) => setCurrentPassword(event.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="new-password">Nueva contraseña</Label>
-                      <Input
-                        id="new-password"
-                        type="password"
-                        placeholder={securitySettings.requireStrongPassword ? "8+ caracteres, mayúscula, número y símbolo" : "Mínimo 8 caracteres"}
-                        value={newPassword}
-                        onChange={(event) => setNewPassword(event.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="confirm-password">Confirmar nueva contraseña</Label>
-                      <Input
-                        id="confirm-password"
-                        type="password"
-                        placeholder="Repite la contraseña"
-                        value={confirmPassword}
-                        onChange={(event) => setConfirmPassword(event.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-                    Política activa: {securitySettings.requireStrongPassword ? "contraseña fuerte requerida" : "mínimo 8 caracteres"}. Timeout de sesión: {securitySettings.sessionTimeoutMinutes} min.
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" onClick={() => void handleUpdatePassword()} disabled={updatingPassword}>
-                      <KeyRound className="mr-2 h-4 w-4" />
-                      {updatingPassword ? "Actualizando..." : "Actualizar contraseña"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={!securitySettings.allowTwoFactor}
-                      onClick={() => toast.info("2FA habilitado. Configúralo desde el proveedor de autenticación (Supabase MFA)")}
-                    >
-                      <ShieldCheck className="mr-2 h-4 w-4" />
-                      {securitySettings.allowTwoFactor ? "Configurar doble factor" : "2FA deshabilitado por política"}
-                    </Button>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="billing" className="space-y-4 pt-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-lg border border-border p-3">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Plan actual</p>
-                      <p className="mt-1 text-base font-semibold text-foreground">{planLabel}</p>
-                      <p className="text-xs text-muted-foreground">Sin límites definidos todavía. Valor usado para reglas futuras.</p>
-                    </div>
-                    <div className="rounded-lg border border-border p-3">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Fuente</p>
-                      <p className="mt-1 text-base font-semibold text-foreground">Configuración de escuela</p>
-                      <p className="text-xs text-muted-foreground">Puedes cambiarlo en la pestaña Billing de Configuración.</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" onClick={handleOpenSettings}>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Gestionar plan
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={() => navigate("/admin/payments") }>
-                      Ver pagos
-                    </Button>
-                  </div>
-                </TabsContent>
-              </Tabs>
-
-              <Separator />
-
-              <div className="flex items-center justify-end gap-2">
-                <Button type="button" variant="ghost" onClick={() => setOpenProfile(false)}>
-                  Cerrar
+            </PopoverTrigger>
+            <PopoverContent align="end" sideOffset={8} className="w-72 p-3">
+              <p className="text-sm font-semibold text-foreground">Sesión</p>
+              <p className="mt-1 text-xs text-muted-foreground">{authContext?.user.email || "Sin correo"}</p>
+              <p className="text-xs text-muted-foreground">{activeMembership?.tenantName || "Sin escuela"} · {roleLabel}</p>
+              <div className="mt-3 flex items-center justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setOpenProfile(false)}>
+                  Cancelar
                 </Button>
                 <Button type="button" variant="destructive" onClick={handleSignOut} disabled={signingOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   {signingOut ? "Cerrando sesión..." : "Cerrar sesión"}
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
+            </PopoverContent>
+          </Popover>
         </div>
       </header>
 

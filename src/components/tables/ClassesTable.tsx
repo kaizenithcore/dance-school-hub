@@ -81,6 +81,7 @@ export function ClassesTable({ classes, onPreview, onEdit, onDelete }: ClassesTa
               <TableHead className="text-xs">Profesor</TableHead>
               <TableHead className="text-xs hidden md:table-cell">Disciplina</TableHead>
               <TableHead className="text-xs hidden lg:table-cell">Categoría</TableHead>
+              <TableHead className="text-xs text-center">Frecuencia</TableHead>
               <TableHead className="text-xs text-right">Precio</TableHead>
               <TableHead className="text-xs text-center hidden sm:table-cell">Ocupación</TableHead>
               <TableHead className="text-xs text-center">Estado</TableHead>
@@ -90,7 +91,7 @@ export function ClassesTable({ classes, onPreview, onEdit, onDelete }: ClassesTa
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={9}>
                   <EmptyState type={search || statusFilter !== "all" ? "search" : "classes"} />
                 </TableCell>
               </TableRow>
@@ -98,6 +99,9 @@ export function ClassesTable({ classes, onPreview, onEdit, onDelete }: ClassesTa
               paginated.map((cls) => {
                 const status = STATUS_MAP[cls.status];
                 const occupancy = cls.capacity > 0 ? Math.round((cls.enrolled / cls.capacity) * 100) : 0;
+                const targetFrequency = Math.max(cls.weeklyFrequency || 1, 1);
+                const scheduled = cls.scheduledCount || 0;
+                const remaining = Math.max(targetFrequency - scheduled, 0);
                 return (
                   <TableRow key={cls.id}>
                     <TableCell>
@@ -109,6 +113,23 @@ export function ClassesTable({ classes, onPreview, onEdit, onDelete }: ClassesTa
                     <TableCell className="text-sm text-muted-foreground">{cls.teacher}</TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{cls.discipline}</TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{cls.category}</TableCell>
+                    <TableCell className="text-center">
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5">
+                        <span className="text-xs font-medium text-foreground">{scheduled}/{targetFrequency}</span>
+                        <span
+                          className={cn(
+                            "text-[10px]",
+                            scheduled > targetFrequency
+                              ? "text-destructive"
+                              : remaining === 0
+                                ? "text-success"
+                                : "text-warning"
+                          )}
+                        >
+                          {scheduled > targetFrequency ? "exceso" : remaining === 0 ? "ok" : `faltan ${remaining}`}
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-sm font-medium text-foreground text-right">€{cls.price}</TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center justify-center gap-1.5">

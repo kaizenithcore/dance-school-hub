@@ -9,6 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { login } from "@/lib/auth";
 
+const LOGIN_WELCOME_KEY = "dancehub:welcome-overlay-until";
+const LOGIN_WELCOME_DURATION_MS = 2000;
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -29,6 +32,10 @@ export default function LoginPage() {
       const result = await login({ email, password });
 
       if (result.success) {
+        window.sessionStorage.setItem(
+          LOGIN_WELCOME_KEY,
+          String(Date.now() + LOGIN_WELCOME_DURATION_MS)
+        );
         toast.success("Inicio de sesión exitoso. Bienvenido!");
         navigate("/admin");
       } else {

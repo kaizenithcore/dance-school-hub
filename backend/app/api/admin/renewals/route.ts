@@ -25,11 +25,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const enabled = await renewalService.isRenewalEnabled(auth.context.tenantId);
-    if (!enabled) {
-      return fail({ code: "feature_disabled", message: "Renewals feature is not enabled" }, 403, origin);
-    }
-
     const campaigns = await renewalService.listCampaigns(auth.context.tenantId);
     return ok(campaigns, 200, origin);
   } catch (error) {
@@ -51,11 +46,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const enabled = await renewalService.isRenewalEnabled(auth.context.tenantId);
-    if (!enabled) {
-      return fail({ code: "feature_disabled", message: "Renewals feature is not enabled" }, 403, origin);
-    }
-
     const body = await request.json();
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     const fromPeriod = typeof body?.fromPeriod === "string" ? body.fromPeriod : "";

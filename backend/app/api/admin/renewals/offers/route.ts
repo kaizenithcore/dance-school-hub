@@ -25,11 +25,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const enabled = await renewalService.isRenewalEnabled(auth.context.tenantId);
-    if (!enabled) {
-      return fail({ code: "feature_disabled", message: "Renewals feature is not enabled" }, 403, origin);
-    }
-
     const campaignId = request.nextUrl.searchParams.get("campaignId") || "";
     const statusRaw = request.nextUrl.searchParams.get("status");
     const status =
@@ -62,11 +57,6 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    const enabled = await renewalService.isRenewalEnabled(auth.context.tenantId);
-    if (!enabled) {
-      return fail({ code: "feature_disabled", message: "Renewals feature is not enabled" }, 403, origin);
-    }
-
     const body = await request.json();
     const campaignId = typeof body?.campaignId === "string" ? body.campaignId : "";
     const offerId = typeof body?.offerId === "string" ? body.offerId : "";

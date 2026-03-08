@@ -25,11 +25,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const enabled = await courseCloneService.isCourseCloneEnabled(auth.context.tenantId);
-    if (!enabled) {
-      return fail({ code: "feature_disabled", message: "Course clone feature is not enabled" }, 403, origin);
-    }
-
     const jobs = await courseCloneService.listCloneJobs(auth.context.tenantId);
     return ok(jobs, 200, origin);
   } catch (error) {
@@ -51,11 +46,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const enabled = await courseCloneService.isCourseCloneEnabled(auth.context.tenantId);
-    if (!enabled) {
-      return fail({ code: "feature_disabled", message: "Course clone feature is not enabled" }, 403, origin);
-    }
-
     const body = await request.json();
     const action = body?.action === "apply" ? "apply" : "dry_run";
     const sourcePeriod = typeof body?.sourcePeriod === "string" ? body.sourcePeriod : "";

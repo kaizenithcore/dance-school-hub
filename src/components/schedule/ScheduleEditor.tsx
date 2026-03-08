@@ -19,6 +19,7 @@ export function ScheduleEditor() {
     addBlock,
     moveBlock,
     removeBlock,
+    toggleLock,
     hasConflict,
     saveChanges,
   } = useScheduleEditor();
@@ -122,6 +123,7 @@ export function ScheduleEditor() {
             onMoveBlock={moveBlock}
             onAddBlock={addBlock}
             onRemoveBlock={removeBlock}
+            onToggleLock={toggleLock}
             hasConflict={hasConflict}
             selectedRoom={selectedRoom}
             defaultRoomId={defaultRoom?.id}

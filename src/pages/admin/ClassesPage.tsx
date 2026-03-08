@@ -8,6 +8,7 @@ import { ClassRecord } from "@/lib/data/mockClassRecords";
 import { createClass, deleteClass, getClasses, updateClass } from "@/lib/api/classes";
 import { getDisciplines } from "@/lib/api/disciplines";
 import { getCategories } from "@/lib/api/categories";
+import { getSchedules } from "@/lib/api/schedules";
 import { Button } from "@/components/ui/button";
 import { CalendarClock, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -30,25 +31,40 @@ export default function ClassesPage() {
     const loadClasses = async () => {
       setLoading(true);
       try {
-        const [classesData, disciplinesData, categoriesData] = await Promise.all([
+        const [classesData, disciplinesData, categoriesData, schedulesData] = await Promise.all([
           getClasses(),
           getDisciplines(),
           getCategories(),
+          getSchedules(),
         ]);
 
         // Create lookup maps
         const disciplineMap = new Map(disciplinesData.map((d) => [d.id, d.name]));
         const categoryMap = new Map(categoriesData.map((c) => [c.id, c.name]));
 
+        const scheduledByClass = new Map<string, number>();
+        (schedulesData || []).forEach((schedule) => {
+          scheduledByClass.set(
+            schedule.class_id,
+            (scheduledByClass.get(schedule.class_id) || 0) + 1
+          );
+        });
+
         const mappedClasses: ClassRecord[] = (classesData || []).map((cls) => ({
           id: cls.id,
           name: cls.name,
           discipline: cls.discipline ? (disciplineMap.get(cls.discipline) || cls.discipline) : "General",
+          disciplineId: cls.discipline || undefined,
           teacher: cls.teacher?.name || "Sin asignar",
+          teacherId: cls.teacher?.id || cls.teacherId || undefined,
           category: cls.category ? (categoryMap.get(cls.category) || cls.category) : "General",
+          categoryId: cls.category || undefined,
           price: cls.price,
           capacity: cls.capacity,
+          weeklyFrequency: cls.weeklyFrequency || 1,
+          scheduledCount: scheduledByClass.get(cls.id) || 0,
           room: "Sin sala",
+          roomId: cls.roomId || undefined,
           status: cls.status,
           enrolled: 0,
         }));
@@ -95,6 +111,7 @@ export default function ClassesPage() {
           teacher_id: data.teacher_id,
           price: data.price,
           capacity: data.capacity,
+          weeklyFrequency: data.weeklyFrequency || 1,
           status: data.status,
         });
         if (result) {
@@ -115,6 +132,7 @@ export default function ClassesPage() {
           teacher_id: data.teacher_id,
           price: data.price,
           capacity: data.capacity,
+          weeklyFrequency: data.weeklyFrequency || 1,
           status: data.status,
         });
         if (result) {

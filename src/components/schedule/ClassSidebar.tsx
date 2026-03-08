@@ -10,6 +10,9 @@ export interface ClassItem {
   roomName?: string;
   capacity: number;
   spotsLeft: number;
+  weeklyFrequency: number;
+  scheduledCount: number;
+  remainingToSchedule: number;
 }
 
 interface ClassSidebarProps {
@@ -33,15 +36,16 @@ export function ClassSidebar({ classes, defaultRoomId, defaultRoomName, onDragSt
         {classes.map((cls) => {
           const almostFull = cls.spotsLeft <= 3 && cls.spotsLeft > 0;
           const full = cls.spotsLeft === 0;
+          const scheduleComplete = cls.remainingToSchedule <= 0;
           const roomId = cls.roomId || defaultRoomId || "";
           const roomName = cls.roomName || defaultRoomName || "Sin aula";
 
           return (
             <div
               key={cls.id}
-              draggable={!full}
+              draggable={!full && !scheduleComplete}
               onDragStart={(e) => {
-                if (full) return;
+                if (full || scheduleComplete) return;
                 e.dataTransfer.setData("application/json", JSON.stringify({
                   type: "new",
                   classId: cls.id,
@@ -55,12 +59,17 @@ export function ClassSidebar({ classes, defaultRoomId, defaultRoomName, onDragSt
               }}
               className={cn(
                 "flex flex-col gap-1.5 rounded-md border bg-background p-2.5 transition-all select-none",
-                full
+                full || scheduleComplete
                   ? "border-border opacity-50 cursor-not-allowed"
                   : "border-border cursor-grab active:cursor-grabbing hover:border-primary/40 hover:shadow-soft"
               )}
             >
-              <span className="text-xs font-medium text-foreground leading-tight">{cls.name}</span>
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-xs font-medium text-foreground leading-tight">{cls.name}</span>
+                <span className="text-[10px] rounded-full border border-border px-1.5 py-0.5 text-muted-foreground shrink-0">
+                  {cls.scheduledCount}/{cls.weeklyFrequency}
+                </span>
+              </div>
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-0.5">
                   <User className="h-2.5 w-2.5 shrink-0" />{cls.teacher}
@@ -77,10 +86,28 @@ export function ClassSidebar({ classes, defaultRoomId, defaultRoomName, onDragSt
                 <span
                   className={cn(
                     "text-[10px] font-medium",
-                    full ? "text-destructive" : almostFull ? "text-warning" : "text-muted-foreground"
+                    full
+                      ? "text-destructive"
+                      : almostFull
+                        ? "text-warning"
+                        : "text-muted-foreground"
                   )}
                 >
                   {full ? "Completo" : `${cls.spotsLeft}/${cls.capacity} lugares`}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span
+                  className={cn(
+                    "text-[10px] font-medium rounded-full px-1.5 py-0.5",
+                    scheduleComplete
+                      ? "bg-muted text-muted-foreground"
+                      : "bg-amber-100 text-amber-700"
+                  )}
+                >
+                  {scheduleComplete
+                    ? "Completada"
+                    : `Falta ${cls.remainingToSchedule} clase${cls.remainingToSchedule === 1 ? "" : "s"}`}
                 </span>
               </div>
             </div>

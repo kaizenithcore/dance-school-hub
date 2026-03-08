@@ -1,22 +1,27 @@
-import { X, GripVertical, MapPin } from "lucide-react";
+import { X, GripVertical, MapPin, Lock, LockOpen } from "lucide-react";
 import { ScheduleBlock } from "@/hooks/useScheduleEditor";
 import { cn } from "@/lib/utils";
 
 interface ClassBlockProps {
   block: ScheduleBlock;
   onRemove: () => void;
+  onToggleLock: () => void;
   onDragStart: (e: React.DragEvent) => void;
   conflict?: boolean;
   pixelsPerHour: number;
 }
 
-export function ClassBlock({ block, onRemove, onDragStart, conflict, pixelsPerHour }: ClassBlockProps) {
+export function ClassBlock({ block, onRemove, onToggleLock, onDragStart, conflict, pixelsPerHour }: ClassBlockProps) {
   const height = block.duration * pixelsPerHour;
 
   return (
     <div
-      draggable
+      draggable={!block.isLocked}
       onDragStart={(e) => {
+        if (block.isLocked) {
+          e.preventDefault();
+          return;
+        }
         e.dataTransfer.setData("application/json", JSON.stringify({
           type: "move",
           blockId: block.id,
@@ -30,7 +35,8 @@ export function ClassBlock({ block, onRemove, onDragStart, conflict, pixelsPerHo
         borderLeftColor: block.color,
       }}
       className={cn(
-        "absolute left-0.5 right-0.5 rounded-md border border-l-[3px] px-2 py-1.5 cursor-grab active:cursor-grabbing transition-shadow hover:shadow-medium overflow-hidden group z-10",
+        "absolute left-0.5 right-0.5 rounded-md border border-l-[3px] px-2 py-1.5 transition-shadow hover:shadow-medium overflow-hidden group z-10",
+        block.isLocked ? "cursor-default" : "cursor-grab active:cursor-grabbing",
         conflict
           ? "border-destructive bg-destructive/10 ring-1 ring-destructive/30"
           : "border-border"
@@ -45,20 +51,37 @@ export function ClassBlock({ block, onRemove, onDragStart, conflict, pixelsPerHo
             <span>{block.room}</span>
           </div>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onRemove(); }}
-          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0 mt-0.5"
-        >
-          <X className="h-3 w-3" />
-        </button>
+        <div className="flex items-center gap-1 shrink-0 mt-0.5">
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleLock(); }}
+            className={cn(
+              "opacity-0 group-hover:opacity-100 text-muted-foreground transition-all",
+              block.isLocked ? "opacity-100 text-amber-600" : "hover:text-foreground"
+            )}
+            title={block.isLocked ? "Desbloquear bloque" : "Bloquear bloque"}
+          >
+            {block.isLocked ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
+          </button>
+          {!block.isLocked && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemove(); }}
+              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+              title="Eliminar bloque"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       </div>
       {conflict && (
         <p className="text-[9px] font-medium text-destructive mt-1">⚠ Conflicto de horario</p>
       )}
       {/* Resize handle */}
-      <div className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <GripVertical className="h-2.5 w-2.5 text-muted-foreground rotate-90" />
-      </div>
+      {!block.isLocked && (
+        <div className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <GripVertical className="h-2.5 w-2.5 text-muted-foreground rotate-90" />
+        </div>
+      )}
     </div>
   );
 }

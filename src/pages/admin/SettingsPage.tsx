@@ -10,10 +10,14 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, Clock, CreditCard, Bell, Palette, Globe, Save, RotateCcw,
-  Mail, Phone, MapPin, Instagram, Facebook, Music2, ShieldCheck, KeyRound,
+  Mail, Phone, MapPin, Instagram, Facebook, Music2, ShieldCheck, KeyRound, User,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getSchoolSettings, updateSchoolSettings } from "@/lib/api/settings";
+import { getCurrentAuthContext } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { validateStrongPassword } from "@/lib/security";
+import type { AuthContextResponse } from "@/lib/api/auth";
 
 interface SchoolInfo {
   name: string;
@@ -181,6 +185,23 @@ export default function SettingsPage() {
       maxCustomRoles: 0,
     },
   });
+  const [authContext, setAuthContext] = useState<AuthContextResponse | null>(null);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const activeMembership = authContext?.memberships.find(
+    (membership) => membership.tenantId === authContext?.tenant.id
+  ) || authContext?.memberships[0] || null;
+
+  const roleLabel = authContext?.tenant.role === "owner"
+    ? "Propietario"
+    : authContext?.tenant.role === "admin"
+      ? "Administrador"
+      : authContext?.tenant.role === "staff"
+        ? "Staff"
+        : "Sin rol";
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -232,6 +253,77 @@ export default function SettingsPage() {
   useEffect(() => {
     void loadSettings();
   }, [loadSettings]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const context = await getCurrentAuthContext();
+        setAuthContext(context);
+      } catch {
+        setAuthContext(null);
+      }
+    })();
+  }, []);
+
+  const handleUpdatePassword = useCallback(async () => {
+    if (updatingPassword) {
+      return;
+    }
+
+    if (!currentPassword.trim()) {
+      toast.error("Introduce tu contraseña actual");
+      return;
+    }
+
+    if (!newPassword || !confirmPassword) {
+      toast.error("Completa los campos de nueva contraseña");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("La confirmación no coincide");
+      return;
+    }
+
+    if (security.requireStrongPassword) {
+      const policy = validateStrongPassword(newPassword);
+      if (!policy.valid) {
+        toast.error(`Contraseña insegura: ${policy.errors[0]}`);
+        return;
+      }
+    } else if (newPassword.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      const signInResult = await supabase.auth.signInWithPassword({
+        email: authContext?.user.email || "",
+        password: currentPassword,
+      });
+
+      if (signInResult.error) {
+        toast.error("La contraseña actual es incorrecta");
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) {
+        toast.error(updateError.message || "No se pudo actualizar la contraseña");
+        return;
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Contraseña actualizada correctamente");
+    } catch {
+      toast.error("No se pudo actualizar la contraseña");
+    } finally {
+      setUpdatingPassword(false);
+    }
+  }, [authContext?.user.email, confirmPassword, currentPassword, newPassword, security.requireStrongPassword, updatingPassword]);
 
   const handleSave = async (section: string) => {
     setSaving(true);
@@ -287,8 +379,11 @@ export default function SettingsPage() {
 
   return (
     <PageContainer title="Configuración" description="Configura tu escuela de danza">
-      <Tabs defaultValue="school" className="space-y-4">
+      <Tabs defaultValue="account" className="space-y-4">
         <TabsList className="bg-muted/50 p-1">
+          <TabsTrigger value="account" className="text-xs gap-1.5">
+            <User className="h-3.5 w-3.5" /> Cuenta
+          </TabsTrigger>
           <TabsTrigger value="school" className="text-xs gap-1.5">
             <Building2 className="h-3.5 w-3.5" /> Escuela
           </TabsTrigger>
@@ -308,6 +403,76 @@ export default function SettingsPage() {
             <CreditCard className="h-3.5 w-3.5" /> Billing
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="account">
+          <div className="rounded-lg border border-border bg-card p-6 shadow-soft space-y-6">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Cuenta</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Información de acceso y cambio de contraseña</p>
+            </div>
+            <Separator />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FieldGroup label="Email" icon={Mail}>
+                <Input value={authContext?.user.email || "Sin correo"} readOnly className="h-9 text-sm" />
+              </FieldGroup>
+              <FieldGroup label="Rol" icon={ShieldCheck}>
+                <Input value={roleLabel} readOnly className="h-9 text-sm" />
+              </FieldGroup>
+              <FieldGroup label="Escuela activa" icon={Building2}>
+                <Input value={activeMembership?.tenantName || "Sin escuela"} readOnly className="h-9 text-sm" />
+              </FieldGroup>
+              <FieldGroup label="Slug" icon={Globe}>
+                <Input value={activeMembership?.tenantSlug || school.slug} readOnly className="h-9 text-sm" />
+              </FieldGroup>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cambiar contraseña</h4>
+              <div className="grid gap-4 sm:grid-cols-3 mt-3">
+                <FieldGroup label="Contraseña actual" icon={KeyRound}>
+                  <Input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    placeholder="••••••••"
+                    className="h-9 text-sm"
+                  />
+                </FieldGroup>
+                <FieldGroup label="Nueva contraseña" icon={KeyRound}>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    placeholder={security.requireStrongPassword ? "8+ caracteres, mayúscula, número y símbolo" : "Mínimo 8 caracteres"}
+                    className="h-9 text-sm"
+                  />
+                </FieldGroup>
+                <FieldGroup label="Confirmar contraseña" icon={KeyRound}>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="Repite la contraseña"
+                    className="h-9 text-sm"
+                  />
+                </FieldGroup>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+              Política actual: {security.requireStrongPassword ? "contraseña fuerte requerida" : "mínimo 8 caracteres"}. Tiempo de sesión: {security.sessionTimeoutMinutes} minutos.
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button onClick={() => void handleUpdatePassword()} disabled={updatingPassword}>
+                <KeyRound className="h-3.5 w-3.5 mr-1" /> {updatingPassword ? "Actualizando..." : "Actualizar contraseña"}
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
 
         {/* ─── School Info ─── */}
         <TabsContent value="school">
