@@ -10,7 +10,7 @@ import { es } from "date-fns/locale";
 
 const STATUS_CONFIG: Record<EnrollmentStatus, { label: string; className: string }> = {
   pending: { label: "Pendiente", className: "bg-warning/15 text-warning border-warning/20" },
-  confirmed: { label: "Confirmada", className: "bg-success/15 text-success border-success/20" },
+  confirmed: { label: "Aceptada", className: "bg-success/15 text-success border-success/20" },
   declined: { label: "Rechazada", className: "bg-destructive/15 text-destructive border-destructive/20" },
   cancelled: { label: "Cancelada", className: "bg-muted text-muted-foreground border-border" },
 };
@@ -70,12 +70,12 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
                       <span>{cls.day} · {cls.time}</span>
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-foreground">${cls.price}</span>
+                  <span className="text-sm font-medium text-foreground">€{cls.price}</span>
                 </div>
               ))}
               <div className="flex items-center justify-between pt-2 border-t border-border">
                 <span className="text-sm font-semibold text-foreground">Total</span>
-                <span className="text-base font-bold text-primary">${enrollment.totalPrice}</span>
+                <span className="text-base font-bold text-primary">€{enrollment.totalPrice}</span>
               </div>
             </div>
           </section>
@@ -126,7 +126,7 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
                     onClick={() => onChangeStatus(enrollment.id, "confirmed")}
                   >
                     <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                    Confirmar
+                    Aceptar
                   </Button>
                   <Button
                     size="sm"

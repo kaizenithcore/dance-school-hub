@@ -59,8 +59,8 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
             <div className="space-y-2.5">
               <InfoRow icon={Mail} label="Email" value={student.email} />
               <InfoRow icon={Phone} label="Teléfono" value={student.phone} />
-              <InfoRow icon={Calendar} label="Nacimiento" value={`${format(new Date(student.birthdate), "d MMM yyyy", { locale: es })} (${age} años)`} />
-              <InfoRow icon={Calendar} label="Inscripción" value={format(new Date(student.joinDate), "d MMM yyyy", { locale: es })} />
+              <InfoRow icon={Calendar} label="Nacimiento" value={student.birthdate ? `${format(new Date(student.birthdate), "d MMM yyyy", { locale: es })} (${age} años)` : "N/A"} />
+              <InfoRow icon={Calendar} label="Inscripción" value={student.joinDate ? format(new Date(student.joinDate), "d MMM yyyy", { locale: es }) : "N/A"} />
               <InfoRow icon={DollarSign} label="Tipo de pago" value={PAYMENT_LABELS[student.paymentType]} />
             </div>
           </section>
@@ -100,13 +100,13 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
                         <span>{cls.day} · {cls.time}</span>
                       </div>
                     </div>
-                    <span className="text-sm font-medium text-foreground">${cls.monthlyPrice}</span>
+                    <span className="text-sm font-medium text-foreground">€{cls.monthlyPrice}</span>
                   </div>
                 ))}
                 {monthlyTotal !== null && (
                   <div className="flex items-center justify-between pt-2 border-t border-border">
                     <span className="text-sm font-semibold text-foreground">Total mensual</span>
-                    <span className="text-base font-bold text-primary">${monthlyTotal}</span>
+                    <span className="text-base font-bold text-primary">€{monthlyTotal}</span>
                   </div>
                 )}
               </div>

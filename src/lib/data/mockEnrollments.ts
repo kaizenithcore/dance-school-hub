@@ -2,6 +2,8 @@ export type EnrollmentStatus = "pending" | "confirmed" | "declined" | "cancelled
 
 export interface EnrollmentRecord {
   id: string;
+  studentId?: string;
+  classId?: string;
   studentName: string;
   studentEmail: string;
   studentPhone: string;

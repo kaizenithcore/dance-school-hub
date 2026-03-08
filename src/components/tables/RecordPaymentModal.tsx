@@ -1,17 +1,38 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { MOCK_STUDENTS } from "@/lib/data/mockStudents";
-import { PaymentRecord, PaymentMethod, PAYMENT_METHODS } from "@/lib/data/mockPayments";
+import { PaymentMethod, PAYMENT_METHODS } from "@/lib/data/mockPayments";
+import { getStudents } from "@/lib/api/students";
+import { getSchoolSettings } from "@/lib/api/settings";
+import { Loader2 } from "lucide-react";
+
+interface StudentOption {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  guardian?: {
+    name: string;
+  };
+  enrolledClasses: Array<{
+    id: string;
+    name: string;
+    monthlyPrice: number;
+  }>;
+}
 
 interface RecordPaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (payment: Omit<PaymentRecord, "id">) => void;
+  onSave: (payment: {
+    studentId: string;
+    amount: number;
+    metadata: Record<string, unknown>;
+  }) => void;
 }
 
 export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPaymentModalProps) {
@@ -25,9 +46,55 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("Efectivo");
   const [notes, setNotes] = useState("");
+  const [students, setStudents] = useState<StudentOption[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [availableMethods, setAvailableMethods] = useState<PaymentMethod[]>(PAYMENT_METHODS);
+  const [currency, setCurrency] = useState("ARS");
 
-  const activeStudents = MOCK_STUDENTS.filter((s) => s.status === "active");
+  const activeStudents = students.filter((s) => s.status === "active");
   const selectedStudent = activeStudents.find((s) => s.id === studentId);
+
+  useEffect(() => {
+    void (async () => {
+      setLoadingStudents(true);
+      try {
+        const data = await getStudents();
+        setStudents(data as unknown as StudentOption[]);
+      } finally {
+        setLoadingStudents(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const settings = await getSchoolSettings();
+        const payment = (settings?.payment || {}) as Record<string, unknown>;
+        const nextMethods: PaymentMethod[] = [];
+
+        if (payment.enableTransfer !== false) {
+          nextMethods.push("Transferencia bancaria");
+        }
+        if (payment.enableCash !== false) {
+          nextMethods.push("Efectivo");
+        }
+
+        if (nextMethods.length > 0) {
+          setAvailableMethods(nextMethods);
+          if (!nextMethods.includes(method)) {
+            setMethod(nextMethods[0]);
+          }
+        }
+
+        if (typeof payment.currency === "string" && payment.currency.trim().length > 0) {
+          setCurrency(payment.currency.toUpperCase());
+        }
+      } catch {
+        // Keep defaults when payment settings are not available
+      }
+    })();
+  }, []);
 
   const handleStudentChange = (id: string) => {
     setStudentId(id);
@@ -47,16 +114,14 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
     if (!selectedStudent || !concept.trim() || !amount || !payerName.trim() || !month) return;
     onSave({
       studentId: selectedStudent.id,
-      studentName: selectedStudent.name,
-      studentEmail: selectedStudent.email,
-      payerName: payerName.trim(),
-      concept: concept.trim(),
-      month,
       amount: parseFloat(amount),
-      method,
-      status: "paid",
-      date: new Date().toISOString().split("T")[0],
-      notes: notes.trim() || undefined,
+      metadata: {
+        payer_name: payerName.trim(),
+        concept: concept.trim(),
+        month,
+        payment_method: method === "Transferencia bancaria" ? "transfer" : "cash",
+        notes: notes.trim() || undefined,
+      },
     });
     // Reset
     setStudentId("");
@@ -84,7 +149,11 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
                 <SelectValue placeholder="Seleccionar alumno..." />
               </SelectTrigger>
               <SelectContent>
-                {activeStudents.map((s) => (
+                {loadingStudents ? (
+                  <div className="px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Cargando alumnos...
+                  </div>
+                ) : activeStudents.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -125,7 +194,7 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Monto ($) *</Label>
+              <Label className="text-xs">Monto ({currency}) *</Label>
               <Input
                 type="number"
                 min="0"
@@ -145,7 +214,7 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PAYMENT_METHODS.map((m) => (
+                {availableMethods.map((m) => (
                   <SelectItem key={m} value={m}>{m}</SelectItem>
                 ))}
               </SelectContent>

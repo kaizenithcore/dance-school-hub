@@ -16,7 +16,7 @@ import { es } from "date-fns/locale";
 
 const STATUS_CONFIG: Record<EnrollmentStatus, { label: string; className: string }> = {
   pending: { label: "Pendiente", className: "bg-warning/15 text-warning border-warning/20" },
-  confirmed: { label: "Confirmada", className: "bg-success/15 text-success border-success/20" },
+  confirmed: { label: "Aceptada", className: "bg-success/15 text-success border-success/20" },
   declined: { label: "Rechazada", className: "bg-destructive/15 text-destructive border-destructive/20" },
   cancelled: { label: "Cancelada", className: "bg-muted text-muted-foreground border-border" },
 };
@@ -126,7 +126,7 @@ export function EnrollmentsTable({ enrollments, onViewDetail }: EnrollmentsTable
                         <span className="text-sm font-medium">{enrollment.classes.length}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right text-sm font-semibold text-foreground">${enrollment.totalPrice}</TableCell>
+                    <TableCell className="text-right text-sm font-semibold text-foreground">€{enrollment.totalPrice}</TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{enrollment.paymentMethod}</TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
                       {format(new Date(enrollment.date), "d MMM yyyy", { locale: es })}

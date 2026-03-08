@@ -3,7 +3,6 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, Mail, Phone, BookOpen } from "lucide-react";
-import { formatDate } from "@/lib/utils";
 
 interface TeacherProfileDrawerProps {
   open: boolean;

@@ -13,4 +13,9 @@ export const createEnrollmentSchema = z.object({
   notes: z.string().max(2000).optional(),
 });
 
+export const updateEnrollmentStatusSchema = z.object({
+  status: z.enum(["pending", "confirmed", "declined", "cancelled"]),
+});
+
 export type CreateEnrollmentInput = z.infer<typeof createEnrollmentSchema>;
+export type UpdateEnrollmentStatusInput = z.infer<typeof updateEnrollmentStatusSchema>;

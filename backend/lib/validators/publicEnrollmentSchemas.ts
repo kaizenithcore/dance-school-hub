@@ -14,10 +14,14 @@ const optionalEmail = () => z.preprocess(emptyToNull, z.string().email().optiona
 
 // Schema for public enrollment submission
 export const publicEnrollmentSchema = z.object({
+  class_id: z.string().uuid().optional(),
+  class_ids: z.array(z.string().uuid()).optional(),
+  form_values: z.record(z.string(), z.unknown()).optional().default({}),
+
   // Student info
-  first_name: z.string().trim().min(1).max(100),
-  last_name: z.string().trim().min(1).max(100),
-  email: z.string().email(),
+  first_name: optionalString(100),
+  last_name: optionalString(100),
+  email: optionalEmail(),
   phone: optionalString(50),
   date_of_birth: optionalString(20),
   
@@ -34,9 +38,6 @@ export const publicEnrollmentSchema = z.object({
   postal_code: optionalString(20),
   country: optionalString(100),
   
-  // Enrollment info
-  class_id: z.string().uuid(),
-  
   // Medical/emergency info
   emergency_contact_name: optionalString(150),
   emergency_contact_phone: optionalString(50),
@@ -44,6 +45,50 @@ export const publicEnrollmentSchema = z.object({
   
   // Additional notes
   notes: optionalString(2000),
+}).refine((data) => Boolean(data.class_id) || (Array.isArray(data.class_ids) && data.class_ids.length > 0), {
+  message: "At least one class must be selected",
+  path: ["class_ids"],
 });
 
 export type PublicEnrollmentInput = z.infer<typeof publicEnrollmentSchema>;
+
+// Schema for joint/family enrollment (multiple students)
+export const jointEnrollmentSchema = z.object({
+  is_joint_enrollment: z.literal(true),
+  
+  // Payer/responsible person info
+  payer_info: z.object({
+    name: z.string().min(1).max(150),
+    email: z.string().email(),
+    phone: z.string().min(1).max(50),
+  }),
+  
+  // Array of students
+  students: z.array(
+    z.object({
+      form_values: z.record(z.string(), z.unknown()),
+      class_ids: z.array(z.string().uuid()).min(1, "Each student must select at least one class"),
+ 
+      // Core student fields
+      first_name: optionalString(100),
+      last_name: optionalString(100),
+      email: optionalEmail(),
+      phone: optionalString(50),
+      date_of_birth: optionalString(20),
+      
+      // Optional fields
+      address_line1: optionalString(200),
+      address_line2: optionalString(200),
+      city: optionalString(100),
+      state: optionalString(100),
+      postal_code: optionalString(20),
+      country: optionalString(100),
+      emergency_contact_name: optionalString(150),
+      emergency_contact_phone: optionalString(50),
+      medical_conditions: optionalString(1000),
+      notes: optionalString(2000),
+    })
+  ).min(1, "At least one student is required").max(10, "Maximum 10 students per joint enrollment"),
+});
+
+export type JointEnrollmentInput = z.infer<typeof jointEnrollmentSchema>;

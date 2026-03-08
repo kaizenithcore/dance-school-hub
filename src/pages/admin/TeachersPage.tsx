@@ -10,6 +10,7 @@ import { createTeacher, deleteTeacher, getTeachers, updateTeacher } from "@/lib/
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<TeacherRecord[]>([]);
@@ -22,6 +23,7 @@ export default function TeachersPage() {
   const [editingTeacher, setEditingTeacher] = useState<TeacherRecord | null>(null);
   const [deletingTeacher, setDeletingTeacher] = useState<TeacherRecord | null>(null);
   const [teacherWithClassesToEdit, setTeacherWithClassesToEdit] = useState<TeacherRecord | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Load teachers from API
   useEffect(() => {
@@ -52,6 +54,34 @@ export default function TeachersPage() {
     };
     loadTeachers();
   }, []);
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    const targetId = searchParams.get("id");
+    const action = searchParams.get("action");
+
+    if (!targetId || !action) {
+      return;
+    }
+
+    const targetTeacher = teachers.find((teacher) => teacher.id === targetId);
+    if (!targetTeacher) {
+      return;
+    }
+
+    if (action === "preview") {
+      handleViewProfile(targetTeacher);
+    } else if (action === "edit") {
+      handleEdit(targetTeacher);
+    } else if (action === "delete") {
+      handleDelete(targetTeacher);
+    }
+
+    setSearchParams({}, { replace: true });
+  }, [loading, teachers, searchParams, setSearchParams]);
 
   const handleViewProfile = (teacher: TeacherRecord) => {
     setSelectedTeacher(teacher);

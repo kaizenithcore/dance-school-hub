@@ -27,7 +27,7 @@ export function ClassSidebar({ classes, defaultRoomId, defaultRoomName, onDragSt
           <GraduationCap className="h-3.5 w-3.5" />
           Clases Disponibles
         </h3>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Arrastrá una clase al calendario</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">Arrastra una clase al calendario</p>
       </div>
       <div className="p-2 space-y-1 max-h-[600px] overflow-y-auto">
         {classes.map((cls) => {

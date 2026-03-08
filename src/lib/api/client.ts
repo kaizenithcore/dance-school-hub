@@ -12,7 +12,7 @@ export interface ApiResponse<T> {
   };
 }
 
-async function resolveAccessToken(): Promise<string | null> {
+export async function resolveAccessToken(): Promise<string | null> {
   if (typeof window === "undefined") {
     const {
       data: { session },

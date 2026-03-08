@@ -65,9 +65,19 @@ export function PaymentDetailDrawer({ open, onOpenChange, payment, onMarkPaid, o
               <InfoRow icon={Calendar} label="Período" value={format(new Date(payment.month + "-01"), "MMMM yyyy", { locale: es })} />
               <InfoRow icon={Calendar} label="Fecha de registro" value={format(new Date(payment.date), "d MMM yyyy", { locale: es })} />
               <InfoRow icon={CreditCard} label="Método de pago" value={payment.method} />
+              {payment.accountNumber && (
+                <InfoRow icon={CreditCard} label="Número de cuenta" value={payment.accountNumber} />
+              )}
             </div>
             <div className="flex items-center justify-between pt-3 border-t border-border">
-              <span className="text-sm font-semibold text-foreground">Monto</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground">Monto</span>
+                {payment.amountChanged && (
+                  <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/30">
+                    Modificado
+                  </Badge>
+                )}
+              </div>
               <span className="text-lg font-bold text-primary">${payment.amount.toLocaleString()}</span>
             </div>
           </section>

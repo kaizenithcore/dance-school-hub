@@ -45,7 +45,7 @@ export function EnrollmentSummary({ selectedClasses, onRemoveClass, discount }: 
                   )}
                 </div>
               </div>
-              <span className="text-sm font-medium text-foreground whitespace-nowrap">${cls.price}</span>
+              <span className="text-sm font-medium text-foreground whitespace-nowrap">€{cls.price}</span>
               <button
                 type="button"
                 onClick={() => onRemoveClass(cls.id)}

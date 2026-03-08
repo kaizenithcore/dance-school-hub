@@ -22,7 +22,7 @@ export function DeleteStudentModal({ open, onOpenChange, student, onConfirm }: D
           </div>
           <DialogTitle className="text-center">Eliminar Alumno</DialogTitle>
           <DialogDescription className="text-center">
-            ¿Estás seguro de que querés eliminar a <strong>{student.name}</strong>? Esta acción no se puede deshacer.
+            ¿Estás seguro de que quieres eliminar a <strong>{student.name}</strong>? Esta acción no se puede deshacer.
             {student.enrolledClasses.length > 0 && (
               <span className="block mt-2 text-destructive font-medium">
                 ⚠ Este alumno tiene {student.enrolledClasses.length} clase{student.enrolledClasses.length > 1 ? "s" : ""} inscripta{student.enrolledClasses.length > 1 ? "s" : ""}.

@@ -1,21 +1,106 @@
-// TODO: Replace with actual API calls to backend
-export interface Student {
-  id: string;
+import { apiRequest } from "./client";
+import type { StudentRecord } from "@/lib/data/mockStudents";
+
+export interface SaveStudentRequest {
   name: string;
   email: string;
   phone: string;
-  classes: string[];
+  birthdate?: string;
   status: "active" | "inactive";
+  joinDate?: string;
+  guardian?: { name: string; phone: string; email?: string };
+  notes?: string;
+  paymentType: "monthly" | "per_class" | "none";
+  classIds?: string[];
+  jointEnrollmentGroupId?: string | null;
 }
 
-export async function getStudents(): Promise<Student[]> {
-  return [];
+export interface JointGroupMember {
+  id: string;
+  name: string;
+  email: string;
 }
 
-export async function getStudent(id: string): Promise<Student | null> {
-  return null;
+interface CreateStudentResponse {
+  id: string;
 }
 
-export async function updateStudent(id: string, data: Partial<Student>): Promise<Student> {
-  return { id, ...data } as Student;
+function mapStudentFromApi(student: StudentRecord): StudentRecord {
+  return {
+    ...student,
+    enrolledClasses: student.enrolledClasses || [],
+    notes: student.notes || "",
+    birthdate: student.birthdate || "",
+    joinDate: student.joinDate || new Date().toISOString().slice(0, 10),
+  };
+}
+
+export async function getStudents(): Promise<StudentRecord[]> {
+  const response = await apiRequest<StudentRecord[]>("/api/admin/students");
+  if (!response.success) return [];
+  return (response.data || []).map(mapStudentFromApi);
+}
+
+export async function createStudent(data: SaveStudentRequest): Promise<string | null> {
+  const response = await apiRequest<CreateStudentResponse>("/api/admin/students", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+  return response.success && response.data ? response.data.id : null;
+}
+
+export async function updateStudent(id: string, data: Partial<SaveStudentRequest>): Promise<boolean> {
+  const response = await apiRequest<{ id: string; updated: boolean }>(`/api/admin/students/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+
+  return response.success;
+}
+
+export async function deleteStudent(id: string): Promise<boolean> {
+  const response = await apiRequest<{ id: string; deleted: boolean }>(`/api/admin/students/${id}`, {
+    method: "DELETE",
+  });
+
+  return response.success;
+}
+
+export async function updateStudentClasses(
+  id: string,
+  payload: { classIds: string[]; jointEnrollmentGroupId?: string | null }
+): Promise<boolean> {
+  const response = await apiRequest<{ id: string; updated: boolean }>(`/api/admin/students/${id}/classes`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  return response.success;
+}
+
+export async function getJointGroupMembers(groupId: string): Promise<JointGroupMember[]> {
+  const response = await apiRequest<JointGroupMember[]>(`/api/admin/students/joint-groups/${groupId}/members`);
+  if (!response.success) return [];
+  return response.data || [];
+}
+
+export async function addMemberToJointGroup(groupId: string, studentId: string): Promise<boolean> {
+  const response = await apiRequest<{ added: boolean }>(`/api/admin/students/joint-groups/${groupId}/members`, {
+    method: "POST",
+    body: JSON.stringify({ studentId }),
+  });
+
+  return response.success;
+}
+
+export async function removeMemberFromJointGroup(groupId: string, studentId: string): Promise<boolean> {
+  const response = await apiRequest<{ removed: boolean }>(
+    `/api/admin/students/joint-groups/${groupId}/members/${studentId}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  return response.success;
 }

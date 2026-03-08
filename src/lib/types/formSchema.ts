@@ -47,7 +47,7 @@ export const DEFAULT_ENROLLMENT_SCHEMA: FormSectionConfig[] = [
   {
     id: "payment",
     title: "Método de Pago",
-    description: "Seleccioná cómo preferís realizar el pago.",
+    description: "Selecciona cómo prefieres realizar el pago.",
     fields: [
       { id: "payment_method", type: "select", label: "Método de pago", required: true, options: [
         { value: "transfer", label: "Transferencia bancaria" },

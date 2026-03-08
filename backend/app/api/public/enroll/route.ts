@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { fail, ok } from "@/lib/http";
 import { publicEnrollmentService } from "@/lib/services/publicEnrollmentService";
-import { publicEnrollmentSchema } from "@/lib/validators/publicEnrollmentSchemas";
+import { publicEnrollmentSchema, jointEnrollmentSchema } from "@/lib/validators/publicEnrollmentSchemas";
 import { handleCorsPreFlight } from "@/lib/cors";
 
 export async function OPTIONS(request: NextRequest) {
@@ -28,37 +28,88 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate enrollment data
-    const parsed = publicEnrollmentSchema.safeParse(enrollmentData);
+      // Check if this is a joint enrollment
+      const isJointEnrollment = enrollmentData.is_joint_enrollment === true;
 
-    if (!parsed.success) {
-      return fail(
-        {
-          code: "invalid_request",
-          message: "Invalid enrollment data",
-          details: parsed.error.flatten(),
-        },
-        400,
-        origin
-      );
-    }
+      if (isJointEnrollment) {
+        // Validate joint enrollment data
+        const parsed = jointEnrollmentSchema.safeParse(enrollmentData);
 
-    // Create enrollment
-    const result = await publicEnrollmentService.createEnrollment(
-      tenantSlug,
-      parsed.data
-    );
+        if (!parsed.success) {
+          return fail(
+            {
+              code: "invalid_request",
+              message: "Invalid joint enrollment data",
+              details: parsed.error.flatten(),
+            },
+            400,
+            origin
+          );
+        }
 
-    return ok(
-      {
-        success: true,
-        enrollmentId: result.enrollmentId,
-        studentId: result.studentId,
-        message: "Enrollment created successfully",
-      },
-      201,
-      origin
-    );
+        // Create joint enrollment
+        const result = await publicEnrollmentService.createJointEnrollment(
+          tenantSlug,
+          parsed.data
+        );
+
+        return ok(
+          {
+            success: true,
+            enrollmentIds: result.enrollmentIds,
+            studentIds: result.studentIds,
+            groupId: result.groupId,
+            message: `Joint enrollment created successfully for ${result.studentIds.length} students`,
+          },
+          201,
+          origin
+        );
+      } else {
+        // Validate single enrollment data
+        const parsed = publicEnrollmentSchema.safeParse(enrollmentData);
+
+        if (!parsed.success) {
+          return fail(
+            {
+              code: "invalid_request",
+              message: "Invalid enrollment data",
+              details: parsed.error.flatten(),
+            },
+            400,
+            origin
+          );
+        }
+
+        // Create single enrollment
+        const result = await publicEnrollmentService.createEnrollment(
+          tenantSlug,
+          parsed.data
+        );
+
+        if (result.waitlistCreated) {
+          return ok(
+            {
+              success: true,
+              waitlistCreated: true,
+              waitlistCount: result.waitlistCount || 0,
+              message: result.message || "Clase completa. Se añadió a lista de espera.",
+            },
+            202,
+            origin
+          );
+        }
+
+        return ok(
+          {
+            success: true,
+            enrollmentId: result.enrollmentId,
+            studentId: result.studentId,
+            message: "Enrollment created successfully",
+          },
+          201,
+          origin
+        );
+      }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create enrollment";
     

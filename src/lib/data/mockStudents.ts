@@ -10,6 +10,7 @@ export interface StudentRecord {
   guardian?: { name: string; phone: string; email: string };
   notes?: string;
   paymentType: "monthly" | "per_class" | "none";
+  jointEnrollmentGroupId?: string | null;
 }
 
 export const MOCK_STUDENTS: StudentRecord[] = [

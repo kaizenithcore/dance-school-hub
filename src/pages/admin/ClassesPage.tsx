@@ -3,21 +3,27 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { ClassesTable } from "@/components/tables/ClassesTable";
 import { ClassFormModal } from "@/components/tables/ClassFormModal";
 import { DeleteClassModal } from "@/components/tables/DeleteClassModal";
+import { ClassPreviewDrawer } from "@/components/tables/ClassPreviewDrawer";
 import { ClassRecord } from "@/lib/data/mockClassRecords";
 import { createClass, deleteClass, getClasses, updateClass } from "@/lib/api/classes";
 import { getDisciplines } from "@/lib/api/disciplines";
 import { getCategories } from "@/lib/api/categories";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { CalendarClock, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function ClassesPage() {
   const [classes, setClasses] = useState<ClassRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<ClassRecord | null>(null);
   const [editingClass, setEditingClass] = useState<ClassRecord | null>(null);
   const [deletingClass, setDeletingClass] = useState<ClassRecord | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Load classes from API
   useEffect(() => {
@@ -61,6 +67,11 @@ export default function ClassesPage() {
   const handleCreate = () => {
     setEditingClass(null);
     setFormOpen(true);
+  };
+
+  const handlePreview = (cls: ClassRecord) => {
+    setSelectedClass(cls);
+    setPreviewOpen(true);
   };
 
   const handleEdit = (cls: ClassRecord) => {
@@ -141,20 +152,60 @@ export default function ClassesPage() {
     }
   }, [deletingClass]);
 
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    const targetId = searchParams.get("id");
+    const action = searchParams.get("action");
+
+    if (!targetId || !action) {
+      return;
+    }
+
+    const targetClass = classes.find((cls) => cls.id === targetId);
+    if (!targetClass) {
+      return;
+    }
+
+    if (action === "preview") {
+      handlePreview(targetClass);
+    } else if (action === "edit") {
+      handleEdit(targetClass);
+    } else if (action === "delete") {
+      handleDelete(targetClass);
+    }
+
+    setSearchParams({}, { replace: true });
+  }, [loading, classes, searchParams, setSearchParams]);
+
   return (
     <PageContainer
       title="Clases"
       description="Gestiona tu catálogo de clases"
       actions={
-        <Button size="sm" onClick={handleCreate}>
-          <Plus className="h-4 w-4 mr-1" /> Nueva Clase
-        </Button>
+        <>
+          <Button size="sm" variant="outline" onClick={() => navigate("/admin/reception")}>
+            <CalendarClock className="h-4 w-4 mr-1" /> Hoja de asistencia
+          </Button>
+          <Button size="sm" onClick={handleCreate}>
+            <Plus className="h-4 w-4 mr-1" /> Nueva Clase
+          </Button>
+        </>
       }
     >
       <ClassesTable
         classes={classes}
+        onPreview={handlePreview}
         onEdit={handleEdit}
         onDelete={handleDelete}
+      />
+
+      <ClassPreviewDrawer
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        classData={selectedClass}
       />
 
       <ClassFormModal

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Pencil, Trash2, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,11 +22,12 @@ const PAGE_SIZE = 8;
 
 interface ClassesTableProps {
   classes: ClassRecord[];
+  onPreview: (cls: ClassRecord) => void;
   onEdit: (cls: ClassRecord) => void;
   onDelete: (cls: ClassRecord) => void;
 }
 
-export function ClassesTable({ classes, onEdit, onDelete }: ClassesTableProps) {
+export function ClassesTable({ classes, onPreview, onEdit, onDelete }: ClassesTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
@@ -108,7 +109,7 @@ export function ClassesTable({ classes, onEdit, onDelete }: ClassesTableProps) {
                     <TableCell className="text-sm text-muted-foreground">{cls.teacher}</TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{cls.discipline}</TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{cls.category}</TableCell>
-                    <TableCell className="text-sm font-medium text-foreground text-right">${cls.price}</TableCell>
+                    <TableCell className="text-sm font-medium text-foreground text-right">€{cls.price}</TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center justify-center gap-1.5">
                         <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -132,6 +133,11 @@ export function ClassesTable({ classes, onEdit, onDelete }: ClassesTableProps) {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Tooltip><TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onPreview(cls)}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger><TooltipContent side="bottom"><p>Vista previa</p></TooltipContent></Tooltip>
                         <Tooltip><TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(cls)}>
                             <Pencil className="h-3.5 w-3.5" />

@@ -1,8 +1,25 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
-import type { PublicEnrollmentInput } from "@/lib/validators/publicEnrollmentSchemas";
+import type { PublicEnrollmentInput, JointEnrollmentInput } from "@/lib/validators/publicEnrollmentSchemas";
+import { enrollmentFormConfigService } from "@/lib/services/enrollmentFormConfigService";
+import { waitlistService } from "@/lib/services/waitlistService";
+
+export interface PublicSchoolProfile {
+  tagline?: string;
+  description?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+}
 
 export interface PublicFormData {
+  tenantId: string;
   tenantName: string;
+  formConfig: unknown;
+  publicProfile?: PublicSchoolProfile;
   availableClasses: Array<{
     id: string;
     name: string;
@@ -11,6 +28,13 @@ export interface PublicFormData {
     price_cents: number;
     capacity: number;
     enrolled_count: number;
+    schedules?: Array<{
+      id: string;
+      day: string;
+      startHour: number;
+      duration: number;
+      room: string;
+    }>;
   }>;
 }
 
@@ -31,6 +55,40 @@ export const publicEnrollmentService = {
       return null;
     }
 
+    const { data: settingsData, error: settingsError } = await supabaseAdmin
+      .from("school_settings")
+      .select("enrollment_config")
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error("Error fetching school settings:", settingsError);
+    }
+
+    const enrollmentConfig =
+      settingsData?.enrollment_config && typeof settingsData.enrollment_config === "object"
+        ? (settingsData.enrollment_config as Record<string, unknown>)
+        : {};
+
+    const profileSource =
+      (enrollmentConfig.public_profile && typeof enrollmentConfig.public_profile === "object"
+        ? (enrollmentConfig.public_profile as Record<string, unknown>)
+        : enrollmentConfig.publicProfile && typeof enrollmentConfig.publicProfile === "object"
+          ? (enrollmentConfig.publicProfile as Record<string, unknown>)
+          : {}) || {};
+
+    const publicProfile = {
+      tagline: typeof profileSource.tagline === "string" ? profileSource.tagline : undefined,
+      description: typeof profileSource.description === "string" ? profileSource.description : undefined,
+      address: typeof profileSource.address === "string" ? profileSource.address : undefined,
+      phone: typeof profileSource.phone === "string" ? profileSource.phone : undefined,
+      email: typeof profileSource.email === "string" ? profileSource.email : undefined,
+      website: typeof profileSource.website === "string" ? profileSource.website : undefined,
+      instagram: typeof profileSource.instagram === "string" ? profileSource.instagram : undefined,
+      facebook: typeof profileSource.facebook === "string" ? profileSource.facebook : undefined,
+      tiktok: typeof profileSource.tiktok === "string" ? profileSource.tiktok : undefined,
+    };
+
     // Get active classes with enrollment count
     const { data: classes, error: classesError } = await supabaseAdmin
       .from("classes")
@@ -40,19 +98,71 @@ export const publicEnrollmentService = {
         discipline_id,
         category_id,
         price_cents,
-        capacity,
-        enrollments!enrollments_class_id_fkey(id)
+        capacity
       `)
       .eq("tenant_id", tenant.id)
       .eq("status", "active");
 
     if (classesError) {
       console.error("Error fetching classes:", classesError);
+      const formConfig = await enrollmentFormConfigService.getByTenantId(tenant.id);
       return {
+        tenantId: tenant.id,
         tenantName: tenant.name,
+        formConfig,
+        publicProfile,
         availableClasses: [],
       };
     }
+
+    // Get schedules for all classes
+    const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+    const classIds = (classes || []).map((c: { id: string }) => c.id);
+    const { data: schedules } = await supabaseAdmin
+      .from("class_schedules")
+      .select(`
+        id,
+        class_id,
+        weekday,
+        start_time,
+        end_time,
+        room_id,
+        rooms(name)
+      `)
+      .in("class_id", classIds);
+
+    // Group schedules by class_id
+    const schedulesByClass = new Map<string, Array<{
+      id: string;
+      day: string;
+      startHour: number;
+      duration: number;
+      room: string;
+    }>>();
+
+    (schedules || []).forEach((schedule: unknown) => {
+      const s = schedule as { id: string; class_id: string; weekday: number; start_time: string; end_time: string; rooms?: { name: string } | null };
+      
+      // Convert start_time (HH:MM:SS) to hour number
+      const startHour = parseInt(s.start_time.split(':')[0], 10);
+      const endHour = parseInt(s.end_time.split(':')[0], 10);
+      const startMinutes = parseInt(s.start_time.split(':')[1], 10);
+      const endMinutes = parseInt(s.end_time.split(':')[1], 10);
+      
+      // Calculate duration in hours (with decimal for minutes)
+      const duration = (endHour - startHour) + (endMinutes - startMinutes) / 60;
+      
+      const classSchedules = schedulesByClass.get(s.class_id) || [];
+      classSchedules.push({
+        id: s.id,
+        day: WEEKDAYS[s.weekday - 1] || 'Lunes', // weekday is 1-7, array is 0-6
+        startHour,
+        duration,
+        room: s.rooms?.name || "Sin sala",
+      });
+      schedulesByClass.set(s.class_id, classSchedules);
+    });
 
     // Get disciplines and categories for mapping
     const { data: disciplines } = await supabaseAdmin
@@ -68,18 +178,41 @@ export const publicEnrollmentService = {
     const disciplineMap = new Map((disciplines || []).map((d) => [d.id, d.name]));
     const categoryMap = new Map((categories || []).map((c) => [c.id, c.name]));
 
-    const availableClasses = (classes || []).map((cls: any) => ({
+    const confirmedEnrollmentsByClass = new Map<string, number>();
+    if ((classes || []).length > 0) {
+      const { data: confirmedEnrollments } = await supabaseAdmin
+        .from("enrollments")
+        .select("class_id")
+        .eq("tenant_id", tenant.id)
+        .eq("status", "confirmed")
+        .in("class_id", classes.map((c: { id: string }) => c.id));
+
+      (confirmedEnrollments || []).forEach((enrollment: { class_id: string }) => {
+        confirmedEnrollmentsByClass.set(
+          enrollment.class_id,
+          (confirmedEnrollmentsByClass.get(enrollment.class_id) || 0) + 1
+        );
+      });
+    }
+
+    const availableClasses = (classes || []).map((cls: { id: string; name: string; discipline_id: string; category_id: string; price_cents: number; capacity: number }) => ({
       id: cls.id,
       name: cls.name,
       discipline: disciplineMap.get(cls.discipline_id) || "General",
       category: categoryMap.get(cls.category_id) || "General",
       price_cents: cls.price_cents,
       capacity: cls.capacity,
-      enrolled_count: cls.enrollments?.length || 0,
+      enrolled_count: confirmedEnrollmentsByClass.get(cls.id) || 0,
+      schedules: schedulesByClass.get(cls.id) || [],
     }));
 
+    const formConfig = await enrollmentFormConfigService.getByTenantId(tenant.id);
+
     return {
+      tenantId: tenant.id,
       tenantName: tenant.name,
+      formConfig,
+      publicProfile,
       availableClasses,
     };
   },
@@ -90,7 +223,50 @@ export const publicEnrollmentService = {
   async createEnrollment(
     tenantSlug: string,
     input: PublicEnrollmentInput
-  ): Promise<{ enrollmentId: string; studentId: string }> {
+  ): Promise<{ enrollmentId?: string; studentId?: string; waitlistCreated?: boolean; waitlistCount?: number; message?: string }> {
+        const classIds = Array.from(new Set((input.class_ids && input.class_ids.length > 0
+          ? input.class_ids
+          : input.class_id
+            ? [input.class_id]
+            : []) as string[]));
+
+        if (classIds.length === 0) {
+          throw new Error("At least one class must be selected");
+        }
+
+    const formValues = (input.form_values || {}) as Record<string, unknown>;
+
+    const getValue = (...keys: string[]): string | null => {
+      for (const key of keys) {
+        const raw = key in formValues ? formValues[key] : (input as unknown as Record<string, unknown>)[key];
+        if (typeof raw === "string" && raw.trim().length > 0) {
+          return raw.trim();
+        }
+      }
+      return null;
+    };
+
+    let firstName = getValue("first_name", "student_first_name");
+    let lastName = getValue("last_name", "student_last_name");
+    const fullName = getValue("student_name", "full_name", "nombre_completo");
+
+    if ((!firstName || !lastName) && fullName) {
+      const nameParts = fullName.split(" ").filter(Boolean);
+      firstName = firstName ?? nameParts[0] ?? null;
+      lastName = lastName ?? (nameParts.slice(1).join(" ") || null);
+    }
+
+    const email = getValue("email", "student_email", "correo");
+    const phone = getValue("phone", "student_phone", "telefono");
+    const dateOfBirth = getValue("date_of_birth", "student_birthdate", "birthdate", "fecha_nacimiento");
+    const guardianName = getValue("guardian_name");
+    const guardianEmail = getValue("guardian_email");
+    const guardianPhone = getValue("guardian_phone");
+
+    if (!firstName || !lastName || !email) {
+      throw new Error("Missing required student fields (name/email)");
+    }
+
     // Get tenant
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from("tenants")
@@ -103,26 +279,76 @@ export const publicEnrollmentService = {
       throw new Error("Tenant not found");
     }
 
-    // Validate class exists and belongs to tenant
+    // Validate classes exist and belong to tenant
     const { data: classData, error: classError } = await supabaseAdmin
       .from("classes")
-      .select("id, capacity, enrollments!enrollments_class_id_fkey(id)")
-      .eq("id", input.class_id)
+      .select("id, capacity")
+      .in("id", classIds)
       .eq("tenant_id", tenant.id)
-      .eq("status", "active")
-      .single();
+      .eq("status", "active");
 
-    if (classError || !classData) {
+    if (classError || !classData || classData.length !== classIds.length) {
       throw new Error("Class not found or inactive");
     }
 
-    // Check capacity
-    const enrolledCount = (classData.enrollments as any[])?.length || 0;
-    if (enrolledCount >= classData.capacity) {
-      throw new Error("Class is full");
+    const { data: confirmedEnrollments } = await supabaseAdmin
+      .from("enrollments")
+      .select("class_id")
+      .eq("tenant_id", tenant.id)
+      .eq("status", "confirmed")
+      .in("class_id", classIds);
+
+    const confirmedCountByClass = new Map<string, number>();
+    (confirmedEnrollments || []).forEach((enrollment: { class_id: string }) => {
+      confirmedCountByClass.set(
+        enrollment.class_id,
+        (confirmedCountByClass.get(enrollment.class_id) || 0) + 1
+      );
+    });
+
+    const fullClasses: string[] = [];
+
+    // Check capacity for each selected class (only confirmed enrollments consume capacity)
+    for (const selectedClass of classData) {
+      const enrolledCount = confirmedCountByClass.get(selectedClass.id) || 0;
+      if (enrolledCount >= selectedClass.capacity) {
+        fullClasses.push(selectedClass.id);
+      }
     }
 
-    const studentName = `${input.first_name} ${input.last_name}`.trim();
+    if (fullClasses.length > 0) {
+      const featureContext = await waitlistService.getTenantFeatureContext(tenant.id);
+      if (!featureContext.waitlistEnabled) {
+        throw new Error("Class is full");
+      }
+
+      const createdRequests = await Promise.all(
+        fullClasses.map((classId) =>
+          waitlistService.enqueuePublicRequest({
+            tenantId: tenant.id,
+            classId,
+            contactSnapshot: {
+              name: `${firstName} ${lastName}`.trim(),
+              email,
+              phone: phone ?? undefined,
+            },
+            metadata: {
+              selectedClassIds: classIds,
+            },
+          })
+        )
+      );
+
+      const createdCount = createdRequests.filter((item) => item.created).length;
+
+      return {
+        waitlistCreated: true,
+        waitlistCount: createdCount,
+        message: "La clase está completa. Te hemos añadido a la lista de espera.",
+      };
+    }
+
+    const studentName = `${firstName} ${lastName}`.trim();
     const studentNotes = [
       input.notes ? `Notes: ${input.notes}` : null,
       input.address_line1 ? `Address: ${[input.address_line1, input.address_line2, input.city, input.state, input.postal_code, input.country].filter(Boolean).join(", ")}` : null,
@@ -134,74 +360,350 @@ export const publicEnrollmentService = {
       .filter(Boolean)
       .join("\n");
 
-    // Create student
-    const { data: student, error: studentError } = await supabaseAdmin
-      .from("students")
-      .insert({
-        tenant_id: tenant.id,
-        name: studentName,
-        email: input.email,
-        phone: input.phone ?? "N/A",
-        date_of_birth: input.date_of_birth ?? null,
-        notes: studentNotes || null,
-        status: "active",
-        payment_type: "monthly",
-      })
-      .select()
-      .single();
+    let createdStudentId: string | null = null;
 
-    if (studentError || !student) {
-      throw new Error(`Failed to create student: ${studentError?.message}`);
+    const createStudent = async (emailValue: string, noteValue: string) => {
+      const { data: student, error: studentError } = await supabaseAdmin
+        .from("students")
+        .insert({
+          tenant_id: tenant.id,
+          name: studentName,
+          email: emailValue,
+          phone: phone ?? "N/A",
+          date_of_birth: dateOfBirth ?? null,
+          notes: noteValue || null,
+          status: "active",
+          payment_type: "monthly",
+        })
+        .select("id")
+        .single();
+
+      return { student, studentError };
+    };
+
+    let studentId: string | null = null;
+    let studentInsertEmail = email;
+    let studentInsertNotes = studentNotes;
+
+    const firstAttempt = await createStudent(studentInsertEmail, studentInsertNotes);
+
+    if (firstAttempt.studentError || !firstAttempt.student) {
+      const duplicateEmail =
+        firstAttempt.studentError?.code === "23505" ||
+        firstAttempt.studentError?.message?.toLowerCase().includes("email");
+
+      if (!duplicateEmail) {
+        throw new Error(`Failed to create student: ${firstAttempt.studentError?.message}`);
+      }
+
+      const atIndex = email.indexOf("@");
+      const suffix = Date.now().toString().slice(-6);
+      studentInsertEmail =
+        atIndex > 0
+          ? `${email.slice(0, atIndex)}+fam-${suffix}${email.slice(atIndex)}`
+          : `${email}+fam-${suffix}`;
+
+      studentInsertNotes = [
+        studentNotes,
+        `Primary contact email: ${email}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const retryAttempt = await createStudent(studentInsertEmail, studentInsertNotes);
+      if (retryAttempt.studentError || !retryAttempt.student) {
+        throw new Error(`Failed to create student: ${retryAttempt.studentError?.message}`);
+      }
+
+      studentId = retryAttempt.student.id;
+    } else {
+      studentId = firstAttempt.student.id;
     }
 
-    if (input.guardian_name) {
+    createdStudentId = studentId;
+
+    if (guardianName && studentId) {
       const { error: guardianError } = await supabaseAdmin.from("guardians").insert({
         tenant_id: tenant.id,
-        student_id: student.id,
-        name: input.guardian_name,
-        email: input.guardian_email ?? null,
-        phone: input.guardian_phone ?? null,
+        student_id: studentId,
+        name: guardianName,
+        email: guardianEmail ?? null,
+        phone: guardianPhone ?? null,
         relation: "guardian",
         is_primary: true,
       });
 
       if (guardianError) {
-        await supabaseAdmin.from("students").delete().eq("id", student.id);
+        if (createdStudentId) {
+          await supabaseAdmin.from("students").delete().eq("id", createdStudentId);
+        }
         throw new Error(`Failed to create guardian: ${guardianError.message}`);
       }
     }
 
-    // Create enrollment
-    const { data: enrollment, error: enrollmentError } = await supabaseAdmin
-      .from("enrollments")
-      .insert({
-        tenant_id: tenant.id,
-        student_id: student.id,
-        class_id: input.class_id,
-        status: "pending",
-        student_snapshot: {
-          first_name: input.first_name,
-          last_name: input.last_name,
-          email: input.email,
-          phone: input.phone,
-          guardian_name: input.guardian_name,
-          guardian_email: input.guardian_email,
-          guardian_phone: input.guardian_phone,
-        },
-        notes: input.notes ?? null,
-      })
-      .select()
-      .single();
+    if (!studentId) {
+      throw new Error("Failed to resolve student for enrollment");
+    }
 
-    if (enrollmentError || !enrollment) {
-      // Rollback: delete student
-      await supabaseAdmin.from("students").delete().eq("id", student.id);
+    // Create one enrollment per selected class
+    const enrollmentRows = classIds.map((classId) => ({
+      tenant_id: tenant.id,
+      student_id: studentId,
+      class_id: classId,
+      status: "pending",
+      student_snapshot: {
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        phone,
+        guardian_name: guardianName,
+        guardian_email: guardianEmail,
+        guardian_phone: guardianPhone,
+        form_values: formValues,
+      },
+      notes: input.notes ?? null,
+    }));
+
+    const { data: enrollments, error: enrollmentError } = await supabaseAdmin
+      .from("enrollments")
+      .insert(enrollmentRows)
+      .select("id");
+
+    if (enrollmentError || !enrollments || enrollments.length === 0) {
+      if (createdStudentId) {
+        await supabaseAdmin.from("students").delete().eq("id", createdStudentId);
+      }
       throw new Error(`Failed to create enrollment: ${enrollmentError?.message}`);
     }
 
     return {
-      enrollmentId: enrollment.id,
-      studentId: student.id,
+      enrollmentId: enrollments[0].id,
+      studentId,
     };
   },
+
+   /**
+     * Create a joint/family enrollment with multiple students
+     */
+    async createJointEnrollment(
+      tenantSlug: string,
+      input: JointEnrollmentInput
+    ): Promise<{ enrollmentIds: string[]; studentIds: string[]; groupId: string }> {
+     // Get tenant by slug
+      const { data: tenant, error: tenantError } = await supabaseAdmin
+        .from("tenants")
+        .select("id, name")
+        .eq("slug", tenantSlug)
+        .eq("is_active", true)
+        .single();
+
+      if (tenantError || !tenant) {
+        throw new Error("Tenant not found");
+      }
+
+      // Collect all class IDs from all students
+      const allClassIds = input.students.flatMap(s => s.class_ids);
+      const uniqueClassIds = [...new Set(allClassIds)];
+
+      // Validate classes exist and belong to tenant
+      const { data: classData, error: classError } = await supabaseAdmin
+        .from("classes")
+        .select("id, capacity")
+        .in("id", uniqueClassIds)
+        .eq("tenant_id", tenant.id)
+        .eq("status", "active");
+
+      if (classError || !classData || classData.length !== uniqueClassIds.length) {
+        throw new Error("One or more classes not found or inactive");
+      }
+
+      const { data: confirmedEnrollments } = await supabaseAdmin
+        .from("enrollments")
+        .select("class_id")
+        .eq("tenant_id", tenant.id)
+        .eq("status", "confirmed")
+        .in("class_id", uniqueClassIds);
+
+      const confirmedCountByClass = new Map<string, number>();
+      (confirmedEnrollments || []).forEach((enrollment: { class_id: string }) => {
+        confirmedCountByClass.set(
+          enrollment.class_id,
+          (confirmedCountByClass.get(enrollment.class_id) || 0) + 1
+        );
+      });
+
+      // Check capacity for each class (only confirmed enrollments consume capacity)
+      for (const selectedClass of classData) {
+        const enrolledCount = confirmedCountByClass.get(selectedClass.id) || 0;
+        const requestedCount = allClassIds.filter(id => id === selectedClass.id).length;
+      
+        if (enrolledCount + requestedCount > selectedClass.capacity) {
+          throw new Error(`Class is full or doesn't have enough capacity`);
+        }
+      }
+
+      // Generate a group ID for this joint enrollment
+      const { data: groupIdData } = await supabaseAdmin.rpc('gen_random_uuid');
+      const groupId = groupIdData || crypto.randomUUID();
+
+      const studentIds: string[] = [];
+      const enrollmentIds: string[] = [];
+      let createdStudentIds: string[] = [];
+
+      try {
+        // Create each student and their enrollments
+        for (const studentData of input.students) {
+          const firstName = (studentData.first_name as string) || "";
+          const lastName = (studentData.last_name as string) || "";
+          const email = (studentData.email as string) || input.payer_info.email;
+          const phone = (studentData.phone as string) || input.payer_info.phone;
+          const dateOfBirth = (studentData.date_of_birth as string) || null;
+          const formValues = studentData.form_values || {};
+
+          const studentName = `${firstName} ${lastName}`.trim();
+          const studentNotes = [
+            studentData.notes ? `Notes: ${studentData.notes}` : null,
+            `Payer: ${input.payer_info.name}`,
+            `Payer Email: ${input.payer_info.email}`,
+            `Payer Phone: ${input.payer_info.phone}`,
+            studentData.address_line1 ? `Address: ${[studentData.address_line1, studentData.address_line2, studentData.city, studentData.state, studentData.postal_code, studentData.country].filter(Boolean).join(", ")}` : null,
+            studentData.emergency_contact_name || studentData.emergency_contact_phone
+              ? `Emergency: ${[studentData.emergency_contact_name, studentData.emergency_contact_phone].filter(Boolean).join(" - ")}`
+              : null,
+            studentData.medical_conditions ? `Medical: ${studentData.medical_conditions}` : null,
+          ]
+            .filter(Boolean)
+            .join("\n");
+
+          // Create student with email deduplication handling
+          let studentInsertEmail = email;
+          let finalNotes = studentNotes;
+
+          const createStudent = async (emailValue: string, noteValue: string) => {
+            const { data: student, error: studentError } = await supabaseAdmin
+              .from("students")
+              .insert({
+                tenant_id: tenant.id,
+                name: studentName,
+                email: emailValue,
+                phone: phone ?? "N/A",
+                date_of_birth: dateOfBirth,
+                notes: noteValue || null,
+                status: "active",
+                payment_type: "monthly",
+              })
+              .select("id")
+              .single();
+
+            return { student, studentError };
+          };
+
+          let studentId: string | null = null;
+          const firstAttempt = await createStudent(studentInsertEmail, finalNotes);
+
+          if (firstAttempt.studentError) {
+            const duplicateEmail =
+              firstAttempt.studentError?.code === "23505" ||
+              firstAttempt.studentError?.message?.toLowerCase().includes("email");
+
+            if (!duplicateEmail) {
+              throw new Error(`Failed to create student: ${firstAttempt.studentError?.message}`);
+            }
+
+            // Generate unique email
+            const atIndex = email.indexOf("@");
+            const suffix = Date.now().toString().slice(-6) + Math.random().toString(36).slice(-4);
+            studentInsertEmail =
+              atIndex > 0
+                ? `${email.slice(0, atIndex)}+joint-${suffix}${email.slice(atIndex)}`
+                : `${email}+joint-${suffix}`;
+
+            finalNotes = [
+              studentNotes,
+              `Original contact email: ${email}`,
+            ]
+              .filter(Boolean)
+              .join("\n");
+
+            const retryAttempt = await createStudent(studentInsertEmail, finalNotes);
+            if (retryAttempt.studentError || !retryAttempt.student) {
+              throw new Error(`Failed to create student after retry: ${retryAttempt.studentError?.message}`);
+            }
+
+            studentId = retryAttempt.student.id;
+          } else {
+            studentId = firstAttempt.student!.id;
+          }
+
+          if (!studentId) {
+            throw new Error("Failed to resolve student for joint enrollment");
+          }
+
+          createdStudentIds.push(studentId);
+          studentIds.push(studentId);
+
+          // Create guardian record for payer
+          const { error: guardianError } = await supabaseAdmin.from("guardians").insert({
+            tenant_id: tenant.id,
+            student_id: studentId,
+            name: input.payer_info.name,
+            email: input.payer_info.email,
+            phone: input.payer_info.phone,
+            relation: "guardian",
+            is_primary: true,
+          });
+
+          if (guardianError) {
+            throw new Error(`Failed to create guardian: ${guardianError.message}`);
+          }
+
+          // Create enrollments for this student
+          const enrollmentRows = studentData.class_ids.map((classId) => ({
+            tenant_id: tenant.id,
+            student_id: studentId,
+            class_id: classId,
+            status: "pending" as const,
+            joint_enrollment_group_id: groupId,
+            student_snapshot: {
+              first_name: firstName,
+              last_name: lastName,
+              email,
+              phone,
+              guardian_name: input.payer_info.name,
+              guardian_email: input.payer_info.email,
+              guardian_phone: input.payer_info.phone,
+              form_values: formValues,
+              is_joint_enrollment: true,
+            },
+            notes: studentData.notes ?? null,
+          }));
+
+          const { data: enrollments, error: enrollmentError } = await supabaseAdmin
+            .from("enrollments")
+            .insert(enrollmentRows)
+            .select("id");
+
+          if (enrollmentError || !enrollments || enrollments.length === 0) {
+            throw new Error(`Failed to create enrollments: ${enrollmentError?.message}`);
+          }
+
+          enrollmentIds.push(...enrollments.map(e => e.id));
+        }
+
+        return {
+          enrollmentIds,
+          studentIds,
+          groupId,
+        };
+      } catch (error) {
+        // Rollback: delete created students
+        if (createdStudentIds.length > 0) {
+          await supabaseAdmin
+            .from("students")
+            .delete()
+            .in("id", createdStudentIds);
+        }
+        throw error;
+      }
+    },
 };

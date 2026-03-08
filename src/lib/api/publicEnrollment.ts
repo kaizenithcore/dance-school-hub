@@ -1,5 +1,65 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
+export type FieldType = "text" | "email" | "tel" | "textarea" | "select" | "checkbox" | "file" | "date" | "number";
+
+export interface FieldCondition {
+  id: string;
+  sourceFieldId: string;
+  operator: "equals" | "not_equals" | "less_than" | "greater_than" | "contains" | "is_empty" | "is_not_empty";
+  value: string;
+}
+
+export interface FormField {
+  id: string;
+  type: FieldType;
+  label: string;
+  placeholder?: string;
+  required: boolean;
+  options?: Array<{ value: string; label: string }>;
+  accept?: string;
+  maxLength?: number;
+  conditions?: FieldCondition[];
+}
+
+export interface FormSection {
+  id: string;
+  title: string;
+  description?: string;
+  fields: FormField[];
+  conditions?: FieldCondition[];
+}
+
+export interface EnrollmentFormConfig {
+  sections: FormSection[];
+  jointEnrollment: {
+    enabled: boolean;
+    maxStudents: number;
+    schedule?: {
+      preferredView: "calendar" | "list";
+      recurringSelectionMode: "linked" | "single_day";
+      recurringClassOverrides: string[];
+      calendarFields: {
+        showDiscipline: boolean;
+        showCategory: boolean;
+        showRoom: boolean;
+        showCapacity: boolean;
+        showPrice: boolean;
+        showSelectedStudents: boolean;
+      };
+    };
+  };
+  includeSchedule: boolean;
+  includePricing: boolean;
+}
+
+export interface ClassSchedule {
+  id: string;
+  day: string;
+  startHour: number;
+  duration: number;
+  room: string;
+}
+
 export interface PublicClass {
   id: string;
   name: string;
@@ -8,50 +68,51 @@ export interface PublicClass {
   price_cents: number;
   capacity: number;
   enrolled_count: number;
+  schedules?: ClassSchedule[];
+}
+
+export interface PublicSchoolProfile {
+  tagline?: string;
+  description?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
 }
 
 export interface PublicFormData {
+  tenantId: string;
   tenantName: string;
+  formConfig: EnrollmentFormConfig;
+  publicProfile?: PublicSchoolProfile;
   availableClasses: PublicClass[];
 }
 
-export interface EnrollmentFormData {
-  // Student info
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  date_of_birth?: string;
-  
-  // Guardian info
-  guardian_name?: string;
-  guardian_email?: string;
-  guardian_phone?: string;
-  
-  // Address
-  address_line1?: string;
-  address_line2?: string;
-  city?: string;
-  state?: string;
-  postal_code?: string;
-  country?: string;
-  
-  // Enrollment
-  class_id: string;
-  
-  // Emergency/Medical
-  emergency_contact_name?: string;
-  emergency_contact_phone?: string;
-  medical_conditions?: string;
-  
-  // Notes
-  notes?: string;
+export interface EnrollmentSubmitPayload {
+  class_id?: string;
+  class_ids?: string[];
+    form_values: Record<string, unknown>;
+    students?: Array<{
+      form_values: Record<string, unknown>;
+      class_ids: string[];
+    }>;
+    is_joint_enrollment?: boolean;
+    payer_info?: {
+      name: string;
+      email: string;
+      phone: string;
+    };
 }
 
 export interface EnrollmentResponse {
   success: boolean;
-  enrollmentId: string;
-  studentId: string;
+  enrollmentId?: string;
+  studentId?: string;
+  waitlistCreated?: boolean;
+  waitlistCount?: number;
   message: string;
 }
 
@@ -73,7 +134,7 @@ export async function getPublicFormData(tenantSlug: string): Promise<PublicFormD
 
 export async function submitPublicEnrollment(
   tenantSlug: string,
-  formData: EnrollmentFormData
+  payload: EnrollmentSubmitPayload
 ): Promise<EnrollmentResponse | null> {
   try {
     const response = await fetch(`${API_URL}/api/public/enroll`, {
@@ -83,7 +144,7 @@ export async function submitPublicEnrollment(
       },
       body: JSON.stringify({
         tenantSlug,
-        ...formData,
+        ...payload,
       }),
     });
     

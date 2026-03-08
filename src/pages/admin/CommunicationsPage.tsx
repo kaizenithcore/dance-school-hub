@@ -1,0 +1,324 @@
+import { useEffect, useMemo, useState } from "react";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { getClasses } from "@/lib/api/classes";
+import { getDisciplines } from "@/lib/api/disciplines";
+import {
+  getCampaignDeliveries,
+  getEmailCampaigns,
+  previewEmailAudience,
+  queueEmailCampaign,
+  tickJobs,
+  type AudienceType,
+  type CommunicationChannel,
+  type DeliveryRecord,
+} from "@/lib/api/communications";
+import { toast } from "sonner";
+
+type ClassItem = { id: string; name: string };
+type DisciplineItem = { id: string; name: string };
+
+const AUDIENCE_LABELS: Record<AudienceType, string> = {
+  all: "Toda la escuela",
+  class: "Por clase",
+  discipline: "Por disciplina",
+};
+
+const CHANNEL_LABELS: Record<CommunicationChannel, string> = {
+  email: "Email",
+  whatsapp_link: "WhatsApp (enlace)",
+};
+
+const DELIVERY_STATUS_LABELS: Record<DeliveryRecord["status"], string> = {
+  queued: "En cola",
+  processing: "Procesando",
+  ready: "Listo",
+  sent: "Enviado",
+  failed: "Error",
+  skipped: "Omitido",
+};
+
+export default function CommunicationsPage() {
+  const [channel, setChannel] = useState<CommunicationChannel>("email");
+  const [audienceType, setAudienceType] = useState<AudienceType>("all");
+  const [classId, setClassId] = useState("");
+  const [disciplineId, setDisciplineId] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [disciplines, setDisciplines] = useState<DisciplineItem[]>([]);
+  const [previewCount, setPreviewCount] = useState<number | null>(null);
+  const [campaigns, setCampaigns] = useState<Array<{ id: string; createdAt: string; channel: CommunicationChannel; audience: { type: AudienceType }; subject: string; status: "queued" | "processing" | "ready" | "sent" | "partial" | "failed"; queuedCount: number; sentCount: number; failedCount: number }>>([]);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const [deliveries, setDeliveries] = useState<DeliveryRecord[]>([]);
+  const [loadingDeliveries, setLoadingDeliveries] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [processingQueue, setProcessingQueue] = useState(false);
+
+  const canSubmit = useMemo(() => {
+    if (!subject.trim() || !message.trim()) return false;
+    if (audienceType === "class" && !classId) return false;
+    if (audienceType === "discipline" && !disciplineId) return false;
+    return true;
+  }, [audienceType, classId, disciplineId, message, subject]);
+
+  const buildAudience = () => ({
+    type: audienceType,
+    classId: audienceType === "class" ? classId : undefined,
+    disciplineId: audienceType === "discipline" ? disciplineId : undefined,
+  });
+
+  const loadMeta = async () => {
+    try {
+      const [classesData, disciplinesData, campaignData] = await Promise.all([
+        getClasses(),
+        getDisciplines(),
+        getEmailCampaigns(),
+      ]);
+      setClasses((classesData || []).map((item) => ({ id: item.id, name: item.name })));
+      setDisciplines((disciplinesData || []).map((item) => ({ id: item.id, name: item.name })));
+      setCampaigns(campaignData || []);
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo cargar la configuración de comunicación");
+    }
+  };
+
+  useEffect(() => {
+    void loadMeta();
+  }, []);
+
+  const handlePreview = async () => {
+    if (!canSubmit) {
+      toast.error("Completa asunto, mensaje y audiencia");
+      return;
+    }
+
+    setPreviewing(true);
+    try {
+      const result = await previewEmailAudience({
+        channel,
+        audience: buildAudience(),
+        subject,
+        message,
+      });
+      setPreviewCount(result.recipientsCount);
+      toast.success(`Se enviará a ${result.recipientsCount} destinatarios`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo calcular el público");
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
+  const handleQueue = async () => {
+    if (!canSubmit) {
+      toast.error("Completa asunto, mensaje y audiencia");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const result = await queueEmailCampaign({
+        channel,
+        audience: buildAudience(),
+        subject,
+        message,
+      });
+      toast.success(
+        channel === "email"
+          ? `Envío preparado para ${result.queuedCount} destinatarios`
+          : `Campaña de WhatsApp lista para ${result.queuedCount} destinatarios`
+      );
+      setPreviewCount(result.queuedCount);
+      await loadMeta();
+      setSelectedCampaignId(result.campaignId);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo preparar el envío");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleProcessQueue = async () => {
+    setProcessingQueue(true);
+    try {
+      const result = await tickJobs(50);
+      toast.success(`Envíos realizados: ${result.sent}. Con error: ${result.failed}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudieron completar los envíos pendientes");
+    } finally {
+      setProcessingQueue(false);
+    }
+  };
+
+  const loadDeliveries = async (campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+    setLoadingDeliveries(true);
+    try {
+      const rows = await getCampaignDeliveries(campaignId);
+      setDeliveries(rows);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cargar el detalle del envío");
+      setDeliveries([]);
+    } finally {
+      setLoadingDeliveries(false);
+    }
+  };
+
+  return (
+    <PageContainer
+      title="Comunicados"
+      description="Envía mensajes por email a grupos de alumnos de forma simple"
+      actions={
+        <Button variant="outline" onClick={() => void handleProcessQueue()} disabled={processingQueue}>
+          {processingQueue ? "Enviando..." : "Enviar pendientes"}
+        </Button>
+      }
+    >
+      <div className="rounded-lg border border-border bg-card p-5 shadow-soft space-y-4">
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label>Canal</Label>
+            <Select value={channel} onValueChange={(value) => setChannel(value as CommunicationChannel)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="whatsapp_link">WhatsApp (enlace)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Audiencia</Label>
+            <Select value={audienceType} onValueChange={(v) => setAudienceType(v as AudienceType)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toda la escuela</SelectItem>
+                <SelectItem value="class">Una clase</SelectItem>
+                <SelectItem value="discipline">Una disciplina</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {audienceType === "class" && (
+            <div className="space-y-1.5">
+              <Label>Clase</Label>
+              <Select value={classId} onValueChange={setClassId}>
+                <SelectTrigger><SelectValue placeholder="Selecciona clase" /></SelectTrigger>
+                <SelectContent>
+                  {classes.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {audienceType === "discipline" && (
+            <div className="space-y-1.5">
+              <Label>Disciplina</Label>
+              <Select value={disciplineId} onValueChange={setDisciplineId}>
+                <SelectTrigger><SelectValue placeholder="Selecciona disciplina" /></SelectTrigger>
+                <SelectContent>
+                  {disciplines.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Asunto</Label>
+          <Input value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Ej: Aviso de cambio de horario" />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Mensaje</Label>
+          <Textarea
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            rows={6}
+            placeholder="Escribe aquí el mensaje para alumnos/familias"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={() => void handlePreview()} disabled={previewing || !canSubmit}>
+            {previewing ? "Calculando..." : "Ver destinatarios"}
+          </Button>
+          <Button onClick={() => void handleQueue()} disabled={sending || !canSubmit}>
+            {sending ? "Preparando..." : "Preparar envío"}
+          </Button>
+          {previewCount !== null ? <Badge variant="secondary">{previewCount} destinatarios</Badge> : null}
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card p-5 shadow-soft">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Historial reciente</h3>
+        {campaigns.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aún no hay envíos registrados.</p>
+        ) : (
+          <div className="space-y-2">
+            {campaigns.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => void loadDeliveries(item.id)}
+                className="w-full rounded-md border border-border px-3 py-2 text-left hover:bg-muted"
+              >
+                <p className="text-sm font-medium">{item.subject}</p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(item.createdAt).toLocaleString("es-ES")} · canal: {CHANNEL_LABELS[item.channel]} · público: {AUDIENCE_LABELS[item.audience.type]} · total: {item.queuedCount} · enviados: {item.sentCount} · error: {item.failedCount} · estado: {item.status}
+                </p>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-border bg-card p-5 shadow-soft">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Estado por destinatario</h3>
+        {!selectedCampaignId ? (
+          <p className="text-sm text-muted-foreground">Selecciona una campaña para ver detalle.</p>
+        ) : loadingDeliveries ? (
+          <p className="text-sm text-muted-foreground">Cargando detalle...</p>
+        ) : deliveries.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No hay destinatarios para esta campaña.</p>
+        ) : (
+          <div className="space-y-2 max-h-[360px] overflow-auto pr-1">
+            {deliveries.map((delivery) => (
+              <div key={delivery.id} className="rounded-md border border-border px-3 py-2">
+                <p className="text-sm font-medium">{delivery.studentName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {delivery.email || delivery.phone || "Sin contacto"} · estado: {DELIVERY_STATUS_LABELS[delivery.status]}
+                </p>
+                {delivery.waLink ? (
+                  <a
+                    href={delivery.waLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary underline"
+                  >
+                    Abrir enlace de WhatsApp
+                  </a>
+                ) : null}
+                {delivery.errorMessage ? (
+                  <p className="text-xs text-destructive">{delivery.errorMessage}</p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </PageContainer>
+  );
+}

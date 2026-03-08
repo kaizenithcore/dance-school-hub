@@ -43,7 +43,7 @@ export function EnrollmentForm({ schema, selectedClasses, onRemoveClass }: Enrol
   const validateCurrentStep = useCallback(() => {
     if (currentStep.id === "_classes") {
       if (selectedClasses.length === 0) {
-        toast.error("Seleccioná al menos una clase para continuar.");
+        toast.error("Selecciona al menos una clase para continuar.");
         return false;
       }
       return true;
@@ -107,7 +107,7 @@ export function EnrollmentForm({ schema, selectedClasses, onRemoveClass }: Enrol
           Tu solicitud de inscripción fue recibida. Te contactaremos pronto para confirmar los detalles y el pago.
         </p>
         <p className="mt-4 text-xs text-muted-foreground">
-          Clases seleccionadas: {selectedClasses.length} · Total: ${selectedClasses.reduce((s, c) => s + c.price, 0)}
+          Clases seleccionadas: {selectedClasses.length} · Total: €{selectedClasses.reduce((s, c) => s + c.price, 0)}
         </p>
       </div>
     );

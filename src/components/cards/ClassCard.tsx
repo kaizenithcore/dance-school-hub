@@ -3,8 +3,11 @@ import { cn } from "@/lib/utils";
 
 export interface ClassCardData {
   id: string;
+  sourceClassId?: string;
+  scheduleId?: string;
   name: string;
   teacher: string;
+  category?: string;
   time: string;
   room: string;
   price: number;
@@ -54,7 +57,7 @@ export function ClassCard({
     >
       <div className="flex items-start justify-between mb-2">
         <h4 className={cn("font-semibold text-foreground", compact ? "text-xs" : "text-sm")}>{name}</h4>
-        <span className={cn("font-semibold text-primary", compact ? "text-xs" : "text-sm")}>${price}</span>
+        <span className={cn("font-semibold text-primary", compact ? "text-xs" : "text-sm")}>€{price}</span>
       </div>
 
       <div className="space-y-1.5">

@@ -65,7 +65,7 @@ export function FileUploader({ accept, value, onChange }: FileUploaderProps) {
       <Upload className="h-5 w-5 text-muted-foreground" />
       <div className="text-center">
         <span className="text-sm text-primary font-medium">Elegir archivo</span>
-        <span className="text-sm text-muted-foreground"> o arrastrá aquí</span>
+        <span className="text-sm text-muted-foreground"> o arrastra aquí</span>
       </div>
       {accept && (
         <p className="text-xs text-muted-foreground">

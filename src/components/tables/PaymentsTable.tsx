@@ -193,20 +193,32 @@ export function PaymentsTable({ payments, onViewDetail, onAddPayment, onGenerate
                       <div>
                         <p className="text-sm font-medium text-foreground">{payment.studentName}</p>
                         {payerDiffers ? (
-                          <p className="text-[10px] text-muted-foreground">Paga: {payment.payerName}</p>
+                          <p className="text-[10px] text-warning font-medium">↳ Paga: {payment.payerName}</p>
                         ) : (
                           <p className="text-[10px] text-muted-foreground">{payment.studentEmail}</p>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden md:table-cell max-w-[200px] truncate">
-                      {payment.concept}
+                      <div className="flex items-center gap-1">
+                        {payment.concept}
+                        {payment.accountNumber && (
+                          <span className="text-[10px] text-muted-foreground ml-1">
+                            (****{payment.accountNumber.slice(-4)})
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
                       {format(new Date(payment.month + "-01"), "MMM yyyy", { locale: es })}
                     </TableCell>
                     <TableCell className="text-right text-sm font-semibold text-foreground">
-                      ${payment.amount.toLocaleString()}
+                      <div className="flex items-center justify-end gap-1">
+                        ${payment.amount.toLocaleString()}
+                        {payment.amountChanged && (
+                          <span className="text-[10px] text-warning">⚠</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{payment.method}</TableCell>
                     <TableCell className="text-center">

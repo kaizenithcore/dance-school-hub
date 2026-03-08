@@ -22,10 +22,10 @@ export function DeleteClassModal({ open, onOpenChange, classData, onConfirm }: D
           </div>
           <DialogTitle className="text-center">Eliminar Clase</DialogTitle>
           <DialogDescription className="text-center">
-            ¿Estás seguro de que querés eliminar <strong>{classData.name}</strong>? Esta acción no se puede deshacer.
+            ¿Estás seguro de que quieres eliminar <strong>{classData.name}</strong>? Esta acción no se puede deshacer.
             {classData.enrolled > 0 && (
               <span className="block mt-2 text-destructive font-medium">
-                ⚠ Esta clase tiene {classData.enrolled} alumno{classData.enrolled > 1 ? "s" : ""} inscripto{classData.enrolled > 1 ? "s" : ""}.
+                ⚠ Esta clase tiene {classData.enrolled} alumno{classData.enrolled > 1 ? "s" : ""} inscrito{classData.enrolled > 1 ? "s" : ""}.
               </span>
             )}
           </DialogDescription>

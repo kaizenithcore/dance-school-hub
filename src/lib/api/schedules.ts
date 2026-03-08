@@ -57,6 +57,47 @@ export interface ListSchedulesQuery {
   toDate?: string;
 }
 
+export type ScheduleInsightSeverity = "high" | "medium" | "low";
+export type ScheduleInsightType = "low_demand" | "over_demand" | "teacher_gap" | "room_underutilized";
+
+export interface ScheduleInsight {
+  id: string;
+  type: ScheduleInsightType;
+  severity: ScheduleInsightSeverity;
+  title: string;
+  description: string;
+  suggestedAction: string;
+  classId?: string;
+  className?: string;
+  teacherId?: string;
+  teacherName?: string;
+  roomId?: string;
+  roomName?: string;
+  weekday?: number;
+  metrics: Record<string, string | number>;
+}
+
+export interface ScheduleInsightsResult {
+  generatedAt: string;
+  summary: {
+    totalAlerts: number;
+    high: number;
+    medium: number;
+    low: number;
+    lowDemandClasses: number;
+    overDemandClasses: number;
+    teacherGaps: number;
+    underutilizedRooms: number;
+  };
+  metrics: {
+    totalClassesWithSchedule: number;
+    avgClassOccupancyPct: number;
+    totalRooms: number;
+    avgRoomUtilizationPct: number;
+  };
+  alerts: ScheduleInsight[];
+}
+
 export async function getSchedules(query?: ListSchedulesQuery): Promise<ScheduleWithRelations[]> {
   const params = new URLSearchParams();
   if (query?.classId) params.append("classId", query.classId);
@@ -134,4 +175,9 @@ export async function getPublicSchedule(
   }`;
   const response = await apiRequest<ScheduleWithRelations[]>(url);
   return response.success ? response.data || [] : [];
+}
+
+export async function getScheduleInsights(): Promise<ScheduleInsightsResult | null> {
+  const response = await apiRequest<ScheduleInsightsResult>("/api/admin/schedule/insights");
+  return response.success ? response.data || null : null;
 }

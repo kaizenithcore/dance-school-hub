@@ -91,7 +91,7 @@ export default function FullSchedulePage() {
         {selectedClasses.length > 0 && (
           <div className="flex items-center gap-3 animate-fade-in">
             <span className="text-sm text-muted-foreground">
-              {selectedClasses.length} clase{selectedClasses.length > 1 ? "s" : ""} · <span className="font-semibold text-foreground">${selectedTotal}</span>
+              {selectedClasses.length} clase{selectedClasses.length > 1 ? "s" : ""} · <span className="font-semibold text-foreground">€{selectedTotal}</span>
             </span>
             <Button asChild>
               <Link to={`/s/${schoolSlug}/enroll`}>

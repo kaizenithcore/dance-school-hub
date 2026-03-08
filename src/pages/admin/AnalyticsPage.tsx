@@ -1,10 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { StatCard } from "@/components/cards/StatCard";
-import { Users, GraduationCap, CreditCard, TrendingUp, AlertTriangle, UserCheck } from "lucide-react";
-import { MOCK_STUDENTS } from "@/lib/data/mockStudents";
-import { MOCK_PAYMENTS } from "@/lib/data/mockPayments";
-import { MOCK_ENROLLMENTS } from "@/lib/data/mockEnrollments";
+import { Users, CreditCard, TrendingUp, AlertTriangle, Loader2 } from "lucide-react";
+import { getAnalyticsData, getDashboardMetrics, type AnalyticsData, type DashboardMetrics } from "@/lib/api/payments";
+import { getStudents } from "@/lib/api/students";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend,
@@ -20,91 +19,103 @@ const CHART_COLORS = [
 ];
 
 export default function AnalyticsPage() {
-  const activeStudents = MOCK_STUDENTS.filter((s) => s.status === "active").length;
-  const inactiveStudents = MOCK_STUDENTS.filter((s) => s.status === "inactive").length;
-  const totalStudents = MOCK_STUDENTS.length;
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const totalRevenue = useMemo(() =>
-    MOCK_PAYMENTS.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0),
-    []
-  );
-  const pendingRevenue = useMemo(() =>
-    MOCK_PAYMENTS.filter((p) => p.status === "pending" || p.status === "overdue").reduce((s, p) => s + p.amount, 0),
-    []
-  );
-  const overdueCount = MOCK_PAYMENTS.filter((p) => p.status === "overdue").length;
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [analyticsData, metricsData, studentsData] = await Promise.all([
+          getAnalyticsData(),
+          getDashboardMetrics(),
+          getStudents(),
+        ]);
 
-  const enrollmentRate = useMemo(() => {
-    const confirmed = MOCK_ENROLLMENTS.filter((e) => e.status === "confirmed").length;
-    return Math.round((confirmed / MOCK_ENROLLMENTS.length) * 100);
+        setAnalytics(analyticsData);
+        setMetrics(metricsData);
+        setStudents(studentsData || []);
+      } catch (error) {
+        console.error("Failed to load analytics:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
   }, []);
 
-  // Revenue by month
-  const revenueByMonth = useMemo(() => {
-    const map: Record<string, number> = {};
-    MOCK_PAYMENTS.filter((p) => p.status === "paid").forEach((p) => {
-      map[p.month] = (map[p.month] || 0) + p.amount;
-    });
-    return Object.entries(map)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, total]) => {
-        const [y, m] = month.split("-");
-        const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-        return { name: `${monthNames[parseInt(m) - 1]} ${y}`, total };
-      });
-  }, []);
+  const totalStudents = students.length;
+  const inactiveStudents = students.filter((s) => s.status === "inactive").length;
+  const activeStudents = totalStudents - inactiveStudents;
 
-  // Payment method distribution
-  const methodDistribution = useMemo(() => {
-    const map: Record<string, number> = {};
-    MOCK_PAYMENTS.forEach((p) => {
-      map[p.method] = (map[p.method] || 0) + 1;
-    });
-    return Object.entries(map).map(([name, value]) => ({ name, value }));
-  }, []);
-
-  // Enrollments by status
-  const enrollmentsByStatus = useMemo(() => {
-    const labels: Record<string, string> = {
-      pending: "Pendiente", confirmed: "Confirmada", declined: "Rechazada", cancelled: "Cancelada",
-    };
-    const map: Record<string, number> = {};
-    MOCK_ENROLLMENTS.forEach((e) => {
-      map[e.status] = (map[e.status] || 0) + 1;
-    });
-    return Object.entries(map).map(([key, value]) => ({ name: labels[key] || key, value }));
-  }, []);
-
-  // Students per class (top classes)
-  const studentsPerClass = useMemo(() => {
-    const map: Record<string, number> = {};
-    MOCK_STUDENTS.forEach((s) => {
-      s.enrolledClasses.forEach((c) => {
-        map[c.name] = (map[c.name] || 0) + 1;
-      });
-    });
-    return Object.entries(map)
-      .map(([name, alumnos]) => ({ name: name.length > 18 ? name.slice(0, 18) + "…" : name, alumnos }))
-      .sort((a, b) => b.alumnos - a.alumnos)
-      .slice(0, 8);
-  }, []);
-
-  // Monthly revenue for line chart (with pending)
   const revenueLineData = useMemo(() => {
-    const map: Record<string, { paid: number; pending: number }> = {};
-    MOCK_PAYMENTS.forEach((p) => {
-      if (!map[p.month]) map[p.month] = { paid: 0, pending: 0 };
-      if (p.status === "paid") map[p.month].paid += p.amount;
-      else if (p.status === "pending" || p.status === "overdue") map[p.month].pending += p.amount;
-    });
+    if (!analytics?.revenueByMonth) return [];
     const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    return Object.entries(map)
+    const combined: Record<string, { Cobrado: number; Pendiente: number }> = {};
+
+    // Add revenue from revenueByMonth
+    Object.entries(analytics.revenueByMonth).forEach(([month, total]) => {
+      if (!combined[month]) combined[month] = { Cobrado: 0, Pendiente: 0 };
+      combined[month].Cobrado = Math.round(total / 100);
+    });
+
+    return Object.entries(combined)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, data]) => {
         const [y, m] = month.split("-");
-        return { name: `${monthNames[parseInt(m) - 1]} ${y}`, Cobrado: data.paid, Pendiente: data.pending };
+        return {
+          name: `${monthNames[parseInt(m) - 1]} ${y}`,
+          Cobrado: data.Cobrado,
+          Pendiente: Math.round(analytics.pendingRevenue / (Object.keys(analytics.revenueByMonth).length || 1) / 100),
+        };
       });
-  }, []);
+  }, [analytics]);
+
+  const enrollmentsByStatus = useMemo(() => {
+    if (!analytics?.enrollmentsByStatus) return [];
+    const labels: Record<string, string> = {
+      pending: "Pendiente",
+      confirmed: "Confirmada",
+      declined: "Rechazada",
+      cancelled: "Cancelada",
+    };
+    return Object.entries(analytics.enrollmentsByStatus).map(([key, value]) => ({
+      name: labels[key] || key,
+      value,
+    }));
+  }, [analytics]);
+
+  const methodDistribution = useMemo(() => {
+    if (!analytics?.methodDistribution) return [];
+    return Object.entries(analytics.methodDistribution).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  }, [analytics]);
+
+  const studentsPerClass = useMemo(() => {
+    if (!analytics?.studentsByClass) return [];
+    return Object.entries(analytics.studentsByClass)
+      .map(([name, alumnos]) => ({
+        name: name.length > 18 ? name.slice(0, 18) + "…" : name,
+        alumnos,
+      }))
+      .sort((a, b) => b.alumnos - a.alumnos)
+      .slice(0, 8);
+  }, [analytics]);
+
+  if (loading) {
+    return (
+      <PageContainer title="Analíticas" description="Indicadores de rendimiento de la escuela">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer
@@ -113,10 +124,38 @@ export default function AnalyticsPage() {
     >
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Alumnos Activos" value={activeStudents} change={`${inactiveStudents} inactivos de ${totalStudents}`} changeType="neutral" icon={Users} />
-        <StatCard title="Recaudado" value={`$${totalRevenue.toLocaleString()}`} change={`$${pendingRevenue.toLocaleString()} pendiente`} changeType="positive" icon={CreditCard} />
-        <StatCard title="Tasa de Inscripción" value={`${enrollmentRate}%`} change={`${MOCK_ENROLLMENTS.filter(e => e.status === "confirmed").length} confirmadas de ${MOCK_ENROLLMENTS.length}`} changeType="positive" icon={TrendingUp} />
-        <StatCard title="Pagos Vencidos" value={overdueCount} change={overdueCount > 0 ? "Requiere atención" : "Todo al día"} changeType={overdueCount > 0 ? "negative" : "positive"} icon={AlertTriangle} />
+        <StatCard
+          title="Alumnos Activos"
+          value={activeStudents}
+          change={`${inactiveStudents} inactivos de ${totalStudents}`}
+          changeType="neutral"
+          icon={Users}
+        />
+        <StatCard
+          title="Recaudado"
+          value={`$${(analytics?.totalRevenue || 0).toLocaleString()}`}
+          change={`$${(analytics?.pendingRevenue || 0).toLocaleString()} pendiente`}
+          changeType="positive"
+          icon={CreditCard}
+        />
+        <StatCard
+          title="Tasa de Inscripción"
+          value={`${metrics?.enrollmentRate || 0}%`}
+          change={`${Object.values(analytics?.enrollmentsByStatus || {}).reduce((a: number, b: number) => a + b, 0)} inscripciones totales`}
+          changeType="positive"
+          icon={TrendingUp}
+        />
+        <StatCard
+          title="Pagos Vencidos"
+          value={metrics?.overduePayments || 0}
+          change={
+            (metrics?.overduePayments || 0) > 0
+              ? "Requiere atención"
+              : "Todo al día"
+          }
+          changeType={(metrics?.overduePayments || 0) > 0 ? "negative" : "positive"}
+          icon={AlertTriangle}
+        />
       </div>
 
       {/* Charts row 1 */}
@@ -159,7 +198,17 @@ export default function AnalyticsPage() {
           <h3 className="text-sm font-semibold text-foreground mb-4">Inscripciones por Estado</h3>
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
-              <Pie data={enrollmentsByStatus} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+              <Pie
+                data={enrollmentsByStatus}
+                cx="50%"
+                cy="50%"
+                innerRadius={55}
+                outerRadius={90}
+                paddingAngle={3}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
                 {enrollmentsByStatus.map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}
@@ -174,7 +223,17 @@ export default function AnalyticsPage() {
           <h3 className="text-sm font-semibold text-foreground mb-4">Distribución por Método de Pago</h3>
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
-              <Pie data={methodDistribution} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+              <Pie
+                data={methodDistribution}
+                cx="50%"
+                cy="50%"
+                innerRadius={55}
+                outerRadius={90}
+                paddingAngle={3}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
                 {methodDistribution.map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}

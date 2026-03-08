@@ -103,6 +103,10 @@ export function useScheduleEditor() {
 
       const roomById = new Map(roomsData.map((room) => [room.id, room]));
       const classById = new Map(classesData.map((klass) => [klass.id, klass]));
+      const activeRooms = roomsData.filter((room) => {
+        const roomMaybeSnake = room as Room & { is_active?: boolean };
+        return Boolean(roomMaybeSnake.isActive ?? roomMaybeSnake.is_active);
+      });
 
       const mappedBlocks: ScheduleBlock[] = schedules.map((schedule, index) => {
         const [startHour, startMin] = schedule.start_time.split(":").map(Number);
@@ -136,8 +140,8 @@ export function useScheduleEditor() {
           capacity: klass.capacity,
           spotsLeft: klass.capacity,
           duration: 1.5,
-          roomId: klass.roomId || roomsData[0]?.id,
-          roomName: (klass.roomId ? roomById.get(klass.roomId)?.name : roomsData[0]?.name) || "Sin aula",
+          roomId: klass.roomId || activeRooms[0]?.id,
+          roomName: (klass.roomId ? roomById.get(klass.roomId)?.name : activeRooms[0]?.name) || "Sin aula",
         }));
 
       const signatures: Record<string, string> = {};
@@ -152,7 +156,7 @@ export function useScheduleEditor() {
       originalByIdRef.current = signatures;
       effectiveFromByIdRef.current = effectiveFrom;
       setDeletedPersistedIds([]);
-      setRooms(roomsData.filter((room) => room.isActive));
+      setRooms(activeRooms);
       setAvailableClasses(mappedClasses);
       setBlocks(mappedBlocks);
     } catch (error) {

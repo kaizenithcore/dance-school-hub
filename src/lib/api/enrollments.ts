@@ -1,23 +1,26 @@
-// TODO: Replace with actual API calls to backend
-export interface Enrollment {
+import { apiRequest } from "./client";
+import type { EnrollmentRecord, EnrollmentStatus } from "@/lib/data/mockEnrollments";
+
+interface EnrollmentStatusUpdateResponse {
   id: string;
-  studentId: string;
-  studentName: string;
-  classes: string[];
-  status: "pending" | "confirmed" | "declined" | "cancelled";
-  price: number;
-  paymentMethod: string;
-  date: string;
+  status: EnrollmentStatus;
+  unchanged: boolean;
 }
 
-export async function getEnrollments(): Promise<Enrollment[]> {
-  return [];
+export async function getEnrollments(): Promise<EnrollmentRecord[]> {
+  const response = await apiRequest<EnrollmentRecord[]>("/api/admin/enrollments");
+  if (!response.success) return [];
+  return response.data || [];
 }
 
-export async function createEnrollment(data: Omit<Enrollment, "id">): Promise<Enrollment> {
-  return { id: "mock-id", ...data };
-}
+export async function updateEnrollmentStatus(
+  id: string,
+  status: EnrollmentStatus
+): Promise<EnrollmentStatusUpdateResponse | null> {
+  const response = await apiRequest<EnrollmentStatusUpdateResponse>(`/api/admin/enrollments/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
 
-export async function updateEnrollmentStatus(id: string, status: Enrollment["status"]): Promise<Enrollment> {
-  return { id, status } as Enrollment;
+  return response.success ? response.data || null : null;
 }

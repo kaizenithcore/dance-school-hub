@@ -16,6 +16,12 @@ import PaymentsPage from "@/pages/admin/PaymentsPage";
 import AnalyticsPage from "@/pages/admin/AnalyticsPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
 import FormBuilderPage from "@/pages/admin/FormBuilderPage";
+import { PricingManagement } from "@/pages/admin/PricingManagement";
+import CommunicationsPage from "@/pages/admin/CommunicationsPage";
+import WaitlistPage from "@/pages/admin/WaitlistPage";
+import RenewalsPage from "@/pages/admin/RenewalsPage";
+import CourseClonePage from "@/pages/admin/CourseClonePage";
+import ReceptionPage from "@/pages/admin/ReceptionPage";
 import SchoolLandingPage from "@/pages/public/SchoolLandingPage";
 import EnrollPage from "@/pages/public/EnrollPage";
 import FullSchedulePage from "@/pages/public/FullSchedulePage";
@@ -61,6 +67,12 @@ const App = () => (
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="form-builder" element={<FormBuilderPage />} />
+            <Route path="pricing" element={<PricingManagement />} />
+            <Route path="communications" element={<CommunicationsPage />} />
+            <Route path="waitlist" element={<WaitlistPage />} />
+            <Route path="renewals" element={<RenewalsPage />} />
+            <Route path="course-clone" element={<CourseClonePage />} />
+            <Route path="reception" element={<ReceptionPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="/s/:schoolSlug" element={<PublicLayout />}>

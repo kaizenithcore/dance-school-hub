@@ -29,10 +29,11 @@ interface StudentsTableProps {
   students: StudentRecord[];
   onViewProfile: (student: StudentRecord) => void;
   onEdit: (student: StudentRecord) => void;
+  onManageClasses: (student: StudentRecord) => void;
   onDelete: (student: StudentRecord) => void;
 }
 
-export function StudentsTable({ students, onViewProfile, onEdit, onDelete }: StudentsTableProps) {
+export function StudentsTable({ students, onViewProfile, onEdit, onManageClasses, onDelete }: StudentsTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
@@ -152,6 +153,11 @@ export function StudentsTable({ students, onViewProfile, onEdit, onDelete }: Stu
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         </TooltipTrigger><TooltipContent side="bottom"><p>Editar</p></TooltipContent></Tooltip>
+                        <Tooltip><TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onManageClasses(student)}>
+                            <DollarSign className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger><TooltipContent side="bottom"><p>Clases y cuota</p></TooltipContent></Tooltip>
                         <Tooltip><TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(student)}>
                             <Trash2 className="h-3.5 w-3.5" />

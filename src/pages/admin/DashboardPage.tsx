@@ -1,82 +1,84 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { StatCard } from "@/components/cards/StatCard";
 import {
   Users, GraduationCap, CreditCard, TrendingUp, AlertTriangle,
-  ClipboardList, Clock, ArrowRight, CheckCircle, XCircle, UserPlus,
+  ClipboardList, Clock, ArrowRight, CheckCircle, XCircle, UserPlus, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MOCK_STUDENTS } from "@/lib/data/mockStudents";
-import { MOCK_PAYMENTS } from "@/lib/data/mockPayments";
-import { MOCK_ENROLLMENTS } from "@/lib/data/mockEnrollments";
-import { MOCK_CLASS_RECORDS } from "@/lib/data/mockClassRecords";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { es } from "date-fns/locale";
+import { getDashboardMetrics, getAnalyticsData } from "@/lib/api/payments";
+import { getScheduleInsights, type ScheduleInsightsResult } from "@/lib/api/schedules";
+import { getEnrollments } from "@/lib/api/enrollments";
+import { getStudents } from "@/lib/api/students";
+import { getPayments } from "@/lib/api/payments";
+import { ScheduleInsightsPanel } from "@/components/schedule/ScheduleInsightsPanel";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const [metrics, setMetrics] = useState<Awaited<ReturnType<typeof getDashboardMetrics>> | null>(null);
+  const [analytics, setAnalytics] = useState<Awaited<ReturnType<typeof getAnalyticsData>> | null>(null);
+  const [scheduleInsights, setScheduleInsights] = useState<ScheduleInsightsResult | null>(null);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeStudents = MOCK_STUDENTS.filter((s) => s.status === "active").length;
-  const activeClasses = MOCK_CLASS_RECORDS.filter((c) => c.status === "active").length;
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [metricsData, analyticsData, enrollmentsData, paymentsData, insightsData] = await Promise.all([
+          getDashboardMetrics(),
+          getAnalyticsData(),
+          getEnrollments(),
+          getPayments(),
+          getScheduleInsights(),
+        ]);
 
-  const monthRevenue = useMemo(() =>
-    MOCK_PAYMENTS.filter((p) => p.status === "paid" && p.month === "2026-03").reduce((s, p) => s + p.amount, 0),
-    []
-  );
+        setMetrics(metricsData);
+        setAnalytics(analyticsData);
+        setEnrollments(enrollmentsData || []);
+        setPayments(paymentsData || []);
+        setScheduleInsights(insightsData);
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const pendingEnrollments = MOCK_ENROLLMENTS.filter((e) => e.status === "pending").length;
-  const overduePayments = MOCK_PAYMENTS.filter((p) => p.status === "overdue").length;
-
-  const enrollmentRate = useMemo(() => {
-    const confirmed = MOCK_ENROLLMENTS.filter((e) => e.status === "confirmed").length;
-    return Math.round((confirmed / MOCK_ENROLLMENTS.length) * 100);
+    loadData();
   }, []);
 
-  // Recent enrollments (last 5)
-  const recentEnrollments = useMemo(() =>
-    [...MOCK_ENROLLMENTS].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5),
-    []
+  const overduePayments = useMemo(
+    () => payments.filter((p) => p.status === "overdue" || p.status === "pending"),
+    [payments]
   );
 
-  // Overdue payments
-  const overdueList = useMemo(() =>
-    MOCK_PAYMENTS.filter((p) => p.status === "overdue"),
-    []
+  const recentEnrollments = useMemo(
+    () => enrollments.slice(0, 5),
+    [enrollments]
   );
 
-  // Revenue by month for sparkline
   const revenueByMonth = useMemo(() => {
-    const map: Record<string, number> = {};
-    MOCK_PAYMENTS.filter((p) => p.status === "paid").forEach((p) => {
-      map[p.month] = (map[p.month] || 0) + p.amount;
-    });
+    if (!analytics?.revenueByMonth) return [];
     const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    return Object.entries(map)
+    return Object.entries(analytics.revenueByMonth)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, total]) => {
         const [, m] = month.split("-");
-        return { name: monthNames[parseInt(m) - 1], total };
-      });
-  }, []);
-
-  // Top classes by enrollment
-  const topClasses = useMemo(() => {
-    const map: Record<string, { name: string; count: number; capacity: number }> = {};
-    MOCK_CLASS_RECORDS.filter((c) => c.status === "active").forEach((c) => {
-      const enrolled = MOCK_STUDENTS.filter((s) =>
-        s.status === "active" && s.enrolledClasses.some((ec) => ec.name === c.name)
-      ).length;
-      map[c.id] = { name: c.name, count: enrolled, capacity: c.capacity };
-    });
-    return Object.values(map).sort((a, b) => b.count - a.count).slice(0, 5);
-  }, []);
+        return { name: monthNames[parseInt(m) - 1], total: Math.round(total / 100) };
+      })
+      .slice(-6);
+  }, [analytics]);
 
   const STATUS_STYLES: Record<string, string> = {
     pending: "bg-warning/15 text-warning border-warning/20",
@@ -88,6 +90,22 @@ export default function DashboardPage() {
     pending: "Pendiente", confirmed: "Confirmada", declined: "Rechazada", cancelled: "Cancelada",
   };
 
+  const formatSafeDate = (value: unknown) => {
+    if (!value) return "Sin fecha";
+    const parsed = new Date(value as string | number | Date);
+    return isValid(parsed) ? format(parsed, "d MMM", { locale: es }) : "Sin fecha";
+  };
+
+  if (loading) {
+    return (
+      <PageContainer title="Panel" description="Resumen general de tu escuela de danza">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer
       title="Panel"
@@ -95,32 +113,60 @@ export default function DashboardPage() {
     >
       {/* KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Alumnos Activos" value={activeStudents} change={`${MOCK_STUDENTS.length} totales`} changeType="neutral" icon={Users} />
-        <StatCard title="Clases Activas" value={activeClasses} change={`${MOCK_CLASS_RECORDS.length} totales`} changeType="neutral" icon={GraduationCap} />
-        <StatCard title="Ingresos (Mar)" value={`$${monthRevenue.toLocaleString()}`} change={overduePayments > 0 ? `${overduePayments} pago(s) vencido(s)` : "Todo al día"} changeType={overduePayments > 0 ? "negative" : "positive"} icon={CreditCard} />
-        <StatCard title="Tasa Inscripción" value={`${enrollmentRate}%`} change={`${pendingEnrollments} pendiente(s)`} changeType="positive" icon={TrendingUp} />
+        <StatCard 
+          title="Alumnos Activos" 
+          value={metrics?.activeStudents ?? 0} 
+          change={`${metrics?.totalStudents ?? 0} totales`} 
+          changeType="neutral" 
+          icon={Users} 
+        />
+        <StatCard 
+          title="Clases Activas" 
+          value={metrics?.activeClasses ?? 0} 
+          change={`${metrics?.totalClasses ?? 0} totales`} 
+          changeType="neutral" 
+          icon={GraduationCap} 
+        />
+        <StatCard 
+          title={`Ingresos (${new Date().toLocaleString('es-AR', { month: 'short' })})`} 
+          value={`$${(metrics?.monthRevenue ?? 0).toLocaleString()}`} 
+          change={
+            (metrics?.overduePayments ?? 0) > 0 
+              ? `${metrics?.overduePayments} pago(s) vencido(s)` 
+              : "Todo al día"
+          } 
+          changeType={(metrics?.overduePayments ?? 0) > 0 ? "negative" : "positive"} 
+          icon={CreditCard} 
+        />
+        <StatCard 
+          title="Tasa Inscripción" 
+          value={`${metrics?.enrollmentRate ?? 0}%`} 
+          change={`${metrics?.pendingEnrollments ?? 0} pendiente(s)`} 
+          changeType="positive" 
+          icon={TrendingUp} 
+        />
       </div>
 
       {/* Alerts */}
-      {(overduePayments > 0 || pendingEnrollments > 0) && (
+      {((metrics?.overduePayments ?? 0) > 0 || (metrics?.pendingEnrollments ?? 0) > 0) && (
         <div className="flex flex-wrap gap-3 mt-4">
-          {overduePayments > 0 && (
+          {(metrics?.overduePayments ?? 0) > 0 && (
             <button
               onClick={() => navigate("/admin/payments")}
               className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
             >
               <AlertTriangle className="h-4 w-4" />
-              <span className="font-medium">{overduePayments} pago(s) vencido(s)</span>
+              <span className="font-medium">{metrics?.overduePayments} pago(s) vencido(s)</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </button>
           )}
-          {pendingEnrollments > 0 && (
+          {(metrics?.pendingEnrollments ?? 0) > 0 && (
             <button
               onClick={() => navigate("/admin/enrollments")}
               className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/5 px-4 py-2.5 text-sm text-warning hover:bg-warning/10 transition-colors"
             >
               <ClipboardList className="h-4 w-4" />
-              <span className="font-medium">{pendingEnrollments} inscripción(es) pendiente(s)</span>
+              <span className="font-medium">{metrics?.pendingEnrollments} inscripción(es) pendiente(s)</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </button>
           )}
@@ -157,20 +203,25 @@ export default function DashboardPage() {
             </Button>
           </div>
           <div className="space-y-3.5">
-            {topClasses.map((cls) => {
-              const pct = Math.round((cls.count / cls.capacity) * 100);
-              return (
-                <div key={cls.name} className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-foreground truncate max-w-[160px]">{cls.name}</span>
-                    <span className="text-[10px] text-muted-foreground">{cls.count}/{cls.capacity}</span>
-                  </div>
-                  <Progress value={pct} className="h-1.5" />
+            {Object.entries(analytics?.studentsByClass || {}).slice(0, 5).map(([className, count]) => (
+              <div key={className} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-foreground truncate max-w-[160px]">{className}</span>
+                  <span className="text-[10px] text-muted-foreground">{count}</span>
                 </div>
-              );
-            })}
+                <Progress value={Math.min((count as number * 20), 100)} className="h-1.5" />
+              </div>
+            ))}
           </div>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <ScheduleInsightsPanel
+          insights={scheduleInsights}
+          compact
+          onViewSchedule={() => navigate("/admin/schedule")}
+        />
       </div>
 
       {/* Bottom row */}
@@ -183,24 +234,31 @@ export default function DashboardPage() {
               Ver todas <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
-          <div className="space-y-2.5">
-            {recentEnrollments.map((e) => (
-              <div key={e.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent">
-                    <UserPlus className="h-3 w-3 text-accent-foreground" />
+          {recentEnrollments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <UserPlus className="h-6 w-6 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No hay inscripciones</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {recentEnrollments.map((e) => (
+                <div key={e.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent">
+                      <UserPlus className="h-3 w-3 text-accent-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{e.studentName}</p>
+                      <p className="text-[10px] text-muted-foreground">{e.classes?.length || 1} clase(s) · {formatSafeDate(e.createdAt)}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{e.studentName}</p>
-                    <p className="text-[10px] text-muted-foreground">{e.classes.length} clase(s) · {format(new Date(e.date), "d MMM", { locale: es })}</p>
-                  </div>
+                  <Badge variant="outline" className={cn("text-[10px] font-medium shrink-0", STATUS_STYLES[e.status])}>
+                    {STATUS_LABELS[e.status]}
+                  </Badge>
                 </div>
-                <Badge variant="outline" className={cn("text-[10px] font-medium shrink-0", STATUS_STYLES[e.status])}>
-                  {STATUS_LABELS[e.status]}
-                </Badge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Overdue payments / quick info */}
@@ -211,7 +269,7 @@ export default function DashboardPage() {
               Ver todos <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
-          {overdueList.length === 0 ? (
+          {overduePayments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <CheckCircle className="h-8 w-8 text-success mb-2" />
               <p className="text-sm font-medium text-foreground">Todo al día</p>
@@ -219,15 +277,15 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-2.5">
-              {overdueList.map((p) => (
+              {overduePayments.slice(0, 5).map((p) => (
                 <div key={p.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{p.studentName}</p>
                     <p className="text-[10px] text-muted-foreground">{p.concept.slice(0, 40)}…</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-semibold text-destructive">${p.amount}</p>
-                    <p className="text-[10px] text-muted-foreground">{format(new Date(p.date), "d MMM", { locale: es })}</p>
+                    <p className="text-sm font-semibold text-destructive">${p.amount.toLocaleString()}</p>
+                    <p className="text-[10px] text-muted-foreground">{formatSafeDate(p.createdAt)}</p>
                   </div>
                 </div>
               ))}
@@ -238,3 +296,4 @@ export default function DashboardPage() {
     </PageContainer>
   );
 }
+

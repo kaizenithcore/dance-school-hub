@@ -3,8 +3,8 @@ import { ScheduleBlock } from "@/hooks/useScheduleEditor";
 import { ClassBlock } from "@/components/schedule/ClassBlock";
 import { cn } from "@/lib/utils";
 
-const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"] as const;
-const HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] as const;
+const DEFAULT_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"] as const;
+const DEFAULT_HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] as const;
 const PIXELS_PER_HOUR = 64;
 
 interface CalendarGridProps {
@@ -16,6 +16,8 @@ interface CalendarGridProps {
   selectedRoom: string;
   defaultRoomId?: string;
   defaultRoomName?: string;
+  days?: string[];
+  hours?: number[];
 }
 
 export function CalendarGrid({
@@ -27,7 +29,11 @@ export function CalendarGrid({
   selectedRoom,
   defaultRoomId,
   defaultRoomName,
+  days,
+  hours,
 }: CalendarGridProps) {
+  const gridDays = days && days.length > 0 ? days : [...DEFAULT_DAYS];
+  const gridHours = hours && hours.length > 0 ? hours : [...DEFAULT_HOURS];
   const [dragOverCell, setDragOverCell] = useState<{ day: string; hour: number } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -81,9 +87,12 @@ export function CalendarGrid({
     <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto" ref={gridRef}>
       <div className="min-w-[750px]">
         {/* Header */}
-        <div className="grid grid-cols-[56px_repeat(6,1fr)] border-b border-border sticky top-0 bg-card z-20">
+        <div
+          className="grid border-b border-border sticky top-0 bg-card z-20"
+          style={{ gridTemplateColumns: `56px repeat(${gridDays.length}, minmax(0, 1fr))` }}
+        >
           <div className="p-2" />
-          {DAYS.map((day) => (
+          {gridDays.map((day) => (
             <div key={day} className="p-2.5 text-center text-xs font-semibold text-foreground border-l border-border">
               {day}
             </div>
@@ -92,11 +101,14 @@ export function CalendarGrid({
 
         {/* Grid body */}
         <div className="relative">
-          {HOURS.map((hour) => (
+          {gridHours.map((hour) => (
             <div
               key={hour}
-              className="grid grid-cols-[56px_repeat(6,1fr)] border-b border-border last:border-0"
-              style={{ height: `${PIXELS_PER_HOUR}px` }}
+              className="grid border-b border-border last:border-0"
+              style={{
+                gridTemplateColumns: `56px repeat(${gridDays.length}, minmax(0, 1fr))`,
+                height: `${PIXELS_PER_HOUR}px`,
+              }}
             >
               {/* Time label */}
               <div className="flex items-start justify-end pr-2 pt-1">
@@ -104,7 +116,7 @@ export function CalendarGrid({
               </div>
 
               {/* Day cells */}
-              {DAYS.map((day) => {
+              {gridDays.map((day) => {
                 const isOver = dragOverCell?.day === day && dragOverCell?.hour === hour;
                 // Find blocks starting at this hour for this day
                 const cellBlocks = blocks.filter((b) => b.day === day && Math.floor(b.startHour) === hour);
