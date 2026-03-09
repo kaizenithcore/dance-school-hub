@@ -1,14 +1,37 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { LandingHeader } from "@/components/landing/LandingHeader";
+import { Hero } from "@/components/landing/Hero";
+import { Problems } from "@/components/landing/Problems";
+import { Solution } from "@/components/landing/Solution";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { Features } from "@/components/landing/Features";
+import { Guides } from "@/components/landing/Guides";
+import { Pricing } from "@/components/landing/Pricing";
+import { ROI } from "@/components/landing/ROI";
+import { FAQ } from "@/components/landing/FAQ";
+import { CTA } from "@/components/landing/CTA";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 
-const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+const Index = () => (
+  <div className="min-h-screen bg-background text-foreground">
+    <LandingHeader />
+    <Hero />
+    <Problems />
+    <Solution />
+    <HowItWorks />
+    <div id="features">
+      <Features />
     </div>
-  );
-};
+    <Guides />
+    <div id="pricing">
+      <Pricing />
+    </div>
+    <ROI />
+    <div id="faq">
+      <FAQ />
+    </div>
+    <CTA />
+    <LandingFooter />
+  </div>
+);
 
 export default Index;
