@@ -28,6 +28,19 @@ npm run build
 	 - `SUPABASE_ANON_KEY`
 	 - `SUPABASE_SERVICE_ROLE_KEY`
 
+Optional providers:
+	 - `STRIPE_SECRET_KEY` (required to create Stripe checkout sessions)
+	 - `STRIPE_PRICE_STARTER`
+	 - `STRIPE_PRICE_PRO`
+	 - `STRIPE_PRICE_ENTERPRISE`
+	 - `STRIPE_PRICE_ADDON_CUSTOM_DOMAIN` (optional)
+	 - `STRIPE_PRICE_ADDON_PRIORITY_SUPPORT` (optional)
+	 - `STRIPE_PRICE_ADDON_WAITLIST_AUTOMATION` (optional)
+	 - `STRIPE_PRICE_BLOCK_STARTER` (optional)
+	 - `STRIPE_PRICE_BLOCK_PRO` (optional)
+	 - `STRIPE_PRICE_BLOCK_ENTERPRISE` (optional)
+	 - `RESEND_API_KEY`
+
 ## Healthcheck
 
 Run backend and verify:

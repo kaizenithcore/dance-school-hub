@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { fail, ok } from "@/lib/http";
 import { publicEnrollmentService } from "@/lib/services/publicEnrollmentService";
+import { StudentLimitError } from "@/lib/services/studentQuotaService";
 import { publicEnrollmentSchema, jointEnrollmentSchema } from "@/lib/validators/publicEnrollmentSchemas";
 import { handleCorsPreFlight } from "@/lib/cors";
 
@@ -111,6 +112,18 @@ export async function POST(request: NextRequest) {
         );
       }
   } catch (error) {
+    if (error instanceof StudentLimitError) {
+      return fail(
+        {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        },
+        409,
+        origin
+      );
+    }
+
     const message = error instanceof Error ? error.message : "Failed to create enrollment";
     
     // Return appropriate error based on message

@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import type { PublicEnrollmentInput, JointEnrollmentInput } from "@/lib/validators/publicEnrollmentSchemas";
 import { enrollmentFormConfigService } from "@/lib/services/enrollmentFormConfigService";
 import { waitlistService } from "@/lib/services/waitlistService";
+import { studentQuotaService } from "@/lib/services/studentQuotaService";
 
 export interface PublicSchoolProfile {
   tagline?: string;
@@ -362,6 +363,8 @@ export const publicEnrollmentService = {
 
     let createdStudentId: string | null = null;
 
+    await studentQuotaService.assertCanAddStudents(tenant.id, 1);
+
     const createStudent = async (emailValue: string, noteValue: string) => {
       const { data: student, error: studentError } = await supabaseAdmin
         .from("students")
@@ -551,6 +554,8 @@ export const publicEnrollmentService = {
       let createdStudentIds: string[] = [];
 
       try {
+        await studentQuotaService.assertCanAddStudents(tenant.id, input.students.length);
+
         // Create each student and their enrollments
         for (const studentData of input.students) {
           const firstName = (studentData.first_name as string) || "";

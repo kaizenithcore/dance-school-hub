@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import type { CreateStudentInput, UpdateStudentInput } from "@/lib/validators/studentSchemas";
+import { studentQuotaService } from "@/lib/services/studentQuotaService";
 
 type Guardian = {
   name: string;
@@ -116,6 +117,8 @@ export const studentService = {
   },
 
   async createStudent(tenantId: string, input: CreateStudentInput) {
+    await studentQuotaService.assertCanAddStudents(tenantId, 1);
+
     const { data, error } = await supabaseAdmin
       .from("students")
       .insert({

@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
 import { studentService } from "@/lib/services/studentService";
+import { StudentLimitError } from "@/lib/services/studentQuotaService";
 import { createStudentSchema } from "@/lib/validators/studentSchemas";
 
 export async function OPTIONS(request: NextRequest) {
@@ -53,6 +54,18 @@ export async function POST(request: NextRequest) {
     const created = await studentService.createStudent(auth.context.tenantId, parsed.data);
     return ok(created, 201, origin);
   } catch (error) {
+    if (error instanceof StudentLimitError) {
+      return fail(
+        {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        },
+        409,
+        origin
+      );
+    }
+
     const message = error instanceof Error ? error.message : "Failed to create student";
     return fail({ code: "create_failed", message }, 500, origin);
   }

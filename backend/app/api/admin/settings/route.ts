@@ -30,6 +30,23 @@ function asString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function asBoolean(value: unknown, fallback = false): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function asNonNegativeInteger(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.floor(value));
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, parsed);
+    }
+  }
+  return fallback;
+}
+
 function buildResponsePayload(input: {
   tenantName: string;
   tenantSlug: string;
@@ -40,6 +57,9 @@ function buildResponsePayload(input: {
   securityConfig: Record<string, unknown>;
   planType: string;
   features: unknown;
+  addons: Record<string, unknown>;
+  limits: Record<string, unknown>;
+  pricing: Record<string, unknown>;
 }) {
   return {
     school: {
@@ -63,6 +83,9 @@ function buildResponsePayload(input: {
     billing: {
       planType: input.planType,
       features: input.features,
+      addons: input.addons,
+      limits: input.limits,
+      pricing: input.pricing,
     },
   };
 }
@@ -130,6 +153,9 @@ export async function GET(request: NextRequest) {
       securityConfig,
       planType: billing.planType,
       features: billing.features,
+      addons: billing.addons as unknown as Record<string, unknown>,
+      limits: billing.limits as unknown as Record<string, unknown>,
+      pricing: billing.pricing as unknown as Record<string, unknown>,
     }),
     200,
     origin
@@ -197,7 +223,8 @@ export async function PUT(request: NextRequest) {
     const existingPaymentConfig = asObject(existingSettings?.payment_config);
     const existingBillingConfig = asObject(existingPaymentConfig.billing ?? existingPaymentConfig.billing_config);
     const requestedPlanType = asString(billing.planType);
-    const requestedFeatures = asObject(billing.features);
+    const requestedAddons = asObject(billing.addons);
+    const requestedExtraStudentBlocks = asNonNegativeInteger(billing.extraStudentBlocks ?? billing.extra_student_blocks, 0);
     const existingPlanType =
       asString(existingBillingConfig.planType)
       || asString(existingBillingConfig.plan_type)
@@ -234,10 +261,16 @@ export async function PUT(request: NextRequest) {
       billing: {
         ...existingBillingConfig,
         planType: nextPlanType,
+        extraStudentBlocks: requestedExtraStudentBlocks,
+      },
+      addons: {
+        ...asObject(existingPaymentConfig.addons),
+        customDomain: asBoolean(requestedAddons.customDomain, false),
+        prioritySupport: asBoolean(requestedAddons.prioritySupport, false),
+        waitlistAutomation: asBoolean(requestedAddons.waitlistAutomation, false),
       },
       features: {
         ...existingResolvedBilling.features,
-        ...requestedFeatures,
       },
     };
 
@@ -271,6 +304,9 @@ export async function PUT(request: NextRequest) {
         securityConfig: asObject(nextEnrollmentConfig.security_config),
         planType: resolvedBilling.planType,
         features: resolvedBilling.features,
+        addons: resolvedBilling.addons as unknown as Record<string, unknown>,
+        limits: resolvedBilling.limits as unknown as Record<string, unknown>,
+        pricing: resolvedBilling.pricing as unknown as Record<string, unknown>,
       }),
       200,
       origin

@@ -1,4 +1,4 @@
-type PlanType = "starter" | "pro" | "enterprise";
+export type PlanType = "starter" | "pro" | "enterprise";
 
 export interface FeatureEntitlements {
   smartEnrollmentLink: boolean;
@@ -13,6 +13,44 @@ export interface FeatureEntitlements {
   autoScheduler: boolean;
   customRoles: boolean;
   maxCustomRoles: number;
+}
+
+export interface BillingAddons {
+  customDomain: boolean;
+  prioritySupport: boolean;
+  waitlistAutomation: boolean;
+}
+
+interface PlanCommercialDefaults {
+  monthlyPriceEur: number;
+  includedActiveStudents: number;
+  extraStudentsBlockSize: number;
+  extraStudentsBlockPriceEur: number;
+}
+
+interface AddonCatalogEntry {
+  monthlyPriceEur: number;
+}
+
+export interface BillingResolution {
+  planType: PlanType;
+  features: FeatureEntitlements;
+  addons: BillingAddons;
+  limits: {
+    includedActiveStudents: number;
+    extraStudentBlocks: number;
+    maxActiveStudents: number;
+  };
+  pricing: {
+    monthlyPriceEur: number;
+    extraStudentsBlockSize: number;
+    extraStudentsBlockPriceEur: number;
+    addons: {
+      customDomain: AddonCatalogEntry;
+      prioritySupport: AddonCatalogEntry;
+      waitlistAutomation: AddonCatalogEntry;
+    };
+  };
 }
 
 const PLAN_DEFAULTS: Record<PlanType, FeatureEntitlements> = {
@@ -54,11 +92,38 @@ const PLAN_DEFAULTS: Record<PlanType, FeatureEntitlements> = {
     courseClone: true,
     massCommunicationEmail: true,
     massCommunicationWhatsapp: false,
-    autoScheduler: true,
+    autoScheduler: false,
     customRoles: true,
-    maxCustomRoles: 3,
+    maxCustomRoles: 10,
   },
 };
+
+const PLAN_COMMERCIAL_DEFAULTS: Record<PlanType, PlanCommercialDefaults> = {
+  starter: {
+    monthlyPriceEur: 179,
+    includedActiveStudents: 300,
+    extraStudentsBlockSize: 100,
+    extraStudentsBlockPriceEur: 15,
+  },
+  pro: {
+    monthlyPriceEur: 349,
+    includedActiveStudents: 1200,
+    extraStudentsBlockSize: 300,
+    extraStudentsBlockPriceEur: 25,
+  },
+  enterprise: {
+    monthlyPriceEur: 699,
+    includedActiveStudents: 4000,
+    extraStudentsBlockSize: 1000,
+    extraStudentsBlockPriceEur: 50,
+  },
+};
+
+const ADDON_CATALOG = {
+  customDomain: { monthlyPriceEur: 29 },
+  prioritySupport: { monthlyPriceEur: 49 },
+  waitlistAutomation: { monthlyPriceEur: 19 },
+} as const;
 
 function asObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -92,11 +157,17 @@ function normalizePlanType(value: unknown): PlanType {
   return "starter";
 }
 
+function toNonNegativeInteger(value: unknown, fallback = 0): number {
+  return toInteger(value, fallback);
+}
+
 export const featureEntitlementsService = {
-  resolveFromPaymentConfig(paymentConfig: Record<string, unknown>) {
+  resolveFromPaymentConfig(paymentConfig: Record<string, unknown>): BillingResolution {
     const billing = asObject(paymentConfig.billing ?? paymentConfig.billing_config);
-    const storedFeatures = asObject(paymentConfig.features);
-    const addons = asObject(paymentConfig.addons);
+    const addons = {
+      ...asObject(paymentConfig.addons),
+      ...asObject(billing.addons),
+    };
 
     const planType = normalizePlanType(
       billing.planType
@@ -106,38 +177,64 @@ export const featureEntitlementsService = {
     );
 
     const defaults = PLAN_DEFAULTS[planType];
+    const commercialDefaults = PLAN_COMMERCIAL_DEFAULTS[planType];
 
-    const resolved: FeatureEntitlements = {
-      smartEnrollmentLink: toBoolean(storedFeatures.smartEnrollmentLink, defaults.smartEnrollmentLink),
-      attendanceSheetsPdf: toBoolean(storedFeatures.attendanceSheetsPdf, defaults.attendanceSheetsPdf),
-      quickIncidents: toBoolean(storedFeatures.quickIncidents, defaults.quickIncidents),
-      receptionMode: toBoolean(storedFeatures.receptionMode, defaults.receptionMode),
-      waitlistAutomation: toBoolean(storedFeatures.waitlistAutomation, defaults.waitlistAutomation),
-      renewalAutomation: toBoolean(storedFeatures.renewalAutomation, defaults.renewalAutomation),
-      courseClone: toBoolean(storedFeatures.courseClone, defaults.courseClone),
-      massCommunicationEmail: toBoolean(storedFeatures.massCommunicationEmail, defaults.massCommunicationEmail),
-      massCommunicationWhatsapp: toBoolean(storedFeatures.massCommunicationWhatsapp, defaults.massCommunicationWhatsapp),
-      autoScheduler: toBoolean(storedFeatures.autoScheduler, defaults.autoScheduler),
-      customRoles: toBoolean(storedFeatures.customRoles, defaults.customRoles),
-      maxCustomRoles: toInteger(storedFeatures.maxCustomRoles, defaults.maxCustomRoles),
+    const resolvedAddons: BillingAddons = {
+      customDomain: toBoolean(addons.customDomain, false),
+      prioritySupport: toBoolean(addons.prioritySupport, false),
+      waitlistAutomation: toBoolean(addons.waitlistAutomation, false),
     };
 
-    if (toBoolean(addons.waitlistAutomation, false)) {
+    const extraStudentBlocks = toNonNegativeInteger(
+      billing.extraStudentBlocks
+      ?? billing.extra_student_blocks
+      ?? paymentConfig.extraStudentBlocks
+      ?? paymentConfig.extra_student_blocks,
+      0
+    );
+
+    const resolved: FeatureEntitlements = {
+      smartEnrollmentLink: defaults.smartEnrollmentLink,
+      attendanceSheetsPdf: defaults.attendanceSheetsPdf,
+      quickIncidents: defaults.quickIncidents,
+      receptionMode: defaults.receptionMode,
+      waitlistAutomation: defaults.waitlistAutomation,
+      renewalAutomation: defaults.renewalAutomation,
+      courseClone: defaults.courseClone,
+      massCommunicationEmail: defaults.massCommunicationEmail,
+      massCommunicationWhatsapp: defaults.massCommunicationWhatsapp,
+      autoScheduler: defaults.autoScheduler,
+      customRoles: defaults.customRoles,
+      maxCustomRoles: defaults.maxCustomRoles,
+    };
+
+    if (resolvedAddons.waitlistAutomation) {
       resolved.waitlistAutomation = true;
     }
-    if (toBoolean(addons.renewalAutomation, false)) {
-      resolved.renewalAutomation = true;
-    }
-    if (toBoolean(addons.massCommunicationEmail, false)) {
-      resolved.massCommunicationEmail = true;
-    }
-    if (toBoolean(addons.autoScheduler, false)) {
-      resolved.autoScheduler = true;
-    }
+
+    const maxActiveStudents =
+      commercialDefaults.includedActiveStudents
+      + extraStudentBlocks * commercialDefaults.extraStudentsBlockSize;
 
     return {
       planType,
       features: resolved,
+      addons: resolvedAddons,
+      limits: {
+        includedActiveStudents: commercialDefaults.includedActiveStudents,
+        extraStudentBlocks,
+        maxActiveStudents,
+      },
+      pricing: {
+        monthlyPriceEur: commercialDefaults.monthlyPriceEur,
+        extraStudentsBlockSize: commercialDefaults.extraStudentsBlockSize,
+        extraStudentsBlockPriceEur: commercialDefaults.extraStudentsBlockPriceEur,
+        addons: {
+          customDomain: { ...ADDON_CATALOG.customDomain },
+          prioritySupport: { ...ADDON_CATALOG.prioritySupport },
+          waitlistAutomation: { ...ADDON_CATALOG.waitlistAutomation },
+        },
+      },
     };
   },
 };
