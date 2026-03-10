@@ -1,9 +1,14 @@
 import { Search, GraduationCap, Users, CreditCard, ClipboardList, Inbox } from "lucide-react";
 import { motion } from "framer-motion";
 
-interface EmptyStateProps {
-  type: "students" | "teachers" | "classes" | "enrollments" | "payments" | "search";
+export interface EmptyStateProps {
+  type?: "students" | "teachers" | "classes" | "enrollments" | "payments" | "search";
+  icon?: React.ComponentType<{ className?: string }>;
+  title?: string;
+  description?: string;
   message?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 const CONFIGS = {
@@ -15,9 +20,11 @@ const CONFIGS = {
   search: { icon: Search, title: "Sin resultados", description: "No se encontraron registros con los filtros aplicados. Intentá ajustar la búsqueda." },
 };
 
-export function EmptyState({ type, message }: EmptyStateProps) {
-  const config = CONFIGS[type];
-  const Icon = config.icon;
+export function EmptyState({ type, icon: IconProp, title: titleProp, description: descProp, message, actionLabel, onAction }: EmptyStateProps) {
+  const config = type ? CONFIGS[type] : null;
+  const Icon = IconProp || config?.icon || Inbox;
+  const displayTitle = titleProp || config?.title || "Sin datos";
+  const displayDesc = message || descProp || config?.description || "";
 
   return (
     <motion.div
