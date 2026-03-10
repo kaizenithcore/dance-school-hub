@@ -36,10 +36,18 @@ export function EmptyState({ type, icon: IconProp, title: titleProp, description
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/50 mb-4">
         <Icon className="h-7 w-7 text-accent-foreground/60" />
       </div>
-      <p className="text-sm font-medium text-foreground mb-1">{config.title}</p>
+      <p className="text-sm font-medium text-foreground mb-1">{displayTitle}</p>
       <p className="text-xs text-muted-foreground text-center max-w-[260px]">
-        {message || config.description}
+        {displayDesc}
       </p>
+      {actionLabel && onAction && (
+        <button
+          onClick={onAction}
+          className="mt-3 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+        >
+          {actionLabel}
+        </button>
+      )}
     </motion.div>
   );
 }

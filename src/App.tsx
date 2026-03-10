@@ -75,6 +75,7 @@ const App = () => (
             <Route path="renewals" element={<RenewalsPage />} />
             <Route path="course-clone" element={<CourseClonePage />} />
             <Route path="reception" element={<ReceptionPage />} />
+            <Route path="exams" element={<ExamsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="/s/:schoolSlug" element={<PublicLayout />}>

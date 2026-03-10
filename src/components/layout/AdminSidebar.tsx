@@ -25,6 +25,7 @@ const navItems = [
   { title: "Renovaciones", url: "/admin/renewals", icon: Repeat },
   { title: "Duplicar cursos", url: "/admin/course-clone", icon: Copy },
   { title: "Recepción", url: "/admin/reception", icon: Monitor },
+  { title: "Exámenes", url: "/admin/exams", icon: Award },
   { title: "Analíticas", url: "/admin/analytics", icon: BarChart3 },
   { title: "Configuración", url: "/admin/settings", icon: Settings },
 ];

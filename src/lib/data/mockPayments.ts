@@ -10,11 +10,15 @@ export interface PaymentRecord {
   concept: string;
   month: string;
   amount: number;
-  method: PaymentMethod;
+  method: string;
   status: PaymentStatus;
   date: string;
   notes?: string;
   receiptGenerated?: boolean;
+  accountNumber?: string;
+  amountChanged?: boolean;
+  currency?: string;
+  createdAt?: string;
 }
 
 export const PAYMENT_METHODS: PaymentMethod[] = ["Transferencia bancaria", "Efectivo"];

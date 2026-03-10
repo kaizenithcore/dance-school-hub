@@ -330,10 +330,10 @@ export default function SettingsPage() {
     try {
       const updated = await updateSchoolSettings({
         school,
-        schedule,
-        payment,
-        notifications,
-        security,
+        schedule: schedule as unknown as Record<string, unknown>,
+        payment: payment as unknown as Record<string, unknown>,
+        notifications: notifications as unknown as Record<string, unknown>,
+        security: security as unknown as Record<string, unknown>,
         billing,
       });
 

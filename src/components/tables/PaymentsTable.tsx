@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { PaymentRecord, PaymentStatus, PaymentMethod, PAYMENT_METHODS } from "@/lib/data/mockPayments";
+import { PaymentRecord, PaymentStatus, PAYMENT_METHODS } from "@/lib/data/mockPayments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
