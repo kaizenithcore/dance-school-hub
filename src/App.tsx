@@ -23,6 +23,7 @@ import WaitlistPage from "@/pages/admin/WaitlistPage";
 import RenewalsPage from "@/pages/admin/RenewalsPage";
 import CourseClonePage from "@/pages/admin/CourseClonePage";
 import ReceptionPage from "@/pages/admin/ReceptionPage";
+import ExamsPage from "@/pages/admin/ExamsPage";
 import SchoolLandingPage from "@/pages/public/SchoolLandingPage";
 import EnrollPage from "@/pages/public/EnrollPage";
 import FullSchedulePage from "@/pages/public/FullSchedulePage";
