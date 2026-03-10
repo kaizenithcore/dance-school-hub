@@ -23,6 +23,7 @@ import WaitlistPage from "@/pages/admin/WaitlistPage";
 import RenewalsPage from "@/pages/admin/RenewalsPage";
 import CourseClonePage from "@/pages/admin/CourseClonePage";
 import ReceptionPage from "@/pages/admin/ReceptionPage";
+import ExamsPage from "@/pages/admin/ExamsPage";
 import SchoolLandingPage from "@/pages/public/SchoolLandingPage";
 import EnrollPage from "@/pages/public/EnrollPage";
 import FullSchedulePage from "@/pages/public/FullSchedulePage";
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="renewals" element={<RenewalsPage />} />
             <Route path="course-clone" element={<CourseClonePage />} />
             <Route path="reception" element={<ReceptionPage />} />
+            <Route path="exams" element={<ExamsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="/s/:schoolSlug" element={<PublicLayout />}>

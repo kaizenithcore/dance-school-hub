@@ -27,7 +27,7 @@ const AUTH_CONTEXT_TIMEOUT_MS = 10000;
 async function getAuthContextWithTimeout(): Promise<Awaited<ReturnType<typeof getAuthContext>>> {
   return Promise.race([
     getAuthContext(),
-    new Promise((resolve) => {
+    new Promise<Awaited<ReturnType<typeof getAuthContext>>>((resolve) => {
       window.setTimeout(() => {
         resolve({
           success: false,
@@ -38,7 +38,7 @@ async function getAuthContextWithTimeout(): Promise<Awaited<ReturnType<typeof ge
         });
       }, AUTH_CONTEXT_TIMEOUT_MS);
     }),
-  ]) as Awaited<ReturnType<typeof getAuthContext>>;
+  ]);
 }
 
 /**

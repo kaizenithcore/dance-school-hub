@@ -1,9 +1,14 @@
 import { Search, GraduationCap, Users, CreditCard, ClipboardList, Inbox } from "lucide-react";
 import { motion } from "framer-motion";
 
-interface EmptyStateProps {
-  type: "students" | "teachers" | "classes" | "enrollments" | "payments" | "search";
+export interface EmptyStateProps {
+  type?: "students" | "teachers" | "classes" | "enrollments" | "payments" | "search";
+  icon?: React.ComponentType<{ className?: string }>;
+  title?: string;
+  description?: string;
   message?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 const CONFIGS = {
@@ -15,9 +20,11 @@ const CONFIGS = {
   search: { icon: Search, title: "Sin resultados", description: "No se encontraron registros con los filtros aplicados. Intentá ajustar la búsqueda." },
 };
 
-export function EmptyState({ type, message }: EmptyStateProps) {
-  const config = CONFIGS[type];
-  const Icon = config.icon;
+export function EmptyState({ type, icon: IconProp, title: titleProp, description: descProp, message, actionLabel, onAction }: EmptyStateProps) {
+  const config = type ? CONFIGS[type] : null;
+  const Icon = IconProp || config?.icon || Inbox;
+  const displayTitle = titleProp || config?.title || "Sin datos";
+  const displayDesc = message || descProp || config?.description || "";
 
   return (
     <motion.div
@@ -29,10 +36,18 @@ export function EmptyState({ type, message }: EmptyStateProps) {
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/50 mb-4">
         <Icon className="h-7 w-7 text-accent-foreground/60" />
       </div>
-      <p className="text-sm font-medium text-foreground mb-1">{config.title}</p>
+      <p className="text-sm font-medium text-foreground mb-1">{displayTitle}</p>
       <p className="text-xs text-muted-foreground text-center max-w-[260px]">
-        {message || config.description}
+        {displayDesc}
       </p>
+      {actionLabel && onAction && (
+        <button
+          onClick={onAction}
+          className="mt-3 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+        >
+          {actionLabel}
+        </button>
+      )}
     </motion.div>
   );
 }

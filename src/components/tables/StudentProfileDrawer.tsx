@@ -126,6 +126,17 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
               </section>
             </>
           )}
+
+          <Separator />
+
+          <section className="space-y-3">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <GraduationCap className="h-3 w-3" /> Certificaciones
+            </h4>
+            <p className="text-sm text-muted-foreground">
+              Las certificaciones de exámenes aprobados aparecerán aquí.
+            </p>
+          </section>
         </div>
       </SheetContent>
     </Sheet>
