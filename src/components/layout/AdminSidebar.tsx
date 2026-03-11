@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Calendar, GraduationCap, Users, BookOpen, ClipboardList,
-  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor,
+  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -25,6 +25,7 @@ const navItems = [
   { title: "Renovaciones", url: "/admin/renewals", icon: Repeat },
   { title: "Duplicar cursos", url: "/admin/course-clone", icon: Copy },
   { title: "Recepción", url: "/admin/reception", icon: Monitor },
+  { title: "Exámenes", url: "/admin/exams", icon: Award },
   { title: "Analíticas", url: "/admin/analytics", icon: BarChart3 },
   { title: "Configuración", url: "/admin/settings", icon: Settings },
 ];

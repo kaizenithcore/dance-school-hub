@@ -20,6 +20,8 @@ export interface ClassSchedule {
 export interface ScheduleWithRelations extends ClassSchedule {
   className?: string;
   roomName?: string;
+  capacity?: number;
+  studentCount?: number;
 }
 
 export interface CreateScheduleRequest {
