@@ -32,7 +32,23 @@ const OFFER_STATUS_LABELS: Record<RenewalOfferStatus, string> = {
   released: "Plaza liberada",
 };
 
+function formatPeriod(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function getDefaultPeriods() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return {
+    fromPeriod: formatPeriod(now),
+    toPeriod: formatPeriod(next),
+  };
+}
+
 export default function RenewalsPage() {
+  const defaults = getDefaultPeriods();
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [campaigns, setCampaigns] = useState<RenewalCampaign[]>([]);
@@ -41,8 +57,8 @@ export default function RenewalsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | RenewalOfferStatus>("all");
 
   const [campaignName, setCampaignName] = useState("");
-  const [fromPeriod, setFromPeriod] = useState("");
-  const [toPeriod, setToPeriod] = useState("");
+  const [fromPeriod, setFromPeriod] = useState(defaults.fromPeriod);
+  const [toPeriod, setToPeriod] = useState(defaults.toPeriod);
   const [expiresAt, setExpiresAt] = useState("");
 
   const selectedCampaign = useMemo(
@@ -92,8 +108,13 @@ export default function RenewalsPage() {
   }, [selectedCampaignId, statusFilter]);
 
   const handleCreateCampaign = async () => {
-    if (!campaignName.trim() || !fromPeriod || !toPeriod) {
-      toast.error("Nombre, periodo origen y periodo destino son obligatorios");
+    const missing: string[] = [];
+    if (!campaignName.trim()) missing.push("nombre");
+    if (!fromPeriod) missing.push("periodo origen");
+    if (!toPeriod) missing.push("periodo destino");
+
+    if (missing.length > 0) {
+      toast.error(`Completa: ${missing.join(", ")}`);
       return;
     }
 
@@ -108,8 +129,8 @@ export default function RenewalsPage() {
 
       toast.success(`Campaña creada con ${result.offersCount} propuesta(s)`);
       setCampaignName("");
-      setFromPeriod("");
-      setToPeriod("");
+      setFromPeriod(defaults.fromPeriod);
+      setToPeriod(defaults.toPeriod);
       setExpiresAt("");
       await loadCampaigns();
     } catch (error) {

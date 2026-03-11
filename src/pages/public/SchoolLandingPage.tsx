@@ -4,6 +4,7 @@ import { ClassSchedulePreview } from "@/components/schedule/ClassSchedulePreview
 import { ArrowRight, MapPin, Phone, Mail, Sparkles, Loader2, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getPublicFormData, type PublicFormData } from "@/lib/api/publicEnrollment";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -19,6 +20,7 @@ export default function SchoolLandingPage() {
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<PublicFormData | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -28,6 +30,7 @@ export default function SchoolLandingPage() {
       try {
         const data = await getPublicFormData(schoolSlug);
         setFormData(data);
+        setNotFound(!data);
       } finally {
         setLoading(false);
       }
@@ -97,6 +100,21 @@ export default function SchoolLandingPage() {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (notFound || !formData) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center p-4">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Escuela no encontrada</CardTitle>
+            <CardDescription>
+              La escuela que buscas no existe o no esta disponible.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
