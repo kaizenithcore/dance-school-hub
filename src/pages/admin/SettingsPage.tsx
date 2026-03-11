@@ -6,18 +6,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import {
   Building2, Clock, CreditCard, Bell, Palette, Globe, Save, RotateCcw,
-  Mail, Phone, MapPin, Instagram, Facebook, Music2, ShieldCheck, KeyRound, User,
+  Mail, Phone, MapPin, Instagram, Facebook, Music2, ShieldCheck, KeyRound, User, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getSchoolSettings, updateSchoolSettings } from "@/lib/api/settings";
+import { redirectToBillingCheckout } from "@/lib/api/stripe";
 import { getCurrentAuthContext } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { validateStrongPassword } from "@/lib/security";
 import type { AuthContextResponse } from "@/lib/api/auth";
+import { useSearchParams } from "react-router-dom";
 
 interface SchoolInfo {
   name: string;
@@ -71,6 +75,26 @@ interface SecurityConfig {
 
 interface BillingConfig {
   planType: string;
+  extraStudentBlocks: number;
+  addons: {
+    customDomain: boolean;
+    prioritySupport: boolean;
+    waitlistAutomation: boolean;
+  };
+  limits: {
+    includedActiveStudents: number;
+    maxActiveStudents: number;
+  };
+  pricing: {
+    monthlyPriceEur: number;
+    extraStudentsBlockSize: number;
+    extraStudentsBlockPriceEur: number;
+    addons: {
+      customDomain: number;
+      prioritySupport: number;
+      waitlistAutomation: number;
+    };
+  };
   features: {
     smartEnrollmentLink: boolean;
     attendanceSheetsPdf: boolean;
@@ -86,14 +110,127 @@ interface BillingConfig {
   };
 }
 
+type PlanType = "starter" | "pro" | "enterprise";
+
+interface PlanInfo {
+  label: string;
+  monthlyPriceEur: number;
+  includedActiveStudents: number;
+  extraStudentsBlockSize: number;
+  extraStudentsBlockPriceEur: number;
+  highlights: string[];
+}
+
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const HOURS = Array.from({ length: 17 }, (_, i) => {
   const h = i + 6;
   return `${String(h).padStart(2, "0")}:00`;
 });
 
+const PLAN_CATALOG: Record<PlanType, PlanInfo> = {
+  starter: {
+    label: "Starter",
+    monthlyPriceEur: 179,
+    includedActiveStudents: 300,
+    extraStudentsBlockSize: 100,
+    extraStudentsBlockPriceEur: 15,
+    highlights: [
+      "Enlace inteligente de matrícula",
+      "Hojas de asistencia en PDF",
+      "Recepción e incidencias rápidas",
+      "Add-on de lista de espera opcional",
+    ],
+  },
+  pro: {
+    label: "Pro",
+    monthlyPriceEur: 349,
+    includedActiveStudents: 1200,
+    extraStudentsBlockSize: 300,
+    extraStudentsBlockPriceEur: 25,
+    highlights: [
+      "Todo Starter incluido",
+      "Automatización de renovaciones",
+      "Clonado de cursos",
+      "Comunicación masiva por email",
+    ],
+  },
+  enterprise: {
+    label: "Enterprise",
+    monthlyPriceEur: 699,
+    includedActiveStudents: 4000,
+    extraStudentsBlockSize: 1000,
+    extraStudentsBlockPriceEur: 50,
+    highlights: [
+      "Todo Pro incluido",
+      "Roles personalizados (hasta 10)",
+      "Escala para academias multi-sede",
+      "Mayor eficiencia por alumno activo",
+    ],
+  },
+};
+
+const DEFAULT_BILLING: BillingConfig = {
+  planType: "starter",
+  extraStudentBlocks: 0,
+  addons: {
+    customDomain: false,
+    prioritySupport: false,
+    waitlistAutomation: false,
+  },
+  limits: {
+    includedActiveStudents: 300,
+    maxActiveStudents: 300,
+  },
+  pricing: {
+    monthlyPriceEur: 179,
+    extraStudentsBlockSize: 100,
+    extraStudentsBlockPriceEur: 15,
+    addons: {
+      customDomain: 29,
+      prioritySupport: 49,
+      waitlistAutomation: 19,
+    },
+  },
+  features: {
+    smartEnrollmentLink: true,
+    attendanceSheetsPdf: true,
+    quickIncidents: true,
+    receptionMode: true,
+    waitlistAutomation: false,
+    renewalAutomation: false,
+    courseClone: false,
+    massCommunicationEmail: false,
+    autoScheduler: false,
+    customRoles: false,
+    maxCustomRoles: 0,
+  },
+};
+
+function resolvePlanType(value: string): PlanType {
+  if (value === "pro" || value === "enterprise") {
+    return value;
+  }
+  return "starter";
+}
+
+function calculateMonthlyAmount(config: BillingConfig): number {
+  const planType = resolvePlanType(config.planType);
+  const plan = PLAN_CATALOG[planType];
+  const addonsTotal =
+    (config.addons.customDomain ? config.pricing.addons.customDomain : 0)
+    + (config.addons.prioritySupport ? config.pricing.addons.prioritySupport : 0)
+    + (config.addons.waitlistAutomation ? config.pricing.addons.waitlistAutomation : 0);
+  const blocksTotal = config.extraStudentBlocks * plan.extraStudentsBlockPriceEur;
+
+  return plan.monthlyPriceEur + addonsTotal + blocksTotal;
+}
+
 function parseBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === "boolean" ? value : fallback;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
 function normalizeBillingFeatures(
@@ -116,9 +253,48 @@ function normalizeBillingFeatures(
   };
 }
 
+function normalizeBillingConfig(base: BillingConfig, input?: Record<string, unknown>): BillingConfig {
+  const source = input || {};
+  const addons = asRecord(source.addons);
+  const limits = asRecord(source.limits);
+  const pricing = asRecord(source.pricing);
+  const pricingAddons = asRecord(pricing.addons);
+  const customDomainAddon = asRecord(pricingAddons.customDomain);
+  const prioritySupportAddon = asRecord(pricingAddons.prioritySupport);
+  const waitlistAddon = asRecord(pricingAddons.waitlistAutomation);
+
+  return {
+    planType: typeof source.planType === "string" ? source.planType : base.planType,
+    extraStudentBlocks: Number(source.extraStudentBlocks ?? base.extraStudentBlocks) || 0,
+    addons: {
+      customDomain: parseBoolean(addons.customDomain, base.addons.customDomain),
+      prioritySupport: parseBoolean(addons.prioritySupport, base.addons.prioritySupport),
+      waitlistAutomation: parseBoolean(addons.waitlistAutomation, base.addons.waitlistAutomation),
+    },
+    limits: {
+      includedActiveStudents: Number(limits.includedActiveStudents ?? base.limits.includedActiveStudents) || base.limits.includedActiveStudents,
+      maxActiveStudents: Number(limits.maxActiveStudents ?? base.limits.maxActiveStudents) || base.limits.maxActiveStudents,
+    },
+    pricing: {
+      monthlyPriceEur: Number(pricing.monthlyPriceEur ?? base.pricing.monthlyPriceEur) || base.pricing.monthlyPriceEur,
+      extraStudentsBlockSize: Number(pricing.extraStudentsBlockSize ?? base.pricing.extraStudentsBlockSize) || base.pricing.extraStudentsBlockSize,
+      extraStudentsBlockPriceEur: Number(pricing.extraStudentsBlockPriceEur ?? base.pricing.extraStudentsBlockPriceEur) || base.pricing.extraStudentsBlockPriceEur,
+      addons: {
+        customDomain: Number(customDomainAddon.monthlyPriceEur ?? base.pricing.addons.customDomain) || base.pricing.addons.customDomain,
+        prioritySupport: Number(prioritySupportAddon.monthlyPriceEur ?? base.pricing.addons.prioritySupport) || base.pricing.addons.prioritySupport,
+        waitlistAutomation: Number(waitlistAddon.monthlyPriceEur ?? base.pricing.addons.waitlistAutomation) || base.pricing.addons.waitlistAutomation,
+      },
+    },
+    features: normalizeBillingFeatures(base.features, source.features as Record<string, unknown> | undefined),
+  };
+}
+
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [stripeCheckoutLoading, setStripeCheckoutLoading] = useState(false);
+  const [thankYouOpen, setThankYouOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [school, setSchool] = useState<SchoolInfo>({
     name: "DanceHub Studio",
     slug: "dancehub",
@@ -169,22 +345,10 @@ export default function SettingsPage() {
     loginAlerts: true,
   });
 
-  const [billing, setBilling] = useState<BillingConfig>({
-    planType: "starter",
-    features: {
-      smartEnrollmentLink: true,
-      attendanceSheetsPdf: true,
-      quickIncidents: true,
-      receptionMode: true,
-      waitlistAutomation: false,
-      renewalAutomation: false,
-      courseClone: false,
-      massCommunicationEmail: false,
-      autoScheduler: false,
-      customRoles: false,
-      maxCustomRoles: 0,
-    },
-  });
+  const [billing, setBilling] = useState<BillingConfig>(DEFAULT_BILLING);
+  const [savedBillingSnapshot, setSavedBillingSnapshot] = useState<BillingConfig>(DEFAULT_BILLING);
+  const [planModalOpen, setPlanModalOpen] = useState(false);
+  const [selectedPlanForModal, setSelectedPlanForModal] = useState<PlanType>("starter");
   const [authContext, setAuthContext] = useState<AuthContextResponse | null>(null);
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -237,11 +401,9 @@ export default function SettingsPage() {
         ...(data.security || {}),
       }));
 
-      setBilling((prev) => ({
-        ...prev,
-        ...(data.billing || {}),
-        features: normalizeBillingFeatures(prev.features, data.billing?.features as Record<string, unknown> | undefined),
-      }));
+      const nextBilling = normalizeBillingConfig(DEFAULT_BILLING, data.billing as Record<string, unknown> | undefined);
+      setBilling(nextBilling);
+      setSavedBillingSnapshot(nextBilling);
     } catch (error) {
       console.error("Failed to load settings", error);
       toast.error("Error al cargar la configuración");
@@ -264,6 +426,54 @@ export default function SettingsPage() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const status = searchParams.get("stripe");
+    if (status === "success") {
+      setThankYouOpen(true);
+      toast.success("Pago confirmado. Gracias por tu compra.");
+      void loadSettings();
+      return;
+    }
+
+    if (status === "cancel") {
+      toast.info("Checkout cancelado. Puedes reintentarlo cuando quieras.");
+    }
+  }, [loadSettings, searchParams]);
+
+  const clearStripeQueryParam = useCallback(() => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("stripe");
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const handleStripeCheckout = useCallback(async () => {
+    if (stripeCheckoutLoading) {
+      return;
+    }
+
+    setStripeCheckoutLoading(true);
+    try {
+      const successUrl = `${window.location.origin}/admin/settings?tab=billing&stripe=success`;
+      const cancelUrl = `${window.location.origin}/admin/settings?tab=billing&stripe=cancel`;
+
+      await redirectToBillingCheckout({
+        planType: resolvePlanType(billing.planType),
+        extraStudentBlocks: billing.extraStudentBlocks,
+        addons: {
+          customDomain: billing.addons.customDomain,
+          prioritySupport: billing.addons.prioritySupport,
+          waitlistAutomation: billing.addons.waitlistAutomation,
+        },
+        successUrl,
+        cancelUrl,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo iniciar el checkout";
+      toast.error(message);
+      setStripeCheckoutLoading(false);
+    }
+  }, [billing, stripeCheckoutLoading]);
 
   const handleUpdatePassword = useCallback(async () => {
     if (updatingPassword) {
@@ -347,11 +557,9 @@ export default function SettingsPage() {
       setPayment((prev) => ({ ...prev, ...updated.payment }));
       setNotifications((prev) => ({ ...prev, ...updated.notifications }));
       setSecurity((prev) => ({ ...prev, ...(updated.security || {}) }));
-      setBilling((prev) => ({
-        ...prev,
-        ...(updated.billing || {}),
-        features: normalizeBillingFeatures(prev.features, updated.billing?.features as Record<string, unknown> | undefined),
-      }));
+      const nextBilling = normalizeBillingConfig(DEFAULT_BILLING, updated.billing as Record<string, unknown> | undefined);
+      setBilling(nextBilling);
+      setSavedBillingSnapshot(nextBilling);
       const pastParticiple = section === "Notificaciones" ? "guardadas" : "guardada";
       toast.success(`${section} ${pastParticiple} correctamente`);
     } catch (error) {
@@ -377,9 +585,16 @@ export default function SettingsPage() {
     );
   }
 
+  const selectedPlan = PLAN_CATALOG[resolvePlanType(billing.planType)];
+  const recalculatedIncludedStudents = selectedPlan.includedActiveStudents;
+  const recalculatedMaxStudents = recalculatedIncludedStudents + billing.extraStudentBlocks * selectedPlan.extraStudentsBlockSize;
+  const currentMonthlyAmount = calculateMonthlyAmount(savedBillingSnapshot);
+  const nextMonthlyAmount = calculateMonthlyAmount(billing);
+  const amountDiff = nextMonthlyAmount - currentMonthlyAmount;
+
   return (
     <PageContainer title="Configuración" description="Configura tu escuela de danza">
-      <Tabs defaultValue="account" className="space-y-4">
+      <Tabs defaultValue={searchParams.get("tab") === "billing" ? "billing" : "account"} className="space-y-4">
         <TabsList className="bg-muted/50 p-1">
           <TabsTrigger value="account" className="text-xs gap-1.5">
             <User className="h-3.5 w-3.5" /> Cuenta
@@ -820,15 +1035,27 @@ export default function SettingsPage() {
         <TabsContent value="billing">
           <div className="rounded-lg border border-border bg-card p-6 shadow-soft space-y-6">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Billing</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Por ahora solo se almacena el tipo de plan de la escuela</p>
+              <h3 className="text-sm font-semibold text-foreground">Planes y limites</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Solo se limita por alumnos activos. No se limita profesores, clases, aulas ni administradores.</p>
             </div>
             <Separator />
 
             <FieldGroup label="Tipo de plan" icon={CreditCard}>
               <Select
                 value={billing.planType}
-                onValueChange={(v) => setBilling({ ...billing, planType: v })}
+                onValueChange={(v) => {
+                  const nextPlanType = resolvePlanType(v);
+                  setBilling({
+                    ...billing,
+                    planType: nextPlanType,
+                    addons: {
+                      ...billing.addons,
+                      waitlistAutomation: nextPlanType === "starter" ? billing.addons.waitlistAutomation : false,
+                    },
+                  });
+                  setSelectedPlanForModal(nextPlanType);
+                  setPlanModalOpen(true);
+                }}
               >
                 <SelectTrigger className="h-9 text-sm max-w-xs">
                   <SelectValue placeholder="Selecciona un plan" />
@@ -839,95 +1066,167 @@ export default function SettingsPage() {
                   <SelectItem value="enterprise">Enterprise</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="mt-1 text-[10px] text-muted-foreground">Al seleccionar un plan se abre una comparativa con precio y ventajas.</p>
             </FieldGroup>
 
             <Separator />
 
             <div className="space-y-4">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Entitlements Actuales</h4>
-              <SwitchRow
-                label="Matrícula inteligente"
-                description="Permite enlaces con filtros y preselección"
-                checked={billing.features.smartEnrollmentLink}
-                onChange={(v) => setBilling({ ...billing, features: { ...billing.features, smartEnrollmentLink: v } })}
-              />
-              <SwitchRow
-                label="Hojas de asistencia PDF"
-                description="Habilita generación de hojas imprimibles"
-                checked={billing.features.attendanceSheetsPdf}
-                onChange={(v) => setBilling({ ...billing, features: { ...billing.features, attendanceSheetsPdf: v } })}
-              />
-              <SwitchRow
-                label="Incidencias rápidas"
-                description="Permite registrar ausencias, lesiones y cambios temporales"
-                checked={billing.features.quickIncidents}
-                onChange={(v) => setBilling({ ...billing, features: { ...billing.features, quickIncidents: v } })}
-              />
-              <SwitchRow
-                label="Modo recepción"
-                description="Activa la vista simplificada para personal administrativo"
-                checked={billing.features.receptionMode}
-                onChange={(v) => setBilling({ ...billing, features: { ...billing.features, receptionMode: v } })}
-              />
-              <SwitchRow
-                label="Lista de espera automática"
-                description="Habilita waitlist automatizada con ofertas"
-                checked={billing.features.waitlistAutomation}
-                onChange={(v) => setBilling({ ...billing, features: { ...billing.features, waitlistAutomation: v } })}
-              />
-              <SwitchRow
-                label="Renovaciones automáticas"
-                description="Gestiona reservas y renovaciones por campaña"
-                checked={billing.features.renewalAutomation}
-                onChange={(v) => setBilling({ ...billing, features: { ...billing.features, renewalAutomation: v } })}
-              />
-              <SwitchRow
-                label="Duplicado de curso"
-                description="Habilita copia de curso anterior"
-                checked={billing.features.courseClone}
-                onChange={(v) => setBilling({ ...billing, features: { ...billing.features, courseClone: v } })}
-              />
-              <SwitchRow
-                label="Comunicación masiva por email"
-                description="Permite campañas masivas por clase, disciplina o toda la escuela"
-                checked={billing.features.massCommunicationEmail}
-                onChange={(v) => setBilling({ ...billing, features: { ...billing.features, massCommunicationEmail: v } })}
-              />
-              <SwitchRow
-                label="Asistente de horario automático"
-                description="Prepara la generación de propuestas A/B/C"
-                checked={billing.features.autoScheduler}
-                onChange={(v) => setBilling({ ...billing, features: { ...billing.features, autoScheduler: v } })}
-              />
-              <SwitchRow
-                label="Roles personalizados"
-                description="Permite crear roles con permisos granulares"
-                checked={billing.features.customRoles}
-                onChange={(v) => setBilling({ ...billing, features: { ...billing.features, customRoles: v } })}
-              />
-              <FieldGroup label="Máximo de roles personalizados" icon={ShieldCheck}>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Capacidad de alumnos</h4>
+              <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground space-y-1">
+                <p>Incluidos por plan: <span className="font-medium text-foreground">{recalculatedIncludedStudents}</span> alumnos activos</p>
+                <p>Bloques extra activos: <span className="font-medium text-foreground">{billing.extraStudentBlocks}</span></p>
+                <p>Capacidad total actual: <span className="font-medium text-foreground">{recalculatedMaxStudents}</span> alumnos activos</p>
+              </div>
+
+              <FieldGroup label="Bloques extra de alumnos" icon={CreditCard}>
                 <Input
                   type="number"
                   min="0"
-                  max="3"
-                  value={billing.features.maxCustomRoles}
-                  onChange={(e) => setBilling({ ...billing, features: { ...billing.features, maxCustomRoles: Number(e.target.value) || 0 } })}
-                  className="h-9 text-sm w-24"
+                  value={billing.extraStudentBlocks}
+                  onChange={(e) => setBilling({ ...billing, extraStudentBlocks: Math.max(0, Number(e.target.value) || 0) })}
+                  className="h-9 text-sm w-32"
                 />
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Cada bloque anade {selectedPlan.extraStudentsBlockSize} alumnos por {selectedPlan.extraStudentsBlockPriceEur} EUR/mes.
+                </p>
               </FieldGroup>
             </div>
 
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Add-ons</h4>
+              <SwitchRow
+                label="Dominio personalizado"
+                description={`matricula.tuescuela.com (${billing.pricing.addons.customDomain} EUR/mes)`}
+                checked={billing.addons.customDomain}
+                onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, customDomain: v } })}
+              />
+              <SwitchRow
+                label="Soporte prioritario"
+                description={`Respuesta en menos de 24h y onboarding (${billing.pricing.addons.prioritySupport} EUR/mes)`}
+                checked={billing.addons.prioritySupport}
+                onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, prioritySupport: v } })}
+              />
+              {billing.planType === "starter" && (
+                <SwitchRow
+                  label="Add-on lista de espera automatica"
+                  description={`Disponible en Starter (${billing.pricing.addons.waitlistAutomation} EUR/mes)`}
+                  checked={billing.addons.waitlistAutomation}
+                  onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, waitlistAutomation: v } })}
+                />
+              )}
+            </div>
+
             <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-              Estos entitlements se guardan en la configuración de billing para habilitar rollout progresivo por plan y add-ons.
+              Precio base del plan actual: {selectedPlan.monthlyPriceEur} EUR/mes. El acceso funcional se calcula automaticamente por plan + add-ons.
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resumen de importe</h4>
+                <Badge variant="outline">
+                  {amountDiff === 0 ? "Sin cambios" : amountDiff > 0 ? `+${amountDiff} EUR/mes` : `${amountDiff} EUR/mes`}
+                </Badge>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-md border border-border bg-background p-3">
+                  <p className="text-[11px] text-muted-foreground">Cuantia actual</p>
+                  <p className="text-lg font-semibold text-foreground">{currentMonthlyAmount} EUR/mes</p>
+                </div>
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                  <p className="text-[11px] text-muted-foreground">Nueva cuantia con cambios</p>
+                  <p className="text-lg font-semibold text-foreground">{nextMonthlyAmount} EUR/mes</p>
+                </div>
+              </div>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <p>Base {selectedPlan.label}: <span className="font-medium text-foreground">{selectedPlan.monthlyPriceEur} EUR</span></p>
+                <p>Bloques ({billing.extraStudentBlocks} x {selectedPlan.extraStudentsBlockPriceEur} EUR): <span className="font-medium text-foreground">{billing.extraStudentBlocks * selectedPlan.extraStudentsBlockPriceEur} EUR</span></p>
+                <p>Add-ons activos: <span className="font-medium text-foreground">{
+                  (billing.addons.customDomain ? billing.pricing.addons.customDomain : 0)
+                  + (billing.addons.prioritySupport ? billing.pricing.addons.prioritySupport : 0)
+                  + (billing.addons.waitlistAutomation ? billing.pricing.addons.waitlistAutomation : 0)
+                } EUR</span></p>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" size="sm" onClick={handleReset} disabled={saving}><RotateCcw className="h-3.5 w-3.5 mr-1" /> Restablecer</Button>
+              <Button size="sm" variant="secondary" onClick={() => void handleStripeCheckout()} disabled={stripeCheckoutLoading}>
+                <CreditCard className="h-3.5 w-3.5 mr-1" /> {stripeCheckoutLoading ? "Redirigiendo..." : "Continuar pago en Stripe"}
+              </Button>
               <Button size="sm" onClick={() => void handleSave("Billing")} disabled={saving}><Save className="h-3.5 w-3.5 mr-1" /> Guardar</Button>
             </div>
           </div>
+
+          <Dialog open={planModalOpen} onOpenChange={setPlanModalOpen}>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Comparativa de planes</DialogTitle>
+                <DialogDescription>Revisa precio y ventajas antes de confirmar el cambio.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {(Object.keys(PLAN_CATALOG) as PlanType[]).map((planKey) => {
+                  const plan = PLAN_CATALOG[planKey];
+                  const isSelected = selectedPlanForModal === planKey;
+                  return (
+                    <div
+                      key={planKey}
+                      className={`rounded-lg border p-4 ${isSelected ? "border-primary bg-primary/5" : "border-border bg-background"}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-foreground">{plan.label}</p>
+                        {isSelected ? <Badge>Seleccionado</Badge> : null}
+                      </div>
+                      <p className="mt-2 text-xl font-bold text-foreground">{plan.monthlyPriceEur} EUR/mes</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Incluye {plan.includedActiveStudents} alumnos activos</p>
+                      <p className="text-xs text-muted-foreground">Bloque extra: {plan.extraStudentsBlockSize} alumnos por {plan.extraStudentsBlockPriceEur} EUR/mes</p>
+                      <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                        {plan.highlights.map((item) => (
+                          <li key={item}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
+
+      <Dialog
+        open={thankYouOpen}
+        onOpenChange={(nextOpen) => {
+          setThankYouOpen(nextOpen);
+          if (!nextOpen) {
+            clearStripeQueryParam();
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
+              <CheckCircle2 className="h-6 w-6 text-success" />
+            </div>
+            <DialogTitle className="text-center">Gracias por tu compra</DialogTitle>
+            <DialogDescription className="text-center">
+              Tu suscripcion se ha procesado correctamente en Stripe. En breve veras reflejado el nuevo plan y capacidades.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center">
+            <Button
+              onClick={() => {
+                setThankYouOpen(false);
+                clearStripeQueryParam();
+              }}
+            >
+              Perfecto, continuar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

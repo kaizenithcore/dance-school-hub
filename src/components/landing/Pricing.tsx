@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 interface Plan {
   name: string;
@@ -10,16 +11,20 @@ interface Plan {
   desc: string;
   features: string[];
   cta: string;
+  ctaHref: string;
+  ctaExternal?: boolean;
   highlighted?: boolean;
 }
 
 const plans: Plan[] = [
   {
     name: "Starter",
-    price: "79€",
+    price: "179€",
     period: "/mes",
     desc: "Hasta 300 alumnos",
     features: [
+      "Solo limite por alumnos activos",
+      "Sin limite de profesores, clases ni aulas",
       "Gestión de alumnos",
       "Gestión de clases",
       "Editor de matrícula",
@@ -28,14 +33,16 @@ const plans: Plan[] = [
       "Importador Excel",
     ],
     cta: "Empezar",
+    ctaHref: "/auth/register",
   },
   {
     name: "Pro",
-    price: "249€",
+    price: "349€",
     period: "/mes",
     desc: "Hasta 1.200 alumnos",
     features: [
       "Todo en Starter",
+      "Solo limite por alumnos activos",
       "Listas de espera automáticas",
       "Renovaciones automáticas",
       "Copia de curso anterior",
@@ -43,15 +50,17 @@ const plans: Plan[] = [
       "Detección de problemas en horarios",
     ],
     cta: "Probar gratis",
+    ctaHref: "/auth/register",
     highlighted: true,
   },
   {
     name: "Enterprise",
-    price: "399€",
+    price: "699€",
     period: "/mes",
     desc: "Hasta 4.000 alumnos",
     features: [
       "Todo en Pro",
+      "Solo limite por alumnos activos",
       "Multi-sede",
       "Roles avanzados",
       "Analítica avanzada",
@@ -59,6 +68,8 @@ const plans: Plan[] = [
       "Soporte prioritario",
     ],
     cta: "Contactar",
+    ctaHref: "mailto:hola@dancehub.es?subject=Consulta%20plan%20Enterprise%20DanceHub",
+    ctaExternal: true,
   },
 ];
 
@@ -77,7 +88,7 @@ export function Pricing() {
             Planes simples, sin sorpresas
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Elige el plan que se adapta al tamaño de tu academia.
+            Una plataforma para eliminar horas administrativas cada semana. El precio escala solo por alumnos activos.
           </p>
         </motion.div>
 
@@ -121,12 +132,26 @@ export function Pricing() {
                 className="mt-7 w-full"
                 variant={plan.highlighted ? "default" : "outline"}
                 size="lg"
+                asChild
               >
-                {plan.cta}
-                <ArrowRight className="ml-1 h-4 w-4" />
+                {plan.ctaExternal ? (
+                  <a href={plan.ctaHref}>{plan.cta}<ArrowRight className="ml-1 h-4 w-4" /></a>
+                ) : (
+                  <Link to={plan.ctaHref}>{plan.cta}<ArrowRight className="ml-1 h-4 w-4" /></Link>
+                )}
               </Button>
             </motion.div>
           ))}
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-border bg-card p-6 max-w-5xl mx-auto">
+          <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Add-ons y compras puntuales</h3>
+          <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
+            <p>Dominio personalizado: 29 EUR/mes</p>
+            <p>Soporte prioritario: 49 EUR/mes</p>
+            <p>Lista de espera automatica para Starter: 19 EUR/mes</p>
+            <p>Bloques extra de alumnos: Starter +100 (15 EUR), Pro +300 (25 EUR), Enterprise +1000 (50 EUR)</p>
+          </div>
         </div>
       </div>
     </section>

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export function CTA() {
   return (
@@ -21,13 +22,17 @@ export function CTA() {
               Crea tu cuenta y prueba la plataforma gratis durante 14 días.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button size="lg" className="h-12 px-8 text-base font-semibold">
-                Probar gratis
-                <ArrowRight className="ml-1 h-4 w-4" />
+              <Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
+                <Link to="/auth/register">
+                  Probar gratis
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base">
-                <Play className="mr-1 h-4 w-4" />
-                Solicitar demo
+              <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
+                <a href="mailto:hola@dancehub.es?subject=Solicitud%20de%20demo%20DanceHub">
+                  <Play className="mr-1 h-4 w-4" />
+                  Solicitar demo
+                </a>
               </Button>
             </div>
           </div>

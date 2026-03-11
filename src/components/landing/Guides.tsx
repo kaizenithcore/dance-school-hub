@@ -1,11 +1,33 @@
 import { motion } from "framer-motion";
-import { BookOpen, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BookOpen } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const guides = [
-  { title: "Cómo crear tu matrícula en 5 minutos", desc: "Configura el formulario, añade campos y comparte el enlace." },
-  { title: "Cómo organizar el horario de todo el curso", desc: "Arrastra clases, asigna salas y detecta conflictos al instante." },
-  { title: "Cómo automatizar renovaciones de alumnos", desc: "Lanza campañas de renovación masiva y gestiona confirmaciones." },
+  {
+    title: "Cómo crear tu matrícula en 5 minutos",
+    desc: "Configura el formulario, añade campos y comparte el enlace.",
+    to: "/guides/matricula-5-minutos",
+  },
+  {
+    title: "Cómo organizar el horario de todo el curso",
+    desc: "Arrastra clases, asigna salas y detecta conflictos al instante.",
+    to: "/guides/organizar-horario-curso",
+  },
+  {
+    title: "Cómo automatizar renovaciones de alumnos",
+    desc: "Lanza campañas de renovación masiva y gestiona confirmaciones.",
+    to: "/guides/automatizar-renovaciones",
+  },
+  {
+    title: "Cómo gestionar lista de espera sin llamadas",
+    desc: "Mantén orden cuando una clase se llena y cubre plazas libres con rapidez.",
+    to: "/guides/lista-espera-sin-llamadas",
+  },
+  {
+    title: "Cómo controlar cobros vencidos",
+    desc: "Reduce impagos con una rutina administrativa simple y trazable.",
+    to: "/guides/cobros-vencidos-reducir-impagos",
+  },
 ];
 
 export function Guides() {
@@ -27,7 +49,7 @@ export function Guides() {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-5xl mx-auto">
           {guides.map((g, i) => (
             <motion.div
               key={g.title}
@@ -42,9 +64,12 @@ export function Guides() {
               </div>
               <h3 className="text-base font-semibold text-foreground">{g.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed flex-1">{g.desc}</p>
-              <Button variant="ghost" className="mt-4 justify-start px-0 text-primary hover:text-primary">
-                Ver guía <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Button>
+              <Link
+                to={g.to}
+                className="mt-4 inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                Abrir guía
+              </Link>
             </motion.div>
           ))}
         </div>

@@ -4,6 +4,8 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const nav = [
+  { label: "Cómo funciona", href: "#how-it-works" },
+  { label: "Credibilidad", href: "#credibility" },
   { label: "Funciones", href: "#features" },
   { label: "Precios", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
@@ -35,18 +37,26 @@ export function LandingHeader() {
           <Button variant="ghost" size="sm" asChild>
             <Link to="/auth/login">Iniciar sesión</Link>
           </Button>
-          <Button size="sm">Probar gratis</Button>
+          <Button size="sm" asChild>
+            <Link to="/auth/register">Probar gratis</Link>
+          </Button>
         </div>
 
         {/* Mobile toggle */}
-        <button className="md:hidden p-2 text-foreground" onClick={() => setOpen(!open)}>
+        <button
+          className="md:hidden p-2 text-foreground"
+          onClick={() => setOpen(!open)}
+          aria-label={open ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={open}
+          aria-controls="landing-mobile-menu"
+        >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-border bg-card px-6 py-4 space-y-3">
+        <div id="landing-mobile-menu" className="md:hidden border-t border-border bg-card px-6 py-4 space-y-3">
           {nav.map((n) => (
             <a key={n.label} href={n.href} className="block text-sm text-muted-foreground" onClick={() => setOpen(false)}>
               {n.label}
@@ -56,7 +66,9 @@ export function LandingHeader() {
             <Button variant="outline" size="sm" className="flex-1" asChild>
               <Link to="/auth/login">Iniciar sesión</Link>
             </Button>
-            <Button size="sm" className="flex-1">Probar gratis</Button>
+            <Button size="sm" className="flex-1" asChild>
+              <Link to="/auth/register">Probar gratis</Link>
+            </Button>
           </div>
         </div>
       )}

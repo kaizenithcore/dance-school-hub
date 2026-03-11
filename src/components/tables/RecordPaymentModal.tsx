@@ -33,9 +33,14 @@ interface RecordPaymentModalProps {
     amount: number;
     metadata: Record<string, unknown>;
   }) => void;
+  onStartStripeCheckout?: (payment: {
+    studentId: string;
+    amount: number;
+    metadata: Record<string, unknown>;
+  }) => Promise<void>;
 }
 
-export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPaymentModalProps) {
+export function RecordPaymentModal({ open, onOpenChange, onSave, onStartStripeCheckout }: RecordPaymentModalProps) {
   const [studentId, setStudentId] = useState("");
   const [payerName, setPayerName] = useState("");
   const [concept, setConcept] = useState("");
@@ -110,25 +115,44 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
     }
   };
 
-  const handleSave = () => {
-    if (!selectedStudent || !concept.trim() || !amount || !payerName.trim() || !month) return;
-    onSave({
+  const buildPayload = () => {
+    if (!selectedStudent || !concept.trim() || !amount || !payerName.trim() || !month) {
+      return null;
+    }
+
+    return {
       studentId: selectedStudent.id,
       amount: parseFloat(amount),
       metadata: {
         payer_name: payerName.trim(),
         concept: concept.trim(),
         month,
+        student_name: selectedStudent.name,
+        student_email: selectedStudent.email,
         payment_method: method === "Transferencia bancaria" ? "transfer" : "cash",
         notes: notes.trim() || undefined,
       },
-    });
+    };
+  };
+
+  const handleSave = () => {
+    const payload = buildPayload();
+    if (!payload) return;
+
+    onSave(payload);
     // Reset
     setStudentId("");
     setPayerName("");
     setConcept("");
     setAmount("");
     setNotes("");
+  };
+
+  const handleStripeCheckout = async () => {
+    if (!onStartStripeCheckout) return;
+    const payload = buildPayload();
+    if (!payload) return;
+    await onStartStripeCheckout(payload);
   };
 
   const isValid = studentId && concept.trim() && payerName.trim() && amount && parseFloat(amount) > 0 && month;
@@ -235,6 +259,11 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
 
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          {onStartStripeCheckout ? (
+            <Button variant="secondary" size="sm" disabled={!isValid} onClick={handleStripeCheckout}>
+              Cobrar con Stripe
+            </Button>
+          ) : null}
           <Button size="sm" disabled={!isValid} onClick={handleSave}>Registrar Pago</Button>
         </DialogFooter>
       </DialogContent>

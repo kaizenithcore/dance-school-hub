@@ -13,14 +13,50 @@ import {
   updateStudent,
   type SaveStudentRequest,
 } from "@/lib/api/students";
+import { getSchoolSettings } from "@/lib/api/settings";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, Plus, Rocket, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
+type CapacityAlertLevel = "low" | "medium" | "high";
+
+function getCapacityAlertMeta(remainingPercent: number): {
+  level: CapacityAlertLevel;
+  title: string;
+  description: string;
+} {
+  if (remainingPercent <= 5) {
+    return {
+      level: "high",
+      title: "Capacidad critica: menos del 5% disponible",
+      description: "Activa mas bloques hoy o sube de plan para evitar bloquear nuevas altas.",
+    };
+  }
+
+  if (remainingPercent <= 15) {
+    return {
+      level: "medium",
+      title: "Capacidad muy baja: menos del 15% disponible",
+      description: "Te acercas al limite rapidamente. Te recomendamos ampliar cupo cuanto antes.",
+    };
+  }
+
+  return {
+    level: "low",
+    title: "Capacidad en alerta: menos del 25% disponible",
+    description: "Considera subir de plan para sostener el crecimiento sin fricciones.",
+  };
+}
 
 export default function StudentsPage() {
+  const navigate = useNavigate();
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [maxActiveStudents, setMaxActiveStudents] = useState<number>(0);
   const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -44,6 +80,18 @@ export default function StudentsPage() {
     classIds: (data.enrolledClasses || []).map((klass) => klass.id).filter(Boolean),
   });
 
+  const loadCapacity = useCallback(async () => {
+    try {
+      const settings = await getSchoolSettings();
+      const limits = (settings?.billing?.limits || {}) as Record<string, unknown>;
+      const parsedMax = Number(limits.maxActiveStudents ?? 0);
+      setMaxActiveStudents(parsedMax > 0 ? parsedMax : 0);
+    } catch (error) {
+      console.error("Error loading capacity limits:", error);
+      setMaxActiveStudents(0);
+    }
+  }, []);
+
   const loadStudents = useCallback(async () => {
     setLoading(true);
     try {
@@ -61,6 +109,10 @@ export default function StudentsPage() {
   useEffect(() => {
     void loadStudents();
   }, [loadStudents]);
+
+  useEffect(() => {
+    void loadCapacity();
+  }, [loadCapacity]);
 
   useEffect(() => {
     if (loading) {
@@ -136,13 +188,15 @@ export default function StudentsPage() {
       }
 
       await loadStudents();
+      await loadCapacity();
       return true;
     } catch (error) {
       console.error("Error saving student:", error);
-      toast.error("Error al guardar el alumno");
+      const message = error instanceof Error ? error.message : "Error al guardar el alumno";
+      toast.error(message);
       return false;
     }
-  }, [editingStudent, loadStudents]);
+  }, [editingStudent, loadCapacity, loadStudents]);
 
   const handleConfirmDelete = useCallback(() => {
     if (!deletingStudent) {
@@ -159,12 +213,27 @@ export default function StudentsPage() {
 
         toast.success("Alumno eliminado");
         await loadStudents();
+        await loadCapacity();
       } catch (error) {
         console.error("Error deleting student:", error);
         toast.error("Error al eliminar el alumno");
       }
     })();
-  }, [deletingStudent, loadStudents]);
+  }, [deletingStudent, loadCapacity, loadStudents]);
+
+  const activeStudents = students.filter((student) => student.status === "active").length;
+  const effectiveMaxStudents = maxActiveStudents > 0 ? maxActiveStudents : Math.max(activeStudents, 1);
+  const remainingStudents = Math.max(0, effectiveMaxStudents - activeStudents);
+  const usedPercent = Math.min(100, (activeStudents / effectiveMaxStudents) * 100);
+  const remainingPercent = Math.max(0, 100 - usedPercent);
+  const shouldShowUpgradeBanner = maxActiveStudents > 0 && remainingPercent <= 25;
+  const alertMeta = shouldShowUpgradeBanner ? getCapacityAlertMeta(remainingPercent) : null;
+  const upgradeBannerClassName =
+    alertMeta?.level === "high"
+      ? "border-destructive/40 bg-destructive/10 text-destructive"
+      : alertMeta?.level === "medium"
+        ? "border-warning/40 bg-warning/10 text-warning"
+        : "border-primary/30 bg-primary/5 text-primary";
 
   return (
     <PageContainer
@@ -176,6 +245,45 @@ export default function StudentsPage() {
         </Button>
       }
     >
+      <section className="space-y-3">
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Capacidad del plan</p>
+              <p className="text-lg font-semibold text-foreground">
+                {remainingStudents} alumnos restantes
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  ({activeStudents}/{effectiveMaxStudents} activos)
+                </span>
+              </p>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {Math.round(remainingPercent)}% disponible
+            </Badge>
+          </div>
+          <Progress value={usedPercent} className="mt-3 h-2" />
+        </div>
+
+        {alertMeta ? (
+          <Alert className={upgradeBannerClassName}>
+            <Rocket className="h-4 w-4" />
+            <AlertTitle>{alertMeta.title}</AlertTitle>
+            <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+              <span>
+                {alertMeta.description} Te quedan {remainingStudents} plazas antes de llegar al limite actual.
+              </span>
+              <Button
+                size="sm"
+                variant={alertMeta.level === "high" ? "destructive" : "default"}
+                onClick={() => navigate("/admin/settings")}
+              >
+                Mejorar plan
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+      </section>
+
       <StudentsTable
         students={loading ? [] : students}
         onViewProfile={handleViewProfile}
@@ -183,6 +291,15 @@ export default function StudentsPage() {
         onManageClasses={handleManageClasses}
         onDelete={handleDelete}
       />
+
+      <Alert className="border-primary/25 bg-primary/5">
+        <ShoppingBag className="h-4 w-4" />
+        <AlertTitle>Amplia tu capacidad con bloques extra</AlertTitle>
+        <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+          <span>Compra bloques de alumnos activos para seguir creciendo sin cambiar de plan base.</span>
+          <Button size="sm" variant="outline" onClick={() => navigate("/admin/settings")}>Comprar bloques</Button>
+        </AlertDescription>
+      </Alert>
 
       <StudentProfileDrawer
         open={drawerOpen}

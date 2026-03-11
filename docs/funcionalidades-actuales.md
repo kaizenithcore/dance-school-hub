@@ -1,272 +1,168 @@
-# Inventario de Funcionalidades Actuales - Dance School Hub
+# Mapa de Funcionalidades - Dance School Hub (Actuales + Avanzadas)
 
 ## 1) Objetivo del documento
-Este documento resume, en lenguaje funcional y no tecnico, todo lo que la aplicacion puede hacer actualmente.
+Este documento ofrece una vista rapida y funcional de lo que la aplicacion ya resuelve y de las capacidades avanzadas planificadas.
 
-Se utiliza como base para:
-- Ver que valor real ya existe en el producto.
-- Detectar funcionalidades parciales o aun no cerradas.
-- Definir limites por plan (Starter, Pro, Enterprise) y su propuesta comercial.
+Se usa para:
+- Poner en contexto al equipo de producto, ventas y operaciones en pocos minutos.
+- Distinguir claramente entre capacidades operativas actuales y capacidades avanzadas en despliegue.
+- Facilitar decisiones de roadmap, empaquetado comercial y priorizacion.
 
-## 2) Vista general del producto
-La plataforma cubre tres grandes frentes:
-- Gestion interna de la escuela (panel admin).
-- Experiencia publica para alumnos/familias (sitio de escuela y matricula online).
-- Operacion de cobros (pagos, facturas, recibos y seguimiento mensual).
+## 2) Resumen ejecutivo
+La plataforma cubre el ciclo principal de una escuela de danza de punta a punta:
+- Captacion y matricula online.
+- Gestion academica diaria (clases, horarios, alumnos, profesores, aulas).
+- Cobros y facturacion.
+- Analiticas y configuracion centralizada.
 
-Ademas, incluye un sistema de configuracion central que modifica comportamientos reales en varias pantallas.
+Sobre esta base, el roadmap avanzado agrega automatizacion operativa, mejor soporte para picos de demanda y nuevas herramientas de comunicacion y planificacion.
 
-## 3) Acceso, cuentas y sesion
-### 3.1 Inicio de sesion
-- Ingreso con email y contrasena.
-- Validacion de credenciales y acceso al panel.
-- Mensajes de error/confirmacion para guiar al usuario.
+## 3) Capacidades actuales en produccion
 
-### 3.2 Registro de nueva escuela
-- Alta guiada en 2 pasos:
-  - Datos de escuela.
-  - Datos de la cuenta administradora.
-- Validaciones basicas (campos obligatorios, confirmacion de contrasena, aceptacion de terminos).
+### 3.1 Acceso, cuentas y sesion
+- Inicio de sesion con email y contrasena.
+- Registro de nueva escuela en flujo guiado.
+- Cambio/restablecimiento de contrasena con politicas de seguridad activas.
+- Timeout de sesion por inactividad y alertas de inicio de sesion configurables.
 
-### 3.3 Recuperacion y cambio de contrasena
-- Restablecimiento de contrasena desde pantalla de reset con actualizacion real.
-- Politica de contrasena aplicada segun configuracion de seguridad:
-  - Contrasena fuerte (si esta activa).
-  - Minimo de longitud (si no se exige politica fuerte).
+### 3.2 Operacion administrativa diaria
+- Dashboard con KPIs y alertas accionables.
+- Gestion completa de clases, aulas, profesores y alumnos (alta, edicion, baja, busqueda, filtros y vistas de detalle).
+- Gestion de inscripciones con cambio de estado (pendiente, aceptada, rechazada, cancelada).
+- Editor visual de horarios con arrastrar y soltar.
 
-### 3.4 Politicas de sesion con impacto real
-- Tiempo maximo de inactividad configurable (cierre automatico de sesion).
-- Alertas de inicio de sesion activables desde configuracion.
-
-## 4) Panel administrativo (operacion diaria)
-
-### 4.1 Panel principal (Dashboard)
-- Muestra indicadores clave:
-  - Alumnos activos y totales.
-  - Clases activas y totales.
-  - Ingresos del mes.
-  - Tasa de inscripcion.
-- Alertas accionables:
-  - Pagos vencidos o pendientes.
-  - Inscripciones pendientes.
-- Vistas rapidas:
-  - Ingresos por mes.
-  - Ocupacion de clases.
-  - Inscripciones recientes.
-  - Pagos que requieren atencion.
-
-### 4.2 Horarios
-- Editor visual para construir el horario semanal.
-- Flujo de trabajo tipo arrastrar y soltar clases al calendario.
-- El calendario respeta configuracion de dias y franja horaria definida en Ajustes.
-
-### 4.3 Clases
-- Alta de clases nuevas.
-- Edicion de clases existentes.
-- Eliminacion con confirmacion.
-- Vista previa de clase.
-- Gestion de datos principales de la clase (nombre, disciplina, categoria, profesor, capacidad, precio, estado).
-- Tabla con busqueda y filtros.
-
-### 4.4 Aulas
-- Alta, edicion y eliminacion de aulas.
-- Gestion de capacidad, descripcion y estado (activa/inactiva).
-
-### 4.5 Profesores
-- Alta, edicion y eliminacion de profesores.
-- Vista de perfil del profesor.
-- Asignacion de clases desde modal dedicada.
-- Tabla con busqueda y filtros por estado.
-
-### 4.6 Alumnos
-- Alta, edicion y eliminacion de alumnos.
-- Vista de perfil del alumno.
-- Gestion de clases del alumno desde modal dedicada.
-- Tabla con busqueda y filtros por estado.
-
-### 4.7 Inscripciones
-- Listado de solicitudes de matricula.
-- Vista detallada de cada solicitud.
-- Cambio de estado de la inscripcion (pendiente, aceptada, rechazada, cancelada).
-
-## 5) Cobros, facturacion y seguimiento financiero
-
-### 5.1 Pagos
-- Registro manual de pagos.
-- Vista detalle de pago.
-- Cambio de estado (pagado / reembolsado).
+### 3.3 Cobros y facturacion
+- Registro manual de pagos y cambio de estado (pagado/reembolsado).
 - Generacion de recibo PDF individual.
-- Filtros de pagos por texto, metodo y periodo.
+- Facturacion mensual con listados, filtros y marcado de pago.
+- Generacion de recibos en lote (efectivo).
+- Alertas operativas de cobranza (facturas faltantes y alumnos sin cobro registrado del mes).
 
-### 5.2 Facturas
-- Generacion mensual de facturas.
-- Listado de facturas con filtros por estado, mes y busqueda.
-- Vista de detalle de factura (lineas y total).
-- Marcado de factura como pagada con datos de metodo de pago.
+### 3.4 Experiencia publica y matricula
+- Landing publica por escuela (slug).
+- Horario publico con seleccion de clases.
+- Matricula online publica con formulario dinamico configurable.
+- Soporte de secciones, campos condicionales, seleccion de horarios, resumen de precio y matricula conjunta (si esta habilitada).
 
-### 5.3 Recibos en lote (efectivo)
-- Generacion de PDF multipagina con recibos de pagos en efectivo por mes.
+### 3.5 Form builder, tarifas y configuracion
+- Constructor de formulario de matricula por secciones y campos.
+- Gestion de tarifas/bonos con reglas y categorias.
+- Ajustes centrales de escuela, horarios, pagos, notificaciones, seguridad y billing.
+- El plan seleccionado (Starter/Pro/Enterprise) queda persistido para activar reglas comerciales.
 
-### 5.4 Alertas operativas de cobro
-- Aviso cuando no hay facturas del mes actual.
-- Aviso de alumnos aceptados sin registro de cobro del mes.
+### 3.6 Productividad y soporte legal
+- Topbar con busqueda global de registros y acciones rapidas.
+- Centro de notificaciones operativas.
+- Perfil de cuenta con cambio real de contrasena y cierre de sesion.
+- Publicacion de paginas legales (privacidad, cookies, terminos, aviso legal).
 
-### 5.5 Impacto de configuracion de pagos
-- Moneda y metodos habilitados en Ajustes impactan el registro de pagos.
-- Si un metodo esta desactivado en configuracion, deja de ofrecerse en la operacion diaria.
+## 4) Funcionalidades avanzadas (estado y alcance)
 
-## 6) Analiticas
-- KPIs de alumnos activos/inactivos, recaudacion y morosidad.
-- Graficos de ingresos por mes.
-- Distribucion de inscripciones por estado.
-- Distribucion por metodo de pago.
-- Ranking de alumnos por clase.
+### 4.1 Sprint 1 - Fundacion transversal
+Estado: planificado.
 
-## 7) Configuracion de la escuela (Ajustes)
+Incluye:
+- Entitlements por plan/add-on para activar modulos avanzados por tenant.
+- Infra asincrona ligera (outbox + procesamiento) para flujos no bloqueantes.
+- Base de comunicacion por email con plantillas operativas.
 
-### 7.1 Escuela
-- Datos institucionales:
-  - Nombre, slug publico, contacto, direccion, ciudad.
-  - Descripcion y tagline.
-  - Redes y web.
+### 4.2 Sprint 2 - Lista de espera automatica + matricula inteligente
+Estado: planificado.
 
-### 7.2 Horarios
-- Hora de inicio y fin.
-- Duracion de bloque.
-- Dias de funcionamiento.
-- Clase de prueba (activar/desactivar).
-- Maximo de clases por alumno.
+Incluye:
+- Lista de espera cuando una clase esta completa.
+- Oferta automatica de plaza con vencimiento configurable.
+- Flujo de aceptacion que puede confirmar automaticamente si hay cupo.
+- Enlaces de matricula con parametros inteligentes (preseleccion y filtros).
 
-### 7.3 Pagos
-- Moneda.
-- Dia de vencimiento.
-- Dias de gracia.
-- Metodos habilitados (transferencia / efectivo).
-- Datos de transferencia (alias, CBU/CVU).
-- Recordatorios automaticos.
+### 4.3 Sprint 3 - Renovaciones + copia de curso
+Estado: planificado.
 
-### 7.4 Notificaciones
-- Definicion de eventos a notificar:
-  - Nueva inscripcion.
-  - Pago recibido.
-  - Pago vencido.
-  - Clase cancelada.
-- Dias de antelacion para recordatorios.
+Incluye:
+- Campanas de renovacion para alumnos actuales con prioridad sobre nuevos ingresos.
+- Reserva de cupo desde la oferta con plazo configurable para confirmar.
+- Panel de renovaciones (confirmadas, pendientes, plazas liberadas).
+- Copia del curso anterior con modo de simulacion (dry-run) y aplicacion real.
 
-### 7.5 Seguridad
-- Exigir contrasena fuerte.
-- Habilitar politica de 2FA.
-- Alertas de inicio de sesion.
-- Timeout de sesion por inactividad.
+### 4.4 Sprint 4 - Asistencia PDF + incidencias + modo recepcion
+Estado: planificado.
 
-### 7.6 Billing
-- Seleccion y persistencia del tipo de plan:
-  - Starter.
-  - Pro.
-  - Enterprise.
-- El valor queda guardado y visible, listo para conectar reglas comerciales.
+Incluye:
+- Hojas de asistencia PDF por clase/periodo para profesores.
+- Registro rapido de incidencias de alumnos.
+- Vista simplificada de recepcion para tareas de mostrador.
 
-## 8) Topbar operativa (productividad diaria)
+### 4.5 Sprint 5 - Comunicacion masiva
+Estado: planificado.
 
-### 8.1 Busqueda global
-- Busqueda rapida de secciones y registros (alumnos, clases, inscripciones, pagos, profesores, aulas).
-- Acceso rapido a acciones contextuales (vista previa, edicion, eliminacion) segun modulo.
+Incluye:
+- Campanas segmentadas por clase, disciplina o escuela completa.
+- Historial y seguimiento por destinatario.
+- Canal email end-to-end.
 
-### 8.2 Centro de notificaciones
-- Notificaciones de inscripciones pendientes.
-- Notificaciones de pagos vencidos.
-- Marcar una o todas como leidas.
-- Navegacion directa al registro relacionado.
+Nota de alcance actual:
+- WhatsApp no entra en la implementacion inicial.
 
-### 8.3 Perfil y cuenta
-- Pestaña Cuenta: datos de usuario/rol/escuela.
-- Pestaña Seguridad: cambio real de contrasena con politicas activas.
-- Pestaña Billing: visualizacion del plan actual guardado en configuracion.
-- Cierre de sesion real.
+### 4.6 Sprint 6 - Deteccion automatica de problemas de horario
+Estado: planificado.
 
-## 9) Sitio publico de la escuela
+Incluye:
+- Alertas por baja/sobredemanda.
+- Deteccion de huecos de profesor.
+- Identificacion de aulas infrautilizadas.
+- Recomendaciones accionables desde dashboard y modulo de horarios.
 
-### 9.1 Landing publica por escuela
-- URL publica por slug de escuela.
-- Presentacion de la escuela (descripcion, contacto, direccion).
-- Vista previa de clases disponibles.
-- Seleccion de clases y CTA para iniciar inscripcion.
+### 4.7 Sprint 7 - Propuestas automaticas de horario (A/B/C)
+Estado: planificado.
 
-### 9.2 Horario publico
-- Vista de horario completo para futuros alumnos.
-- Seleccion de clases y salto directo al formulario de inscripcion.
+Incluye:
+- Generacion de alternativas A/B/C segun disponibilidad, demanda y ocupacion.
+- Comparador de propuestas y aplicacion guiada.
+- Modo semiautomatico con clases bloqueadas manualmente por el usuario.
 
-### 9.3 Matricula online publica
-- Formulario dinamico configurable desde el panel admin.
-- Soporte de secciones y campos condicionales.
-- Seleccion de clases/horarios.
-- Resumen dinamico de precio (incluyendo reglas/bonos cuando corresponde).
-- Soporte de matricula conjunta (varios alumnos en un mismo flujo) cuando esta habilitada.
-- Envio de solicitud de inscripcion.
+## 5) Mapa rapido por area funcional
 
-## 10) Editor de formulario de matricula
-- Constructor de formulario por secciones.
-- Creacion, orden, edicion y eliminacion de secciones.
-- Configuracion de campos (tipo, obligatoriedad, opciones, condiciones, etc.).
-- Vista previa del formulario final.
-- Guardar y restaurar configuracion.
-- Activar/desactivar bloques de:
-  - Seleccion de horario.
-  - Resumen de tarifas/bonos.
-  - Matricula conjunta.
+### 5.1 Captacion y conversion
+- Actual: landing publica, horario publico, matricula online configurable.
+- Avanzado: enlaces inteligentes de matricula, lista de espera automatica.
 
-## 11) Tarifas y bonos
-- Gestion de reglas tarifarias (alta, edicion, eliminacion).
-- Gestion de categorias de disciplinas.
-- Soporte para descuentos/bonos por condiciones.
-- Integracion con el flujo de matricula para mostrar resumen dinamico de precio.
+### 5.2 Operacion academica
+- Actual: CRUD de alumnos, profesores, clases, aulas; editor de horario.
+- Avanzado: renovaciones, copia de curso, incidencias, recepcion simplificada.
 
-## 12) Legal y cumplimiento
-- Secciones legales publicas disponibles:
-  - Politica de privacidad.
-  - Politica de cookies.
-  - Terminos de servicio.
-  - Aviso legal.
+### 5.3 Cobros y administracion
+- Actual: pagos, facturas, recibos PDF, alertas de cobro.
+- Avanzado: comunicacion segmentada para mejorar seguimiento operativo.
 
-## 13) Funcionalidades parciales o pendientes detectadas
-Estas funcionalidades existen pero aun no estan cerradas al 100%:
-- Recuperacion de contrasena (pantalla "Olvide mi contrasena"):
-  - La UI existe, pero el envio de email de recuperacion aun esta marcado como pendiente de integracion.
-- Horario publico:
-  - Algunas partes usan datos de respaldo/demo cuando falla la carga real.
-  - El precio/teacher en esa vista aun no viene completamente de datos definitivos en todos los casos.
-- 2FA:
-  - La politica se puede activar y se refleja en UI, pero la configuracion completa de enrolamiento MFA aun depende de implementacion final del flujo del proveedor de autenticacion.
-- Perfil avanzado de cuenta:
-  - Se anticipa espacio para foto/preferencias personales, pero actualmente no es un modulo completo.
+### 5.4 Inteligencia operativa
+- Actual: analiticas y KPIs base.
+- Avanzado: deteccion automatica de problemas y propuestas de horario optimizadas.
 
-## 14) Ejes recomendados para definir planes y tarifas
-Con lo ya implementado, se pueden definir planes comerciales usando estos ejes:
-- Volumen operativo:
-  - Numero de alumnos activos.
-  - Numero de profesores.
-  - Numero de clases y aulas.
-- Complejidad academica:
-  - Uso de horario avanzado.
-  - Uso de matricula conjunta.
-  - Nivel de personalizacion del formulario.
-- Complejidad comercial:
-  - Cantidad de reglas de tarifas/bonos activas.
-  - Uso de facturacion mensual y recibos en lote.
-- Gobernanza y seguridad:
-  - Politicas de seguridad activas (contrasena fuerte, timeout, alertas).
-  - Nivel de soporte de control de accesos.
-- Marca y conversion publica:
-  - Uso de landing publica.
-  - Uso de matricula online y schedule publico.
+## 6) Funcionalidades parcialmente cerradas (actuales)
+Estas piezas existen pero no estan completamente cerradas:
+- Recuperacion de contrasena: flujo de UI listo, con integracion de envio de email aun pendiente de cierre final.
+- Horario publico: existen casos con fallback de datos no definitivos.
+- 2FA: politica disponible en configuracion, con enrolamiento MFA aun por cerrar end-to-end.
+- Perfil avanzado de cuenta: previsto, aun no como modulo completo.
 
-## 15) Conclusiones para producto
-- La aplicacion ya cubre un ciclo operativo casi completo: captacion, matricula, gestion academica, cobranza y analitica.
-- Existen piezas diferenciales para paquetizar (form builder, tarifas/bonos, facturacion, seguridad configurable).
-- Las brechas mas relevantes para cerrar antes de congelar planes son:
-  - Recuperacion de contrasena end-to-end.
-  - Cierre total de flujo 2FA.
-  - Homogeneizar datos reales en horario publico para eliminar cualquier fallback demo.
+## 7) Implicaciones para planes comerciales
+
+### 7.1 Starter
+- Base operativa completa + herramientas de captacion y cobro.
+- Posibles extras de entrada: asistencia PDF, incidencias y enlace inteligente.
+
+### 7.2 Pro
+- Automatizacion de operacion academica y de cupos.
+- Enfoque: waitlist automatica, renovaciones y copia de curso.
+
+### 7.3 Enterprise
+- Control avanzado de operaciones y optimizacion.
+- Enfoque: permisos mas granulares/roles personalizados, insights avanzados y motor de propuestas de horario.
+
+## 8) Prioridades para producto
+- Cerrar brechas actuales criticas: recuperacion de contrasena, 2FA end-to-end y datos definitivos en horario publico.
+- Activar primero capacidades con impacto operativo inmediato: waitlist, renovaciones y copia de curso.
+- Escalar luego a inteligencia de planificacion: deteccion automatica e IA semiautomatica de horarios.
 
 ---
-Documento de referencia funcional (estado actual) para decisiones de producto y pricing.
+Documento de referencia funcional para contexto rapido de capacidades actuales y avanzadas.

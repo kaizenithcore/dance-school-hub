@@ -20,6 +20,7 @@ import {
   type InvoiceDetail,
 } from "@/lib/api/payments";
 import { getEnrollments } from "@/lib/api/enrollments";
+import { redirectToStripeCheckout } from "@/lib/api/stripe";
 import { toast } from "sonner";
 import { Loader2, Copy, DollarSign, FileText, AlertTriangle, Eye, CircleCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -262,6 +263,27 @@ export default function PaymentsPage() {
       }
     } catch (error) {
       toast.error("Error al registrar el pago");
+    }
+  }, []);
+
+  const handleStripeCheckout = useCallback(async (data: { studentId: string; amount: number; metadata: Record<string, unknown> }) => {
+    try {
+      await redirectToStripeCheckout({
+        amount: data.amount,
+        currency: "eur",
+        description: String(data.metadata.concept || "Pago DanceHub"),
+        metadata: {
+          studentId: data.studentId,
+          studentName: String(data.metadata.student_name || ""),
+          studentEmail: String(data.metadata.student_email || ""),
+          period: String(data.metadata.month || ""),
+        },
+        successUrl: `${window.location.origin}/admin/payments?stripe=success`,
+        cancelUrl: `${window.location.origin}/admin/payments?stripe=cancel`,
+      });
+    } catch (error) {
+      console.error("Failed to start Stripe checkout:", error);
+      toast.error(error instanceof Error ? error.message : "No se pudo iniciar el cobro con Stripe");
     }
   }, []);
 
@@ -620,6 +642,7 @@ export default function PaymentsPage() {
         open={paymentModalOpen}
         onOpenChange={setPaymentModalOpen}
         onSave={handleRecordPayment}
+        onStartStripeCheckout={handleStripeCheckout}
       />
 
       {/* Generate Invoices Dialog */}

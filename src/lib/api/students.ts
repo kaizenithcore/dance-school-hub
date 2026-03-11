@@ -47,6 +47,10 @@ export async function createStudent(data: SaveStudentRequest): Promise<string | 
     body: JSON.stringify(data),
   });
 
+  if (!response.success) {
+    throw new Error(response.error?.message || "No se pudo crear el alumno");
+  }
+
   return response.success && response.data ? response.data.id : null;
 }
 

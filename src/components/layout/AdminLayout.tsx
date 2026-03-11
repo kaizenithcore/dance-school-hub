@@ -4,6 +4,7 @@ import { AdminSidebar } from "./AdminSidebar";
 import { Topbar } from "./Topbar";
 import { motion } from "framer-motion";
 import { AnimatedPage } from "@/components/ui/animated";
+import { PlanDevOverlay } from "@/components/dev/PlanDevOverlay";
 
 const LOGIN_WELCOME_KEY = "dancehub:welcome-overlay-until";
 const LOGIN_WELCOME_DURATION_MS = 2000;
@@ -98,6 +99,7 @@ export function AdminLayout() {
             </motion.div>
           ) : null}
         </main>
+        <PlanDevOverlay />
       </div>
     </div>
   );

@@ -23,6 +23,10 @@ export interface SchoolSettingsPayload {
   security: Record<string, unknown>;
   billing: {
     planType: string;
+    addons?: Record<string, unknown>;
+    limits?: Record<string, unknown>;
+    pricing?: Record<string, unknown>;
+    extraStudentBlocks?: number;
     features?: Record<string, unknown>;
   };
 }

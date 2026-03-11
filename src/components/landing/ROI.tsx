@@ -46,7 +46,7 @@ export function ROI() {
               <TrendingDown className="h-5 w-5 text-success" />
               <span className="text-sm font-semibold text-success">Con la plataforma</span>
             </div>
-            <p className="text-3xl font-bold text-foreground">249€<span className="text-base font-normal text-muted-foreground">/mes</span></p>
+            <p className="text-3xl font-bold text-foreground">349€<span className="text-base font-normal text-muted-foreground">/mes</span></p>
             <p className="mt-2 text-sm text-muted-foreground">
               Automatiza la mayor parte del trabajo administrativo con el plan Pro. Sin errores, sin papel, sin estrés.
             </p>
@@ -64,7 +64,17 @@ export function ROI() {
           viewport={{ once: true }}
           className="mt-10 text-center text-sm text-muted-foreground max-w-md mx-auto"
         >
-          Un administrativo puede costar más de 1.000€/mes. Esta plataforma automatiza gran parte de ese trabajo por menos de 250€/mes.
+          Un administrativo puede costar más de 1.000€/mes. Esta plataforma automatiza gran parte de ese trabajo por menos de 350€/mes.
+        </motion.p>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="mt-3 text-center text-xs text-muted-foreground/90 max-w-2xl mx-auto"
+        >
+          Referencia orientativa para academias privadas: estimación basada en carga administrativa recurrente (matrículas,
+          organización de grupos, cobros y renovaciones). Los resultados reales pueden variar según tamaño y procesos internos.
         </motion.p>
       </div>
     </section>
