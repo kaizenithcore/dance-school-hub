@@ -15,11 +15,27 @@ const CLONE_STATUS_LABELS: Record<CloneJob["status"], string> = {
   failed: "Con error",
 };
 
+function formatPeriod(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function getDefaultPeriods() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return {
+    sourcePeriod: formatPeriod(now),
+    targetPeriod: formatPeriod(next),
+  };
+}
+
 export default function CourseClonePage() {
+  const defaults = getDefaultPeriods();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [sourcePeriod, setSourcePeriod] = useState("");
-  const [targetPeriod, setTargetPeriod] = useState("");
+  const [sourcePeriod, setSourcePeriod] = useState(defaults.sourcePeriod);
+  const [targetPeriod, setTargetPeriod] = useState(defaults.targetPeriod);
   const [dryRun, setDryRun] = useState<CourseCloneDryRun | null>(null);
   const [jobs, setJobs] = useState<CloneJob[]>([]);
 

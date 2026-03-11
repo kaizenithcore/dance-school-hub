@@ -75,6 +75,21 @@ export default function RoomsPage() {
     setFormOpen(true);
   };
 
+  const handleFormOpenChange = (open: boolean) => {
+    setFormOpen(open);
+    if (!open) {
+      setEditingRoom(null);
+      setForm(EMPTY_FORM);
+    }
+  };
+
+  const handleDeleteOpenChange = (open: boolean) => {
+    setDeleteOpen(open);
+    if (!open) {
+      setDeletingRoom(null);
+    }
+  };
+
   const openEdit = (room: Room) => {
     setEditingRoom(room);
     setForm({
@@ -126,7 +141,7 @@ export default function RoomsPage() {
         toast.success("Aula creada");
       }
 
-      setFormOpen(false);
+      handleFormOpenChange(false);
     } catch (error) {
       console.error("Error saving room:", error);
       toast.error("No se pudo guardar el aula");
@@ -141,8 +156,7 @@ export default function RoomsPage() {
       if (!success) throw new Error("No se pudo eliminar el aula");
 
       setRooms((prev) => prev.filter((r) => r.id !== deletingRoom.id));
-      setDeleteOpen(false);
-      setDeletingRoom(null);
+      handleDeleteOpenChange(false);
       toast.success("Aula eliminada");
     } catch (error) {
       console.error("Error deleting room:", error);
@@ -206,7 +220,7 @@ export default function RoomsPage() {
         </Table>
       </div>
 
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+      <Dialog open={formOpen} onOpenChange={handleFormOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingRoom ? "Editar Aula" : "Nueva Aula"}</DialogTitle>
@@ -256,13 +270,13 @@ export default function RoomsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => handleFormOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleSave}>{editingRoom ? "Guardar" : "Crear"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <Dialog open={deleteOpen} onOpenChange={handleDeleteOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Eliminar Aula</DialogTitle>
@@ -271,7 +285,7 @@ export default function RoomsPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => handleDeleteOpenChange(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleDelete}>Eliminar</Button>
           </DialogFooter>
         </DialogContent>

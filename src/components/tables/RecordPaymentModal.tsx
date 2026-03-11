@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,6 +138,9 @@ export function RecordPaymentModal({ open, onOpenChange, onSave }: RecordPayment
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Registrar Pago</DialogTitle>
+          <DialogDescription>
+            Completa los datos del pago para registrarlo en el historial del alumno.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
