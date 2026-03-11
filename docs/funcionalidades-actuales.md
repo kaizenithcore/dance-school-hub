@@ -270,3 +270,98 @@ Con lo ya implementado, se pueden definir planes comerciales usando estos ejes:
 
 ---
 Documento de referencia funcional (estado actual) para decisiones de producto y pricing.
+
+---
+
+## 16) Estado actual del proyecto (11 Mar 2026)
+
+### 16.1 Integraciones completadas
+
+| Area | Estado |
+|------|--------|
+| Autenticacion (login, registro de escuela, cambio/reset de contrasena) | ✅ Completa |
+| Multi-tenancy (aislamiento por tenant_id, RLS en Supabase) | ✅ Completa |
+| Backend API: Profesores (CRUD) | ✅ Completa |
+| Backend API: Aulas (CRUD) | ✅ Completa |
+| Backend API: Clases (CRUD) | ✅ Completa |
+| Backend API: Alumnos (CRUD + quota) | ✅ Completa |
+| Backend API: Inscripciones (flujo publico + gestion admin) | ✅ Completa |
+| Backend API: Horarios (class_schedules + bloqueo + propuestas A/B/C) | ✅ Completa |
+| Backend API: Pagos (registro manual, cambio de estado) | ✅ Completa |
+| Backend API: Facturas mensuales (generacion, listado, marcado como pagada) | ✅ Completa |
+| Backend API: Recibos en lote PDF (efectivo por mes) | ✅ Completa |
+| Backend API: Asistencia PDF (hoja por clase/periodo) | ✅ Completa |
+| Backend API: Lista de espera (waitlist automatica, oferta al siguiente) | ✅ Completa |
+| Backend API: Incidencias (CRUD student_incidents) | ✅ Completa |
+| Backend API: Renovaciones (renewal_campaigns + renewal_offers) | ✅ Completa |
+| Backend API: Comunicacion masiva (message_campaigns + message_deliveries) | ✅ Completa |
+| Backend API: Copia de curso (courseCloneService, dry-run + apply) | ✅ Completa |
+| Backend API: Importador de alumnos (import_jobs) | ✅ Completa |
+| Backend API: Propuestas de horario automatico (schedulerProposalService) | ✅ Completa |
+| Backend API: Insights de horario (scheduleInsightsService) | ✅ Completa |
+| Backend API: Tarifas y bonos (pricing_rules + discipline_categories) | ✅ Completa |
+| Backend API: Configuracion de escuela (school_settings JSONB) | ✅ Completa |
+| Backend API: Entitlements por plan/add-on | ✅ Completa |
+| Backend API: Modo recepcion (ruta /api/admin/jobs, permisos reducidos) | ✅ Completa |
+| Backend API: ExamSuite – Examenes (CRUD) | ✅ Completa |
+| Backend API: ExamSuite – Candidatos (registro, calificacion, estado) | ✅ Completa |
+| Backend API: ExamSuite – Certificados (generacion individual y masiva) | ✅ Completa |
+| Frontend: Panel admin completo (dashboard, clases, profesores, aulas, alumnos, horarios, inscripciones, pagos, facturas, analiticas, ajustes, comunicaciones, lista de espera, renovaciones, copia de curso, modo recepcion, examenes) | ✅ Completa |
+| Frontend: Sitio publico (landing, horario publico, formulario de matricula online) | ✅ Completa |
+| Frontend: Editor de formulario de matricula | ✅ Completa |
+| Frontend: Tarifas y bonos | ✅ Completa |
+| Frontend: ExamSuite (ExamsPage, ExamCard, ExamFormModal, CandidatesTable, GradingInterface, CertificatePreview) | ✅ Completa |
+| Migracion SQL ExamSuite en Supabase (tablas exams + exam_candidates, indices, RLS, triggers) | ✅ Completa |
+
+### 16.2 Estado de pruebas
+
+#### Pruebas de infraestructura (frontend)
+| Archivo | Estado |
+|---------|--------|
+| `src/test/example.test.ts` | ✅ Pasa (1/1 tests) |
+
+El framework de pruebas frontend (Vitest) esta configurado y operativo.
+No existen todavía pruebas unitarias específicas por módulo en el frontend; la cobertura actual es de infraestructura.
+
+#### Validacion tecnica backend (typecheck + lint)
+| Check | Estado |
+|-------|--------|
+| `npm run typecheck` (backend) | ✅ Sin errores |
+| `npx eslint` en modulos ExamSuite | ✅ Sin errores |
+| `npm run lint` global backend | ⚠️ 59 errores preexistentes en servicios no relacionados (principalmente `@typescript-eslint/no-explicit-any` en `studentService.ts` y otros) – no introducidos por este sprint |
+
+#### Funciones probadas mediante cURL / validacion manual
+Las siguientes funciones han sido verificadas en sprints anteriores con el tenant de prueba (`a157c330-a83f-4962-b61f-36cf4b1e1726`):
+- `GET /api/admin/teachers` – lista profesores del tenant ✅
+- `POST /api/admin/teachers` – crea profesor ✅
+- `GET /api/admin/rooms` – lista salas ✅
+- `GET /api/admin/classes` – lista clases ✅
+- `PUT /api/admin/classes/:id` – actualiza clase ✅
+- `POST /api/tenants` – registro de escuela ✅
+- `GET /api/auth/me` – contexto de usuario/tenant ✅
+- `GET /api/health` – healthcheck ✅
+
+#### Modulo ExamSuite – endpoints disponibles (pendientes de prueba con datos reales en Supabase)
+| Endpoint | Metodo | Descripcion |
+|----------|--------|-------------|
+| `/api/admin/exams` | GET | Lista examenes del tenant |
+| `/api/admin/exams` | POST | Crea un examen |
+| `/api/admin/exams/:id` | GET | Obtiene un examen |
+| `/api/admin/exams/:id` | PUT | Actualiza un examen |
+| `/api/admin/exams/:id` | DELETE | Elimina un examen |
+| `/api/admin/exams/:id/candidates` | GET | Lista candidatos del examen |
+| `/api/admin/exams/:id/candidates` | POST | Registra un candidato |
+| `/api/admin/exams/:id/candidates/:candidateId` | PUT | Actualiza estado o calificacion del candidato |
+| `/api/admin/exams/:id/candidates/:candidateId/grade` | POST | Guarda calificacion del candidato |
+| `/api/admin/exams/:id/certificates` | POST | Genera todos los certificados del examen |
+
+Para activar en Supabase, ejecutar la migracion:
+`backend/supabase/migrations/20260311000000_examsuite_module.sql`
+
+### 16.3 Funcionalidades pendientes de cerrar
+
+- **Recuperacion de contrasena end-to-end**: la UI existe, pero el envio de email de recuperacion aun no esta integrado.
+- **Flujo 2FA completo**: la politica se puede activar, pero el enrolamiento MFA del proveedor de autenticacion esta pendiente.
+- **Datos reales en horario publico**: algunas vistas aun usan fallback demo cuando falla la carga de datos reales.
+- **Pruebas unitarias por modulo**: el framework Vitest esta listo; faltan tests unitarios para servicios backend y componentes frontend clave.
+- **Perfil avanzado de cuenta**: el espacio para foto/preferencias personales existe en UI pero no es un modulo completo.
