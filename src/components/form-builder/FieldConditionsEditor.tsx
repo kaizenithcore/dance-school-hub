@@ -74,12 +74,20 @@ export function FieldConditionsEditor({ conditions, allSections, currentFieldId,
               </Select>
 
               {!["is_empty", "is_not_empty"].includes(cond.operator) && (
-                <Input
-                  value={cond.value}
-                  onChange={(e) => updateCondition(i, { value: e.target.value })}
-                  className="h-7 text-xs w-[100px]"
-                  placeholder="Valor"
-                />
+                <div className="flex flex-col gap-0.5">
+                  <Input
+                    type="text"
+                    value={cond.value}
+                    onChange={(e) => updateCondition(i, { value: e.target.value })}
+                    className="h-7 text-xs w-[130px]"
+                    placeholder={cond.operator === "date_before" || cond.operator === "date_after" ? "AAAA-MM-DD o today_minus_18y" : "Valor"}
+                  />
+                  {(cond.operator === "date_before" || cond.operator === "date_after") && (
+                    <span className="text-[10px] text-muted-foreground leading-tight">
+                      Ej: today, today_minus_18y
+                    </span>
+                  )}
+                </div>
               )}
 
               <Button

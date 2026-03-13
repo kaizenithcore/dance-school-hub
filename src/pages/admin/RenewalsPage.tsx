@@ -16,6 +16,9 @@ import {
   type RenewalOffer,
   type RenewalOfferStatus,
 } from "@/lib/api/renewals";
+import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
+import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
+import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 
 const OFFER_STATUS_FILTERS: Array<{ value: "all" | RenewalOfferStatus; label: string }> = [
   { value: "all", label: "Todas" },
@@ -33,8 +36,10 @@ const OFFER_STATUS_LABELS: Record<RenewalOfferStatus, string> = {
 };
 
 export default function RenewalsPage() {
+  const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [lockOpen, setLockOpen] = useState(false);
   const [campaigns, setCampaigns] = useState<RenewalCampaign[]>([]);
   const [offers, setOffers] = useState<RenewalOffer[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
@@ -44,6 +49,7 @@ export default function RenewalsPage() {
   const [fromPeriod, setFromPeriod] = useState("");
   const [toPeriod, setToPeriod] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  const renewalsLocked = !billingLoading && !billing.features.renewalAutomation;
 
   const selectedCampaign = useMemo(
     () => campaigns.find((campaign) => campaign.id === selectedCampaignId) || null,
@@ -92,6 +98,11 @@ export default function RenewalsPage() {
   }, [selectedCampaignId, statusFilter]);
 
   const handleCreateCampaign = async () => {
+    if (renewalsLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     if (!campaignName.trim() || !fromPeriod || !toPeriod) {
       toast.error("Nombre, periodo origen y periodo destino son obligatorios");
       return;
@@ -120,6 +131,11 @@ export default function RenewalsPage() {
   };
 
   const handleOfferAction = async (offerId: string, action: "confirm" | "release") => {
+    if (renewalsLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     if (!selectedCampaignId) {
       return;
     }
@@ -152,6 +168,16 @@ export default function RenewalsPage() {
         </Button>
       }
     >
+      {renewalsLocked ? (
+        <UpgradeFeatureAlert
+          title="Renovaciones automáticas bloqueadas"
+          description={`Tu plan actual (${planLabel}) no incluye campañas automáticas de renovación. Mejora a Pro para activarlas.`}
+          onUpgrade={() => void startUpgrade("renewalAutomation")}
+        />
+      ) : null}
+
+      <div className={renewalsLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
+
       <Card>
         <CardHeader>
           <CardTitle>Crear campaña</CardTitle>
@@ -304,6 +330,15 @@ export default function RenewalsPage() {
           )}
         </CardContent>
       </Card>
+      </div>
+
+      <FeatureLockDialog
+        open={lockOpen}
+        onOpenChange={setLockOpen}
+        title="Renovaciones disponibles en plan Pro"
+        description="Para crear campañas y confirmar propuestas necesitas activar el módulo de renovaciones automáticas en un plan superior."
+        onUpgrade={() => void startUpgrade("renewalAutomation")}
+      />
     </PageContainer>
   );
 }

@@ -9,6 +9,8 @@ export interface RegisterSchoolData {
   ownerPassword: string;
   phone?: string;
   city?: string;
+  plan?: string;
+  addOns?: string[];
 }
 
 export interface LoginCredentials {

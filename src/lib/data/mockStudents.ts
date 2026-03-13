@@ -4,13 +4,27 @@ export interface StudentRecord {
   email: string;
   phone: string;
   birthdate: string;
-  enrolledClasses: { id: string; name: string; day: string; time: string; monthlyPrice: number }[];
+  enrolledClasses: {
+    id: string;
+    name: string;
+    day: string;
+    time: string;
+    monthlyPrice: number;
+    selectedScheduleIds?: string[];
+  }[];
   status: "active" | "inactive";
   joinDate: string;
   guardian?: { name: string; phone: string; email: string };
   notes?: string;
   paymentType: "monthly" | "per_class" | "none";
+  payerType?: "student" | "guardian" | "other";
+  payerName?: string;
+  payerEmail?: string;
+  payerPhone?: string;
+  preferredPaymentMethod?: "transfer" | "cash" | "card" | "mercadopago";
+  accountNumber?: string;
   jointEnrollmentGroupId?: string | null;
+  monthlyTotalOverride?: number;
 }
 
 export const MOCK_STUDENTS: StudentRecord[] = [

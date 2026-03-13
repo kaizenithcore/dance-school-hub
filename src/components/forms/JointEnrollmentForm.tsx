@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { X, Plus, User, Trash2 } from "lucide-react";
-import type { FormSection, FormField, FieldCondition, EnrollmentFormConfig } from "@/lib/api/publicEnrollment";
+import type { FormSection, FormField, FieldCondition, EnrollmentFormConfig, ScheduleDisplaySettings } from "@/lib/api/publicEnrollment";
 import type { PublicClass } from "@/lib/api/publicEnrollment";
 import { JointEnrollmentScheduleSelector } from "@/components/schedule/JointEnrollmentScheduleSelector";
 import type { ClassCardData } from "@/components/cards/ClassCard";
@@ -33,6 +33,7 @@ interface JointEnrollmentFormProps {
   ) => React.ReactNode;
   isVisible: (conditions: FieldCondition[] | undefined, values: Record<string, unknown>) => boolean;
   jointConfig?: EnrollmentFormConfig["jointEnrollment"];
+  scheduleSettings?: ScheduleDisplaySettings;
   maxStudents?: number;
 }
 
@@ -48,9 +49,10 @@ export function JointEnrollmentForm({
   renderField,
   isVisible,
   jointConfig,
+  scheduleSettings,
   maxStudents = 10,
 }: JointEnrollmentFormProps) {
-  const scheduleConfig = jointConfig?.schedule ?? {
+  const scheduleConfig: ScheduleDisplaySettings = scheduleSettings ?? jointConfig?.schedule ?? {
     preferredView: "calendar" as const,
     recurringSelectionMode: "linked" as const,
     recurringClassOverrides: [] as string[],
@@ -185,10 +187,11 @@ export function JointEnrollmentForm({
               .filter(field => isVisible(field.conditions, payerValues))
               .map(field => (
                 <div key={field.id} className="space-y-2">
-                  <Label>
-                    {field.label}
-                    {field.required ? " *" : ""}
-                  </Label>
+                  {field.type !== "checkbox" && field.type !== "info" ? (
+                    <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                  ) : field.type === "checkbox" && field.placeholder ? (
+                    <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                  ) : null}
                   {renderField(field, payerValues, onPayerChange, payerErrors, onPayerErrorChange)}
                   {payerErrors[field.id] && (
                     <p className="text-xs text-destructive">{payerErrors[field.id]}</p>
@@ -248,10 +251,11 @@ export function JointEnrollmentForm({
                     .filter(field => isVisible(field.conditions, student.values))
                     .map(field => (
                       <div key={field.id} className="space-y-2">
-                        <Label>
-                          {field.label}
-                          {field.required ? " *" : ""}
-                        </Label>
+                        {field.type !== "checkbox" && field.type !== "info" ? (
+                          <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                        ) : field.type === "checkbox" && field.placeholder ? (
+                          <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                        ) : null}
                         {renderField(
                           field,
                           student.values,

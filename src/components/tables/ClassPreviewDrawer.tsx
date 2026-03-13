@@ -43,7 +43,7 @@ export function ClassPreviewDrawer({ open, onOpenChange, classData }: ClassPrevi
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Datos principales</h4>
             <InfoRow icon={BookOpen} label="Disciplina" value={classData.discipline} />
             <InfoRow icon={User} label="Profesor" value={classData.teacher} />
-            <InfoRow icon={MapPin} label="Sala" value={classData.room} />
+            <InfoRow icon={MapPin} label="Aula" value={classData.room} />
             <InfoRow icon={Euro} label="Precio" value={`€${classData.price}`} />
           </section>
 

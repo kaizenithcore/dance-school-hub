@@ -21,7 +21,7 @@ import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
  *       "id": "uuid",
  *       "className": "Ballet Clásico",
  *       "discipline": "Ballet",
- *       "roomName": "Sala Principal",
+ *       "roomName": "Aula Principal",
  *       "weekday": 1,
  *       "startTime": "09:00",
  *       "endTime": "10:30",

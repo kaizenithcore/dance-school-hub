@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Send, UserPlus } from "lucide-react";
+import { Loader2, RefreshCw, Send } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  addWaitlistEntry,
   getWaitlistOverview,
   offerNextWaitlistSpot,
   processExpiredWaitlistOffers,
   type WaitlistClassQueue,
   type WaitlistEntry,
 } from "@/lib/api/waitlist";
+import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
+import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
+import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 
 const WAITLIST_STATUS_LABELS: Record<WaitlistEntry["status"], string> = {
   pending: "Pendiente",
@@ -24,14 +24,14 @@ const WAITLIST_STATUS_LABELS: Record<WaitlistEntry["status"], string> = {
 };
 
 export default function WaitlistPage() {
+  const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [lockOpen, setLockOpen] = useState(false);
   const [classes, setClasses] = useState<WaitlistClassQueue[]>([]);
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const [newName, setNewName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newPhone, setNewPhone] = useState("");
+  const waitlistLocked = !billingLoading && !billing.features.waitlistAutomation;
 
   const selectedClass = useMemo(
     () => classes.find((item) => item.classId === selectedClassId) || null,
@@ -71,6 +71,11 @@ export default function WaitlistPage() {
   };
 
   const handleOfferNext = async () => {
+    if (waitlistLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     if (!selectedClassId) {
       toast.error("Selecciona una clase");
       return;
@@ -97,6 +102,11 @@ export default function WaitlistPage() {
   };
 
   const handleProcessExpired = async () => {
+    if (waitlistLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     setProcessing(true);
     try {
       const result = await processExpiredWaitlistOffers(selectedClassId || undefined);
@@ -109,44 +119,18 @@ export default function WaitlistPage() {
     }
   };
 
-  const handleAddManual = async () => {
-    if (!selectedClassId) {
-      toast.error("Selecciona una clase");
-      return;
-    }
-    if (!newName.trim() || !newEmail.trim()) {
-      toast.error("Nombre y email son obligatorios");
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      const result = await addWaitlistEntry({
-        classId: selectedClassId,
-        name: newName.trim(),
-        email: newEmail.trim(),
-        phone: newPhone.trim() || undefined,
-      });
-
-      if (result.created) {
-        toast.success("Persona añadida a la lista de espera");
-      } else {
-        toast.info("La persona ya estaba en la lista activa");
-      }
-
-      setNewName("");
-      setNewEmail("");
-      setNewPhone("");
-      await loadData(selectedClassId);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo añadir a la cola");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
+      {waitlistLocked ? (
+        <UpgradeFeatureAlert
+          title="Lista de espera automatizada no disponible"
+          description={`Tu plan actual (${planLabel}) no incluye esta automatización. Mejora a Pro para enviar ofertas y procesar expiraciones automáticamente.`}
+          onUpgrade={() => void startUpgrade("waitlistAutomation")}
+        />
+      ) : null}
+
+      <div className={waitlistLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
+
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Lista de espera</h1>
@@ -201,33 +185,15 @@ export default function WaitlistPage() {
           ) : null}
         </CardContent>
       </Card>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Añadir desde recepción</CardTitle>
-          <CardDescription>Alta rápida para recepción o atención telefónica.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Nombre</Label>
-            <Input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Nombre y apellidos" />
-          </div>
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <Input value={newEmail} onChange={(event) => setNewEmail(event.target.value)} placeholder="correo@ejemplo.com" />
-          </div>
-          <div className="space-y-2">
-            <Label>Teléfono</Label>
-            <Input value={newPhone} onChange={(event) => setNewPhone(event.target.value)} placeholder="Opcional" />
-          </div>
-          <div className="md:col-span-3">
-            <Button variant="secondary" onClick={handleAddManual} disabled={processing || loading || !selectedClassId}>
-              {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-              Añadir a la lista
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <FeatureLockDialog
+        open={lockOpen}
+        onOpenChange={setLockOpen}
+        title="Función disponible en plan Pro"
+        description="La automatización de lista de espera está bloqueada en tu plan actual. Puedes mejorar el plan para habilitarla ahora mismo."
+        onUpgrade={() => void startUpgrade("waitlistAutomation")}
+      />
 
       <Card>
         <CardHeader>

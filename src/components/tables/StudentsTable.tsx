@@ -54,6 +54,9 @@ export function StudentsTable({ students, onViewProfile, onEdit, onManageClasses
 
   const getMonthlyTotal = (student: StudentRecord) => {
     if (student.paymentType !== "monthly") return null;
+    if (typeof student.monthlyTotalOverride === "number") {
+      return student.monthlyTotalOverride;
+    }
     return student.enrolledClasses.reduce((sum, c) => sum + c.monthlyPrice, 0);
   };
 

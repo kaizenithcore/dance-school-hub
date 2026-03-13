@@ -7,8 +7,31 @@ import { Button } from "@/components/ui/button";
 import { Save, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { getSchoolSettings } from "@/lib/api/settings";
+import type { ScheduleProposal } from "@/lib/api/schedules";
+import type { ScheduleBlock } from "@/hooks/useScheduleEditor";
 
-export function ScheduleEditor() {
+const DAY_BY_WEEKDAY: Record<number, string> = {
+  1: "Lunes",
+  2: "Martes",
+  3: "Miércoles",
+  4: "Jueves",
+  5: "Viernes",
+  6: "Sábado",
+  7: "Domingo",
+};
+
+function toDecimalHour(time: string): number {
+  const [h, m] = time.split(":").map((part) => Number.parseInt(part || "0", 10));
+  const safeH = Number.isFinite(h) ? h : 0;
+  const safeM = Number.isFinite(m) ? m : 0;
+  return safeH + safeM / 60;
+}
+
+interface ScheduleEditorProps {
+  previewProposal?: ScheduleProposal | null;
+}
+
+export function ScheduleEditor({ previewProposal = null }: ScheduleEditorProps) {
   const {
     filteredBlocks,
     rooms,
@@ -65,6 +88,41 @@ export function ScheduleEditor() {
     return hours;
   }, [hourRange.end, hourRange.start]);
 
+  const previewBlocks = useMemo<ScheduleBlock[]>(() => {
+    if (!previewProposal || previewProposal.creates.length === 0) {
+      return [];
+    }
+
+    const classById = new Map(availableClasses.map((klass) => [klass.id, klass]));
+    const roomById = new Map(rooms.map((room) => [room.id, room]));
+
+    const mapped = previewProposal.creates.map((operation, index) => {
+      const classInfo = classById.get(operation.classId);
+      const startHour = toDecimalHour(operation.startTime);
+      const endHour = toDecimalHour(operation.endTime);
+      const duration = Math.max(0.5, endHour - startHour);
+      const day = DAY_BY_WEEKDAY[operation.weekday] || "Lunes";
+      const room = roomById.get(operation.roomId);
+
+      return {
+        id: `preview-${previewProposal.id}-${index}`,
+        classId: operation.classId,
+        name: classInfo?.name || "Clase",
+        teacher: classInfo?.teacher || "Sin profesor",
+        day,
+        startHour,
+        duration,
+        roomId: operation.roomId,
+        room: room?.name || classInfo?.roomName || "Sin aula",
+        color: "hsl(210 92% 55%)",
+        isPersisted: false,
+        isLocked: false,
+      } satisfies ScheduleBlock;
+    });
+
+    return selectedRoom === "all" ? mapped : mapped.filter((block) => block.roomId === selectedRoom);
+  }, [availableClasses, previewProposal, rooms, selectedRoom]);
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
@@ -84,7 +142,8 @@ export function ScheduleEditor() {
       );
     } catch (error) {
       console.error("Error saving schedule:", error);
-      toast.error("No se pudo guardar el horario");
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+      toast.error(`No se pudo guardar el horario: ${errorMessage}`);
     } finally {
       setIsSaving(false);
     }
@@ -120,6 +179,7 @@ export function ScheduleEditor() {
         <div className="flex-1 min-w-0">
           <CalendarGrid
             blocks={filteredBlocks}
+            previewBlocks={previewBlocks}
             onMoveBlock={moveBlock}
             onAddBlock={addBlock}
             onRemoveBlock={removeBlock}

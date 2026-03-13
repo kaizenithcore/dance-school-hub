@@ -56,6 +56,8 @@ function buildResponsePayload(input: {
   notificationConfig: Record<string, unknown>;
   securityConfig: Record<string, unknown>;
   planType: string;
+  trialPaymentCompleted: boolean;
+  trialPaymentCompletedAt: string | null;
   features: unknown;
   addons: Record<string, unknown>;
   limits: Record<string, unknown>;
@@ -82,6 +84,8 @@ function buildResponsePayload(input: {
     security: input.securityConfig,
     billing: {
       planType: input.planType,
+      trialPaymentCompleted: input.trialPaymentCompleted,
+      trialPaymentCompletedAt: input.trialPaymentCompletedAt,
       features: input.features,
       addons: input.addons,
       limits: input.limits,
@@ -128,6 +132,7 @@ export async function GET(request: NextRequest) {
   const securityConfig = asObject(enrollmentConfig.security_config);
   const profileSource = asObject(enrollmentConfig.public_profile ?? enrollmentConfig.publicProfile);
   const paymentConfig = asObject(settings?.payment_config);
+  const rawBillingConfig = asObject(paymentConfig.billing ?? paymentConfig.billing_config);
   const billing = featureEntitlementsService.resolveFromPaymentConfig(paymentConfig);
   const profile: PublicSchoolProfile = {
     tagline: asString(profileSource.tagline) || undefined,
@@ -152,6 +157,8 @@ export async function GET(request: NextRequest) {
       notificationConfig: asObject(settings?.notification_config),
       securityConfig,
       planType: billing.planType,
+      trialPaymentCompleted: asBoolean(rawBillingConfig.trialPaymentCompleted, false),
+      trialPaymentCompletedAt: asString(rawBillingConfig.trialPaymentCompletedAt) || null,
       features: billing.features,
       addons: billing.addons as unknown as Record<string, unknown>,
       limits: billing.limits as unknown as Record<string, unknown>,
@@ -268,6 +275,7 @@ export async function PUT(request: NextRequest) {
         customDomain: asBoolean(requestedAddons.customDomain, false),
         prioritySupport: asBoolean(requestedAddons.prioritySupport, false),
         waitlistAutomation: asBoolean(requestedAddons.waitlistAutomation, false),
+        renewalAutomation: asBoolean(requestedAddons.renewalAutomation, false),
       },
       features: {
         ...existingResolvedBilling.features,
@@ -303,6 +311,8 @@ export async function PUT(request: NextRequest) {
         notificationConfig: notifications,
         securityConfig: asObject(nextEnrollmentConfig.security_config),
         planType: resolvedBilling.planType,
+        trialPaymentCompleted: asBoolean(asObject(nextPaymentConfig.billing).trialPaymentCompleted, false),
+        trialPaymentCompletedAt: asString(asObject(nextPaymentConfig.billing).trialPaymentCompletedAt) || null,
         features: resolvedBilling.features,
         addons: resolvedBilling.addons as unknown as Record<string, unknown>,
         limits: resolvedBilling.limits as unknown as Record<string, unknown>,

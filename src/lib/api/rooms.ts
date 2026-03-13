@@ -67,6 +67,33 @@ function mapRoomUpdateToApi(data: UpdateRoomRequest) {
   };
 }
 
+function extractApiErrorMessage(error: unknown): string {
+  if (!error || typeof error !== "object") {
+    return "Error inesperado al guardar el aula";
+  }
+
+  const payload = error as { message?: unknown; details?: unknown };
+  const message = typeof payload.message === "string" ? payload.message : "Error al guardar el aula";
+
+  const details = payload.details as
+    | {
+        fieldErrors?: Record<string, string[] | undefined>;
+      }
+    | undefined;
+
+  const fieldErrors = details?.fieldErrors;
+  if (!fieldErrors || typeof fieldErrors !== "object") {
+    return message;
+  }
+
+  const firstField = Object.values(fieldErrors).find((errors) => Array.isArray(errors) && errors.length > 0);
+  if (!firstField || !Array.isArray(firstField)) {
+    return message;
+  }
+
+  return `${message}: ${firstField[0]}`;
+}
+
 export async function getRooms(): Promise<Room[]> {
   const response = await apiRequest<RoomApiModel[]>("/api/admin/rooms");
   return response.success ? (response.data || []).map(mapRoomFromApi) : [];
@@ -82,6 +109,11 @@ export async function createRoom(data: CreateRoomRequest): Promise<Room | null> 
     method: "POST",
     body: JSON.stringify(mapRoomCreateToApi(data)),
   });
+
+  if (!response.success) {
+    throw new Error(extractApiErrorMessage(response.error));
+  }
+
   return response.success && response.data ? mapRoomFromApi(response.data) : null;
 }
 
@@ -90,6 +122,11 @@ export async function updateRoom(id: string, data: UpdateRoomRequest): Promise<R
     method: "PUT",
     body: JSON.stringify(mapRoomUpdateToApi(data)),
   });
+
+  if (!response.success) {
+    throw new Error(extractApiErrorMessage(response.error));
+  }
+
   return response.success && response.data ? mapRoomFromApi(response.data) : null;
 }
 

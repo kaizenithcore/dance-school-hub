@@ -1,4 +1,4 @@
-export type FieldType = "text" | "email" | "tel" | "textarea" | "select" | "checkbox" | "file" | "date" | "number";
+export type FieldType = "text" | "email" | "tel" | "textarea" | "select" | "checkbox" | "file" | "date" | "number" | "info";
 
 export interface FieldOption {
   value: string;
@@ -8,7 +8,7 @@ export interface FieldOption {
 export interface FieldCondition {
   id: string;
   sourceFieldId: string;
-  operator: "equals" | "not_equals" | "less_than" | "greater_than" | "contains" | "is_empty" | "is_not_empty";
+  operator: "equals" | "not_equals" | "less_than" | "greater_than" | "contains" | "is_empty" | "is_not_empty" | "date_before" | "date_after";
   value: string;
 }
 
@@ -32,22 +32,25 @@ export interface FormBuilderSection {
   conditions?: FieldCondition[];
 }
 
+export interface ScheduleDisplaySettings {
+  preferredView: "calendar" | "list";
+  recurringSelectionMode: "linked" | "single_day";
+  recurringClassOverrides: string[];
+  calendarFields: {
+    showDiscipline: boolean;
+    showCategory: boolean;
+    showRoom: boolean;
+    showCapacity: boolean;
+    showPrice: boolean;
+    showSelectedStudents: boolean;
+  };
+}
+
 export interface JointEnrollmentConfig {
   enabled: boolean;
   maxStudents: number;
-  schedule?: {
-    preferredView: "calendar" | "list";
-    recurringSelectionMode: "linked" | "single_day";
-    recurringClassOverrides: string[];
-    calendarFields: {
-      showDiscipline: boolean;
-      showCategory: boolean;
-      showRoom: boolean;
-      showCapacity: boolean;
-      showPrice: boolean;
-      showSelectedStudents: boolean;
-    };
-  };
+  /** @deprecated Use EnrollmentFormConfig.scheduleSettings instead */
+  schedule?: ScheduleDisplaySettings;
 }
 
 export interface EnrollmentFormConfig {
@@ -55,6 +58,7 @@ export interface EnrollmentFormConfig {
   jointEnrollment: JointEnrollmentConfig;
   includeSchedule: boolean;
   includePricing: boolean;
+  scheduleSettings?: ScheduleDisplaySettings;
 }
 
 export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
@@ -67,6 +71,7 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   file: "Archivo",
   date: "Fecha",
   number: "Número",
+  info: "Texto informativo",
 };
 
 export const OPERATOR_LABELS: Record<FieldCondition["operator"], string> = {
@@ -77,6 +82,8 @@ export const OPERATOR_LABELS: Record<FieldCondition["operator"], string> = {
   contains: "contiene",
   is_empty: "está vacío",
   is_not_empty: "no está vacío",
+  date_before: "fecha anterior a",
+  date_after: "fecha posterior a",
 };
 
 export function createDefaultField(type: FieldType = "text"): FormBuilderField {
@@ -134,14 +141,58 @@ export function getDefaultEnrollmentConfig(): EnrollmentFormConfig {
           { id: "guardian_email", type: "email", label: "Correo del tutor", placeholder: "tutor@ejemplo.com", required: false, maxLength: 255 },
         ],
         conditions: [
-          { id: "cond_guardian_age", sourceFieldId: "student_birthdate", operator: "less_than", value: "18" },
+          { id: "cond_guardian_age", sourceFieldId: "student_birthdate", operator: "date_after", value: "today_minus_18y" },
         ],
       },
       {
-        id: "payment",
-        title: "Método de Pago",
-        description: "Selecciona cómo prefieres realizar el pago.",
+        id: "payer_info",
+        title: "Datos del Pagador y Forma de Pago",
+        description: "Define quién realiza el pago para no repetir datos cuando no sea necesario.",
         fields: [
+          {
+            id: "payer_type",
+            type: "select",
+            label: "¿Quién realiza el pago?",
+            required: true,
+            options: [
+              { value: "student", label: "El propio alumno" },
+              { value: "guardian", label: "Tutor o responsable" },
+              { value: "other", label: "Otra persona" },
+            ],
+          },
+          {
+            id: "payer_name",
+            type: "text",
+            label: "Nombre del pagador",
+            placeholder: "Solo si paga otra persona",
+            required: false,
+            maxLength: 100,
+            conditions: [
+              { id: "cond_payer_name_other", sourceFieldId: "payer_type", operator: "equals", value: "other" },
+            ],
+          },
+          {
+            id: "payer_email",
+            type: "email",
+            label: "Email del pagador",
+            placeholder: "correo@ejemplo.com",
+            required: false,
+            maxLength: 255,
+            conditions: [
+              { id: "cond_payer_email_other", sourceFieldId: "payer_type", operator: "equals", value: "other" },
+            ],
+          },
+          {
+            id: "payer_phone",
+            type: "tel",
+            label: "Teléfono del pagador",
+            placeholder: "(000) 0000-0000",
+            required: false,
+            maxLength: 20,
+            conditions: [
+              { id: "cond_payer_phone_other", sourceFieldId: "payer_type", operator: "equals", value: "other" },
+            ],
+          },
           { id: "payment_method", type: "select", label: "Método de pago", required: true, options: [
             { value: "transfer", label: "Transferencia bancaria" },
             { value: "cash", label: "Efectivo" },
@@ -161,7 +212,23 @@ export function getDefaultEnrollmentConfig(): EnrollmentFormConfig {
             { value: "search", label: "Búsqueda en internet" },
             { value: "other", label: "Otro" },
           ]},
-          { id: "terms", type: "checkbox", label: "Acepto los términos y condiciones de inscripción", required: true },
+          {
+            id: "terms",
+            type: "checkbox",
+            label: "Consentimiento",
+            placeholder: "He leído y acepto los términos y condiciones de inscripción",
+            required: true,
+          },
+          {
+            id: "selector_condition_info",
+            type: "info",
+            label: "Condición de ejemplo",
+            placeholder: "Este bloque aparece porque la fecha de nacimiento es anterior a hoy hace 18 años (mayor de edad). Así funcionan las condiciones de visibilidad: puedes mostrar u ocultar campos según los valores introducidos anteriormente.",
+            required: false,
+            conditions: [
+              { id: "cond_selector_info_age", sourceFieldId: "student_birthdate", operator: "date_before" as const, value: "today_minus_18y" },
+            ],
+          },
         ],
       },
       {
@@ -177,21 +244,21 @@ export function getDefaultEnrollmentConfig(): EnrollmentFormConfig {
     jointEnrollment: {
       enabled: false,
       maxStudents: 3,
-      schedule: {
-        preferredView: "calendar",
-        recurringSelectionMode: "linked",
-        recurringClassOverrides: [],
-        calendarFields: {
-          showDiscipline: true,
-          showCategory: false,
-          showRoom: true,
-          showCapacity: true,
-          showPrice: true,
-          showSelectedStudents: true,
-        },
-      },
     },
     includeSchedule: true,
     includePricing: true,
+    scheduleSettings: {
+      preferredView: "calendar",
+      recurringSelectionMode: "linked",
+      recurringClassOverrides: [],
+      calendarFields: {
+        showDiscipline: true,
+        showCategory: false,
+        showRoom: true,
+        showCapacity: true,
+        showPrice: true,
+        showSelectedStudents: true,
+      },
+    },
   };
 }

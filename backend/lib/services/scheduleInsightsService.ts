@@ -335,7 +335,7 @@ export const scheduleInsightsService = {
           severity: utilizationPct < 10 ? "medium" : "low",
           title: `Aula infrautilizada: ${room.name}`,
           description: `Uso semanal estimado ${usedHours.toFixed(1)}h de ${weeklyCapacityHours.toFixed(1)}h (${utilizationPct.toFixed(1)}%).`,
-          suggestedAction: "Concentra clases en esta aula o reduce disponibilidad de salas con poco uso.",
+          suggestedAction: "Concentra clases en esta aula o reduce disponibilidad de aulas con poco uso.",
           roomId: room.id,
           roomName: room.name,
           metrics: {

@@ -1,4 +1,5 @@
-import { AlertTriangle, ArrowRight, Clock3, LayoutGrid, Users } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, ArrowRight, ChevronDown, Clock3, LayoutGrid, Users } from "lucide-react";
 import type { ScheduleInsight, ScheduleInsightsResult } from "@/lib/api/schedules";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,8 @@ export function ScheduleInsightsPanel({
   compact = false,
   onViewSchedule,
 }: ScheduleInsightsPanelProps) {
+  const [expanded, setExpanded] = useState(true);
+
   if (loading) {
     return (
       <div className="rounded-lg border border-border bg-card p-4 shadow-soft">
@@ -58,7 +61,19 @@ export function ScheduleInsightsPanel({
     <div className="rounded-lg border border-border bg-card p-4 shadow-soft space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Alertas de horario</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">Alertas de horario</h3>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setExpanded((prev) => !prev)}
+              aria-label={expanded ? "Contraer alertas" : "Desplegar alertas"}
+            >
+              <ChevronDown className={cn("h-4 w-4 transition-transform", expanded ? "rotate-0" : "-rotate-90")} />
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground">
             {insights.summary.totalAlerts} alerta(s) detectadas · ocupacion media {insights.metrics.avgClassOccupancyPct}%
           </p>
@@ -71,58 +86,62 @@ export function ScheduleInsightsPanel({
         )}
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-md border border-border p-2.5">
-          <p className="text-[11px] text-muted-foreground">Baja demanda</p>
-          <p className="text-sm font-semibold text-foreground">{insights.summary.lowDemandClasses}</p>
-        </div>
-        <div className="rounded-md border border-border p-2.5">
-          <p className="text-[11px] text-muted-foreground">Sobredemanda</p>
-          <p className="text-sm font-semibold text-foreground">{insights.summary.overDemandClasses}</p>
-        </div>
-        <div className="rounded-md border border-border p-2.5">
-          <p className="text-[11px] text-muted-foreground">Huecos profesor</p>
-          <p className="text-sm font-semibold text-foreground">{insights.summary.teacherGaps}</p>
-        </div>
-        <div className="rounded-md border border-border p-2.5">
-          <p className="text-[11px] text-muted-foreground">Aulas infrautilizadas</p>
-          <p className="text-sm font-semibold text-foreground">{insights.summary.underutilizedRooms}</p>
-        </div>
-      </div>
-
-      {alerts.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-md border border-success/20 bg-success/5 px-3 py-2 text-sm text-success">
-          <AlertTriangle className="h-4 w-4" />
-          No se detectaron problemas relevantes de horario en este momento.
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {alerts.map((alert) => (
-            <div key={alert.id} className="rounded-md border border-border p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className={cn("text-[10px] font-medium", severityClass(alert.severity))}>
-                  {severityLabel(alert.severity)}
-                </Badge>
-                <Badge variant="secondary" className="text-[10px]">
-                  {typeLabel(alert.type)}
-                </Badge>
-                {alert.type === "teacher_gap" ? (
-                  <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
-                ) : alert.type === "room_underutilized" ? (
-                  <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
-                ) : (
-                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                )}
-                <p className="text-xs font-semibold text-foreground">{alert.title}</p>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">{alert.description}</p>
-              {!compact && (
-                <p className="mt-1 text-xs text-foreground">Sugerencia: {alert.suggestedAction}</p>
-              )}
+      {expanded ? (
+        <>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-md border border-border p-2.5">
+              <p className="text-[11px] text-muted-foreground">Baja demanda</p>
+              <p className="text-sm font-semibold text-foreground">{insights.summary.lowDemandClasses}</p>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="rounded-md border border-border p-2.5">
+              <p className="text-[11px] text-muted-foreground">Sobredemanda</p>
+              <p className="text-sm font-semibold text-foreground">{insights.summary.overDemandClasses}</p>
+            </div>
+            <div className="rounded-md border border-border p-2.5">
+              <p className="text-[11px] text-muted-foreground">Huecos profesor</p>
+              <p className="text-sm font-semibold text-foreground">{insights.summary.teacherGaps}</p>
+            </div>
+            <div className="rounded-md border border-border p-2.5">
+              <p className="text-[11px] text-muted-foreground">Aulas infrautilizadas</p>
+              <p className="text-sm font-semibold text-foreground">{insights.summary.underutilizedRooms}</p>
+            </div>
+          </div>
+
+          {alerts.length === 0 ? (
+            <div className="flex items-center gap-2 rounded-md border border-success/20 bg-success/5 px-3 py-2 text-sm text-success">
+              <AlertTriangle className="h-4 w-4" />
+              No se detectaron problemas relevantes de horario en este momento.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {alerts.map((alert) => (
+                <div key={alert.id} className="rounded-md border border-border p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className={cn("text-[10px] font-medium", severityClass(alert.severity))}>
+                      {severityLabel(alert.severity)}
+                    </Badge>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {typeLabel(alert.type)}
+                    </Badge>
+                    {alert.type === "teacher_gap" ? (
+                      <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : alert.type === "room_underutilized" ? (
+                      <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <p className="text-xs font-semibold text-foreground">{alert.title}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{alert.description}</p>
+                  {!compact && (
+                    <p className="mt-1 text-xs text-foreground">Sugerencia: {alert.suggestedAction}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : null}
     </div>
   );
 }

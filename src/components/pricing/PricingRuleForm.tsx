@@ -98,19 +98,19 @@ export function PricingRuleForm({ rule, categories, onClose }: Props) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="discipline_hours">
-              Tarifa por Disciplina + Horas
+              Tarifa por Disciplina
             </SelectItem>
-            <SelectItem value="category_pack">Bono por Categoría</SelectItem>
+            <SelectItem value="category_pack">Bono por Grupo</SelectItem>
             <SelectItem value="total_hours">Bono por Horas Totales</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground mt-1">
           {ruleType === 'discipline_hours' &&
-            'Tarifa específica para una disciplina con cierto número de horas'}
+            'Tarifa específica para una disciplina dentro de un rango de horas'}
           {ruleType === 'category_pack' &&
-            'Bono que aplica cuando se seleccionan varias horas de una categoría'}
+            'Bono que aplica cuando se seleccionan varias horas de un grupo de bonos'}
           {ruleType === 'total_hours' &&
-            'Bono que aplica por suma total de horas, opcionalmente filtrando categorías o excluyendo disciplinas'}
+            'Bono que aplica por suma total de horas, opcionalmente filtrando grupos o excluyendo disciplinas'}
         </p>
       </div>
 

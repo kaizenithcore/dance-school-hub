@@ -8,9 +8,10 @@ import { Sparkles, Wand2 } from "lucide-react";
 
 interface ScheduleProposalsPanelProps {
   onApplied?: () => void;
+  onPreviewChange?: (proposal: ScheduleProposal | null) => void;
 }
 
-export function ScheduleProposalsPanel({ onApplied }: ScheduleProposalsPanelProps) {
+export function ScheduleProposalsPanel({ onApplied, onPreviewChange }: ScheduleProposalsPanelProps) {
   const [loading, setLoading] = useState(false);
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [proposals, setProposals] = useState<ScheduleProposal[]>([]);
@@ -87,7 +88,12 @@ export function ScheduleProposalsPanel({ onApplied }: ScheduleProposalsPanelProp
             {proposals.map((proposal) => {
               const ratio = `${proposal.summary.plannedSessions}/${proposal.summary.requestedSessions}`;
               return (
-                <div key={proposal.id} className="rounded-lg border border-border p-3 bg-card">
+                <div
+                  key={proposal.id}
+                  className="rounded-lg border border-border p-3 bg-card"
+                  onMouseEnter={() => onPreviewChange?.(proposal)}
+                  onMouseLeave={() => onPreviewChange?.(null)}
+                >
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-sm font-semibold">Propuesta {proposal.label}</h4>
                     <Badge variant={proposal.score >= 80 ? "default" : proposal.score >= 60 ? "secondary" : "outline"}>

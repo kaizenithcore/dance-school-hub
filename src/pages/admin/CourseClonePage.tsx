@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { applyCourseClone, getCloneJobs, runCloneDryRun, type CloneJob, type CourseCloneDryRun } from "@/lib/api/courseClone";
+import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
+import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
+import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 
 const CLONE_STATUS_LABELS: Record<CloneJob["status"], string> = {
   queued: "En cola",
@@ -16,12 +19,15 @@ const CLONE_STATUS_LABELS: Record<CloneJob["status"], string> = {
 };
 
 export default function CourseClonePage() {
+  const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [lockOpen, setLockOpen] = useState(false);
   const [sourcePeriod, setSourcePeriod] = useState("");
   const [targetPeriod, setTargetPeriod] = useState("");
   const [dryRun, setDryRun] = useState<CourseCloneDryRun | null>(null);
   const [jobs, setJobs] = useState<CloneJob[]>([]);
+  const cloneLocked = !billingLoading && !billing.features.courseClone;
 
   const loadJobs = async () => {
     setLoading(true);
@@ -41,6 +47,11 @@ export default function CourseClonePage() {
   }, []);
 
   const handleDryRun = async () => {
+    if (cloneLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     if (!sourcePeriod || !targetPeriod) {
       toast.error("Debes indicar periodo origen y destino");
       return;
@@ -60,6 +71,11 @@ export default function CourseClonePage() {
   };
 
   const handleApplyClone = async () => {
+    if (cloneLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     if (!sourcePeriod || !targetPeriod) {
       toast.error("Debes indicar periodo origen y destino");
       return;
@@ -88,6 +104,16 @@ export default function CourseClonePage() {
         </Button>
       }
     >
+      {cloneLocked ? (
+        <UpgradeFeatureAlert
+          title="Clonado de cursos disponible en plan Pro"
+          description={`Tu plan actual (${planLabel}) no permite duplicar cursos entre periodos. Mejora el plan para activarlo.`}
+          onUpgrade={() => void startUpgrade("courseClone")}
+        />
+      ) : null}
+
+      <div className={cloneLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
+
       <Card>
         <CardHeader>
           <CardTitle>Preparar duplicación</CardTitle>
@@ -114,6 +140,7 @@ export default function CourseClonePage() {
           </div>
         </CardContent>
       </Card>
+      </div>
 
       <Card>
         <CardHeader>
@@ -158,6 +185,14 @@ export default function CourseClonePage() {
           )}
         </CardContent>
       </Card>
+
+      <FeatureLockDialog
+        open={lockOpen}
+        onOpenChange={setLockOpen}
+        title="Clonado de cursos bloqueado"
+        description="Esta función está incluida en planes superiores. Puedes actualizar tu plan para usar simulación y duplicación automática."
+        onUpgrade={() => void startUpgrade("courseClone")}
+      />
     </PageContainer>
   );
 }

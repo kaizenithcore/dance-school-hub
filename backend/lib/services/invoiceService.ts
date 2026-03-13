@@ -323,6 +323,14 @@ export const invoiceService = {
   ) {
     const now = new Date().toISOString();
     const paymentMethod = options.paymentMethod || "manual";
+    const provider =
+      paymentMethod === "transfer" || paymentMethod === "bank_transfer" || paymentMethod === "transferencia"
+        ? "transfer"
+        : paymentMethod === "card"
+          ? "card"
+          : paymentMethod === "mercadopago"
+            ? "mercadopago"
+            : "cash";
 
     // Update invoice status
     const { data: invoice, error: invoiceError } = await supabaseAdmin
@@ -376,26 +384,108 @@ export const invoiceService = {
       }
     }
 
-    // Create associated payment record
-    const { data: payment, error: paymentError } = await supabaseAdmin
+    // Keep idempotency and avoid duplicate payment rows.
+    // 1) If a payment is already linked to this invoice, update it.
+    const { data: linkedPayment } = await supabaseAdmin
       .from("payments")
-      .insert([
-        {
-          tenant_id: tenantId,
-          student_id: invoice.student_id,
-          amount_cents: invoice.total_amount_cents,
-          currency: "EUR",
-          status: "paid",
-          provider: paymentMethod,
-          paid_at: now,
-          metadata: paymentMetadata,
-        },
-      ])
-      .select()
-      .single();
+      .select("id, metadata")
+      .eq("tenant_id", tenantId)
+      .eq("student_id", invoice.student_id)
+      .eq("metadata->>invoice_id", invoiceId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (paymentError) {
-      console.error("Warning: Invoice marked as paid but payment record creation failed:", paymentError);
+    if (linkedPayment?.id) {
+      const existingMetadata =
+        linkedPayment.metadata && typeof linkedPayment.metadata === "object"
+          ? (linkedPayment.metadata as Record<string, any>)
+          : {};
+
+      const { error: updateLinkedError } = await supabaseAdmin
+        .from("payments")
+        .update({
+          amount_cents: invoice.total_amount_cents,
+          status: "paid",
+          provider,
+          paid_at: now,
+          metadata: {
+            ...existingMetadata,
+            ...paymentMetadata,
+          },
+          updated_at: now,
+        })
+        .eq("id", linkedPayment.id)
+        .eq("tenant_id", tenantId);
+
+      if (updateLinkedError) {
+        console.error("Warning: Invoice paid but linked payment update failed:", updateLinkedError);
+      }
+    } else {
+      // 2) Try to reuse an existing payment of the same student/month not yet linked.
+      const { data: monthPayments } = await supabaseAdmin
+        .from("payments")
+        .select("id, metadata")
+        .eq("tenant_id", tenantId)
+        .eq("student_id", invoice.student_id)
+        .like("metadata->>month", `${invoice.month}%`)
+        .in("status", ["pending", "overdue", "paid"])
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      const monthPayment = (monthPayments || []).find((item: any) => {
+        const itemMetadata = item?.metadata && typeof item.metadata === "object"
+          ? (item.metadata as Record<string, any>)
+          : {};
+        return !itemMetadata.invoice_id;
+      });
+
+      if (monthPayment?.id) {
+        const existingMetadata =
+          monthPayment.metadata && typeof monthPayment.metadata === "object"
+            ? (monthPayment.metadata as Record<string, any>)
+            : {};
+
+        const { error: updateMonthError } = await supabaseAdmin
+          .from("payments")
+          .update({
+            amount_cents: invoice.total_amount_cents,
+            status: "paid",
+            provider,
+            paid_at: now,
+            metadata: {
+              ...existingMetadata,
+              ...paymentMetadata,
+            },
+            updated_at: now,
+          })
+          .eq("id", monthPayment.id)
+          .eq("tenant_id", tenantId);
+
+        if (updateMonthError) {
+          console.error("Warning: Invoice paid but month payment update failed:", updateMonthError);
+        }
+      } else {
+        // 3) Fallback: create payment row.
+        const { error: paymentError } = await supabaseAdmin
+          .from("payments")
+          .insert([
+            {
+              tenant_id: tenantId,
+              student_id: invoice.student_id,
+              amount_cents: invoice.total_amount_cents,
+              currency: "EUR",
+              status: "paid",
+              provider,
+              paid_at: now,
+              metadata: paymentMetadata,
+            },
+          ]);
+
+        if (paymentError) {
+          console.error("Warning: Invoice marked as paid but payment record creation failed:", paymentError);
+        }
+      }
     }
 
     // Return invoice data - use the detail that was already fetched which has student data

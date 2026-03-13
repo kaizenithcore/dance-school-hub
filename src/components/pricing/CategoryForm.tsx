@@ -87,15 +87,15 @@ export function CategoryForm({ category, onClose }: Props) {
 
       if (category) {
         await updateDisciplineCategory(category.id, data)
-        toast.success('Categoría actualizada')
+        toast.success('Grupo de bonos actualizado')
       } else {
         await createDisciplineCategory(data)
-        toast.success('Categoría creada')
+        toast.success('Grupo de bonos creado')
       }
 
       onClose()
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'Error al guardar la categoría')
+      toast.error(error instanceof Error ? error.message : 'Error al guardar el grupo de bonos')
     } finally {
       setLoading(false)
     }
@@ -104,7 +104,7 @@ export function CategoryForm({ category, onClose }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="name">Nombre de la Categoría</Label>
+        <Label htmlFor="name">Nombre del Grupo</Label>
         <Input
           id="name"
           value={name}
@@ -124,7 +124,7 @@ export function CategoryForm({ category, onClose }: Props) {
           required
         />
         <p className="text-xs text-muted-foreground mt-1">
-          Se usa internamente para referenciar esta categoría
+          Se usa internamente para referenciar este grupo
         </p>
       </div>
 
@@ -154,7 +154,7 @@ export function CategoryForm({ category, onClose }: Props) {
       </div>
 
       <div>
-        <Label>Disciplinas en esta categoría</Label>
+        <Label>Disciplinas de este grupo</Label>
         <div className="border rounded-lg p-4 max-h-60 overflow-y-auto space-y-2">
           {disciplines.length === 0 && (
             <p className="text-sm text-muted-foreground">No hay disciplinas disponibles</p>
@@ -176,7 +176,7 @@ export function CategoryForm({ category, onClose }: Props) {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Selecciona las disciplinas que pertenecen a esta categoría
+          Selecciona las disciplinas que pertenecen a este grupo
         </p>
       </div>
 
@@ -189,7 +189,7 @@ export function CategoryForm({ category, onClose }: Props) {
         <Label htmlFor="is_bonus_eligible">Las horas de estas disciplinas cuentan para bonos</Label>
       </div>
       <p className="text-xs text-muted-foreground">
-        Si está desactivado, las disciplinas de esta categoría no contabilizarán para bonos
+        Si está desactivado, las disciplinas de este grupo no contabilizarán para bonos
         combinados (útil para clases privadas, etc.)
       </p>
 

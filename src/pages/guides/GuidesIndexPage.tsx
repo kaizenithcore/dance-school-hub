@@ -9,7 +9,7 @@ const guides = [
   },
   {
     title: "Como organizar el horario de todo el curso",
-    description: "Ordena clases, salas y profesores con un proceso simple para evitar conflictos.",
+    description: "Ordena clases, aulas y profesores con un proceso simple para evitar conflictos.",
     to: "/guides/organizar-horario-curso",
   },
   {

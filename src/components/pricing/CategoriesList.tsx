@@ -16,7 +16,7 @@ export function CategoriesList({ categories, loading, onEdit, onDelete }: Props)
     return (
       <Card>
         <CardContent className="p-6">
-          <p className="text-center text-muted-foreground">Cargando categorías...</p>
+          <p className="text-center text-muted-foreground">Cargando grupos de bonos...</p>
         </CardContent>
       </Card>
     )
@@ -26,9 +26,9 @@ export function CategoriesList({ categories, loading, onEdit, onDelete }: Props)
     return (
       <Card>
         <CardContent className="p-12 text-center">
-          <p className="text-muted-foreground">No hay categorías configuradas</p>
+          <p className="text-muted-foreground">No hay grupos de bonos configurados</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Crea tu primera categoría para agrupar disciplinas y definir bonos
+            Crea tu primer grupo de bonos para agrupar disciplinas y definir bonos
           </p>
         </CardContent>
       </Card>

@@ -7,10 +7,55 @@ import { DeleteTeacherModal } from "@/components/tables/DeleteTeacherModal";
 import { AssignClassesModal } from "@/components/tables/AssignClassesModal";
 import { Class, TeacherRecord } from "@/lib/data/mockTeachers";
 import { createTeacher, deleteTeacher, getTeachers, updateTeacher } from "@/lib/api/teachers";
+import { getClasses } from "@/lib/api/classes";
+import { getRooms } from "@/lib/api/rooms";
+import { getSchedules } from "@/lib/api/schedules";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
+
+const WEEKDAY_LABEL: Record<number, string> = {
+  1: "Lunes",
+  2: "Martes",
+  3: "Miércoles",
+  4: "Jueves",
+  5: "Viernes",
+  6: "Sábado",
+  7: "Domingo",
+};
+
+function toHourMinute(value: string): string {
+  const [hh = "00", mm = "00"] = value.split(":");
+  return `${hh}:${mm}`;
+}
+
+function formatScheduleSummary(schedules: Array<{ weekday: number; start_time: string; end_time: string }>) {
+  if (schedules.length === 0) {
+    return { day: "-", time: "-" };
+  }
+
+  const sorted = [...schedules].sort((a, b) => {
+    if (a.weekday !== b.weekday) {
+      return a.weekday - b.weekday;
+    }
+
+    return a.start_time.localeCompare(b.start_time);
+  });
+
+  const daySummary = sorted
+    .map((slot) => WEEKDAY_LABEL[slot.weekday] || `Día ${slot.weekday}`)
+    .join(", ");
+
+  const timeSummary = sorted
+    .map((slot) => `${toHourMinute(slot.start_time)}-${toHourMinute(slot.end_time)}`)
+    .join(", ");
+
+  return {
+    day: daySummary,
+    time: timeSummary,
+  };
+}
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<TeacherRecord[]>([]);
@@ -25,24 +70,73 @@ export default function TeachersPage() {
   const [teacherWithClassesToEdit, setTeacherWithClassesToEdit] = useState<TeacherRecord | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Load teachers from API
-  useEffect(() => {
-    const loadTeachers = async () => {
-      setLoading(true);
-      try {
-        const data = await getTeachers();
-        const mappedTeachers: TeacherRecord[] = (data || []).map((teacher) => ({
+  const mapTeachersWithAssignedClasses = useCallback(
+    (
+      teachersData: Awaited<ReturnType<typeof getTeachers>>,
+      classesData: Awaited<ReturnType<typeof getClasses>>,
+      roomNameById: Map<string, string>,
+      schedulesByClassId: Map<string, Array<{ weekday: number; start_time: string; end_time: string }>>
+    ): TeacherRecord[] => {
+      return (teachersData || []).map((teacher) => {
+        const assignedClasses: Class[] = classesData
+          .filter((klass) => (klass.teacherIds || []).includes(teacher.id) || klass.teacherId === teacher.id)
+          .map((klass) => {
+            const scheduleSummary = formatScheduleSummary(schedulesByClassId.get(klass.id) || []);
+
+            return {
+              id: klass.id,
+              name: klass.name,
+              discipline: klass.discipline || "Sin disciplina",
+              level: klass.category || "General",
+              day: scheduleSummary.day,
+              time: scheduleSummary.time,
+              room: klass.roomId ? roomNameById.get(klass.roomId) || "Aula asignada" : "Sin aula",
+              students: 0,
+            };
+          });
+
+        return {
           id: teacher.id,
           name: teacher.name,
           email: teacher.email || "",
           phone: teacher.phone || "",
           bio: teacher.bio || "",
           specialties: [],
-          assignedClasses: [],
+          assignedClasses,
           status: teacher.status,
-          hireDate: new Date().toISOString().split("T")[0],
-          salary: teacher.salary || 0,
-        }));
+          hireDate: new Date(teacher.created_at || Date.now()).toISOString().split("T")[0],
+          aulary: teacher.aulary || 0,
+        };
+      });
+    },
+    []
+  );
+
+  // Load teachers from API
+  useEffect(() => {
+    const loadTeachers = async () => {
+      setLoading(true);
+      try {
+        const [teachersData, classesData, roomsData, schedulesData] = await Promise.all([
+          getTeachers(),
+          getClasses(),
+          getRooms(),
+          getSchedules(),
+        ]);
+
+        const roomNameById = new Map(roomsData.map((room) => [room.id, room.name]));
+        const schedulesByClassId = new Map<string, Array<{ weekday: number; start_time: string; end_time: string }>>();
+        (schedulesData || []).forEach((schedule) => {
+          const slots = schedulesByClassId.get(schedule.class_id) || [];
+          slots.push({
+            weekday: schedule.weekday,
+            start_time: schedule.start_time,
+            end_time: schedule.end_time,
+          });
+          schedulesByClassId.set(schedule.class_id, slots);
+        });
+
+        const mappedTeachers = mapTeachersWithAssignedClasses(teachersData, classesData, roomNameById, schedulesByClassId);
         setTeachers(mappedTeachers);
       } catch (error) {
         console.error("Error loading teachers:", error);
@@ -53,7 +147,7 @@ export default function TeachersPage() {
       }
     };
     loadTeachers();
-  }, []);
+  }, [mapTeachersWithAssignedClasses]);
 
   useEffect(() => {
     if (loading) {
@@ -117,7 +211,7 @@ export default function TeachersPage() {
           phone: data.phone?.trim() ? data.phone.trim() : undefined,
           bio: data.bio?.trim() ? data.bio.trim() : undefined,
           status: data.status,
-          salary: data.salary,
+          aulary: data.aulary,
         });
         if (result) {
           setTeachers((prev) =>
@@ -135,7 +229,7 @@ export default function TeachersPage() {
           phone: data.phone?.trim() ? data.phone.trim() : undefined,
           bio: data.bio?.trim() ? data.bio.trim() : undefined,
           status: data.status,
-          salary: data.salary,
+          aulary: data.aulary,
         });
         if (result) {
           const newTeacher: TeacherRecord = { 
@@ -144,7 +238,7 @@ export default function TeachersPage() {
             specialties: [],
             assignedClasses: [],
             hireDate: data.hireDate || new Date().toISOString().split("T")[0],
-            salary: data.salary || 0,
+            aulary: data.aulary || 0,
           };
           setTeachers((prev) => [newTeacher, ...prev]);
           toast.success("Profesor creado exitosamente");

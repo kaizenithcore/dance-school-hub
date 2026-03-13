@@ -52,23 +52,35 @@ async function checkConflicts(
   classId: string,
   excludeScheduleId?: string
 ): Promise<ScheduleConflict[]> {
+  console.log("[CHECK CONFLICTS] Starting for class:", classId, "in tenant:", tenantId);
+  
   const conflicts: ScheduleConflict[] = [];
   const today = new Date().toISOString().split("T")[0];
 
   // Get the class to find teacher_id
-  const { data: classData } = await supabaseAdmin
+  console.log("[CHECK CONFLICTS] Fetching class data...");
+  const { data: classData, error: classError } = await supabaseAdmin
     .from("classes")
     .select("teacher_id, name")
     .eq("id", classId)
     .single();
 
-  if (!classData) {
-    throw new Error(`Clase ${classId} no encontrada`);
+  console.log("[CHECK CONFLICTS] Class fetch result:", {
+    found: !!classData,
+    error: classError?.message,
+    classId,
+    tenantId,
+  });
+
+  if (classError || !classData) {
+    const errorMsg = `Clase ${classId} no encontrada (Error: ${classError?.message || "No data"})`;
+    console.error("[CHECK CONFLICTS]", errorMsg);
+    throw new Error(errorMsg);
   }
 
-  const schedulesQuery = supabaseAdmin
+  let schedulesQuery = supabaseAdmin
     .from("class_schedules")
-    .select("id, class_id, room_id, start_time, end_time, classes:classes(name, teacher_id)")
+    .select("id, class_id, room_id, start_time, end_time, classes:class_id(name, teacher_id)")
     .eq("tenant_id", tenantId)
     .eq("weekday", weekday)
     .eq("is_active", true)
@@ -76,7 +88,7 @@ async function checkConflicts(
     .or(`effective_to.is.null,effective_to.gte.${today}`);
 
   if (excludeScheduleId) {
-    schedulesQuery.neq("id", excludeScheduleId);
+    schedulesQuery = schedulesQuery.neq("id", excludeScheduleId);
   }
 
   const { data: existingSchedules, error: existingSchedulesError } = await schedulesQuery;
@@ -106,7 +118,7 @@ async function checkConflicts(
         type: "room",
         conflictingScheduleId: schedule.id,
         conflictingClassName: schedule.classes?.name || "Desconocida",
-        conflictDescription: `Sala ocupada: ${existingStart}-${existingEnd}`,
+        conflictDescription: `Aula ocupada: ${existingStart}-${existingEnd}`,
       });
     }
 
@@ -343,6 +355,13 @@ export const scheduleService = {
     deleted: string[];
     errors: { operation: string; error: string }[];
   }> {
+    console.log("[SCHEDULE SERVICE] Starting batch save with:", {
+      creates: operations.creates.length,
+      updates: operations.updates.length,
+      deletes: operations.deletes.length,
+      tenantId,
+    });
+
     const result = {
       created: [] as ClassSchedule[],
       updated: [] as ClassSchedule[],
@@ -353,12 +372,16 @@ export const scheduleService = {
     // Process creates
     for (const create of operations.creates) {
       try {
+        console.log("[SCHEDULE SERVICE] Creating schedule for class:", create.classId);
         const schedule = await this.createSchedule(tenantId, create);
         result.created.push(schedule);
+        console.log("[SCHEDULE SERVICE] Schedule created successfully");
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Error desconocido";
+        console.error("[SCHEDULE SERVICE] Error creating schedule:", errorMsg);
         result.errors.push({
           operation: `create_${create.classId}`,
-          error: error instanceof Error ? error.message : "Error desconocido",
+          error: errorMsg,
         });
       }
     }

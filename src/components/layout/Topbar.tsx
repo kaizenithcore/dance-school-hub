@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Bell, CheckCheck, Clock3, ExternalLink, LogOut, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AcademicYearSelector } from "@/components/layout/AcademicYearSelector";
 import {
   CommandDialog,
   CommandEmpty,
@@ -479,7 +480,8 @@ export function Topbar({ title }: TopbarProps) {
       return;
     }
 
-    window.location.assign(publicSchoolUrl);
+    // Abrir en una nueva pestaña para evitar perder el contexto actual del panel de administración
+    window.open(publicSchoolUrl, "_blank");
   }, [publicSchoolUrl]);
 
   const handleSignOut = useCallback(async () => {
@@ -522,6 +524,8 @@ export function Topbar({ title }: TopbarProps) {
             <ExternalLink className="h-3.5 w-3.5" />
             Ver página pública
           </Button>
+          <div className="h-6 w-px bg-border" />
+          <AcademicYearSelector />
         </div>
 
         <div className="flex items-center gap-2">

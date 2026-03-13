@@ -60,14 +60,14 @@ export function PricingManagement() {
   }
 
   async function handleDeleteCategory(id: string) {
-    if (!confirm('¿Eliminar esta categoría? Las tarifas asociadas dejarán de funcionar.')) return
+    if (!confirm('¿Eliminar este grupo de bonos? Las tarifas asociadas dejarán de funcionar.')) return
 
     try {
       await deleteDisciplineCategory(id)
-      toast.success('Categoría eliminada')
+      toast.success('Grupo de bonos eliminado')
       void loadData()
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'Error al eliminar la categoría')
+      toast.error(error instanceof Error ? error.message : 'Error al eliminar el grupo de bonos')
     }
   }
 
@@ -98,7 +98,7 @@ export function PricingManagement() {
       <Tabs defaultValue="rules" className="space-y-4">
         <TabsList>
           <TabsTrigger value="rules">Tarifas</TabsTrigger>
-          <TabsTrigger value="categories">Categorías</TabsTrigger>
+          <TabsTrigger value="categories">Grupos de bonos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="rules" className="space-y-4">
@@ -145,21 +145,21 @@ export function PricingManagement() {
         <TabsContent value="categories" className="space-y-4">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-semibold">Categorías de Disciplinas</h2>
+              <h2 className="text-lg font-semibold">Grupos de Bonos</h2>
               <p className="text-sm text-muted-foreground">
-                Agrupa disciplinas para crear bonos combinados (ej: danza, bienestar)
+                Agrupa disciplinas para construir bonos combinados (ej: Danza, Bienestar)
               </p>
             </div>
             <Button onClick={() => setShowCategoryForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Nueva Categoría
+              Nuevo Grupo
             </Button>
           </div>
 
           {showCategoryForm && (
             <Card>
               <CardHeader>
-                <CardTitle>{editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}</CardTitle>
+                <CardTitle>{editingCategory ? 'Editar Grupo de Bonos' : 'Nuevo Grupo de Bonos'}</CardTitle>
                 <CardDescription>
                   Agrupa disciplinas relacionadas para aplicar bonos combinados
                 </CardDescription>

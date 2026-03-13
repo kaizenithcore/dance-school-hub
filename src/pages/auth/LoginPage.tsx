@@ -11,6 +11,7 @@ import { login } from "@/lib/auth";
 
 const LOGIN_WELCOME_KEY = "dancehub:welcome-overlay-until";
 const LOGIN_WELCOME_DURATION_MS = 2000;
+const FIRST_LOGIN_GUIDE_PENDING_KEY = "dancehub:first-login-guide-pending";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ export default function LoginPage() {
           LOGIN_WELCOME_KEY,
           String(Date.now() + LOGIN_WELCOME_DURATION_MS)
         );
+        window.sessionStorage.setItem(FIRST_LOGIN_GUIDE_PENDING_KEY, "1");
         toast.success("Inicio de sesión exitoso. Bienvenido!");
         navigate("/admin");
       } else {

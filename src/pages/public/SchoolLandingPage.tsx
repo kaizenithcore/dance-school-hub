@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ClassSchedulePreview } from "@/components/schedule/ClassSchedulePreview";
+import { PublicScheduleSelector } from "@/components/schedule/PublicScheduleSelector";
 import { ArrowRight, MapPin, Phone, Mail, Sparkles, Loader2, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getPublicFormData, type PublicFormData } from "@/lib/api/publicEnrollment";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-function formatHour(value: number) {
-  const safeValue = Number.isFinite(value) ? value : 0;
-  const whole = Math.floor(safeValue);
-  const minutes = Math.round((safeValue - whole) * 60);
-  return `${String(whole).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+function formatHour(hour: number) {
+  const normalized = Math.max(0, Math.floor(hour));
+  return `${String(normalized).padStart(2, "0")}:00`;
+}
+
+function normalizeRecurringMode(value: unknown): "linked" | "single_day" | undefined {
+  return value === "single_day" || value === "linked" ? value : undefined;
 }
 
 export default function SchoolLandingPage() {
@@ -19,6 +22,7 @@ export default function SchoolLandingPage() {
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<PublicFormData | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -28,6 +32,7 @@ export default function SchoolLandingPage() {
       try {
         const data = await getPublicFormData(schoolSlug);
         setFormData(data);
+        setNotFound(!data);
       } finally {
         setLoading(false);
       }
@@ -36,36 +41,29 @@ export default function SchoolLandingPage() {
     void load();
   }, [schoolSlug]);
 
-  const toggleClass = (id: string) => {
-    setSelectedClasses((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    );
+  const toggleClass = (selectionId: string, linkedSelectionIds?: string[]) => {
+    setSelectedClasses((prev) => {
+      if (linkedSelectionIds && linkedSelectionIds.length > 0) {
+        const hasAny = linkedSelectionIds.some((id) => prev.includes(id));
+        return hasAny
+          ? prev.filter((id) => !linkedSelectionIds.includes(id))
+          : Array.from(new Set([...prev, ...linkedSelectionIds]));
+      }
+
+      return prev.includes(selectionId)
+        ? prev.filter((id) => id !== selectionId)
+        : [...prev, selectionId];
+    });
   };
 
   const schoolName = formData?.tenantName || schoolSlug?.replace(/-/g, " ") || "Escuela de Danza";
+  const selectedClassIdsForQuery = Array.from(new Set(selectedClasses.map((selectionId) => selectionId.split("::")[0] || selectionId)));
+  const enrollQuery = selectedClassIdsForQuery.length > 0
+    ? `?class_ids=${encodeURIComponent(selectedClassIdsForQuery.join(","))}`
+    : "";
+  const enrollPath = `/s/${schoolSlug}/enroll${enrollQuery}`;
 
-  const previewClasses = useMemo(() => {
-    const classes = formData?.availableClasses || [];
-    return classes.map((item) => {
-      const firstSchedule = item.schedules?.[0];
-      const startHour = firstSchedule?.startHour ?? 0;
-      const duration = firstSchedule?.duration ?? 1;
-      const endHour = startHour + duration;
-
-      return {
-        id: item.id,
-        name: item.name,
-        teacher: item.discipline || "Clase general",
-        time: `${formatHour(startHour)}-${formatHour(endHour)}`,
-        room: firstSchedule?.room || "Sala por definir",
-        price: item.price_cents / 100,
-        spotsLeft: Math.max(0, item.capacity - item.enrolled_count),
-        totalSpots: item.capacity,
-        day: firstSchedule?.day || "Horario flexible",
-        recurrence: "weekly" as const,
-      };
-    });
-  }, [formData]);
+  const previewClassesCount = (formData?.availableClasses || []).length;
 
   const scheduleStats = useMemo(() => {
     const classes = formData?.availableClasses || [];
@@ -93,10 +91,39 @@ export default function SchoolLandingPage() {
     };
   }, [formData]);
 
+  const effectivePublicScheduleConfig = useMemo(() => {
+    const formBuilderConfig = formData?.formConfig.scheduleSettings ?? formData?.formConfig.jointEnrollment?.schedule;
+    const settingsConfig = formData?.scheduleConfig;
+
+    if (!formBuilderConfig) return undefined;
+
+    return {
+      ...formBuilderConfig,
+      recurringSelectionMode: normalizeRecurringMode(settingsConfig?.recurringSelectionMode) ?? formBuilderConfig.recurringSelectionMode,
+      startHour: settingsConfig?.startHour,
+      endHour: settingsConfig?.endHour,
+    };
+  }, [formData]);
+
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (notFound || !formData) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center p-4">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Escuela no encontrada</CardTitle>
+            <CardDescription>
+              La escuela que buscas no existe o no esta disponible.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
@@ -119,7 +146,7 @@ export default function SchoolLandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg">
-                <Link to={`/s/${schoolSlug}/enroll`}>
+                <Link to={enrollPath}>
                   Comenzar Inscripción
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
@@ -154,13 +181,13 @@ export default function SchoolLandingPage() {
           <div>
             <h2 className="text-2xl font-semibold text-foreground">Clases Disponibles</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {previewClasses.length} clase{previewClasses.length === 1 ? "" : "s"} activa{previewClasses.length === 1 ? "" : "s"} · {scheduleStats.weeklyHours.toFixed(1)}h semanales publicadas.
+              {previewClassesCount} clase{previewClassesCount === 1 ? "" : "s"} activa{previewClassesCount === 1 ? "" : "s"} · {scheduleStats.weeklyHours.toFixed(1)}h semanales publicadas.
             </p>
           </div>
           <div className="flex gap-2">
             {selectedClasses.length > 0 && (
               <Button asChild className="animate-fade-in">
-                <Link to={`/s/${schoolSlug}/enroll`}>
+                <Link to={enrollPath}>
                   Inscribirse en {selectedClasses.length} clase{selectedClasses.length > 1 ? "s" : ""}
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
@@ -174,10 +201,11 @@ export default function SchoolLandingPage() {
           </div>
         </div>
 
-        <ClassSchedulePreview
-          classes={previewClasses}
+        <PublicScheduleSelector
+          classes={formData.availableClasses}
           selectedClassIds={selectedClasses}
           onToggleClass={toggleClass}
+          scheduleConfig={effectivePublicScheduleConfig}
         />
       </section>
     </div>

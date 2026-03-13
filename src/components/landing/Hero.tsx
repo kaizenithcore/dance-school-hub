@@ -46,9 +46,9 @@ export function Hero() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="h-12 px-7 text-base" asChild>
-                <a href="mailto:hola@dancehub.es?subject=Solicitud%20de%20demo%20DanceHub">
+                <a href="/#features">
                   <Play className="mr-1 h-4 w-4" />
-                  Solicitar demo
+                  Ver en acción
                 </a>
               </Button>
             </div>

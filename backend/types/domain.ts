@@ -10,6 +10,7 @@ export interface TenantMembership {
   tenantId: string;
   tenantName: string;
   tenantSlug: string;
+  tenantCreatedAt: string;
   role: TenantRole;
 }
 

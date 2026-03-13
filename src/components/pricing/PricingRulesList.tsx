@@ -38,8 +38,8 @@ export function PricingRulesList({ rules, categories, loading, onEdit, onDelete 
 
   function getRuleTypeLabel(type: string) {
     const labels: Record<string, string> = {
-      discipline_hours: 'Disciplina + Horas',
-      category_pack: 'Bono por Categoría',
+      discipline_hours: 'Tarifa por Disciplina',
+      category_pack: 'Bono por Grupo',
       total_hours: 'Bono por Horas Totales',
       fixed_discount: 'Descuento Fijo',
       percentage_discount: 'Descuento %',
@@ -67,8 +67,8 @@ export function PricingRulesList({ rules, categories, loading, onEdit, onDelete 
         excluded_disciplines?: string[]
       }
       const categoryLabel = cond.included_categories && cond.included_categories.length > 0
-        ? `Categorías: ${cond.included_categories.join(', ')}`
-        : 'Todas las categorías'
+        ? `Grupos: ${cond.included_categories.join(', ')}`
+        : 'Todos los grupos de bonos'
       return `${cond.hours_min} - ${cond.hours_max} horas totales · ${categoryLabel}`
     }
 

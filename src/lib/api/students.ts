@@ -11,6 +11,12 @@ export interface SaveStudentRequest {
   guardian?: { name: string; phone: string; email?: string };
   notes?: string;
   paymentType: "monthly" | "per_class" | "none";
+  payerType?: "student" | "guardian" | "other";
+  payerName?: string;
+  payerEmail?: string;
+  payerPhone?: string;
+  preferredPaymentMethod?: "transfer" | "cash" | "card" | "mercadopago";
+  accountNumber?: string;
   classIds?: string[];
   jointEnrollmentGroupId?: string | null;
 }
@@ -60,7 +66,11 @@ export async function updateStudent(id: string, data: Partial<SaveStudentRequest
     body: JSON.stringify(data),
   });
 
-  return response.success;
+  if (!response.success) {
+    throw new Error(response.error?.message || "No se pudo actualizar el alumno");
+  }
+
+  return true;
 }
 
 export async function deleteStudent(id: string): Promise<boolean> {
@@ -73,7 +83,11 @@ export async function deleteStudent(id: string): Promise<boolean> {
 
 export async function updateStudentClasses(
   id: string,
-  payload: { classIds: string[]; jointEnrollmentGroupId?: string | null }
+  payload: {
+    classIds: string[];
+    jointEnrollmentGroupId?: string | null;
+    selections?: Array<{ classId: string; scheduleIds?: string[] }>;
+  }
 ): Promise<boolean> {
   const response = await apiRequest<{ id: string; updated: boolean }>(`/api/admin/students/${id}/classes`, {
     method: "PUT",

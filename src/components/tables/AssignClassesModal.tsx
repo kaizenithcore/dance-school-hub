@@ -18,7 +18,7 @@ const MOCK_AVAILABLE_CLASSES: Class[] = [
     level: "Iniciación",
     day: "Lunes",
     time: "09:00–10:30",
-    room: "Sala Principal",
+    room: "Aula Principal",
     students: 12,
   },
   {
@@ -28,7 +28,7 @@ const MOCK_AVAILABLE_CLASSES: Class[] = [
     level: "Avanzado",
     day: "Viernes",
     time: "10:00–11:30",
-    room: "Sala Principal",
+    room: "Aula Principal",
     students: 8,
   },
   {
@@ -38,7 +38,7 @@ const MOCK_AVAILABLE_CLASSES: Class[] = [
     level: "Nivel 1",
     day: "Martes",
     time: "19:00–20:30",
-    room: "Sala 2",
+    room: "Aula 2",
     students: 15,
   },
   {
@@ -48,7 +48,7 @@ const MOCK_AVAILABLE_CLASSES: Class[] = [
     level: "Todos",
     day: "Miércoles",
     time: "18:00–19:00",
-    room: "Sala 3 - Estudio",
+    room: "Aula 3 - Estudio",
     students: 10,
   },
   {
@@ -58,7 +58,7 @@ const MOCK_AVAILABLE_CLASSES: Class[] = [
     level: "Intermedio",
     day: "Jueves",
     time: "20:00–21:30",
-    room: "Sala Principal",
+    room: "Aula Principal",
     students: 9,
   },
   {
@@ -68,7 +68,7 @@ const MOCK_AVAILABLE_CLASSES: Class[] = [
     level: "Infantil",
     day: "Sábado",
     time: "09:00–10:00",
-    room: "Sala 2",
+    room: "Aula 2",
     students: 14,
   },
 ];

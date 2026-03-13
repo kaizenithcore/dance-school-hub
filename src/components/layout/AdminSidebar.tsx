@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Calendar, GraduationCap, Users, BookOpen, ClipboardList,
-  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award,
+  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award, Lock,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -8,33 +8,50 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
+import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 
-const navItems = [
+type FeatureKey = "waitlistAutomation" | "renewalAutomation" | "courseClone" | "massCommunicationEmail" | "examSuite";
+
+const navItems: Array<{ title: string; url: string; icon: any; featureKey?: FeatureKey }> = [
   { title: "Panel", url: "/admin", icon: LayoutDashboard },
-  { title: "Horarios", url: "/admin/schedule", icon: Calendar },
-  { title: "Clases", url: "/admin/classes", icon: GraduationCap },
-  { title: "Aulas", url: "/admin/rooms", icon: DoorOpen },
-  { title: "Profesores", url: "/admin/teachers", icon: BookOpen },
   { title: "Alumnos", url: "/admin/students", icon: Users },
+    { title: "Formulario de inscripción", url: "/admin/form-builder", icon: FileEdit },
   { title: "Inscripciones", url: "/admin/enrollments", icon: ClipboardList },
-  { title: "Formulario de inscripción", url: "/admin/form-builder", icon: FileEdit },
-  { title: "Tarifas y Bonos", url: "/admin/pricing", icon: Tags },
-  { title: "Pagos", url: "/admin/payments", icon: CreditCard },
-  { title: "Comunicación", url: "/admin/communications", icon: Megaphone },
-  { title: "Lista de Espera", url: "/admin/waitlist", icon: ListOrdered },
-  { title: "Renovaciones", url: "/admin/renewals", icon: Repeat },
-  { title: "Duplicar cursos", url: "/admin/course-clone", icon: Copy },
+  { title: "Clases", url: "/admin/classes", icon: GraduationCap },
+  { title: "Horarios", url: "/admin/schedule", icon: Calendar },
+  { title: "Profesores", url: "/admin/teachers", icon: BookOpen },
+  { title: "Aulas", url: "/admin/rooms", icon: DoorOpen },
   { title: "Recepción", url: "/admin/reception", icon: Monitor },
-  { title: "Exámenes", url: "/admin/exams", icon: Award },
+  { title: "Pagos", url: "/admin/payments", icon: CreditCard },
+  { title: "Tarifas y Bonos", url: "/admin/pricing", icon: Tags },
+  { title: "Comunicación", url: "/admin/communications", icon: Megaphone, featureKey: "massCommunicationEmail" },
+  { title: "Lista de Espera", url: "/admin/waitlist", icon: ListOrdered, featureKey: "waitlistAutomation" },
+  { title: "Renovaciones", url: "/admin/renewals", icon: Repeat, featureKey: "renewalAutomation" },
+  { title: "Duplicar cursos", url: "/admin/course-clone", icon: Copy, featureKey: "courseClone" },
+  { title: "Exámenes", url: "/admin/exams", icon: Award, featureKey: "examSuite" },
   { title: "Analíticas", url: "/admin/analytics", icon: BarChart3 },
   { title: "Configuración", url: "/admin/settings", icon: Settings },
 ];
 
 export function AdminSidebar() {
+  const { billing, loading, startUpgrade } = useBillingEntitlements();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [lockOpen, setLockOpen] = useState(false);
+  const [lockedFeature, setLockedFeature] = useState<FeatureKey | null>(null);
   const location = useLocation();
   const isMobile = useIsMobile();
+
+  const isItemLocked = (featureKey?: FeatureKey) => {
+    if (!featureKey || loading) return false;
+    return !billing.features[featureKey];
+  };
+
+  const openLock = (featureKey: FeatureKey) => {
+    setLockedFeature(featureKey);
+    setLockOpen(true);
+  };
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -76,24 +93,45 @@ export function AdminSidebar() {
           <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             {navItems.map((item) => {
               const isActive = item.url === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(item.url);
+              const locked = isItemLocked(item.featureKey);
               return (
                 <NavLink
                   key={item.url}
                   to={item.url}
                   end={item.url === "/admin"}
+                  onClick={(event) => {
+                    if (locked && item.featureKey) {
+                      event.preventDefault();
+                      openLock(item.featureKey);
+                    }
+                  }}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                    "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    "text-muted-foreground hover:text-foreground hover:bg-accent",
+                    locked && "opacity-60"
                   )}
                   activeClassName="bg-accent text-accent-foreground"
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
                   <span>{item.title}</span>
+                  {locked ? <Lock className="ml-auto h-3.5 w-3.5" /> : null}
                 </NavLink>
               );
             })}
           </nav>
         </aside>
+
+        <FeatureLockDialog
+          open={lockOpen}
+          onOpenChange={setLockOpen}
+          title="Función bloqueada por plan"
+          description="Mejora tu plan para activar esta funcionalidad desde el menú lateral."
+          onUpgrade={() => {
+            if (lockedFeature) {
+              void startUpgrade(lockedFeature);
+            }
+          }}
+        />
       </>
     );
   }
@@ -118,20 +156,29 @@ export function AdminSidebar() {
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         {navItems.map((item) => {
           const isActive = item.url === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(item.url);
+          const locked = isItemLocked(item.featureKey);
           return (
             <NavLink
               key={item.url}
               to={item.url}
               end={item.url === "/admin"}
+              onClick={(event) => {
+                if (locked && item.featureKey) {
+                  event.preventDefault();
+                  openLock(item.featureKey);
+                }
+              }}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 "text-muted-foreground hover:text-foreground hover:bg-accent",
-                collapsed && "justify-center px-0"
+                collapsed && "justify-center px-0",
+                locked && "opacity-60"
               )}
               activeClassName="bg-accent text-accent-foreground"
             >
               <item.icon className="h-[18px] w-[18px] shrink-0" />
               {!collapsed && <span className="animate-fade-in">{item.title}</span>}
+              {!collapsed && locked ? <Lock className="ml-auto h-3.5 w-3.5" /> : null}
             </NavLink>
           );
         })}
@@ -145,6 +192,18 @@ export function AdminSidebar() {
           <ChevronLeft className={cn("h-4 w-4 transition-transform duration-300", collapsed && "rotate-180")} />
         </button>
       </div>
+
+      <FeatureLockDialog
+        open={lockOpen}
+        onOpenChange={setLockOpen}
+        title="Función bloqueada por plan"
+        description="Mejora tu plan para activar esta funcionalidad desde el menú lateral."
+        onUpgrade={() => {
+          if (lockedFeature) {
+            void startUpgrade(lockedFeature);
+          }
+        }}
+      />
     </aside>
   );
 }

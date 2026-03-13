@@ -16,6 +16,10 @@ const optionalEmail = () => z.preprocess(emptyToNull, z.string().email().optiona
 export const publicEnrollmentSchema = z.object({
   class_id: z.string().uuid().optional(),
   class_ids: z.array(z.string().uuid()).optional(),
+  class_selections: z.array(z.object({
+    class_id: z.string().uuid(),
+    schedule_id: z.string().uuid().optional(),
+  })).optional(),
   form_values: z.record(z.string(), z.unknown()).optional().default({}),
 
   // Student info
@@ -68,6 +72,10 @@ export const jointEnrollmentSchema = z.object({
     z.object({
       form_values: z.record(z.string(), z.unknown()),
       class_ids: z.array(z.string().uuid()).min(1, "Each student must select at least one class"),
+      class_selections: z.array(z.object({
+        class_id: z.string().uuid(),
+        schedule_id: z.string().uuid().optional(),
+      })).optional(),
  
       // Core student fields
       first_name: optionalString(100),

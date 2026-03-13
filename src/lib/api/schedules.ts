@@ -188,8 +188,24 @@ export async function batchSaveSchedules(operations: BatchScheduleOperation): Pr
     method: "POST",
     body: JSON.stringify(operations),
   });
+  
   if (!response.success) {
-    throw new Error(response.error?.message || "No se pudo guardar el horario");
+    const errorMsg = response.error?.message || "No se pudo guardar el horario";
+    const details = response.error?.details;
+    let fullMessage = errorMsg;
+    
+    // If there are validation details, add them to the message
+    if (details && Array.isArray(details)) {
+      const firstError = details[0] as any;
+      if (firstError?.message) {
+        fullMessage = `${errorMsg}: ${firstError.message}`;
+        if (firstError?.path) {
+          fullMessage += ` (Campo: ${firstError.path.join('.')})`;
+        }
+      }
+    }
+    
+    throw new Error(fullMessage);
   }
 
   return response.data || { created: [], updated: [], deleted: [], errors: [] };

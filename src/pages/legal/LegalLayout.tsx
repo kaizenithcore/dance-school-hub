@@ -27,8 +27,37 @@ export default function LegalLayout() {
         </div>
       </header>
 
-      <main className="container max-w-3xl py-12">
-        <Outlet />
+      <main className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-accent/50 via-accent/15 to-transparent" />
+        <div className="container grid gap-6 py-10 md:grid-cols-[260px_minmax(0,1fr)] md:py-12">
+          <aside className="h-fit rounded-2xl border border-border bg-card/70 p-4 shadow-soft backdrop-blur md:sticky md:top-20">
+            <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Documentación
+            </p>
+            <nav className="space-y-1.5">
+              {legalLinks.map((link) => {
+                const active = location.pathname === link.to;
+                return (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+
+          <section>
+            <Outlet />
+          </section>
+        </div>
       </main>
 
       <footer className="border-t border-border bg-card py-8">

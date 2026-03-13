@@ -8,7 +8,7 @@ interface RoomSelectorProps {
 }
 
 export function RoomSelector({ rooms, selected, onChange }: RoomSelectorProps) {
-  const options = [{ id: "all", name: "Todas las salas" }, ...rooms.map((room) => ({ id: room.id, name: room.name }))];
+  const options = [{ id: "all", name: "Todas las aulas" }, ...rooms.map((room) => ({ id: room.id, name: room.name }))];
 
   return (
     <div className="flex items-center rounded-lg border border-border bg-card p-0.5">

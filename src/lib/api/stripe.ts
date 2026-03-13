@@ -35,6 +35,7 @@ export interface CreateBillingCheckoutInput {
     customDomain: boolean;
     prioritySupport: boolean;
     waitlistAutomation: boolean;
+    renewalAutomation: boolean;
   };
   successUrl?: string;
   cancelUrl?: string;

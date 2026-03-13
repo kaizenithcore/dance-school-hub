@@ -43,6 +43,7 @@ interface ScheduleConfig {
   endHour: string;
   slotDuration: string;
   workDays: string[];
+  recurringSelectionMode: "linked" | "single_day";
   allowTrialClass: boolean;
   maxClassesPerStudent: string;
 }
@@ -80,6 +81,7 @@ interface BillingConfig {
     customDomain: boolean;
     prioritySupport: boolean;
     waitlistAutomation: boolean;
+    renewalAutomation: boolean;
   };
   limits: {
     includedActiveStudents: number;
@@ -93,6 +95,7 @@ interface BillingConfig {
       customDomain: number;
       prioritySupport: number;
       waitlistAutomation: number;
+      renewalAutomation: number;
     };
   };
   features: {
@@ -143,10 +146,10 @@ const PLAN_CATALOG: Record<PlanType, PlanInfo> = {
   },
   pro: {
     label: "Pro",
-    monthlyPriceEur: 349,
+    monthlyPriceEur: 499,
     includedActiveStudents: 1200,
     extraStudentsBlockSize: 300,
-    extraStudentsBlockPriceEur: 25,
+    extraStudentsBlockPriceEur: 59,
     highlights: [
       "Todo Starter incluido",
       "Automatización de renovaciones",
@@ -156,10 +159,10 @@ const PLAN_CATALOG: Record<PlanType, PlanInfo> = {
   },
   enterprise: {
     label: "Enterprise",
-    monthlyPriceEur: 699,
+    monthlyPriceEur: 949,
     includedActiveStudents: 4000,
-    extraStudentsBlockSize: 1000,
-    extraStudentsBlockPriceEur: 50,
+    extraStudentsBlockSize: 500,
+    extraStudentsBlockPriceEur: 119,
     highlights: [
       "Todo Pro incluido",
       "Roles personalizados (hasta 10)",
@@ -176,6 +179,7 @@ const DEFAULT_BILLING: BillingConfig = {
     customDomain: false,
     prioritySupport: false,
     waitlistAutomation: false,
+    renewalAutomation: false,
   },
   limits: {
     includedActiveStudents: 300,
@@ -184,11 +188,12 @@ const DEFAULT_BILLING: BillingConfig = {
   pricing: {
     monthlyPriceEur: 179,
     extraStudentsBlockSize: 100,
-    extraStudentsBlockPriceEur: 15,
+    extraStudentsBlockPriceEur: 24,
     addons: {
       customDomain: 29,
-      prioritySupport: 49,
-      waitlistAutomation: 19,
+      prioritySupport: 79,
+      waitlistAutomation: 24,
+      renewalAutomation: 39,
     },
   },
   features: {
@@ -219,7 +224,8 @@ function calculateMonthlyAmount(config: BillingConfig): number {
   const addonsTotal =
     (config.addons.customDomain ? config.pricing.addons.customDomain : 0)
     + (config.addons.prioritySupport ? config.pricing.addons.prioritySupport : 0)
-    + (config.addons.waitlistAutomation ? config.pricing.addons.waitlistAutomation : 0);
+    + (config.addons.waitlistAutomation ? config.pricing.addons.waitlistAutomation : 0)
+    + (config.addons.renewalAutomation ? config.pricing.addons.renewalAutomation : 0);
   const blocksTotal = config.extraStudentBlocks * plan.extraStudentsBlockPriceEur;
 
   return plan.monthlyPriceEur + addonsTotal + blocksTotal;
@@ -270,6 +276,7 @@ function normalizeBillingConfig(base: BillingConfig, input?: Record<string, unkn
       customDomain: parseBoolean(addons.customDomain, base.addons.customDomain),
       prioritySupport: parseBoolean(addons.prioritySupport, base.addons.prioritySupport),
       waitlistAutomation: parseBoolean(addons.waitlistAutomation, base.addons.waitlistAutomation),
+      renewalAutomation: parseBoolean(addons.renewalAutomation, base.addons.renewalAutomation),
     },
     limits: {
       includedActiveStudents: Number(limits.includedActiveStudents ?? base.limits.includedActiveStudents) || base.limits.includedActiveStudents,
@@ -283,6 +290,7 @@ function normalizeBillingConfig(base: BillingConfig, input?: Record<string, unkn
         customDomain: Number(customDomainAddon.monthlyPriceEur ?? base.pricing.addons.customDomain) || base.pricing.addons.customDomain,
         prioritySupport: Number(prioritySupportAddon.monthlyPriceEur ?? base.pricing.addons.prioritySupport) || base.pricing.addons.prioritySupport,
         waitlistAutomation: Number(waitlistAddon.monthlyPriceEur ?? base.pricing.addons.waitlistAutomation) || base.pricing.addons.waitlistAutomation,
+        renewalAutomation: Number(asRecord(pricingAddons.renewalAutomation).monthlyPriceEur ?? base.pricing.addons.renewalAutomation) || base.pricing.addons.renewalAutomation,
       },
     },
     features: normalizeBillingFeatures(base.features, source.features as Record<string, unknown> | undefined),
@@ -315,12 +323,13 @@ export default function SettingsPage() {
     endHour: "21:00",
     slotDuration: "90",
     workDays: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
+    recurringSelectionMode: "linked",
     allowTrialClass: true,
     maxClassesPerStudent: "5",
   });
 
   const [payment, setPayment] = useState<PaymentConfig>({
-    currency: "ARS",
+    currency: "EUR",
     dueDayOfMonth: "10",
     gracePeriodDays: "5",
     enableTransfer: true,
@@ -464,6 +473,7 @@ export default function SettingsPage() {
           customDomain: billing.addons.customDomain,
           prioritySupport: billing.addons.prioritySupport,
           waitlistAutomation: billing.addons.waitlistAutomation,
+          renewalAutomation: billing.addons.renewalAutomation,
         },
         successUrl,
         cancelUrl,
@@ -536,6 +546,15 @@ export default function SettingsPage() {
   }, [authContext?.user.email, confirmPassword, currentPassword, newPassword, security.requireStrongPassword, updatingPassword]);
 
   const handleSave = async (section: string) => {
+    if (section === "Billing") {
+      const billingChanged = JSON.stringify(billing) !== JSON.stringify(savedBillingSnapshot);
+      if (billingChanged) {
+        toast.info("Redirigiendo a Stripe para completar el cambio de billing...");
+        await handleStripeCheckout();
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const updated = await updateSchoolSettings({
@@ -629,16 +648,36 @@ export default function SettingsPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FieldGroup label="Email" icon={Mail}>
-                <Input value={authContext?.user.email || "Sin correo"} readOnly className="h-9 text-sm" />
+                <Input
+                  type="email"
+                  value={school.email}
+                  onChange={(event) => setSchool({ ...school, email: event.target.value })}
+                  className="h-9 text-sm"
+                />
               </FieldGroup>
               <FieldGroup label="Rol" icon={ShieldCheck}>
                 <Input value={roleLabel} readOnly className="h-9 text-sm" />
               </FieldGroup>
               <FieldGroup label="Escuela activa" icon={Building2}>
-                <Input value={activeMembership?.tenantName || "Sin escuela"} readOnly className="h-9 text-sm" />
+                <Input
+                  value={school.name}
+                  onChange={(event) => setSchool({ ...school, name: event.target.value })}
+                  className="h-9 text-sm"
+                />
               </FieldGroup>
               <FieldGroup label="Slug" icon={Globe}>
-                <Input value={activeMembership?.tenantSlug || school.slug} readOnly className="h-9 text-sm" />
+                <Input
+                  value={school.slug}
+                  onChange={(event) => setSchool({ ...school, slug: event.target.value })}
+                  className="h-9 text-sm"
+                />
+              </FieldGroup>
+              <FieldGroup label="Teléfono" icon={Phone}>
+                <Input
+                  value={school.phone}
+                  onChange={(event) => setSchool({ ...school, phone: event.target.value })}
+                  className="h-9 text-sm"
+                />
               </FieldGroup>
             </div>
 
@@ -682,6 +721,13 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => void handleSave("Cuenta")}
+                disabled={saving}
+              >
+                <Save className="h-3.5 w-3.5 mr-1" /> Guardar datos de cuenta
+              </Button>
               <Button onClick={() => void handleUpdatePassword()} disabled={updatingPassword}>
                 <KeyRound className="h-3.5 w-3.5 mr-1" /> {updatingPassword ? "Actualizando..." : "Actualizar contraseña"}
               </Button>
@@ -792,6 +838,19 @@ export default function SettingsPage() {
               </FieldGroup>
             </div>
 
+            <FieldGroup label="Selección de clases recurrentes">
+              <Select
+                value={schedule.recurringSelectionMode}
+                onValueChange={(v) => setSchedule({ ...schedule, recurringSelectionMode: v as "linked" | "single_day" })}
+              >
+                <SelectTrigger className="h-9 text-sm sm:max-w-[360px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="linked">Vinculada (si selecciona una, se seleccionan todas)</SelectItem>
+                  <SelectItem value="single_day">Individual por día (permitir seleccionar solo algunos días)</SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldGroup>
+
             <FieldGroup label="Días de funcionamiento">
               <div className="flex flex-wrap gap-2 mt-1">
                 {DAYS.map((day) => {
@@ -860,9 +919,9 @@ export default function SettingsPage() {
                 <Select value={payment.currency} onValueChange={(v) => setPayment({ ...payment, currency: v })}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="EUR">EUR (€)</SelectItem>
                     <SelectItem value="ARS">ARS ($)</SelectItem>
                     <SelectItem value="USD">USD (US$)</SelectItem>
-                    <SelectItem value="EUR">EUR (€)</SelectItem>
                   </SelectContent>
                 </Select>
               </FieldGroup>
@@ -1041,31 +1100,38 @@ export default function SettingsPage() {
             <Separator />
 
             <FieldGroup label="Tipo de plan" icon={CreditCard}>
-              <Select
-                value={billing.planType}
-                onValueChange={(v) => {
-                  const nextPlanType = resolvePlanType(v);
-                  setBilling({
-                    ...billing,
-                    planType: nextPlanType,
-                    addons: {
-                      ...billing.addons,
-                      waitlistAutomation: nextPlanType === "starter" ? billing.addons.waitlistAutomation : false,
-                    },
-                  });
-                  setSelectedPlanForModal(nextPlanType);
-                  setPlanModalOpen(true);
-                }}
-              >
-                <SelectTrigger className="h-9 text-sm max-w-xs">
-                  <SelectValue placeholder="Selecciona un plan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="starter">Starter</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid gap-2 sm:grid-cols-3 max-w-2xl">
+                {(Object.keys(PLAN_CATALOG) as PlanType[]).map((planKey) => {
+                  const isActive = resolvePlanType(billing.planType) === planKey;
+                  return (
+                    <button
+                      key={planKey}
+                      type="button"
+                      onClick={() => {
+                        setBilling({
+                          ...billing,
+                          planType: planKey,
+                          addons: {
+                            ...billing.addons,
+                            waitlistAutomation: planKey === "starter" ? billing.addons.waitlistAutomation : false,
+                            renewalAutomation: planKey === "starter" ? billing.addons.renewalAutomation : false,
+                          },
+                        });
+                        setSelectedPlanForModal(planKey);
+                        setPlanModalOpen(true);
+                      }}
+                      className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                        isActive
+                          ? "border-primary bg-primary/5 text-foreground"
+                          : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold">{PLAN_CATALOG[planKey].label}</p>
+                      <p className="text-xs">{PLAN_CATALOG[planKey].monthlyPriceEur} EUR/mes</p>
+                    </button>
+                  );
+                })}
+              </div>
               <p className="mt-1 text-[10px] text-muted-foreground">Al seleccionar un plan se abre una comparativa con precio y ventajas.</p>
             </FieldGroup>
 
@@ -1110,12 +1176,20 @@ export default function SettingsPage() {
                 onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, prioritySupport: v } })}
               />
               {billing.planType === "starter" && (
-                <SwitchRow
-                  label="Add-on lista de espera automatica"
-                  description={`Disponible en Starter (${billing.pricing.addons.waitlistAutomation} EUR/mes)`}
-                  checked={billing.addons.waitlistAutomation}
-                  onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, waitlistAutomation: v } })}
-                />
+                <>
+                  <SwitchRow
+                    label="Add-on lista de espera automatica"
+                    description={`Disponible en Starter (${billing.pricing.addons.waitlistAutomation} EUR/mes)`}
+                    checked={billing.addons.waitlistAutomation}
+                    onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, waitlistAutomation: v } })}
+                  />
+                  <SwitchRow
+                    label="Add-on renovaciones automáticas"
+                    description={`Disponible en Starter (${billing.pricing.addons.renewalAutomation} EUR/mes)`}
+                    checked={billing.addons.renewalAutomation}
+                    onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, renewalAutomation: v } })}
+                  />
+                </>
               )}
             </div>
 
@@ -1147,6 +1221,7 @@ export default function SettingsPage() {
                   (billing.addons.customDomain ? billing.pricing.addons.customDomain : 0)
                   + (billing.addons.prioritySupport ? billing.pricing.addons.prioritySupport : 0)
                   + (billing.addons.waitlistAutomation ? billing.pricing.addons.waitlistAutomation : 0)
+                  + (billing.addons.renewalAutomation ? billing.pricing.addons.renewalAutomation : 0)
                 } EUR</span></p>
               </div>
             </div>

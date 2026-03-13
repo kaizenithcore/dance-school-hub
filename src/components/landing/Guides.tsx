@@ -10,7 +10,7 @@ const guides = [
   },
   {
     title: "Cómo organizar el horario de todo el curso",
-    desc: "Arrastra clases, asigna salas y detecta conflictos al instante.",
+    desc: "Arrastra clases, asigna aulas y detecta conflictos al instante.",
     to: "/guides/organizar-horario-curso",
   },
   {

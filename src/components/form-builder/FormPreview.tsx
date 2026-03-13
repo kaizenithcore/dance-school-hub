@@ -33,6 +33,30 @@ export function FormPreview({ config }: FormPreviewProps) {
 
   const activeStudent = students[activeStudentIndex];
 
+  const resolveDateReference = (rawValue: string) => {
+    if (rawValue === "today") {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      return now;
+    }
+
+    const minusYearsMatch = rawValue.match(/^today_minus_(\d+)y$/);
+    if (minusYearsMatch) {
+      const years = Number(minusYearsMatch[1]);
+      if (Number.isFinite(years)) {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        now.setFullYear(now.getFullYear() - years);
+        return now;
+      }
+    }
+
+    const parsed = new Date(rawValue);
+    if (isNaN(parsed.getTime())) return null;
+    parsed.setHours(0, 0, 0, 0);
+    return parsed;
+  };
+
   // Steps: sections + optional schedule
   const visibleSections = config.sections.filter((section) => {
     if (!section.conditions?.length) return true;
@@ -43,6 +67,14 @@ export function FormPreview({ config }: FormPreviewProps) {
       if (cond.operator === "is_empty") return val === undefined || val === "";
       if (cond.operator === "equals") return String(val) === cond.value;
       if (cond.operator === "not_equals") return String(val) !== cond.value;
+      if (cond.operator === "date_before" || cond.operator === "date_after") {
+        const sourceDate = resolveDateReference(String(val));
+        const targetDate = resolveDateReference(cond.value);
+        if (!sourceDate || !targetDate) return false;
+        return cond.operator === "date_before"
+          ? sourceDate.getTime() < targetDate.getTime()
+          : sourceDate.getTime() > targetDate.getTime();
+      }
       if (cond.operator === "less_than") {
         // Handle date fields (age calculation)
         if (cond.sourceFieldId.includes("birthdate") || cond.sourceFieldId.includes("date")) {
@@ -255,22 +287,41 @@ export function FormPreview({ config }: FormPreviewProps) {
                     }
                     if (cond.operator === "greater_than") return parseFloat(val) > parseFloat(cond.value);
                     if (cond.operator === "contains") return String(val).includes(cond.value);
+                    if (cond.operator === "date_before" || cond.operator === "date_after") {
+                      const sourceDate = resolveDateReference(String(val));
+                      const targetDate = resolveDateReference(cond.value);
+                      if (!sourceDate || !targetDate) return false;
+                      return cond.operator === "date_before"
+                        ? sourceDate.getTime() < targetDate.getTime()
+                        : sourceDate.getTime() > targetDate.getTime();
+                    }
                     return true;
                   });
                 })
                 .map((field) => (
                   <div key={field.id} className="space-y-1.5">
-                    <Label className="text-xs font-medium text-foreground">
-                      {field.label}
-                      {field.required && <Asterisk className="inline h-2.5 w-2.5 text-destructive ml-0.5" />}
-                    </Label>
+                    {field.type !== "checkbox" && field.type !== "info" ? (
+                      <Label className="text-xs font-medium text-foreground">
+                        {field.label}
+                        {field.required && <Asterisk className="inline h-2.5 w-2.5 text-destructive ml-0.5" />}
+                      </Label>
+                    ) : field.type === "checkbox" && field.placeholder ? (
+                      <Label className="text-xs font-medium text-foreground">
+                        {field.label}
+                        {field.required && <Asterisk className="inline h-2.5 w-2.5 text-destructive ml-0.5" />}
+                      </Label>
+                    ) : null}
                     {field.type === "checkbox" ? (
                       <div className="flex items-center gap-2">
                         <Checkbox
                           checked={!!activeStudent.values[field.id]}
                           onCheckedChange={(v) => setValue(field.id, v)}
                         />
-                        <span className="text-xs text-muted-foreground">{field.label}</span>
+                        <span className="text-xs text-muted-foreground">{field.placeholder || field.label}</span>
+                      </div>
+                    ) : field.type === "info" ? (
+                      <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                        {field.placeholder || field.label}
                       </div>
                     ) : field.type === "textarea" ? (
                       <Textarea

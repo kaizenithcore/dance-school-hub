@@ -17,27 +17,154 @@ export interface Class {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  teachers?: { id: string; name: string } | Array<{ id: string; name: string }> | null;
+  class_teachers?: Array<{
+    teacher_id: string;
+    teachers: { id: string; name: string } | Array<{ id: string; name: string }> | null;
+  }>;
+}
+
+function normalizeTeacherIds(input: CreateClassInput | UpdateClassInput): string[] {
+  const fromArray = Array.isArray(input.teacher_ids) ? input.teacher_ids : [];
+  const fromSingle = typeof input.teacher_id === "string" && input.teacher_id.length > 0 ? [input.teacher_id] : [];
+  return Array.from(new Set([...fromArray, ...fromSingle]));
+}
+
+function isClassTeachersSchemaMissing(message: string | undefined): boolean {
+  if (!message) {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+  return normalized.includes("class_teachers") && (normalized.includes("does not exist") || normalized.includes("relationship"));
+}
+
+async function syncClassTeachers(tenantId: string, classId: string, teacherIds: string[]) {
+  const { error: deleteError } = await supabaseAdmin
+    .from("class_teachers")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("class_id", classId);
+
+  if (deleteError) {
+    if (isClassTeachersSchemaMissing(deleteError.message)) {
+      if (teacherIds.length > 1) {
+        throw new Error("La base de datos no tiene la migración class_teachers. Ejecuta la migración de múltiples profesores.");
+      }
+      return;
+    }
+    throw new Error(`Failed to sync class teachers: ${deleteError.message}`);
+  }
+
+  if (teacherIds.length === 0) {
+    return;
+  }
+
+  const { error: insertError } = await supabaseAdmin
+    .from("class_teachers")
+    .insert(
+      teacherIds.map((teacherId) => ({
+        tenant_id: tenantId,
+        class_id: classId,
+        teacher_id: teacherId,
+      }))
+    );
+
+  if (insertError) {
+    throw new Error(`Failed to sync class teachers: ${insertError.message}`);
+  }
+}
+
+function mapTeacherRows(item: Class): Array<{ id: string; name: string }> {
+  if (Array.isArray(item.class_teachers) && item.class_teachers.length > 0) {
+    return item.class_teachers
+      .map((row) => (Array.isArray(row.teachers) ? row.teachers[0] : row.teachers))
+      .filter((teacher): teacher is { id: string; name: string } => Boolean(teacher?.id && teacher?.name));
+  }
+
+  const singleTeacher = Array.isArray(item.teachers) ? item.teachers[0] : item.teachers;
+  return singleTeacher?.id && singleTeacher?.name ? [singleTeacher] : [];
+}
+
+async function getClassWithTeachers(tenantId: string, classId: string): Promise<Class> {
+  let data: Class | null = null;
+  let error: { message: string } | null = null;
+
+  const withJoin = await supabaseAdmin
+    .from("classes")
+    .select("*, class_teachers(teacher_id, teachers(id, name))")
+    .eq("tenant_id", tenantId)
+    .eq("id", classId)
+    .single();
+
+  data = withJoin.data as Class | null;
+  error = withJoin.error as { message: string } | null;
+
+  if (error && isClassTeachersSchemaMissing(error.message)) {
+    const legacy = await supabaseAdmin
+      .from("classes")
+      .select("*, teachers(id, name)")
+      .eq("tenant_id", tenantId)
+      .eq("id", classId)
+      .single();
+
+    data = legacy.data as Class | null;
+    error = legacy.error as { message: string } | null;
+  }
+
+  if (error || !data) {
+    throw new Error(`Failed to fetch class: ${error?.message || "Class not found"}`);
+  }
+
+  const teacherRows = mapTeacherRows(data as Class);
+  return {
+    ...(data as Class),
+    teachers: teacherRows,
+  };
 }
 
 export const classService = {
   async listClasses(tenantId: string): Promise<Class[]> {
-    const { data, error } = await supabaseAdmin
+    let data: Class[] | null = null;
+    let error: { message: string } | null = null;
+
+    const withJoin = await supabaseAdmin
       .from("classes")
-      .select("*")
+      .select("*, class_teachers(teacher_id, teachers(id, name))")
       .eq("tenant_id", tenantId)
       .order("name", { ascending: true });
+
+    data = withJoin.data as Class[] | null;
+    error = withJoin.error as { message: string } | null;
+
+    if (error && isClassTeachersSchemaMissing(error.message)) {
+      const legacy = await supabaseAdmin
+        .from("classes")
+        .select("*, teachers(id, name)")
+        .eq("tenant_id", tenantId)
+        .order("name", { ascending: true });
+
+      data = legacy.data as Class[] | null;
+      error = legacy.error as { message: string } | null;
+    }
 
     if (error) {
       throw new Error(`Failed to fetch classes: ${error.message}`);
     }
 
-    return data ?? [];
+    return (data ?? []).map((item) => {
+      const teacherRows = mapTeacherRows(item as Class);
+      return {
+        ...(item as Class),
+        teachers: teacherRows,
+      };
+    });
   },
 
   async getClass(tenantId: string, classId: string): Promise<Class | null> {
     const { data, error } = await supabaseAdmin
       .from("classes")
-      .select("*")
+      .select("id")
       .eq("tenant_id", tenantId)
       .eq("id", classId)
       .single();
@@ -49,7 +176,7 @@ export const classService = {
       throw new Error(`Failed to fetch class: ${error.message}`);
     }
 
-    return data;
+    return getClassWithTeachers(tenantId, data.id);
   },
 
   async createClass(
@@ -57,6 +184,9 @@ export const classService = {
     userId: string,
     input: CreateClassInput
   ): Promise<Class> {
+    const teacherIds = normalizeTeacherIds(input);
+    const primaryTeacherId = teacherIds[0] ?? null;
+
     const { data, error } = await supabaseAdmin
       .from("classes")
       .insert({
@@ -64,7 +194,7 @@ export const classService = {
         name: input.name,
         discipline_id: input.discipline_id ?? null,
         category_id: input.category_id ?? null,
-        teacher_id: input.teacher_id ?? null,
+        teacher_id: primaryTeacherId,
         room_id: input.room_id ?? null,
         capacity: input.capacity,
         weekly_frequency: input.weekly_frequency ?? 1,
@@ -73,14 +203,15 @@ export const classService = {
         status: input.status ?? "active",
         created_by: userId,
       })
-      .select()
+      .select("id")
       .single();
 
     if (error) {
       throw new Error(`Failed to create class: ${error.message}`);
     }
 
-    return data;
+    await syncClassTeachers(tenantId, data.id, teacherIds);
+    return getClassWithTeachers(tenantId, data.id);
   },
 
   async updateClass(
@@ -88,13 +219,16 @@ export const classService = {
     classId: string,
     input: UpdateClassInput
   ): Promise<Class> {
+    const teacherIds = normalizeTeacherIds(input);
+    const primaryTeacherId = teacherIds[0] ?? null;
+
     const { data, error } = await supabaseAdmin
       .from("classes")
       .update({
         name: input.name,
         discipline_id: input.discipline_id,
         category_id: input.category_id,
-        teacher_id: input.teacher_id,
+        teacher_id: input.teacher_ids !== undefined || input.teacher_id !== undefined ? primaryTeacherId : undefined,
         room_id: input.room_id,
         capacity: input.capacity,
         weekly_frequency: input.weekly_frequency,
@@ -104,14 +238,18 @@ export const classService = {
       })
       .eq("tenant_id", tenantId)
       .eq("id", classId)
-      .select()
+      .select("id")
       .single();
 
     if (error) {
       throw new Error(`Failed to update class: ${error.message}`);
     }
 
-    return data;
+    if (input.teacher_ids !== undefined || input.teacher_id !== undefined) {
+      await syncClassTeachers(tenantId, classId, teacherIds);
+    }
+
+    return getClassWithTeachers(tenantId, data.id);
   },
 
   async deleteClass(tenantId: string, classId: string): Promise<void> {

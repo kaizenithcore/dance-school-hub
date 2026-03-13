@@ -13,6 +13,7 @@ import { getClasses } from "@/lib/api/classes";
 import { createIncident, getIncidents, type IncidentRecord, type IncidentType, updateIncident } from "@/lib/api/incidents";
 import { recordPayment } from "@/lib/api/payments";
 import { downloadAttendanceSheetPdf } from "@/lib/api/attendance";
+import { addWaitlistEntry } from "@/lib/api/waitlist";
 import { useEffect } from "react";
 
 const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
@@ -41,6 +42,10 @@ export default function ReceptionPage() {
 
   const [attendanceClassId, setAttendanceClassId] = useState("");
   const [attendanceMonth, setAttendanceMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [waitlistClassId, setWaitlistClassId] = useState("");
+  const [waitlistName, setWaitlistName] = useState("");
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistPhone, setWaitlistPhone] = useState("");
 
   const selectedStudent = useMemo(
     () => students.find((student) => student.id === selectedStudentId) || null,
@@ -78,6 +83,7 @@ export default function ReceptionPage() {
       setClasses(classesData);
       setIncidents(incidentsData);
       setAttendanceClassId((current) => current || classesData[0]?.id || "");
+      setWaitlistClassId((current) => current || classesData[0]?.id || "");
       setSelectedStudentId((current) => current || studentsData[0]?.id || "");
       setIncidentStudentId((current) => current || studentsData[0]?.id || "");
     } catch (error) {
@@ -185,6 +191,41 @@ export default function ReceptionPage() {
       toast.success("Hoja de asistencia descargada");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo descargar la hoja de asistencia");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAddWaitlist = async () => {
+    if (!waitlistClassId) {
+      toast.error("Selecciona una clase");
+      return;
+    }
+    if (!waitlistName.trim() || !waitlistEmail.trim()) {
+      toast.error("Nombre y email son obligatorios");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const result = await addWaitlistEntry({
+        classId: waitlistClassId,
+        name: waitlistName.trim(),
+        email: waitlistEmail.trim(),
+        phone: waitlistPhone.trim() || undefined,
+      });
+
+      if (result.created) {
+        toast.success("Persona añadida a la lista de espera");
+      } else {
+        toast.info("La persona ya estaba en la lista activa");
+      }
+
+      setWaitlistName("");
+      setWaitlistEmail("");
+      setWaitlistPhone("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo añadir a la lista de espera");
     } finally {
       setBusy(false);
     }
@@ -364,6 +405,44 @@ export default function ReceptionPage() {
             <Button onClick={handleDownloadAttendance} disabled={loading || busy || !attendanceClassId}>
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               Descargar hoja
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><UserRound className="h-4 w-4" /> Añadir a lista de espera</CardTitle>
+            <CardDescription>Alta rápida para recepción o atención telefónica.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <Label>Clase</Label>
+              <Select value={waitlistClassId} onValueChange={setWaitlistClassId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona una clase" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input value={waitlistName} onChange={(event) => setWaitlistName(event.target.value)} placeholder="Nombre y apellidos" />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input value={waitlistEmail} onChange={(event) => setWaitlistEmail(event.target.value)} placeholder="correo@ejemplo.com" />
+            </div>
+            <div className="space-y-2">
+              <Label>Teléfono</Label>
+              <Input value={waitlistPhone} onChange={(event) => setWaitlistPhone(event.target.value)} placeholder="Opcional" />
+            </div>
+            <Button onClick={handleAddWaitlist} disabled={loading || busy || !waitlistClassId}>
+              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserRound className="mr-2 h-4 w-4" />}
+              Añadir a lista de espera
             </Button>
           </CardContent>
         </Card>

@@ -37,7 +37,7 @@ const plans: Plan[] = [
   },
   {
     name: "Pro",
-    price: "349€",
+    price: "499€",
     period: "/mes",
     desc: "Hasta 1.200 alumnos",
     features: [
@@ -55,7 +55,7 @@ const plans: Plan[] = [
   },
   {
     name: "Enterprise",
-    price: "699€",
+    price: "949€",
     period: "/mes",
     desc: "Hasta 4.000 alumnos",
     features: [
@@ -148,9 +148,11 @@ export function Pricing() {
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Add-ons y compras puntuales</h3>
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
             <p>Dominio personalizado: 29 EUR/mes</p>
-            <p>Soporte prioritario: 49 EUR/mes</p>
-            <p>Lista de espera automatica para Starter: 19 EUR/mes</p>
-            <p>Bloques extra de alumnos: Starter +100 (15 EUR), Pro +300 (25 EUR), Enterprise +1000 (50 EUR)</p>
+            <p>Soporte prioritario: 79 EUR/mes</p>
+            <p>Branding personalizado: 39 EUR/mes</p>
+            <p>Bloques extra de alumnos Starter (+100): 24 EUR/mes</p>
+            <p>Bloques extra de alumnos Pro (+300): 59 EUR/mes</p>
+            <p>Bloques extra de alumnos Enterprise (+500): 119 EUR/mes</p>
           </div>
         </div>
       </div>

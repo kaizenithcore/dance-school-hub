@@ -9,7 +9,7 @@ import {
 const faqs = [
   { q: "¿Puedo importar mis alumnos desde Excel?", a: "Sí. El importador inteligente mapea automáticamente las columnas de tu archivo y crea los registros de alumnos en segundos." },
   { q: "¿Puedo personalizar el formulario de matrícula?", a: "Totalmente. El editor visual te permite añadir campos de texto, selectores, archivos, fechas y lógica condicional sin escribir código." },
-  { q: "¿Puedo gestionar varias sedes?", a: "Sí, el plan Enterprise incluye soporte multi-sede con gestión independiente de salas, profesores y horarios por ubicación." },
+  { q: "¿Puedo gestionar varias sedes?", a: "Sí, el plan Enterprise incluye soporte multi-sede con gestión independiente de aulas, profesores y horarios por ubicación." },
   { q: "¿Necesito conocimientos técnicos?", a: "No. La plataforma está diseñada para que cualquier persona de tu equipo pueda usarla desde el primer día, sin formación técnica." },
   { q: "¿Hay periodo de prueba?", a: "Sí. Puedes probar el plan Pro durante 14 días sin compromiso y sin tarjeta de crédito." },
 ];

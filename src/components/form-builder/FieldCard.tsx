@@ -1,7 +1,8 @@
 import { FormBuilderField, FIELD_TYPE_LABELS, FieldType } from "@/lib/types/formBuilder";
-import { GripVertical, Trash2, ChevronDown, ChevronUp, Asterisk, Type, Mail, Phone, AlignLeft, ListChecks, CheckSquare, FileUp, CalendarDays, Hash } from "lucide-react";
+import { GripVertical, Trash2, ChevronDown, ChevronUp, Asterisk, Type, Mail, Phone, AlignLeft, ListChecks, CheckSquare, FileUp, CalendarDays, Hash, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +22,7 @@ const FIELD_ICONS: Record<FieldType, React.ElementType> = {
   file: FileUp,
   date: CalendarDays,
   number: Hash,
+  info: Info,
 };
 
 interface FieldCardProps {
@@ -129,41 +131,55 @@ export function FieldCard({ field, index, totalFields, allSections, onUpdate, on
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Placeholder</Label>
-              <Input
-                value={field.placeholder || ""}
-                onChange={(e) => onUpdate({ ...field, placeholder: e.target.value })}
-                placeholder="Texto de ayuda..."
-                className="h-8 text-xs"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Switch
-                id={`req-${field.id}`}
-                checked={field.required}
-                onCheckedChange={(checked) => onUpdate({ ...field, required: checked })}
-              />
-              <Label htmlFor={`req-${field.id}`} className="text-xs text-muted-foreground cursor-pointer">
-                Obligatorio
+              <Label className="text-xs text-muted-foreground">
+                {field.type === "info" ? "Contenido" : field.type === "checkbox" ? "Texto de la casilla" : "Placeholder"}
               </Label>
-            </div>
-
-            {(field.type === "text" || field.type === "textarea" || field.type === "email" || field.type === "tel") && (
-              <div className="flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground">Máx. caracteres</Label>
-                <Input
-                  type="number"
-                  value={field.maxLength || ""}
-                  onChange={(e) => onUpdate({ ...field, maxLength: e.target.value ? parseInt(e.target.value) : undefined })}
-                  className="h-7 w-20 text-xs"
-                  min={1}
+              {field.type === "info" ? (
+                <Textarea
+                  value={field.placeholder || ""}
+                  onChange={(e) => onUpdate({ ...field, placeholder: e.target.value })}
+                  placeholder="Escribe el texto informativo que verán los alumnos..."
+                  rows={3}
+                  className="text-xs"
                 />
-              </div>
-            )}
+              ) : (
+                <Input
+                  value={field.placeholder || ""}
+                  onChange={(e) => onUpdate({ ...field, placeholder: e.target.value })}
+                  placeholder={field.type === "checkbox" ? "Ej: He leído y acepto" : "Texto de ayuda..."}
+                  className="h-8 text-xs"
+                />
+              )}
+            </div>
           </div>
+
+          {field.type !== "info" && (
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id={`req-${field.id}`}
+                  checked={field.required}
+                  onCheckedChange={(checked) => onUpdate({ ...field, required: checked })}
+                />
+                <Label htmlFor={`req-${field.id}`} className="text-xs text-muted-foreground cursor-pointer">
+                  Obligatorio
+                </Label>
+              </div>
+
+              {(field.type === "text" || field.type === "textarea" || field.type === "email" || field.type === "tel") && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">Máx. caracteres</Label>
+                  <Input
+                    type="number"
+                    value={field.maxLength || ""}
+                    onChange={(e) => onUpdate({ ...field, maxLength: e.target.value ? parseInt(e.target.value) : undefined })}
+                    className="h-7 w-20 text-xs"
+                    min={1}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {field.type === "select" && (
             <FieldOptionsEditor

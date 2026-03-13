@@ -3,12 +3,13 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { ScheduleEditor } from "@/components/schedule/ScheduleEditor";
 import { ScheduleInsightsPanel } from "@/components/schedule/ScheduleInsightsPanel";
 import { ScheduleProposalsPanel } from "@/components/schedule/ScheduleProposalsPanel";
-import { getScheduleInsights, type ScheduleInsightsResult } from "@/lib/api/schedules";
+import { getScheduleInsights, type ScheduleInsightsResult, type ScheduleProposal } from "@/lib/api/schedules";
 
 export default function SchedulePage() {
   const [insights, setInsights] = useState<ScheduleInsightsResult | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(true);
   const [editorVersion, setEditorVersion] = useState(0);
+  const [hoveredProposal, setHoveredProposal] = useState<ScheduleProposal | null>(null);
 
   const loadInsights = async () => {
     try {
@@ -34,15 +35,17 @@ export default function SchedulePage() {
       <div className="mb-4">
         <ScheduleInsightsPanel insights={insights} loading={loadingInsights} />
       </div>
-      <div className="mb-4">
+      <ScheduleEditor key={editorVersion} previewProposal={hoveredProposal} />
+       <div className="mb-4">
         <ScheduleProposalsPanel
+          onPreviewChange={setHoveredProposal}
           onApplied={() => {
             setEditorVersion((prev) => prev + 1);
+            setHoveredProposal(null);
             void loadInsights();
           }}
         />
       </div>
-      <ScheduleEditor key={editorVersion} />
     </PageContainer>
   );
 }

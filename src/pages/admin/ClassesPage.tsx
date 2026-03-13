@@ -8,6 +8,7 @@ import { ClassRecord } from "@/lib/data/mockClassRecords";
 import { createClass, deleteClass, getClasses, updateClass } from "@/lib/api/classes";
 import { getDisciplines } from "@/lib/api/disciplines";
 import { getCategories } from "@/lib/api/categories";
+import { getRooms } from "@/lib/api/rooms";
 import { getSchedules } from "@/lib/api/schedules";
 import { Button } from "@/components/ui/button";
 import { CalendarClock, Plus } from "lucide-react";
@@ -31,16 +32,18 @@ export default function ClassesPage() {
     const loadClasses = async () => {
       setLoading(true);
       try {
-        const [classesData, disciplinesData, categoriesData, schedulesData] = await Promise.all([
+        const [classesData, disciplinesData, categoriesData, roomsData, schedulesData] = await Promise.all([
           getClasses(),
           getDisciplines(),
           getCategories(),
+          getRooms(),
           getSchedules(),
         ]);
 
         // Create lookup maps
         const disciplineMap = new Map(disciplinesData.map((d) => [d.id, d.name]));
         const categoryMap = new Map(categoriesData.map((c) => [c.id, c.name]));
+        const roomMap = new Map(roomsData.map((r) => [r.id, r.name]));
 
         const scheduledByClass = new Map<string, number>();
         (schedulesData || []).forEach((schedule) => {
@@ -50,24 +53,30 @@ export default function ClassesPage() {
           );
         });
 
-        const mappedClasses: ClassRecord[] = (classesData || []).map((cls) => ({
-          id: cls.id,
-          name: cls.name,
-          discipline: cls.discipline ? (disciplineMap.get(cls.discipline) || cls.discipline) : "General",
-          disciplineId: cls.discipline || undefined,
-          teacher: cls.teacher?.name || "Sin asignar",
-          teacherId: cls.teacher?.id || cls.teacherId || undefined,
-          category: cls.category ? (categoryMap.get(cls.category) || cls.category) : "General",
-          categoryId: cls.category || undefined,
-          price: cls.price,
-          capacity: cls.capacity,
-          weeklyFrequency: cls.weeklyFrequency || 1,
-          scheduledCount: scheduledByClass.get(cls.id) || 0,
-          room: "Sin sala",
-          roomId: cls.roomId || undefined,
-          status: cls.status,
-          enrolled: 0,
-        }));
+        const mappedClasses: ClassRecord[] = (classesData || []).map((cls) => {
+          const teacherNames = (cls.teachers || []).map((teacher) => teacher.name).filter(Boolean);
+          const teacherIds = cls.teacherIds || [];
+
+          return {
+            id: cls.id,
+            name: cls.name,
+            discipline: cls.discipline ? (disciplineMap.get(cls.discipline) || cls.discipline) : "General",
+            disciplineId: cls.disciplineId || undefined,
+            teacher: teacherNames.length > 0 ? teacherNames.join(", ") : "Sin asignar",
+            teacherId: teacherIds[0] || cls.teacher?.id || cls.teacherId || undefined,
+            teacherIds,
+            category: cls.category ? (categoryMap.get(cls.category) || cls.category) : "General",
+            categoryId: cls.categoryId || undefined,
+            price: cls.price,
+            capacity: cls.capacity,
+            weeklyFrequency: cls.weeklyFrequency || 1,
+            scheduledCount: scheduledByClass.get(cls.id) || 0,
+            room: cls.roomId ? roomMap.get(cls.roomId) || "Sin aula" : "Sin aula",
+            roomId: cls.roomId || undefined,
+            status: cls.status,
+            enrolled: 0,
+          };
+        });
         setClasses(mappedClasses);
       } catch (error) {
         console.error("Error loading classes:", error);
@@ -100,15 +109,17 @@ export default function ClassesPage() {
     setDeleteOpen(true);
   };
 
-  const handleSave = useCallback(async (data: Omit<ClassRecord, "id" | "enrolled"> & { discipline_id?: string; category_id?: string; teacher_id?: string }): Promise<boolean> => {
+  const handleSave = useCallback(async (data: Omit<ClassRecord, "id" | "enrolled"> & { discipline_id?: string; category_id?: string; teacher_id?: string; teacher_ids?: string[]; room_id?: string }): Promise<boolean> => {
     try {
       if (editingClass) {
         // Update existing
         const result = await updateClass(editingClass.id, {
           name: data.name,
-          discipline_id: data.discipline_id || data.discipline,
-          category_id: data.category_id || data.category,
+          discipline_id: data.discipline_id || undefined,
+          category_id: data.category_id || undefined,
           teacher_id: data.teacher_id,
+          teacher_ids: data.teacher_ids,
+          room_id: data.room_id,
           price: data.price,
           capacity: data.capacity,
           weeklyFrequency: data.weeklyFrequency || 1,
@@ -116,7 +127,20 @@ export default function ClassesPage() {
         });
         if (result) {
           setClasses((prev) =>
-            prev.map((c) => (c.id === editingClass.id ? { ...c, ...data } : c))
+            prev.map((c) => (
+              c.id === editingClass.id
+                ? {
+                    ...c,
+                    ...data,
+                    disciplineId: data.discipline_id || undefined,
+                    categoryId: data.category_id || undefined,
+                    roomId: data.room_id || undefined,
+                    teacherId: data.teacher_id || undefined,
+                    teacherIds: data.teacher_ids || [],
+                    teacher: data.teacher?.trim() ? data.teacher : "Sin asignar",
+                  }
+                : c
+            ))
           );
           toast.success("Clase actualizada exitosamente");
           return true;
@@ -127,9 +151,11 @@ export default function ClassesPage() {
         // Create new
         const result = await createClass({
           name: data.name,
-          discipline_id: data.discipline_id || data.discipline,
-          category_id: data.category_id || data.category,
+          discipline_id: data.discipline_id || undefined,
+          category_id: data.category_id || undefined,
           teacher_id: data.teacher_id,
+          teacher_ids: data.teacher_ids,
+          room_id: data.room_id,
           price: data.price,
           capacity: data.capacity,
           weeklyFrequency: data.weeklyFrequency || 1,
@@ -139,6 +165,12 @@ export default function ClassesPage() {
           const newClass: ClassRecord = {
             ...data,
             id: result.id,
+            disciplineId: data.discipline_id || undefined,
+            categoryId: data.category_id || undefined,
+            roomId: data.room_id || undefined,
+            teacherId: data.teacher_id || undefined,
+            teacherIds: data.teacher_ids || [],
+            teacher: data.teacher?.trim() ? data.teacher : "Sin asignar",
             enrolled: 0,
           };
           setClasses((prev) => [newClass, ...prev]);

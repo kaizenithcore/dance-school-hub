@@ -77,6 +77,12 @@ export default function StudentsPage() {
     guardian: data.guardian,
     notes: data.notes,
     paymentType: data.paymentType,
+    payerType: data.payerType,
+    payerName: data.payerName,
+    payerEmail: data.payerEmail,
+    payerPhone: data.payerPhone,
+    preferredPaymentMethod: data.preferredPaymentMethod,
+    accountNumber: data.accountNumber,
     classIds: (data.enrolledClasses || []).map((klass) => klass.id).filter(Boolean),
   });
 

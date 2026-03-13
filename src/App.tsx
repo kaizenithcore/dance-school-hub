@@ -28,6 +28,7 @@ const WaitlistPage = lazy(() => import("@/pages/admin/WaitlistPage"));
 const RenewalsPage = lazy(() => import("@/pages/admin/RenewalsPage"));
 const CourseClonePage = lazy(() => import("@/pages/admin/CourseClonePage"));
 const ReceptionPage = lazy(() => import("@/pages/admin/ReceptionPage"));
+const ExamsPage = lazy(() => import("@/pages/admin/ExamsPage"));
 
 const SchoolLandingPage = lazy(() => import("@/pages/public/SchoolLandingPage"));
 const EnrollPage = lazy(() => import("@/pages/public/EnrollPage"));
@@ -128,6 +129,7 @@ const App = () => (
             <Route path="renewals" element={withSuspense(<RenewalsPage />)} />
             <Route path="course-clone" element={withSuspense(<CourseClonePage />)} />
             <Route path="reception" element={withSuspense(<ReceptionPage />)} />
+            <Route path="exams" element={withSuspense(<ExamsPage />)} />
             <Route path="settings" element={withSuspense(<SettingsPage />)} />
           </Route>
           <Route path="/s/:schoolSlug" element={withSuspense(<PublicLayout />)}>

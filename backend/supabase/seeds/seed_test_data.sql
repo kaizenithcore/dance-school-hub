@@ -57,9 +57,9 @@ VALUES
   (
     'f5e8a5b2-3f4d-4e5f-a6b7-c8d9e0f1a2b7',
     'a157c330-a83f-4962-b61f-36cf4b1e1726',
-    'Sala Principal',
+    'Aula Principal',
     25,
-    'Sala amplia con espejos de pared completa, suelo de madera y barra de ballet.',
+    'Aula amplia con espejos de pared completa, suelo de madera y barra de ballet.',
     true,
     NOW(),
     NOW()
@@ -67,9 +67,9 @@ VALUES
   (
     'f6e8a5b2-3f4d-4e5f-a6b7-c8d9e0f1a2b8',
     'a157c330-a83f-4962-b61f-36cf4b1e1726',
-    'Sala 2',
+    'Aula 2',
     15,
-    'Sala mediana perfecta para clases reducidas.',
+    'Aula mediana perfecta para clases reducidas.',
     true,
     NOW(),
     NOW()
@@ -77,7 +77,7 @@ VALUES
   (
     'f7e8a5b2-3f4d-4e5f-a6b7-c8d9e0f1a2b9',
     'a157c330-a83f-4962-b61f-36cf4b1e1726',
-    'Sala 3 - Estudio',
+    'Aula 3 - Estudio',
     12,
     'Estudio íntimo ideal para clases personalizadas y ensayos.',
     true,

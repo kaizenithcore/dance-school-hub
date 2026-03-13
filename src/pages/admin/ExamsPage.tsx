@@ -14,10 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, GraduationCap } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
+import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
+import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
+import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 
 type View = "list" | "candidates" | "grading";
 
 export default function ExamsPage() {
+  const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
   const [exams, setExams] = useState<ExamRecord[]>(MOCK_EXAMS);
   const [candidates, setCandidates] = useState<ExamCandidate[]>(MOCK_CANDIDATES);
   const [view, setView] = useState<View>("list");
@@ -32,6 +36,9 @@ export default function ExamsPage() {
   const [gradingOpen, setGradingOpen] = useState(false);
   const [certCandidate, setCertCandidate] = useState<ExamCandidate | null>(null);
   const [certOpen, setCertOpen] = useState(false);
+  const [lockOpen, setLockOpen] = useState(false);
+
+  const examsLocked = !billingLoading && !billing.features.examSuite;
 
   const filteredExams = exams.filter((e) => {
     const matchSearch = !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.discipline.toLowerCase().includes(search.toLowerCase());
@@ -40,11 +47,21 @@ export default function ExamsPage() {
   });
 
   const handleCreateExam = () => {
+    if (examsLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     setEditingExam(null);
     setFormOpen(true);
   };
 
   const handleEditExam = (exam: ExamRecord) => {
+    if (examsLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     setEditingExam(exam);
     setFormOpen(true);
   };
@@ -149,6 +166,15 @@ export default function ExamsPage() {
 
   return (
     <PageContainer title="Exámenes" description="Gestión de exámenes, candidatos y certificados">
+      {examsLocked ? (
+        <UpgradeFeatureAlert
+          title="ExamSuite no está activo en tu plan"
+          description={`El módulo de exámenes está bloqueado para el plan ${planLabel}. Mejora a Pro para gestionar candidatos, calificaciones y certificados.`}
+          onUpgrade={() => void startUpgrade("examSuite")}
+        />
+      ) : null}
+
+      <div className={examsLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -206,6 +232,15 @@ export default function ExamsPage() {
         onOpenChange={setFormOpen}
         exam={editingExam}
         onSave={handleSaveExam}
+      />
+      </div>
+
+      <FeatureLockDialog
+        open={lockOpen}
+        onOpenChange={setLockOpen}
+        title="ExamSuite disponible en plan Pro"
+        description="Para crear y gestionar exámenes necesitas activar el módulo ExamSuite en un plan superior."
+        onUpgrade={() => void startUpgrade("examSuite")}
       />
     </PageContainer>
   );

@@ -307,6 +307,94 @@ export const paymentService = {
             ? "mercadopago"
             : "cash";
 
+    const monthFromMetadata =
+      typeof metadata.month === "string" && /^\d{4}-\d{2}$/.test(metadata.month)
+        ? metadata.month
+        : null;
+
+    let linkedInvoice: { id: string; invoice_number: string; status: string } | null = null;
+
+    if (monthFromMetadata) {
+      const { data: invoiceData } = await supabaseAdmin
+        .from("monthly_invoices")
+        .select("id, invoice_number, status")
+        .eq("tenant_id", tenantId)
+        .eq("student_id", studentId)
+        .eq("month", monthFromMetadata)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      linkedInvoice = invoiceData ?? null;
+    }
+
+    const paymentMetadata: Record<string, any> = {
+      ...metadata,
+    };
+
+    if (linkedInvoice?.id) {
+      paymentMetadata.invoice_id = linkedInvoice.id;
+      paymentMetadata.invoice_number = linkedInvoice.invoice_number;
+    }
+
+    // Idempotency for invoice-linked payments: reuse the existing payment row.
+    if (linkedInvoice?.id) {
+      const { data: existingInvoicePayment } = await supabaseAdmin
+        .from("payments")
+        .select("id, metadata")
+        .eq("tenant_id", tenantId)
+        .eq("student_id", studentId)
+        .eq("metadata->>invoice_id", linkedInvoice.id)
+        .in("status", ["pending", "overdue", "paid"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingInvoicePayment?.id) {
+        const existingMetadata =
+          existingInvoicePayment.metadata && typeof existingInvoicePayment.metadata === "object"
+            ? (existingInvoicePayment.metadata as Record<string, any>)
+            : {};
+
+        const now = new Date().toISOString();
+        const { data: updatedPayment, error: updateError } = await supabaseAdmin
+          .from("payments")
+          .update({
+            amount_cents: amountCents,
+            status,
+            provider,
+            paid_at: status === "paid" ? now : null,
+            metadata: {
+              ...existingMetadata,
+              ...paymentMetadata,
+            },
+            updated_at: now,
+          })
+          .eq("id", existingInvoicePayment.id)
+          .eq("tenant_id", tenantId)
+          .select()
+          .single();
+
+        if (updateError) {
+          throw new Error(`Failed to record payment: ${updateError.message}`);
+        }
+
+        if (status === "paid" && linkedInvoice.status !== "paid") {
+          await supabaseAdmin
+            .from("monthly_invoices")
+            .update({
+              status: "paid",
+              payment_method: rawPaymentMethod,
+              paid_date: now,
+            })
+            .eq("id", linkedInvoice.id)
+            .eq("tenant_id", tenantId);
+        }
+
+        return updatedPayment;
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from("payments")
       .insert({
@@ -317,13 +405,25 @@ export const paymentService = {
         status,
         provider,
         paid_at: status === "paid" ? new Date().toISOString() : null,
-        metadata,
+        metadata: paymentMetadata,
       })
       .select()
       .single();
 
     if (error) {
       throw new Error(`Failed to record payment: ${error.message}`);
+    }
+
+    if (status === "paid" && linkedInvoice?.id && linkedInvoice.status !== "paid") {
+      await supabaseAdmin
+        .from("monthly_invoices")
+        .update({
+          status: "paid",
+          payment_method: rawPaymentMethod,
+          paid_date: new Date().toISOString(),
+        })
+        .eq("id", linkedInvoice.id)
+        .eq("tenant_id", tenantId);
     }
 
     return data;

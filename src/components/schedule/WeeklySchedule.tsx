@@ -117,7 +117,7 @@ export function WeeklySchedule({ classes, selectedClassIds, onToggleClass }: Wee
                       (c) => c.day === day && parseStartHour(c.time) === parseInt(slot)
                     );
                     return (
-                      <div key={`${day}-${slot}`} className="border-l border-border min-h-[52px] p-0.5 relative">
+                      <div key={`${day}-${slot}`} className="border-l border-border min-h-[60px] p-0.5 relative">
                         {classesInSlot.map((cls) => (
                           <ClassCard
                             key={cls.id}

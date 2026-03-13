@@ -104,9 +104,9 @@ export function TotalHoursConditionEditor({ conditions, categories, onChange }: 
       </div>
 
       <div className="space-y-2">
-        <Label>Categorías incluidas (opcional)</Label>
+        <Label>Grupos incluidos (opcional)</Label>
         {!hasCategories ? (
-          <p className="text-xs text-muted-foreground">No hay categorías creadas. Se contarán todas las categorías.</p>
+          <p className="text-xs text-muted-foreground">No hay grupos creados. Se contarán todos los grupos.</p>
         ) : (
           <div className="border rounded-lg p-3 space-y-2 max-h-36 overflow-y-auto">
             {categories.map((category) => (
@@ -124,7 +124,7 @@ export function TotalHoursConditionEditor({ conditions, categories, onChange }: 
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          Si no seleccionas categorías, el bono contará horas de todas las disciplinas.
+          Si no seleccionas grupos, el bono contará horas de todas las disciplinas.
         </p>
       </div>
 

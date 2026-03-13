@@ -13,7 +13,7 @@ Sprint 3 implementa el sistema de gestión de configuración escolar: Teachers, 
 Contiene datos de prueba para el tenant `a157c330-a83f-4962-b61f-36cf4b1e1726` (escuela-de-prueba):
 
 - **4 Profesores:** Laura Martínez (ballet), Carlos Ramírez (latino), Ana Fernández (hip hop), Miguel Torres (contemporáneo)
-- **3 Salas:** Sala Principal (25 plazas), Sala 2 (15), Sala 3 - Estudio (12)
+- **3 Aulas:** Aula Principal (25 plazas), Aula 2 (15), Aula 3 - Estudio (12)
 - **6 Clases:** Ballet Iniciación, Ballet Avanzado, Salsa y Bachata, Hip Hop, Contemporáneo, Ballet Infantil
 - **10 Horarios:** Clases programadas de lunes a viernes en diferentes franjas horarias
 
@@ -49,11 +49,11 @@ Contiene datos de prueba para el tenant `a157c330-a83f-4962-b61f-36cf4b1e1726` (
 
 #### Room Service
 - [backend/lib/services/roomService.ts](backend/lib/services/roomService.ts)
-- `listRooms(tenantId)` - Lista todas las salas del tenant
-- `getRoom(tenantId, roomId)` - Obtiene una sala por ID
-- `createRoom(tenantId, input)` - Crea nueva sala
-- `updateRoom(tenantId, roomId, input)` - Actualiza sala
-- `deleteRoom(tenantId, roomId)` - Elimina sala
+- `listRooms(tenantId)` - Lista todas las aulas del tenant
+- `getRoom(tenantId, roomId)` - Obtiene una aula por ID
+- `createRoom(tenantId, input)` - Crea nueva aula
+- `updateRoom(tenantId, roomId, input)` - Actualiza aula
+- `deleteRoom(tenantId, roomId)` - Elimina aula
 
 #### Class Service
 - [backend/lib/services/classService.ts](backend/lib/services/classService.ts)
@@ -94,25 +94,25 @@ Todos los endpoints requieren autenticación Bearer token y respetan aislamiento
 #### Rooms API
 
 **GET /api/admin/rooms**
-- Lista todas las salas del tenant activo
+- Lista todas las aulas del tenant activo
 - Respuesta: `{ success: true, data: Room[] }`
 
 **POST /api/admin/rooms**
-- Crea una nueva sala
+- Crea una nueva aula
 - Body: `{ name, capacity, description?, is_active? }`
 - Respuesta: `{ success: true, data: Room }`
 
 **GET /api/admin/rooms/:id**
-- Obtiene una sala específica
+- Obtiene una aula específica
 - Respuesta: `{ success: true, data: Room }`
 
 **PUT /api/admin/rooms/:id**
-- Actualiza una sala
-- Body: campos opcionales de la sala
+- Actualiza una aula
+- Body: campos opcionales de la aula
 - Respuesta: `{ success: true, data: Room }`
 
 **DELETE /api/admin/rooms/:id**
-- Elimina una sala
+- Elimina una aula
 - Respuesta: `{ success: true, data: { deleted: true } }`
 
 #### Classes API
@@ -188,7 +188,7 @@ curl -X POST http://localhost:3000/api/admin/teachers \
   }'
 ```
 
-### 3. Listar salas
+### 3. Listar aulas
 
 ```bash
 curl -X GET http://localhost:3000/api/admin/rooms \
@@ -196,7 +196,7 @@ curl -X GET http://localhost:3000/api/admin/rooms \
   -H "X-Tenant-Id: a157c330-a83f-4962-b61f-36cf4b1e1726"
 ```
 
-Deberías recibir las 3 salas de ejemplo.
+Deberías recibir las 3 aulas de ejemplo.
 
 ### 4. Listar clases
 
@@ -284,7 +284,7 @@ curl -X PUT http://localhost:3000/api/admin/classes/a1b2c3d4-e5f6-4a5b-8c9d-0e1f
 
 ### Sprint 4 - Schedule System
 - Endpoints para gestión de horarios (class_schedules)
-- Validaciones de conflictos de sala/profesor
+- Validaciones de conflictos de aula/profesor
 - Query endpoint público para calendario: `GET /api/public/schedule/:tenantSlug`
 - Batch update para editor de horarios
 

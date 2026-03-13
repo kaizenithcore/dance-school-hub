@@ -1,11 +1,11 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-export type FieldType = "text" | "email" | "tel" | "textarea" | "select" | "checkbox" | "file" | "date" | "number";
+export type FieldType = "text" | "email" | "tel" | "textarea" | "select" | "checkbox" | "file" | "date" | "number" | "info";
 
 export interface FieldCondition {
   id: string;
   sourceFieldId: string;
-  operator: "equals" | "not_equals" | "less_than" | "greater_than" | "contains" | "is_empty" | "is_not_empty";
+  operator: "equals" | "not_equals" | "less_than" | "greater_than" | "contains" | "is_empty" | "is_not_empty" | "date_before" | "date_after";
   value: string;
 }
 
@@ -29,27 +29,31 @@ export interface FormSection {
   conditions?: FieldCondition[];
 }
 
+export interface ScheduleDisplaySettings {
+  preferredView: "calendar" | "list";
+  recurringSelectionMode: "linked" | "single_day";
+  recurringClassOverrides: string[];
+  calendarFields: {
+    showDiscipline: boolean;
+    showCategory: boolean;
+    showRoom: boolean;
+    showCapacity: boolean;
+    showPrice: boolean;
+    showSelectedStudents: boolean;
+  };
+}
+
 export interface EnrollmentFormConfig {
   sections: FormSection[];
   jointEnrollment: {
     enabled: boolean;
     maxStudents: number;
-    schedule?: {
-      preferredView: "calendar" | "list";
-      recurringSelectionMode: "linked" | "single_day";
-      recurringClassOverrides: string[];
-      calendarFields: {
-        showDiscipline: boolean;
-        showCategory: boolean;
-        showRoom: boolean;
-        showCapacity: boolean;
-        showPrice: boolean;
-        showSelectedStudents: boolean;
-      };
-    };
+    /** @deprecated Use scheduleSettings instead */
+    schedule?: ScheduleDisplaySettings;
   };
   includeSchedule: boolean;
   includePricing: boolean;
+  scheduleSettings?: ScheduleDisplaySettings;
 }
 
 export interface ClassSchedule {
@@ -83,17 +87,28 @@ export interface PublicSchoolProfile {
   tiktok?: string;
 }
 
+export interface PublicScheduleConfig {
+  startHour?: string;
+  endHour?: string;
+  recurringSelectionMode?: "linked" | "single_day";
+}
+
 export interface PublicFormData {
   tenantId: string;
   tenantName: string;
   formConfig: EnrollmentFormConfig;
   publicProfile?: PublicSchoolProfile;
+  scheduleConfig?: PublicScheduleConfig;
   availableClasses: PublicClass[];
 }
 
 export interface EnrollmentSubmitPayload {
   class_id?: string;
   class_ids?: string[];
+    class_selections?: Array<{
+      class_id: string;
+      schedule_id?: string;
+    }>;
     form_values: Record<string, unknown>;
     students?: Array<{
       form_values: Record<string, unknown>;

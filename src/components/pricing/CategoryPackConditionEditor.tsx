@@ -36,17 +36,23 @@ export function CategoryPackConditionEditor({ conditions, categories, onChange }
       <h4 className="font-medium">Condiciones del Bono</h4>
 
       <div>
-        <Label>Categoría de Disciplinas</Label>
+        <Label>Grupo de Bonos</Label>
         <Select value={categorySlug} onValueChange={setCategorySlug}>
           <SelectTrigger>
-            <SelectValue placeholder="Selecciona una categoría" />
+            <SelectValue placeholder="Selecciona un grupo" />
           </SelectTrigger>
           <SelectContent>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.slug}>
-                {cat.name}
-              </SelectItem>
-            ))}
+            {categories.length === 0 ? (
+              <div className="px-2 py-2 text-xs text-muted-foreground">
+                Aún no se han creado categorías para bonos.
+              </div>
+            ) : (
+              categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.slug}>
+                  {cat.name}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
         {selectedCategory && (
@@ -79,7 +85,7 @@ export function CategoryPackConditionEditor({ conditions, categories, onChange }
 
       <p className="text-xs text-muted-foreground">
         Este bono se aplicará cuando el alumno seleccione entre {hoursMin} y {hoursMax} horas
-        totales de disciplinas en esta categoría
+        totales de disciplinas en este grupo
       </p>
     </div>
   )

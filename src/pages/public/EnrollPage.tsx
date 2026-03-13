@@ -28,6 +28,30 @@ function isBlank(value: unknown) {
   return false;
 }
 
+function resolveDateReference(rawValue: string) {
+  if (rawValue === "today") {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now;
+  }
+
+  const minusYearsMatch = rawValue.match(/^today_minus_(\d+)y$/);
+  if (minusYearsMatch) {
+    const years = Number(minusYearsMatch[1]);
+    if (Number.isFinite(years)) {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      now.setFullYear(now.getFullYear() - years);
+      return now;
+    }
+  }
+
+  const parsed = new Date(rawValue);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
 function evaluateCondition(values: Record<string, unknown>, condition: FieldCondition): boolean {
   const raw = values[condition.sourceFieldId];
   const value = raw == null ? "" : String(raw);
@@ -37,6 +61,15 @@ function evaluateCondition(values: Record<string, unknown>, condition: FieldCond
   if (condition.operator === "equals") return value === condition.value;
   if (condition.operator === "not_equals") return value !== condition.value;
   if (condition.operator === "contains") return value.includes(condition.value);
+
+  if (condition.operator === "date_before" || condition.operator === "date_after") {
+    const sourceDate = resolveDateReference(value);
+    const targetDate = resolveDateReference(condition.value);
+    if (!sourceDate || !targetDate) return false;
+    return condition.operator === "date_before"
+      ? sourceDate.getTime() < targetDate.getTime()
+      : sourceDate.getTime() > targetDate.getTime();
+  }
 
   if (condition.operator === "less_than" || condition.operator === "greater_than") {
     const fieldKey = condition.sourceFieldId.toLowerCase();
@@ -85,6 +118,17 @@ function extractPayerInfo(values: Record<string, unknown>) {
   };
 }
 
+function extractStudentInfo(values: Record<string, unknown>) {
+  return {
+    name: findValueByKey(values, ["student_name", "first_name", "name", "nombre"]),
+    email: findValueByKey(values, ["student_email", "email", "correo"]),
+    phone: findValueByKey(values, ["student_phone", "phone", "telefono"]),
+    guardianName: findValueByKey(values, ["guardian_name", "tutor_name", "responsable"]),
+    guardianEmail: findValueByKey(values, ["guardian_email", "tutor_email"]),
+    guardianPhone: findValueByKey(values, ["guardian_phone", "tutor_phone", "responsable_phone"]),
+  };
+}
+
 function selectionIdToClassId(selectionId: string) {
   return selectionId.split("::")[0] || selectionId;
 }
@@ -92,6 +136,10 @@ function selectionIdToClassId(selectionId: string) {
 function selectionIdToScheduleId(selectionId: string) {
   const [, scheduleId] = selectionId.split("::");
   return scheduleId;
+}
+
+function normalizeRecurringMode(value: unknown): "linked" | "single_day" | undefined {
+  return value === "single_day" || value === "linked" ? value : undefined;
 }
 
 function renderField(
@@ -157,7 +205,15 @@ function renderField(
             clearError();
           }}
         />
-        <span className="text-sm text-muted-foreground">{field.label}</span>
+        <span className="text-sm text-muted-foreground">{field.placeholder || field.label}</span>
+      </div>
+    );
+  }
+
+  if (field.type === "info") {
+    return (
+      <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+        {field.placeholder || field.label}
       </div>
     );
   }
@@ -291,16 +347,37 @@ export default function EnrollPage() {
     const validSelection = Array.from(selectedFromQuery).filter((id) => formConfig.availableClasses.some((item) => item.id === id));
     if (validSelection.length > 0) {
       if (isJointEnrollmentEnabled) {
+        const mappedJointSelection = validSelection.map((classId) => {
+          const classInfo = formConfig.availableClasses.find((item) => item.id === classId);
+          const firstScheduleId = classInfo?.schedules?.[0]?.id;
+          return firstScheduleId ? `${classId}::${firstScheduleId}` : classId;
+        });
+
         setJointStudents((prev) => {
           if (prev.length === 0) {
-            return [{ id: "student-1", values: {}, selectedClassIds: validSelection, errors: {} }];
+            return [{ id: "student-1", values: {}, selectedClassIds: mappedJointSelection, errors: {} }];
           }
 
           const [first, ...rest] = prev;
-          return [{ ...first, selectedClassIds: validSelection }, ...rest];
+          return [{ ...first, selectedClassIds: mappedJointSelection }, ...rest];
         });
       } else {
-        setSelectedClassIds(validSelection);
+        const baseScheduleConfig = formConfig.formConfig.scheduleSettings ?? formConfig.formConfig.jointEnrollment?.schedule;
+        const recurringMode = normalizeRecurringMode(formConfig.scheduleConfig?.recurringSelectionMode) ?? baseScheduleConfig?.recurringSelectionMode;
+
+        const mappedSelection = validSelection.flatMap((classId) => {
+          const classInfo = formConfig.availableClasses.find((item) => item.id === classId);
+          const schedules = classInfo?.schedules || [];
+          if (schedules.length === 0) return [classId];
+
+          if (recurringMode === "linked") {
+            return schedules.map((schedule) => `${classId}::${schedule.id}`);
+          }
+
+          return [`${classId}::${schedules[0].id}`];
+        });
+
+        setSelectedClassIds(mappedSelection);
       }
     }
 
@@ -423,14 +500,23 @@ export default function EnrollPage() {
     if (!formConfig) return [];
 
     if (!isJointEnrollmentEnabled) {
-      return selectedClasses.map((item) => ({
-        id: item.id,
-        pricingClassId: item.id,
-        name: item.name,
-        price: item.price_cents / 100,
-        day: item.schedules?.[0]?.day,
-        time: item.schedules?.[0] ? `${item.schedules[0].startHour}:00` : undefined,
-      }));
+      return selectedClassIds.map((selectionId) => {
+        const classId = selectionIdToClassId(selectionId);
+        const scheduleId = selectionIdToScheduleId(selectionId);
+        const item = formConfig.availableClasses.find((entry) => entry.id === classId);
+        if (!item) return null;
+
+        const schedule = item.schedules?.find((entry) => entry.id === scheduleId) || item.schedules?.[0];
+        return {
+          id: selectionId,
+          pricingClassId: classId,
+          pricingScheduleId: schedule?.id,
+          name: item.name,
+          price: item.price_cents / 100,
+          day: schedule?.day,
+          time: schedule ? `${schedule.startHour}:00` : undefined,
+        };
+      }).filter((item): item is NonNullable<typeof item> => Boolean(item));
     }
 
     const classMap = new Map(formConfig.availableClasses.map((item) => [item.id, item]));
@@ -462,9 +548,30 @@ export default function EnrollPage() {
     });
   }, [formConfig, isJointEnrollmentEnabled, jointStudents, selectedClasses]);
 
-  const toggleClass = (classId: string) => {
+  const effectivePublicScheduleConfig = useMemo(() => {
+    const formBuilderConfig = formConfig?.formConfig.scheduleSettings ?? formConfig?.formConfig.jointEnrollment?.schedule;
+    const settingsConfig = formConfig?.scheduleConfig;
+
+    if (!formBuilderConfig) return undefined;
+
+    return {
+      ...formBuilderConfig,
+      recurringSelectionMode: normalizeRecurringMode(settingsConfig?.recurringSelectionMode) ?? formBuilderConfig.recurringSelectionMode,
+      startHour: settingsConfig?.startHour,
+      endHour: settingsConfig?.endHour,
+    };
+  }, [formConfig]);
+
+  const toggleClass = (selectionId: string, linkedSelectionIds?: string[]) => {
     setSelectedClassIds((prev) => {
-      const next = prev.includes(classId) ? prev.filter((id) => id !== classId) : [...prev, classId];
+      if (linkedSelectionIds && linkedSelectionIds.length > 0) {
+        const hasAny = linkedSelectionIds.some((id) => prev.includes(id));
+        return hasAny
+          ? prev.filter((id) => !linkedSelectionIds.includes(id))
+          : Array.from(new Set([...prev, ...linkedSelectionIds]));
+      }
+
+      const next = prev.includes(selectionId) ? prev.filter((id) => id !== selectionId) : [...prev, selectionId];
       return next;
     });
     if (errors.class_id) {
@@ -582,7 +689,23 @@ export default function EnrollPage() {
     setSubmitting(true);
     try {
       if (isJointEnrollmentEnabled) {
-        const payerInfo = extractPayerInfo(payerValues);
+        const payerType = String(payerValues.payer_type || "other");
+        const firstStudentInfo = extractStudentInfo(jointStudents[0]?.values || {});
+        const explicitPayer = extractPayerInfo(payerValues);
+        const payerInfo =
+          payerType === "student"
+            ? {
+                name: firstStudentInfo.name,
+                email: firstStudentInfo.email,
+                phone: firstStudentInfo.phone,
+              }
+            : payerType === "guardian"
+              ? {
+                  name: firstStudentInfo.guardianName || firstStudentInfo.name,
+                  email: firstStudentInfo.guardianEmail || firstStudentInfo.email,
+                  phone: firstStudentInfo.guardianPhone || firstStudentInfo.phone,
+                }
+              : explicitPayer;
         if (!payerInfo.name || !payerInfo.email || !payerInfo.phone) {
           toast.error("Completa nombre, email y telefono del responsable");
           setSubmitting(false);
@@ -598,6 +721,10 @@ export default function EnrollPage() {
           students: jointStudents.map((student) => ({
             form_values: student.values,
             class_ids: Array.from(new Set(student.selectedClassIds.map(selectionIdToClassId))),
+            class_selections: student.selectedClassIds.map((selectionId) => ({
+              class_id: selectionIdToClassId(selectionId),
+              schedule_id: selectionIdToScheduleId(selectionId) || undefined,
+            })),
           })),
           class_ids: Array.from(new Set(jointStudents.flatMap((student) => student.selectedClassIds.map(selectionIdToClassId)))),
           class_id: firstSelectedClassId || undefined,
@@ -606,9 +733,14 @@ export default function EnrollPage() {
         setSuccess(true);
         toast.success(response?.message || "Inscripción enviada exitosamente");
       } else {
+        const selectedClassIdsUnique = Array.from(new Set(selectedClassIds.map(selectionIdToClassId)));
         const response = await submitPublicEnrollment(tenantSlug, {
-          class_id: selectedClassIds[0],
-          class_ids: selectedClassIds,
+          class_id: selectedClassIdsUnique[0],
+          class_ids: selectedClassIdsUnique,
+          class_selections: selectedClassIds.map((selectionId) => ({
+            class_id: selectionIdToClassId(selectionId),
+            schedule_id: selectionIdToScheduleId(selectionId) || undefined,
+          })),
           form_values: values,
         });
 
@@ -682,6 +814,7 @@ export default function EnrollPage() {
               sections={formConfig.formConfig.sections}
               availableClasses={formConfig.availableClasses}
               jointConfig={formConfig.formConfig.jointEnrollment}
+              scheduleSettings={formConfig.formConfig.scheduleSettings ?? formConfig.formConfig.jointEnrollment?.schedule}
               payerValues={payerValues}
               payerErrors={payerErrors}
               students={jointStudents}
@@ -705,10 +838,11 @@ export default function EnrollPage() {
                       .filter((field) => isVisible(field.conditions, values))
                       .map((field) => (
                         <div key={field.id} className="space-y-2">
-                          <Label>
-                            {field.label}
-                            {field.required ? " *" : ""}
-                          </Label>
+                          {field.type !== "checkbox" && field.type !== "info" ? (
+                            <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                          ) : field.type === "checkbox" && field.placeholder ? (
+                            <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                          ) : null}
                           {renderField(field, values, setValues, errors, setErrors)}
                           {errors[field.id] ? <p className="text-xs text-destructive">{errors[field.id]}</p> : null}
                         </div>
@@ -728,6 +862,7 @@ export default function EnrollPage() {
                       selectedClassIds={selectedClassIds}
                       onToggleClass={toggleClass}
                       error={errors.class_id}
+                      scheduleConfig={effectivePublicScheduleConfig}
                     />
                   </CardContent>
                 </Card>

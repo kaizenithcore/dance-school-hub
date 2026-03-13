@@ -20,7 +20,7 @@ export interface AuthResult {
 async function fetchTenantMemberships(userId: string): Promise<TenantMembership[]> {
   const { data, error } = await supabaseAdmin
     .from("tenant_memberships")
-    .select("tenant_id, role, tenants(name, slug)")
+    .select("tenant_id, role, tenants(name, slug, created_at)")
     .eq("user_id", userId)
     .eq("is_active", true);
 
@@ -31,7 +31,7 @@ async function fetchTenantMemberships(userId: string): Promise<TenantMembership[
   return (data ?? [])
     .map((row) => {
       const tenant = Array.isArray(row.tenants) ? row.tenants[0] : row.tenants;
-      if (!tenant?.name || !tenant.slug) {
+      if (!tenant?.name || !tenant.slug || !tenant.created_at) {
         return null;
       }
 
@@ -39,6 +39,7 @@ async function fetchTenantMemberships(userId: string): Promise<TenantMembership[
         tenantId: row.tenant_id,
         tenantName: tenant.name,
         tenantSlug: tenant.slug,
+        tenantCreatedAt: tenant.created_at,
         role: row.role,
       };
     })

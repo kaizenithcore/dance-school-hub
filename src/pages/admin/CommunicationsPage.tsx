@@ -18,6 +18,9 @@ import {
   type CommunicationChannel,
   type DeliveryRecord,
 } from "@/lib/api/communications";
+import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
+import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
+import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 import { toast } from "sonner";
 
 type ClassItem = { id: string; name: string };
@@ -44,6 +47,7 @@ const DELIVERY_STATUS_LABELS: Record<DeliveryRecord["status"], string> = {
 };
 
 export default function CommunicationsPage() {
+  const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
   const [channel, setChannel] = useState<CommunicationChannel>("email");
   const [audienceType, setAudienceType] = useState<AudienceType>("all");
   const [classId, setClassId] = useState("");
@@ -60,6 +64,9 @@ export default function CommunicationsPage() {
   const [sending, setSending] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
+  const [lockOpen, setLockOpen] = useState(false);
+
+  const communicationLocked = !billingLoading && !billing.features.massCommunicationEmail;
 
   const canSubmit = useMemo(() => {
     if (!subject.trim() || !message.trim()) return false;
@@ -95,6 +102,11 @@ export default function CommunicationsPage() {
   }, []);
 
   const handlePreview = async () => {
+    if (communicationLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     if (!canSubmit) {
       toast.error("Completa asunto, mensaje y audiencia");
       return;
@@ -118,6 +130,11 @@ export default function CommunicationsPage() {
   };
 
   const handleQueue = async () => {
+    if (communicationLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     if (!canSubmit) {
       toast.error("Completa asunto, mensaje y audiencia");
       return;
@@ -147,6 +164,11 @@ export default function CommunicationsPage() {
   };
 
   const handleProcessQueue = async () => {
+    if (communicationLocked) {
+      setLockOpen(true);
+      return;
+    }
+
     setProcessingQueue(true);
     try {
       const result = await tickJobs(50);
@@ -182,6 +204,16 @@ export default function CommunicationsPage() {
         </Button>
       }
     >
+      {communicationLocked ? (
+        <UpgradeFeatureAlert
+          title="Comunicación masiva por email bloqueada"
+          description={`Tu plan actual (${planLabel}) no incluye campañas masivas. Mejora a Pro para habilitar esta función.`}
+          onUpgrade={() => void startUpgrade("massCommunicationEmail")}
+        />
+      ) : null}
+
+      <div className={communicationLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
+
       <div className="rounded-lg border border-border bg-card p-5 shadow-soft space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-1.5">
@@ -252,10 +284,10 @@ export default function CommunicationsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={() => void handlePreview()} disabled={previewing || !canSubmit}>
+          <Button variant="outline" onClick={() => void handlePreview()} disabled={previewing || !canSubmit || communicationLocked}>
             {previewing ? "Calculando..." : "Ver destinatarios"}
           </Button>
-          <Button onClick={() => void handleQueue()} disabled={sending || !canSubmit}>
+          <Button onClick={() => void handleQueue()} disabled={sending || !canSubmit || communicationLocked}>
             {sending ? "Preparando..." : "Preparar envío"}
           </Button>
           {previewCount !== null ? <Badge variant="secondary">{previewCount} destinatarios</Badge> : null}
@@ -319,6 +351,15 @@ export default function CommunicationsPage() {
           </div>
         )}
       </div>
+      </div>
+
+      <FeatureLockDialog
+        open={lockOpen}
+        onOpenChange={setLockOpen}
+        title="Comunicación masiva disponible en plan Pro"
+        description="Para crear campañas de email por audiencia necesitas un plan superior. Puedes actualizarlo en segundos."
+        onUpgrade={() => void startUpgrade("massCommunicationEmail")}
+      />
     </PageContainer>
   );
 }

@@ -191,8 +191,10 @@ export function JointEnrollmentScheduleSelector({
         <div className="flex items-start justify-between mb-2">
           <h4 className="font-semibold text-foreground text-sm">{cls.name}</h4>
           <div className="flex flex-col items-end gap-1">
-            <span className="font-semibold text-primary text-sm">€{cls.price}</span>
-            {selectedCount > 0 && (
+            {effectiveConfig.calendarFields.showPrice && (
+              <span className="font-semibold text-primary text-sm">€{cls.price}</span>
+            )}
+            {effectiveConfig.calendarFields.showSelectedStudents && selectedCount > 0 && (
               <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
                 {selectedCount}
               </span>
@@ -216,21 +218,14 @@ export function JointEnrollmentScheduleSelector({
           </p>
           {effectiveConfig.calendarFields.showRoom && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <span className="font-medium">Sala:</span> {cls.room}
+              <span className="font-medium">Aula:</span> {cls.room}
             </p>
           )}
         </div>
 
-        {(effectiveConfig.calendarFields.showCapacity || effectiveConfig.calendarFields.showPrice) && (
-          <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-            {effectiveConfig.calendarFields.showCapacity ? (
-              <span>Capacidad: {cls.spotsLeft}/{cls.totalSpots}</span>
-            ) : (
-              <span />
-            )}
-            {effectiveConfig.calendarFields.showPrice && (
-              <span className="font-medium text-primary">€{cls.price}</span>
-            )}
+        {effectiveConfig.calendarFields.showCapacity && (
+          <div className="mt-3 text-xs text-muted-foreground">
+            <span>Capacidad: {cls.spotsLeft}/{cls.totalSpots}</span>
           </div>
         )}
       </button>

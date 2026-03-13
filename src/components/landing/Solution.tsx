@@ -3,7 +3,7 @@ import { FileEdit, LayoutGrid, RefreshCw, ListChecks, Megaphone, Copy } from "lu
 
 const pillars = [
   { icon: FileEdit, title: "Editor de matrículas flexible", desc: "Crea formularios personalizados con lógica condicional, archivos y selección de clases integrada." },
-  { icon: LayoutGrid, title: "Horario visual con drag & drop", desc: "Organiza clases, salas y profesores arrastrando bloques sobre un calendario semanal." },
+  { icon: LayoutGrid, title: "Horario visual con drag & drop", desc: "Organiza clases, aulas y profesores arrastrando bloques sobre un calendario semanal." },
   { icon: RefreshCw, title: "Renovaciones automáticas", desc: "Al acabar el curso, lanza renovaciones masivas y gestiona confirmaciones sin esfuerzo." },
   { icon: ListChecks, title: "Listas de espera automáticas", desc: "Cuando se libera una plaza, el siguiente alumno recibe la oferta automáticamente." },
   { icon: Megaphone, title: "Comunicación masiva", desc: "Envía emails segmentados a alumnos, familias o grupos de clases en segundos." },

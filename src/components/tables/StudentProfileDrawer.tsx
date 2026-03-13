@@ -30,7 +30,9 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
     : "bg-muted text-muted-foreground border-border";
 
   const monthlyTotal = student.paymentType === "monthly"
-    ? student.enrolledClasses.reduce((sum, c) => sum + c.monthlyPrice, 0)
+    ? (typeof student.monthlyTotalOverride === "number"
+      ? student.monthlyTotalOverride
+      : student.enrolledClasses.reduce((sum, c) => sum + c.monthlyPrice, 0))
     : null;
 
   return (

@@ -1,10 +1,10 @@
--- Sprint 4: Teachers salary, Disciplines/Categories management, Weekly class frequency
+-- Sprint 4: Teachers aulary, Disciplines/Categories management, Weekly class frequency
 
 begin;
 
--- Add salary column to teachers
+-- Add aulary column to teachers
 alter table teachers 
-add column if not exists salary numeric(10, 2) default 0 check (salary >= 0);
+add column if not exists aulary numeric(10, 2) default 0 check (aulary >= 0);
 
 -- Create disciplines table
 create table if not exists disciplines (

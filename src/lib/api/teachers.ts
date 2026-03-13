@@ -7,7 +7,7 @@ export interface Teacher {
   email: string | null;
   phone: string | null;
   bio: string | null;
-  salary: number;
+  aulary: number;
   status: "active" | "inactive";
   created_at: string;
   updated_at: string;
@@ -19,7 +19,7 @@ export interface CreateTeacherRequest {
   phone?: string;
   bio?: string;
   status?: "active" | "inactive";
-  salary?: number;
+  aulary?: number;
 }
 
 export interface UpdateTeacherRequest {
@@ -28,7 +28,7 @@ export interface UpdateTeacherRequest {
   phone?: string;
   bio?: string;
   status?: "active" | "inactive";
-  salary?: number;
+  aulary?: number;
 }
 
 export async function getTeachers(): Promise<Teacher[]> {

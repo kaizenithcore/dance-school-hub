@@ -8,7 +8,7 @@ export interface Teacher {
   email: string | null;
   phone: string | null;
   bio: string | null;
-  salary: number;
+  aulary: number;
   status: string;
   created_at: string;
   updated_at: string;
@@ -56,7 +56,7 @@ export const teacherService = {
         email: input.email ?? null,
         phone: input.phone ?? null,
         bio: input.bio ?? null,
-        salary: input.salary ?? 0,
+        aulary: input.aulary ?? 0,
         status: input.status ?? "active",
       })
       .select()
@@ -81,7 +81,7 @@ export const teacherService = {
         email: input.email,
         phone: input.phone,
         bio: input.bio,
-        salary: input.salary,
+        aulary: input.aulary,
         status: input.status,
       })
       .eq("tenant_id", tenantId)

@@ -100,6 +100,10 @@ export default function RoomsPage() {
       toast.error("La capacidad debe ser mayor a 0");
       return;
     }
+    if (!Number.isInteger(form.capacity)) {
+      toast.error("La capacidad debe ser un número entero");
+      return;
+    }
 
     try {
       if (editingRoom) {
@@ -129,7 +133,8 @@ export default function RoomsPage() {
       setFormOpen(false);
     } catch (error) {
       console.error("Error saving room:", error);
-      toast.error("No se pudo guardar el aula");
+      const message = error instanceof Error ? error.message : "No se pudo guardar el aula";
+      toast.error(message);
     }
   };
 
@@ -222,7 +227,7 @@ export default function RoomsPage() {
                 id="room-name"
                 value={form.name}
                 onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="Ej: Sala Principal"
+                placeholder="Ej: Aula Principal"
               />
             </div>
             <div>
@@ -233,6 +238,7 @@ export default function RoomsPage() {
                 value={form.capacity}
                 onChange={(e) => setForm((prev) => ({ ...prev, capacity: Number(e.target.value) || 0 }))}
                 min={1}
+                step={1}
               />
             </div>
             <div>

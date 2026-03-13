@@ -67,25 +67,96 @@ export const defaultEnrollmentFormConfig = {
           maxLength: 255,
         }
       ],
+      conditions: [
+        {
+          id: "cond_guardian_age",
+          sourceFieldId: "student_birthdate",
+          operator: "date_after",
+          value: "today_minus_18y",
+        },
+      ],
+    },
+    {
+      id: "payer_info",
+      title: "Datos del Pagador y Forma de Pago",
+      description: "Permite usar datos del alumno, tutor o de otra persona.",
+      fields: [
+        {
+          id: "payer_type",
+          type: "select",
+          label: "Quien realiza el pago",
+          required: true,
+          options: [
+            { value: "student", label: "El propio alumno" },
+            { value: "guardian", label: "Tutor o responsable" },
+            { value: "other", label: "Otra persona" },
+          ],
+        },
+        {
+          id: "payer_name",
+          type: "text",
+          label: "Nombre del pagador",
+          placeholder: "Solo si paga otra persona",
+          required: false,
+          maxLength: 100,
+          conditions: [
+            { id: "cond_payer_name_other", sourceFieldId: "payer_type", operator: "equals", value: "other" },
+          ],
+        },
+        {
+          id: "payer_email",
+          type: "email",
+          label: "Correo del pagador",
+          placeholder: "pagador@ejemplo.com",
+          required: false,
+          maxLength: 255,
+          conditions: [
+            { id: "cond_payer_email_other", sourceFieldId: "payer_type", operator: "equals", value: "other" },
+          ],
+        },
+        {
+          id: "payer_phone",
+          type: "tel",
+          label: "Telefono del pagador",
+          placeholder: "(011) 1234-5678",
+          required: false,
+          maxLength: 20,
+          conditions: [
+            { id: "cond_payer_phone_other", sourceFieldId: "payer_type", operator: "equals", value: "other" },
+          ],
+        },
+        {
+          id: "payment_method",
+          type: "select",
+          label: "Método de pago",
+          required: true,
+          options: [
+            { value: "transfer", label: "Transferencia bancaria" },
+            { value: "cash", label: "Efectivo" },
+            { value: "card", label: "Tarjeta de crédito/débito" },
+            { value: "mercadopago", label: "Mercado Pago" },
+          ],
+        },
+      ],
     }
   ],
   jointEnrollment: {
     enabled: false,
     maxStudents: 3,
-    schedule: {
-      preferredView: "calendar",
-      recurringSelectionMode: "linked",
-      recurringClassOverrides: [],
-      calendarFields: {
-        showDiscipline: true,
-        showCategory: false,
-        showRoom: true,
-        showCapacity: true,
-        showPrice: true,
-        showSelectedStudents: true,
-      },
-    },
   },
   includeSchedule: true,
   includePricing: true,
+  scheduleSettings: {
+    preferredView: "calendar",
+    recurringSelectionMode: "linked",
+    recurringClassOverrides: [],
+    calendarFields: {
+      showDiscipline: true,
+      showCategory: false,
+      showRoom: true,
+      showCapacity: true,
+      showPrice: true,
+      showSelectedStudents: true,
+    },
+  },
 } as const;

@@ -19,6 +19,7 @@ export interface BillingAddons {
   customDomain: boolean;
   prioritySupport: boolean;
   waitlistAutomation: boolean;
+  renewalAutomation: boolean;
 }
 
 interface PlanCommercialDefaults {
@@ -49,6 +50,7 @@ export interface BillingResolution {
       customDomain: AddonCatalogEntry;
       prioritySupport: AddonCatalogEntry;
       waitlistAutomation: AddonCatalogEntry;
+      renewalAutomation: AddonCatalogEntry;
     };
   };
 }
@@ -106,23 +108,24 @@ const PLAN_COMMERCIAL_DEFAULTS: Record<PlanType, PlanCommercialDefaults> = {
     extraStudentsBlockPriceEur: 15,
   },
   pro: {
-    monthlyPriceEur: 349,
+    monthlyPriceEur: 499,
     includedActiveStudents: 1200,
     extraStudentsBlockSize: 300,
-    extraStudentsBlockPriceEur: 25,
+    extraStudentsBlockPriceEur: 59,
   },
   enterprise: {
-    monthlyPriceEur: 699,
+    monthlyPriceEur: 949,
     includedActiveStudents: 4000,
-    extraStudentsBlockSize: 1000,
-    extraStudentsBlockPriceEur: 50,
+    extraStudentsBlockSize: 500,
+    extraStudentsBlockPriceEur: 119,
   },
 };
 
 const ADDON_CATALOG = {
   customDomain: { monthlyPriceEur: 29 },
-  prioritySupport: { monthlyPriceEur: 49 },
-  waitlistAutomation: { monthlyPriceEur: 19 },
+  prioritySupport: { monthlyPriceEur: 79 },
+  waitlistAutomation: { monthlyPriceEur: 24 },
+  renewalAutomation: { monthlyPriceEur: 39 },
 } as const;
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -183,6 +186,7 @@ export const featureEntitlementsService = {
       customDomain: toBoolean(addons.customDomain, false),
       prioritySupport: toBoolean(addons.prioritySupport, false),
       waitlistAutomation: toBoolean(addons.waitlistAutomation, false),
+      renewalAutomation: toBoolean(addons.renewalAutomation, false),
     };
 
     const extraStudentBlocks = toNonNegativeInteger(
@@ -212,6 +216,10 @@ export const featureEntitlementsService = {
       resolved.waitlistAutomation = true;
     }
 
+    if (resolvedAddons.renewalAutomation) {
+      resolved.renewalAutomation = true;
+    }
+
     const maxActiveStudents =
       commercialDefaults.includedActiveStudents
       + extraStudentBlocks * commercialDefaults.extraStudentsBlockSize;
@@ -233,6 +241,7 @@ export const featureEntitlementsService = {
           customDomain: { ...ADDON_CATALOG.customDomain },
           prioritySupport: { ...ADDON_CATALOG.prioritySupport },
           waitlistAutomation: { ...ADDON_CATALOG.waitlistAutomation },
+          renewalAutomation: { ...ADDON_CATALOG.renewalAutomation },
         },
       },
     };

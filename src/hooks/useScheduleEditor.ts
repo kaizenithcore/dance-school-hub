@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { batchSaveSchedules, getSchedules } from "@/lib/api/schedules";
 import { getRooms, Room } from "@/lib/api/rooms";
 import { getClasses } from "@/lib/api/classes";
+import { getTeachers } from "@/lib/api/teachers";
 
 export interface ScheduleBlock {
   id: string;
@@ -99,14 +100,16 @@ export function useScheduleEditor() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [roomsData, classesData, schedules] = await Promise.all([
+      const [roomsData, classesData, schedules, teachersData] = await Promise.all([
         getRooms(),
         getClasses(),
         getSchedules(),
+        getTeachers(),
       ]);
 
       const roomById = new Map(roomsData.map((room) => [room.id, room]));
       const classById = new Map(classesData.map((klass) => [klass.id, klass]));
+      const teacherById = new Map(teachersData.map((teacher) => [teacher.id, teacher]));
       const activeRooms = roomsData.filter((room) => {
         const roomMaybeSnake = room as Room & { is_active?: boolean };
         return Boolean(roomMaybeSnake.isActive ?? roomMaybeSnake.is_active);
@@ -124,7 +127,7 @@ export function useScheduleEditor() {
           id: schedule.id,
           classId: schedule.class_id,
           name: schedule.className || klass?.name || "Clase",
-          teacher: "Profesor",
+          teacher: (klass?.teacherId ? teacherById.get(klass.teacherId)?.name : undefined) || "Sin profesor",
           day: DAY_BY_WEEKDAY[schedule.weekday] || "Lunes",
           startHour,
           duration: durationHours,
@@ -141,7 +144,7 @@ export function useScheduleEditor() {
         .map((klass) => ({
           id: klass.id,
           name: klass.name,
-          teacher: "Profesor",
+          teacher: (klass.teacherId ? teacherById.get(klass.teacherId)?.name : undefined) || "Sin profesor",
           capacity: klass.capacity,
           spotsLeft: klass.capacity,
           duration: 1.5,

@@ -1,5 +1,6 @@
 import { GraduationCap, Clock, User, MapPin, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export interface ClassItem {
   id: string;
@@ -37,15 +38,26 @@ export function ClassSidebar({ classes, defaultRoomId, defaultRoomName, onDragSt
           const almostFull = cls.spotsLeft <= 3 && cls.spotsLeft > 0;
           const full = cls.spotsLeft === 0;
           const scheduleComplete = cls.remainingToSchedule <= 0;
+          const hasTeacherAssigned = cls.teacher.trim().length > 0 && cls.teacher !== "Sin profesor";
           const roomId = cls.roomId || defaultRoomId || "";
           const roomName = cls.roomName || defaultRoomName || "Sin aula";
+          const blockedByTeacher = !hasTeacherAssigned;
+          const dragDisabled = full || scheduleComplete || blockedByTeacher;
 
           return (
             <div
               key={cls.id}
-              draggable={!full && !scheduleComplete}
+              draggable={!dragDisabled}
+              onMouseDown={() => {
+                if (blockedByTeacher) {
+                  toast.error("No puedes programar esta clase sin profesor asignado");
+                }
+              }}
               onDragStart={(e) => {
-                if (full || scheduleComplete) return;
+                if (dragDisabled) {
+                  e.preventDefault();
+                  return;
+                }
                 e.dataTransfer.setData("application/json", JSON.stringify({
                   type: "new",
                   classId: cls.id,
@@ -59,7 +71,7 @@ export function ClassSidebar({ classes, defaultRoomId, defaultRoomName, onDragSt
               }}
               className={cn(
                 "flex flex-col gap-1.5 rounded-md border bg-background p-2.5 transition-all select-none",
-                full || scheduleComplete
+                dragDisabled
                   ? "border-border opacity-50 cursor-not-allowed"
                   : "border-border cursor-grab active:cursor-grabbing hover:border-primary/40 hover:shadow-soft"
               )}

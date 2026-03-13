@@ -19,6 +19,12 @@ const EMPTY: Omit<StudentRecord, "id"> = {
   name: "", email: "", phone: "", birthdate: "",
   enrolledClasses: [], status: "active", joinDate: new Date().toISOString().slice(0, 10),
   paymentType: "monthly", notes: "",
+  payerType: "student",
+  payerName: "",
+  payerEmail: "",
+  payerPhone: "",
+  preferredPaymentMethod: "cash",
+  accountNumber: "",
 };
 
 export function StudentFormModal({ open, onOpenChange, student, onSave }: StudentFormModalProps) {
@@ -27,6 +33,20 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
   const [hasGuardian, setHasGuardian] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  const isMinor = (() => {
+    if (!form.birthdate) return false;
+    const birth = new Date(form.birthdate);
+    if (Number.isNaN(birth.getTime())) return false;
+    const today = new Date();
+    const age = today.getFullYear() - birth.getFullYear() - (
+      today.getMonth() < birth.getMonth() ||
+      (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
+        ? 1
+        : 0
+    );
+    return age < 18;
+  })();
 
   useEffect(() => {
     if (student) {
@@ -59,10 +79,33 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email inválido";
     if (!form.phone.trim()) e.phone = "Obligatorio";
     if (!form.birthdate) e.birthdate = "Obligatorio";
-    if (hasGuardian) {
+    if (hasGuardian || isMinor) {
       if (!form.guardian?.name?.trim()) e.guardian_name = "Obligatorio";
       if (!form.guardian?.phone?.trim()) e.guardian_phone = "Obligatorio";
     }
+
+    if (!form.payerType) {
+      e.payerType = "Obligatorio";
+    }
+
+    if (!form.preferredPaymentMethod) {
+      e.preferredPaymentMethod = "Obligatorio";
+    }
+
+    if (form.payerType === "other") {
+      if (!form.payerName?.trim()) e.payerName = "Obligatorio";
+      if (!form.payerPhone?.trim()) e.payerPhone = "Obligatorio";
+      if (!form.payerEmail?.trim()) {
+        e.payerEmail = "Obligatorio";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.payerEmail.trim())) {
+        e.payerEmail = "Email inválido";
+      }
+    }
+
+    if (form.preferredPaymentMethod === "transfer" && form.accountNumber?.trim() === "") {
+      e.accountNumber = "Obligatorio";
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -70,7 +113,25 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
   const handleSave = async () => {
     if (!validate()) return;
     const data = { ...form };
-    if (!hasGuardian) delete data.guardian;
+    if (!hasGuardian && !isMinor) {
+      delete data.guardian;
+    } else if (data.guardian) {
+      data.guardian = {
+        ...data.guardian,
+        email: data.guardian.email?.trim() ? data.guardian.email.trim() : undefined,
+      };
+    }
+
+    if (data.payerType !== "other") {
+      data.payerName = undefined;
+      data.payerEmail = undefined;
+      data.payerPhone = undefined;
+    }
+
+    if (data.preferredPaymentMethod !== "transfer") {
+      data.accountNumber = undefined;
+    }
+
     setIsLoading(true);
     try {
       const ok = await onSave(data);
@@ -145,20 +206,124 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
             </div>
           </div>
 
+          <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Datos de pago
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Quién realiza el pago *</Label>
+                <Select
+                  value={form.payerType || "student"}
+                  onValueChange={(v) => set("payerType", v)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className={errors.payerType ? "border-destructive" : ""}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">El propio alumno</SelectItem>
+                    <SelectItem value="guardian">Tutor o responsable</SelectItem>
+                    <SelectItem value="other">Otra persona</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.payerType && <p className="text-xs text-destructive">{errors.payerType}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-sm">Método de pago *</Label>
+                <Select
+                  value={form.preferredPaymentMethod || "cash"}
+                  onValueChange={(v) => set("preferredPaymentMethod", v)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className={errors.preferredPaymentMethod ? "border-destructive" : ""}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="transfer">Transferencia bancaria</SelectItem>
+                    <SelectItem value="cash">Efectivo</SelectItem>
+                    <SelectItem value="card">Tarjeta</SelectItem>
+                    <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.preferredPaymentMethod && <p className="text-xs text-destructive">{errors.preferredPaymentMethod}</p>}
+              </div>
+            </div>
+
+            {form.payerType === "other" && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="text-sm">Nombre del pagador *</Label>
+                  <Input
+                    value={form.payerName || ""}
+                    onChange={(e) => set("payerName", e.target.value)}
+                    placeholder="Nombre completo"
+                    disabled={isLoading}
+                    className={errors.payerName ? "border-destructive" : ""}
+                  />
+                  {errors.payerName && <p className="text-xs text-destructive">{errors.payerName}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Email del pagador *</Label>
+                  <Input
+                    type="email"
+                    value={form.payerEmail || ""}
+                    onChange={(e) => set("payerEmail", e.target.value)}
+                    placeholder="pagador@ejemplo.com"
+                    disabled={isLoading}
+                    className={errors.payerEmail ? "border-destructive" : ""}
+                  />
+                  {errors.payerEmail && <p className="text-xs text-destructive">{errors.payerEmail}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Teléfono del pagador *</Label>
+                  <Input
+                    value={form.payerPhone || ""}
+                    onChange={(e) => set("payerPhone", e.target.value)}
+                    placeholder="(011) 1234-5678"
+                    disabled={isLoading}
+                    className={errors.payerPhone ? "border-destructive" : ""}
+                  />
+                  {errors.payerPhone && <p className="text-xs text-destructive">{errors.payerPhone}</p>}
+                </div>
+              </div>
+            )}
+
+            {form.preferredPaymentMethod === "transfer" && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">Número de cuenta (IBAN/CBU) *</Label>
+                <Input
+                  value={form.accountNumber || ""}
+                  onChange={(e) => set("accountNumber", e.target.value)}
+                  placeholder="ES00 0000 0000 0000 0000 0000"
+                  disabled={isLoading}
+                  className={errors.accountNumber ? "border-destructive" : ""}
+                />
+                {errors.accountNumber && <p className="text-xs text-destructive">{errors.accountNumber}</p>}
+              </div>
+            )}
+          </div>
+
           {/* Guardian toggle */}
           <div className="flex items-center gap-2 pt-1">
             <input
               type="checkbox"
               id="has-guardian"
-              checked={hasGuardian}
+              checked={hasGuardian || isMinor}
               onChange={(e) => setHasGuardian(e.target.checked)}
-              disabled={isLoading}
+              disabled={isLoading || isMinor}
               className="rounded border-border"
             />
-            <Label htmlFor="has-guardian" className="text-sm font-normal cursor-pointer">Tiene tutor / responsable</Label>
+            <Label htmlFor="has-guardian" className="text-sm font-normal cursor-pointer">
+              Tiene tutor / responsable {isMinor ? "(obligatorio por menor de edad)" : ""}
+            </Label>
           </div>
 
-          {hasGuardian && (
+          {(hasGuardian || isMinor) && (
             <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Datos del Tutor</p>
               <div className="space-y-1.5">

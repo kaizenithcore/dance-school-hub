@@ -3,14 +3,12 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PaymentsTable } from "@/components/tables/PaymentsTable";
 import { PaymentDetailDrawer } from "@/components/tables/PaymentDetailDrawer";
 import { RecordPaymentModal } from "@/components/tables/RecordPaymentModal";
-import { MarkInvoicePaidModal } from "@/components/tables/MarkInvoicePaidModal";
 import {
   getPayments,
   recordPayment,
   updatePaymentStatus,
   getInvoices,
   generateMonthlyInvoices,
-  markInvoiceAsPaid,
   getInvoiceDetail,
   createCashReceiptBatch,
   downloadReceiptBatchPdf,
@@ -22,7 +20,7 @@ import {
 import { getEnrollments } from "@/lib/api/enrollments";
 import { redirectToStripeCheckout } from "@/lib/api/stripe";
 import { toast } from "sonner";
-import { Loader2, Copy, DollarSign, FileText, AlertTriangle, Eye, CircleCheck } from "lucide-react";
+import { Loader2, Copy, DollarSign, FileText, AlertTriangle, Eye } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,8 +102,6 @@ export default function PaymentsPage() {
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonth());
   const [receiptMonth, setReceiptMonth] = useState<string>(getCurrentMonth());
-  const [markPaidModalOpen, setMarkPaidModalOpen] = useState(false);
-  const [invoiceToMarkPaid, setInvoiceToMarkPaid] = useState<InvoiceRecord | null>(null);
 
   // Invoice filters
   const [invoiceMonthFilter, setInvoiceMonthFilter] = useState<string>("all");
@@ -116,6 +112,7 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [generatingInvoices, setGeneratingInvoices] = useState(false);
   const [generatingReceipts, setGeneratingReceipts] = useState(false);
+  const [generatingReceiptPaymentId, setGeneratingReceiptPaymentId] = useState<string | null>(null);
   const [acceptedEnrollments, setAcceptedEnrollments] = useState<Array<{ studentId?: string; studentName: string }>>([]);
 
   useEffect(() => {
@@ -195,7 +192,12 @@ export default function PaymentsPage() {
   }, []);
 
   const handleGenerateReceipt = useCallback(async (payment: PaymentRecord) => {
+    if (generatingReceiptPaymentId) {
+      return;
+    }
+
     try {
+      setGeneratingReceiptPaymentId(payment.id);
       const blob = await downloadPaymentReceiptPdf(payment.id);
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -211,8 +213,10 @@ export default function PaymentsPage() {
     } catch (error) {
       console.error("Failed to generate payment receipt:", error);
       toast.error("No se pudo generar el recibo para este pago");
+    } finally {
+      setGeneratingReceiptPaymentId(null);
     }
-  }, []);
+  }, [generatingReceiptPaymentId]);
 
   const handleGenerateCashReceiptsBatch = useCallback(async () => {
     try {
@@ -318,38 +322,6 @@ export default function PaymentsPage() {
     }
   };
 
-  const handleMarkInvoiceAsPaid = async (invoice: InvoiceRecord) => {
-    setInvoiceToMarkPaid(invoice);
-    setMarkPaidModalOpen(true);
-  };
-
-  const handleConfirmInvoiceAsPaid = async (data: { paymentMethod: string; accountNumber?: string; payerName?: string }) => {
-    if (!invoiceToMarkPaid) return;
-
-    try {
-      const updated = await markInvoiceAsPaid(invoiceToMarkPaid.id, {
-        paymentMethod: data.paymentMethod,
-        accountNumber: data.accountNumber,
-        payerName: data.payerName,
-      });
-
-      if (updated) {
-        setInvoices((prev) =>
-          prev.map((inv) => (inv.id === invoiceToMarkPaid.id ? { ...inv, status: "paid", paidDate: new Date().toISOString() } : inv))
-        );
-        if (selectedInvoice?.id === invoiceToMarkPaid.id) {
-          setInvoiceDetailOpen(false);
-        }
-        setMarkPaidModalOpen(false);
-        setInvoiceToMarkPaid(null);
-        toast.success("Factura marcada como pagada");
-        await loadData(); // Reload to sync payments
-      }
-    } catch (error) {
-      toast.error("Error al marcar la factura como pagada");
-    }
-  };
-
   // Filter invoices
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
@@ -399,6 +371,26 @@ export default function PaymentsPage() {
       .filter(([studentId]) => !hasInvoice.has(studentId) && !hasPayment.has(studentId))
       .map(([studentId, studentName]) => ({ studentId, studentName }));
   }, [acceptedEnrollments, invoices, payments, currentMonth]);
+
+  const preferredPaymentByStudent = useMemo(() => {
+    const result: Record<string, { method?: "Efectivo" | "Transferencia bancaria"; payerName?: string; accountNumber?: string }> = {};
+
+    for (const payment of payments) {
+      if (!payment.studentId || result[payment.studentId]) continue;
+      const normalizedMethod = (payment.method || "").toLowerCase();
+      const method = normalizedMethod.includes("transfer")
+        ? "Transferencia bancaria"
+        : "Efectivo";
+
+      result[payment.studentId] = {
+        method,
+        payerName: payment.payerName || undefined,
+        accountNumber: payment.accountNumber || undefined,
+      };
+    }
+
+    return result;
+  }, [payments]);
 
   if (loading) {
     return (
@@ -453,6 +445,14 @@ export default function PaymentsPage() {
         </TabsList>
 
         <TabsContent value="payments" className="space-y-4">
+          <Alert className="border-primary/25 bg-primary/5">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Flujo recomendado</AlertTitle>
+            <AlertDescription>
+              1) Genera facturas del mes. 2) Registra o confirma pagos. 3) Al marcar factura pagada se vincula con pagos existentes del mismo período para evitar duplicados.
+            </AlertDescription>
+          </Alert>
+
           <div className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-1">
               <h3 className="text-sm font-semibold">Recibos en efectivo (PDF único)</h3>
@@ -488,21 +488,31 @@ export default function PaymentsPage() {
             onViewDetail={handleViewDetail}
             onAddPayment={() => setPaymentModalOpen(true)}
             onGenerateReceipt={handleGenerateReceipt}
+            generatingReceiptPaymentId={generatingReceiptPaymentId}
           />
-        </TabsContent>
 
-        <TabsContent value="invoices" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold">Facturas</h3>
-              <p className="text-sm text-muted-foreground">
-                Genera y gestiona facturas mensuales de tus alumnos
-              </p>
-            </div>
+          <div className="flex justify-end">
             <Button onClick={() => setGenerateDialogOpen(true)}>
               Generar Facturas
             </Button>
           </div>
+        </TabsContent>
+
+        <TabsContent value="invoices" className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Facturas</h3>
+            <p className="text-sm text-muted-foreground">
+              Genera y gestiona facturas mensuales de tus alumnos
+            </p>
+          </div>
+
+          <Alert className="border-primary/25 bg-primary/5">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Flujo unificado de cobro</AlertTitle>
+            <AlertDescription>
+              Marca y registra pagos desde la pestaña <strong>Pagos</strong>. Esta vista de facturas es informativa para evitar duplicar acciones.
+            </AlertDescription>
+          </Alert>
 
           {/* Filters */}
           {invoices.length > 0 && (
@@ -606,17 +616,6 @@ export default function PaymentsPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {invoice.status !== "paid" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-success hover:text-success"
-                            onClick={() => handleMarkInvoiceAsPaid(invoice)}
-                            title="Marcar pagada"
-                          >
-                            <CircleCheck className="h-4 w-4" />
-                          </Button>
-                        )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -643,6 +642,7 @@ export default function PaymentsPage() {
         onOpenChange={setPaymentModalOpen}
         onSave={handleRecordPayment}
         onStartStripeCheckout={handleStripeCheckout}
+        preferredByStudent={preferredPaymentByStudent}
       />
 
       {/* Generate Invoices Dialog */}
@@ -770,37 +770,12 @@ export default function PaymentsPage() {
           )}
 
           <DialogFooter>
-            {selectedInvoice?.status !== "paid" && (
-              <Button
-                onClick={() => {
-                  if (selectedInvoice) {
-                    setInvoiceToMarkPaid(selectedInvoice as unknown as InvoiceRecord);
-                    setMarkPaidModalOpen(true);
-                    setInvoiceDetailOpen(false);
-                  }
-                }}
-              >
-                Marcar como Pagada
-              </Button>
-            )}
             <Button variant="outline" onClick={() => setInvoiceDetailOpen(false)}>
               Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Mark Invoice Paid Modal */}
-      {invoiceToMarkPaid && (
-        <MarkInvoicePaidModal
-          open={markPaidModalOpen}
-          onOpenChange={setMarkPaidModalOpen}
-          invoiceNumber={invoiceToMarkPaid.invoiceNumber}
-          studentName={invoiceToMarkPaid.studentName}
-          amount={invoiceToMarkPaid.totalAmount}
-          onConfirm={handleConfirmInvoiceAsPaid}
-        />
-      )}
     </PageContainer>
   );
 }

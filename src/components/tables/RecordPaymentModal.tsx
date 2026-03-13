@@ -38,9 +38,19 @@ interface RecordPaymentModalProps {
     amount: number;
     metadata: Record<string, unknown>;
   }) => Promise<void>;
+  preferredByStudent?: Record<
+    string,
+    { method?: PaymentMethod; payerName?: string; accountNumber?: string }
+  >;
 }
 
-export function RecordPaymentModal({ open, onOpenChange, onSave, onStartStripeCheckout }: RecordPaymentModalProps) {
+export function RecordPaymentModal({
+  open,
+  onOpenChange,
+  onSave,
+  onStartStripeCheckout,
+  preferredByStudent,
+}: RecordPaymentModalProps) {
   const [studentId, setStudentId] = useState("");
   const [payerName, setPayerName] = useState("");
   const [concept, setConcept] = useState("");
@@ -50,6 +60,7 @@ export function RecordPaymentModal({ open, onOpenChange, onSave, onStartStripeCh
   });
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("Efectivo");
+  const [accountNumber, setAccountNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -104,9 +115,15 @@ export function RecordPaymentModal({ open, onOpenChange, onSave, onStartStripeCh
   const handleStudentChange = (id: string) => {
     setStudentId(id);
     const student = activeStudents.find((s) => s.id === id);
+    const preferred = id ? preferredByStudent?.[id] : undefined;
+
     if (student) {
       // Auto-fill payer: use guardian if exists, otherwise student
-      setPayerName(student.guardian ? student.guardian.name : student.name);
+      setPayerName(preferred?.payerName || (student.guardian ? student.guardian.name : student.name));
+      if (preferred?.method) {
+        setMethod(preferred.method);
+      }
+      setAccountNumber(preferred?.accountNumber || "");
       if (student.enrolledClasses.length > 0) {
         const total = student.enrolledClasses.reduce((s, c) => s + c.monthlyPrice, 0);
         setAmount(String(total));
@@ -120,6 +137,15 @@ export function RecordPaymentModal({ open, onOpenChange, onSave, onStartStripeCh
       return null;
     }
 
+    const paymentMethodKey =
+      method === "Transferencia bancaria"
+        ? "transfer"
+        : method === "Tarjeta"
+          ? "card"
+          : method === "MercadoPago"
+            ? "mercadopago"
+            : "cash";
+
     return {
       studentId: selectedStudent.id,
       amount: parseFloat(amount),
@@ -129,7 +155,11 @@ export function RecordPaymentModal({ open, onOpenChange, onSave, onStartStripeCh
         month,
         student_name: selectedStudent.name,
         student_email: selectedStudent.email,
-        payment_method: method === "Transferencia bancaria" ? "transfer" : "cash",
+        payment_method: paymentMethodKey,
+        account_number:
+          method === "Transferencia bancaria"
+            ? accountNumber.trim() || (preferredByStudent?.[selectedStudent.id]?.accountNumber ?? undefined)
+            : undefined,
         notes: notes.trim() || undefined,
       },
     };
@@ -145,6 +175,7 @@ export function RecordPaymentModal({ open, onOpenChange, onSave, onStartStripeCh
     setPayerName("");
     setConcept("");
     setAmount("");
+    setAccountNumber("");
     setNotes("");
   };
 
@@ -244,6 +275,18 @@ export function RecordPaymentModal({ open, onOpenChange, onSave, onStartStripeCh
               </SelectContent>
             </Select>
           </div>
+
+          {method === "Transferencia bancaria" && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Número de cuenta</Label>
+              <Input
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
+                placeholder="Ej: ES91 **** **** **** 1234"
+                className="h-9 text-sm"
+              />
+            </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-1.5">

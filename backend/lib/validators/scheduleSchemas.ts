@@ -1,12 +1,18 @@
 import { z } from "zod";
 
+// Time validation: HH:mm format (hours 00-23, minutes 00-59)
+const timeFormat = z.string().regex(
+  /^([01]\d|2[0-3]):([0-5]\d)$/,
+  "Formato de hora inválido (HH:mm)"
+);
+
 // Base schedule input
 const baseScheduleInput = {
   classId: z.string().uuid("ID de clase inválido"),
-  roomId: z.string().uuid("ID de sala inválida"),
+  roomId: z.string().uuid("ID de aula inválida"),
   weekday: z.number().min(1).max(7), // 1=Mon, 7=Sun
-  startTime: z.string().time("Formato de hora inválido (HH:mm)"),
-  endTime: z.string().time("Formato de hora inválido (HH:mm)"),
+  startTime: timeFormat,
+  endTime: timeFormat,
   effectiveFrom: z.string().date("Formato de fecha inválido"),
   effectiveTo: z.string().date("Formato de fecha inválido").optional(),
   isActive: z.boolean().default(true),
@@ -59,9 +65,10 @@ export const batchScheduleOperationSchema = z.object({
   creates: z.array(createScheduleSchema).default([]),
   updates: z
     .array(
-      z.object({
-        id: z.string().uuid("ID de horario inválido"),
-      }).merge(updateScheduleSchema)
+      updateScheduleSchema
+        .extend({
+          id: z.string().uuid("ID de horario inválido"),
+        })
     )
     .default([]),
   deletes: z.array(z.string().uuid("ID de horario inválido")).default([]),

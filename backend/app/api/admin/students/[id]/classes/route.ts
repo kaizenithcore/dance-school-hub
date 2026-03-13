@@ -8,6 +8,14 @@ import { z } from "zod";
 const updateStudentClassesSchema = z.object({
   classIds: z.array(z.string().uuid()),
   jointEnrollmentGroupId: z.string().uuid().nullable().optional(),
+  selections: z
+    .array(
+      z.object({
+        classId: z.string().uuid(),
+        scheduleIds: z.array(z.string().uuid()).optional(),
+      })
+    )
+    .optional(),
 });
 
 export async function OPTIONS(request: NextRequest) {

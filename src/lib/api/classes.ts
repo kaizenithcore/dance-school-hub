@@ -10,6 +10,10 @@ interface ClassApiModel {
   category?: string | null;
   description: string | null;
   teacher_id: string | null;
+  class_teachers?: Array<{
+    teacher_id: string;
+    teachers?: { id: string; name: string } | Array<{ id: string; name: string }> | null;
+  }>;
   room_id: string | null;
   capacity: number;
   weekly_frequency?: number;
@@ -18,16 +22,20 @@ interface ClassApiModel {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  teachers?: { id: string; name: string } | Array<{ id: string; name: string }> | null;
 }
 
 export interface ClassWithRelations {
   id: string;
   tenantId: string;
   name: string;
+  disciplineId: string | null;
   discipline: string;
+  categoryId: string | null;
   category: string | null;
   description: string | null;
   teacherId: string | null;
+  teacherIds: string[];
   roomId: string | null;
   capacity: number;
   weeklyFrequency: number;
@@ -36,6 +44,7 @@ export interface ClassWithRelations {
   createdAt: string;
   updatedAt: string;
   teacher?: { id: string; name: string } | null;
+  teachers: Array<{ id: string; name: string }>;
 }
 
 export interface CreateClassRequest {
@@ -44,6 +53,7 @@ export interface CreateClassRequest {
   category_id?: string;
   description?: string;
   teacher_id?: string;
+  teacher_ids?: string[];
   room_id?: string;
   capacity: number;
   weeklyFrequency?: number;
@@ -57,6 +67,7 @@ export interface UpdateClassRequest {
   category_id?: string;
   description?: string;
   teacher_id?: string;
+  teacher_ids?: string[];
   room_id?: string;
   capacity?: number;
   weeklyFrequency?: number;
@@ -65,14 +76,31 @@ export interface UpdateClassRequest {
 }
 
 function mapClassFromApi(item: ClassApiModel): ClassWithRelations {
+  const legacyTeacher = Array.isArray(item.teachers) ? item.teachers[0] : item.teachers;
+  const linkedTeachers = (item.class_teachers || [])
+    .map((row) => (Array.isArray(row.teachers) ? row.teachers[0] : row.teachers))
+    .filter((teacher): teacher is { id: string; name: string } => Boolean(teacher?.id && teacher?.name));
+
+  const teachers = linkedTeachers.length > 0
+    ? linkedTeachers
+    : legacyTeacher
+      ? [{ id: legacyTeacher.id, name: legacyTeacher.name }]
+      : [];
+
+  const teacherIds = teachers.map((teacher) => teacher.id);
+  const primaryTeacher = teachers[0] || null;
+
   return {
     id: item.id,
     tenantId: item.tenant_id,
     name: item.name,
+    disciplineId: item.discipline_id ?? null,
     discipline: item.discipline_id || item.discipline || "",
+    categoryId: item.category_id ?? null,
     category: item.category_id || item.category || "",
     description: item.description,
-    teacherId: item.teacher_id,
+    teacherId: primaryTeacher?.id || item.teacher_id,
+    teacherIds,
     roomId: item.room_id,
     capacity: item.capacity,
     weeklyFrequency: item.weekly_frequency ?? 1,
@@ -80,17 +108,25 @@ function mapClassFromApi(item: ClassApiModel): ClassWithRelations {
     status: item.status,
     createdAt: item.created_at,
     updatedAt: item.updated_at,
-    teacher: null,
+    teacher: primaryTeacher,
+    teachers,
   };
 }
 
 function mapClassCreateToApi(data: CreateClassRequest) {
+  const teacherIds = Array.isArray(data.teacher_ids)
+    ? Array.from(new Set(data.teacher_ids.filter((teacherId) => typeof teacherId === "string" && teacherId.length > 0)))
+    : [];
+
+  const primaryTeacherId = teacherIds[0] || data.teacher_id || null;
+
   return {
     name: data.name,
     discipline_id: data.discipline_id ?? null,
     category_id: data.category_id ?? null,
     description: data.description ?? null,
-    teacher_id: data.teacher_id ?? null,
+    teacher_id: primaryTeacherId,
+    teacher_ids: teacherIds,
     room_id: data.room_id ?? null,
     capacity: data.capacity,
     weekly_frequency: data.weeklyFrequency ?? 1,
@@ -100,12 +136,17 @@ function mapClassCreateToApi(data: CreateClassRequest) {
 }
 
 function mapClassUpdateToApi(data: UpdateClassRequest) {
+  const teacherIds = Array.isArray(data.teacher_ids)
+    ? Array.from(new Set(data.teacher_ids.filter((teacherId) => typeof teacherId === "string" && teacherId.length > 0)))
+    : undefined;
+
   return {
     ...(data.name !== undefined ? { name: data.name } : {}),
     ...(data.discipline_id !== undefined ? { discipline_id: data.discipline_id } : {}),
     ...(data.category_id !== undefined ? { category_id: data.category_id } : {}),
     ...(data.description !== undefined ? { description: data.description } : {}),
-    ...(data.teacher_id !== undefined ? { teacher_id: data.teacher_id } : {}),
+    ...(teacherIds !== undefined ? { teacher_ids: teacherIds, teacher_id: teacherIds[0] ?? null } : {}),
+    ...(teacherIds === undefined && data.teacher_id !== undefined ? { teacher_id: data.teacher_id } : {}),
     ...(data.room_id !== undefined ? { room_id: data.room_id } : {}),
     ...(data.capacity !== undefined ? { capacity: data.capacity } : {}),
     ...(data.weeklyFrequency !== undefined ? { weekly_frequency: data.weeklyFrequency } : {}),

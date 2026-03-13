@@ -19,7 +19,7 @@ export interface TeacherRecord {
   assignedClasses: Class[];
   status: "active" | "inactive";
   hireDate: string;
-  salary: number;
+  aulary: number;
   notes?: string;
 }
 
@@ -39,7 +39,7 @@ export const MOCK_TEACHERS: TeacherRecord[] = [
         level: "Iniciación",
         day: "Lunes",
         time: "09:00–10:30",
-        room: "Sala Principal",
+        room: "Aula Principal",
         students: 12,
       },
       {
@@ -49,13 +49,13 @@ export const MOCK_TEACHERS: TeacherRecord[] = [
         level: "Avanzado",
         day: "Viernes",
         time: "10:00–11:30",
-        room: "Sala Principal",
+        room: "Aula Principal",
         students: 8,
       },
     ],
     status: "active",
     hireDate: "2015-01-15",
-    salary: 2500,
+    aulary: 2500,
   },
   {
     id: "t2",
@@ -72,13 +72,13 @@ export const MOCK_TEACHERS: TeacherRecord[] = [
         level: "Nivel 1",
         day: "Martes",
         time: "19:00–20:30",
-        room: "Sala 2",
+        room: "Aula 2",
         students: 15,
       },
     ],
     status: "active",
     hireDate: "2018-05-20",
-    salary: 2200,
+    aulary: 2200,
   },
   {
     id: "t3",
@@ -95,13 +95,13 @@ export const MOCK_TEACHERS: TeacherRecord[] = [
         level: "Todos",
         day: "Miércoles",
         time: "18:00–19:00",
-        room: "Sala 3 - Estudio",
+        room: "Aula 3 - Estudio",
         students: 10,
       },
     ],
     status: "active",
     hireDate: "2019-09-10",
-    salary: 1900,
+    aulary: 1900,
   },
   {
     id: "t4",
@@ -118,12 +118,12 @@ export const MOCK_TEACHERS: TeacherRecord[] = [
         level: "Intermedio",
         day: "Jueves",
         time: "20:00–21:30",
-        room: "Sala Principal",
+        room: "Aula Principal",
         students: 9,
       },
     ],
     status: "active",
     hireDate: "2020-02-01",
-    salary: 2100,
+    aulary: 2100,
   },
 ];

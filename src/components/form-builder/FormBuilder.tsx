@@ -6,10 +6,11 @@ import { FormPreview } from "./FormPreview";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Eye, Pencil, CalendarDays, RotateCcw, Tags } from "lucide-react";
+import { Plus, Eye, Pencil, CalendarDays, RotateCcw, Tags, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { FormBuilderSection } from "@/lib/types/formBuilder";
+import { Textarea } from "@/components/ui/textarea";
 import { getEnrollmentFormConfig, saveEnrollmentFormConfig } from "@/lib/api/enrollmentFormConfig";
 
 type Mode = "edit" | "preview";
@@ -152,6 +153,135 @@ export function FormBuilder() {
               />
             </div>
           </div>
+
+          {/* Schedule display settings */}
+          {(() => {
+            const scheduleSettings = config.scheduleSettings ?? {
+              preferredView: "calendar" as const,
+              recurringSelectionMode: "linked" as const,
+              recurringClassOverrides: [] as string[],
+              calendarFields: {
+                showDiscipline: true,
+                showCategory: false,
+                showRoom: true,
+                showCapacity: true,
+                showPrice: true,
+                showSelectedStudents: true,
+              },
+            };
+            const updateSchedule = (next: typeof scheduleSettings) =>
+              setConfig({ ...config, scheduleSettings: next });
+            return (
+              <div className="rounded-xl border border-border bg-card shadow-soft p-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
+                    <LayoutGrid className="h-4.5 w-4.5 text-accent-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-foreground">Configuración del Horario</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Vista por defecto, selección de clases recurrentes y campos visibles en tarjetas del calendario
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 pl-12">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Vista preferida</Label>
+                    <div className="flex rounded-md border overflow-hidden">
+                      <button
+                        type="button"
+                        className={`flex-1 text-xs px-3 py-2 ${scheduleSettings.preferredView === "calendar" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                        onClick={() => updateSchedule({ ...scheduleSettings, preferredView: "calendar" })}
+                      >
+                        Calendario
+                      </button>
+                      <button
+                        type="button"
+                        className={`flex-1 text-xs px-3 py-2 ${scheduleSettings.preferredView === "list" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                        onClick={() => updateSchedule({ ...scheduleSettings, preferredView: "list" })}
+                      >
+                        Lista
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Clases recurrentes</Label>
+                    <div className="flex rounded-md border overflow-hidden">
+                      <button
+                        type="button"
+                        className={`flex-1 text-xs px-3 py-2 ${scheduleSettings.recurringSelectionMode === "linked" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                        onClick={() => updateSchedule({ ...scheduleSettings, recurringSelectionMode: "linked" })}
+                      >
+                        Días enlazados
+                      </button>
+                      <button
+                        type="button"
+                        className={`flex-1 text-xs px-3 py-2 ${scheduleSettings.recurringSelectionMode === "single_day" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                        onClick={() => updateSchedule({ ...scheduleSettings, recurringSelectionMode: "single_day" })}
+                      >
+                        Día individual
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pl-12">
+                  <Label className="text-xs text-muted-foreground">
+                    IDs de clase para anular el modo por defecto (separados por coma)
+                  </Label>
+                  <Textarea
+                    rows={2}
+                    className="text-xs"
+                    placeholder="uuid-1, uuid-2"
+                    value={scheduleSettings.recurringClassOverrides.join(", ")}
+                    onChange={(e) => {
+                      const ids = e.target.value
+                        .split(",")
+                        .map((v) => v.trim())
+                        .filter(Boolean);
+                      updateSchedule({ ...scheduleSettings, recurringClassOverrides: ids });
+                    }}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Si el modo es "Días enlazados", estas clases permitirán selección por día individual. Si el modo es
+                    "Día individual", estas clases quedarán enlazadas.
+                  </p>
+                </div>
+
+                <div className="space-y-2 pl-12">
+                  <Label className="text-xs text-muted-foreground">Campos visibles en tarjetas del calendario</Label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {([
+                      ["showDiscipline", "Disciplina"],
+                      ["showCategory", "Categoría"],
+                      ["showRoom", "Aula"],
+                      ["showCapacity", "Capacidad"],
+                      ["showPrice", "Precio"],
+                      ["showSelectedStudents", "Alumnos seleccionados"],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="flex items-center justify-between rounded-md border px-3 py-2">
+                        <span className="text-xs">{label}</span>
+                        <Switch
+                          checked={Boolean(scheduleSettings.calendarFields[key])}
+                          onCheckedChange={(checked) =>
+                            updateSchedule({
+                              ...scheduleSettings,
+                              calendarFields: {
+                                ...scheduleSettings.calendarFields,
+                                [key]: Boolean(checked),
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Joint enrollment */}
           <JointEnrollmentSettings

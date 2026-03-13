@@ -16,6 +16,7 @@ const checkoutSchema = z.object({
     customDomain: z.boolean().default(false),
     prioritySupport: z.boolean().default(false),
     waitlistAutomation: z.boolean().default(false),
+    renewalAutomation: z.boolean().default(false),
   }),
   successUrl: z.string().url().optional(),
   cancelUrl: z.string().url().optional(),
@@ -23,20 +24,21 @@ const checkoutSchema = z.object({
 
 const PLAN_MONTHLY_AMOUNT_CENTS: Record<PlanType, number> = {
   starter: 17900,
-  pro: 34900,
-  enterprise: 69900,
+  pro: 49900,
+  enterprise: 94900,
 };
 
 const BLOCK_MONTHLY_AMOUNT_CENTS: Record<PlanType, number> = {
-  starter: 1500,
-  pro: 2500,
-  enterprise: 5000,
+  starter: 2400,
+  pro: 5900,
+  enterprise: 11900,
 };
 
 const ADDON_MONTHLY_AMOUNT_CENTS = {
   customDomain: 2900,
-  prioritySupport: 4900,
-  waitlistAutomation: 1900,
+  prioritySupport: 7900,
+  waitlistAutomation: 2400,
+  renewalAutomation: 3900,
 } as const;
 
 function canEdit(role: string) {
@@ -195,6 +197,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (input.addons.renewalAutomation) {
+      lineItems.push({
+        quantity: 1,
+        currency: "eur",
+        unitAmountCents: ADDON_MONTHLY_AMOUNT_CENTS.renewalAutomation,
+        productName: "DanceHub add-on renewal automation",
+        recurringInterval: "month",
+      });
+    }
+
     const appBaseUrl = origin || "http://localhost:8081";
     const successUrl = input.successUrl || `${appBaseUrl}/admin/settings?tab=billing&stripe=success`;
     const cancelUrl = input.cancelUrl || `${appBaseUrl}/admin/settings?tab=billing&stripe=cancel`;
@@ -210,6 +222,7 @@ export async function POST(request: NextRequest) {
         customDomain: String(input.addons.customDomain),
         prioritySupport: String(input.addons.prioritySupport),
         waitlistAutomation: String(input.addons.waitlistAutomation),
+        renewalAutomation: String(input.addons.renewalAutomation),
       },
       lineItems,
     });

@@ -28,9 +28,16 @@ interface PaymentsTableProps {
   onViewDetail: (payment: PaymentRecord) => void;
   onAddPayment: () => void;
   onGenerateReceipt: (payment: PaymentRecord) => void;
+  generatingReceiptPaymentId?: string | null;
 }
 
-export function PaymentsTable({ payments, onViewDetail, onAddPayment, onGenerateReceipt }: PaymentsTableProps) {
+export function PaymentsTable({
+  payments,
+  onViewDetail,
+  onAddPayment,
+  onGenerateReceipt,
+  generatingReceiptPaymentId,
+}: PaymentsTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
@@ -45,10 +52,14 @@ export function PaymentsTable({ payments, onViewDetail, onAddPayment, onGenerate
 
   const filtered = useMemo(() => {
     return payments.filter((p) => {
+      const searchValue = search.toLowerCase();
+      const studentName = (p.studentName || "").toLowerCase();
+      const payerName = (p.payerName || "").toLowerCase();
+      const concept = (p.concept || "").toLowerCase();
       const matchSearch =
-        p.studentName.toLowerCase().includes(search.toLowerCase()) ||
-        p.payerName.toLowerCase().includes(search.toLowerCase()) ||
-        p.concept.toLowerCase().includes(search.toLowerCase());
+        studentName.includes(searchValue) ||
+        payerName.includes(searchValue) ||
+        concept.includes(searchValue);
       const matchStatus = statusFilter === "all" || p.status === statusFilter;
       const matchMethod = methodFilter === "all" || p.method === methodFilter;
       const matchMonth = monthFilter === "all" || p.month === monthFilter;
@@ -187,6 +198,8 @@ export function PaymentsTable({ payments, onViewDetail, onAddPayment, onGenerate
               paginated.map((payment) => {
                 const statusCfg = STATUS_CONFIG[payment.status];
                 const payerDiffers = payment.payerName !== payment.studentName;
+                const isReceiptGenerationBusy = Boolean(generatingReceiptPaymentId);
+                const isGeneratingReceipt = generatingReceiptPaymentId === payment.id;
                 return (
                   <TableRow key={payment.id} className="cursor-pointer" onClick={() => onViewDetail(payment)}>
                     <TableCell>
@@ -220,7 +233,12 @@ export function PaymentsTable({ payments, onViewDetail, onAddPayment, onGenerate
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{payment.method}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
+                      {payment.method}
+                      {payment.accountNumber && payment.method.toLowerCase().includes("transfer") ? (
+                        <span className="ml-1 text-[10px]">(****{payment.accountNumber.slice(-4)})</span>
+                      ) : null}
+                    </TableCell>
                     <TableCell className="text-center">
                       <Badge variant="outline" className={cn("text-[10px] font-medium", statusCfg.className)}>
                         {statusCfg.label}
@@ -234,6 +252,7 @@ export function PaymentsTable({ payments, onViewDetail, onAddPayment, onGenerate
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7"
+                              disabled={isReceiptGenerationBusy}
                               onClick={(e) => { e.stopPropagation(); onGenerateReceipt(payment); }}
                             >
                               {payment.receiptGenerated
@@ -241,7 +260,7 @@ export function PaymentsTable({ payments, onViewDetail, onAddPayment, onGenerate
                                 : <Receipt className="h-3.5 w-3.5" />
                               }
                             </Button>
-                          </TooltipTrigger><TooltipContent side="bottom"><p>{payment.receiptGenerated ? "Recibo generado" : "Generar recibo"}</p></TooltipContent></Tooltip>
+                          </TooltipTrigger><TooltipContent side="bottom"><p>{isGeneratingReceipt ? "Generando..." : isReceiptGenerationBusy ? "Espera a que termine la generación" : payment.receiptGenerated ? "Recibo generado" : "Generar recibo"}</p></TooltipContent></Tooltip>
                         )}
                         <Tooltip><TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onViewDetail(payment); }}>

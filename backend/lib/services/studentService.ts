@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import type { CreateStudentInput, UpdateStudentInput } from "@/lib/validators/studentSchemas";
 import { studentQuotaService } from "@/lib/services/studentQuotaService";
+import { pricingService } from "@/lib/services/pricingService";
+import type { ClassSelection } from "@/lib/types/pricing";
 
 type Guardian = {
   name: string;
@@ -11,6 +13,8 @@ type Guardian = {
 type StudentClassUpdateInput = {
   classIds: string[];
   jointEnrollmentGroupId?: string | null;
+  selections?: Array<{ classId: string; scheduleIds?: string[] }>;
+  _skipGroupPropagation?: boolean;
 };
 
 async function replaceGuardian(tenantId: string, studentId: string, guardian?: Guardian) {
@@ -48,6 +52,12 @@ export const studentService = {
         date_of_birth,
         status,
         payment_type,
+        payer_type,
+        payer_name,
+        payer_email,
+        payer_phone,
+        preferred_payment_method,
+        account_number,
         join_date,
         notes,
         guardians(name, phone, email, is_primary),
@@ -55,7 +65,8 @@ export const studentService = {
           id,
           status,
           joint_enrollment_group_id,
-          classes(id, name, price_cents, class_schedules(weekday, start_time, end_time))
+          student_snapshot,
+          classes(id, name, discipline_id, price_cents, class_schedules(id, weekday, start_time, end_time))
         )
       `
       )
@@ -65,6 +76,84 @@ export const studentService = {
     if (error) {
       throw new Error(`Failed to fetch students: ${error.message}`);
     }
+
+    const groupPricingInput = new Map<string, { selections: ClassSelection[]; memberIds: Set<string> }>();
+
+    for (const studentRow of data || []) {
+      const activeEnrollments = (studentRow.enrollments || []).filter(
+        (enrollment: any) => enrollment.status === "pending" || enrollment.status === "confirmed"
+      );
+
+      for (const enrollment of activeEnrollments) {
+        const groupId = enrollment.joint_enrollment_group_id;
+        const cls = Array.isArray(enrollment.classes) ? enrollment.classes[0] : enrollment.classes;
+        if (!groupId || !cls) {
+          continue;
+        }
+
+        const schedules = Array.isArray(cls.class_schedules) ? cls.class_schedules : [];
+        const totalClassHours = schedules.reduce((sum: number, schedule: any) => {
+          const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
+          const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
+          const startTotal = startHour + startMinute / 60;
+          const endTotal = endHour + endMinute / 60;
+          return sum + Math.max(0, endTotal - startTotal);
+        }, 0);
+
+        const selectedScheduleIdsRaw = enrollment?.student_snapshot?.selected_schedule_ids;
+        const selectedScheduleIds = Array.isArray(selectedScheduleIdsRaw)
+          ? selectedScheduleIdsRaw.filter((value: unknown): value is string => typeof value === "string")
+          : [];
+
+        const selectedHours = selectedScheduleIds.length > 0
+          ? schedules
+              .filter((schedule: any) => selectedScheduleIds.includes(schedule.id))
+              .reduce((sum: number, schedule: any) => {
+                const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
+                const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
+                const startTotal = startHour + startMinute / 60;
+                const endTotal = endHour + endMinute / 60;
+                return sum + Math.max(0, endTotal - startTotal);
+              }, 0)
+          : totalClassHours;
+
+        const normalizedTotalHours = totalClassHours > 0 ? totalClassHours : 1;
+        const normalizedSelectedHours = selectedHours > 0 ? selectedHours : normalizedTotalHours;
+        const ratio = normalizedTotalHours > 0 ? normalizedSelectedHours / normalizedTotalHours : 1;
+
+        const groupData = groupPricingInput.get(groupId) || {
+          selections: [],
+          memberIds: new Set<string>(),
+        };
+
+        groupData.memberIds.add(studentRow.id);
+        groupData.selections.push({
+          class_id: cls.id,
+          discipline_id: cls.discipline_id || "general",
+          discipline_name: cls.name || "Clase",
+          hours_per_week: normalizedSelectedHours,
+          base_price: Math.round(((cls.price_cents || 0) / 100) * ratio * 100) / 100,
+        });
+
+        groupPricingInput.set(groupId, groupData);
+      }
+    }
+
+    const groupPricingById = new Map<string, { total: number; perMember: number }>();
+    await Promise.all(
+      Array.from(groupPricingInput.entries()).map(async ([groupId, payload]) => {
+        try {
+          const pricing = await pricingService.calculatePricing(tenantId, payload.selections);
+          const memberCount = Math.max(1, payload.memberIds.size);
+          groupPricingById.set(groupId, {
+            total: pricing.total,
+            perMember: pricing.total / memberCount,
+          });
+        } catch {
+          // Fallback: if pricing calculation fails, keep base behavior.
+        }
+      })
+    );
 
     return (data ?? []).map((student: any) => {
       const primaryGuardian = (student.guardians || []).find((g: any) => g.is_primary) || student.guardians?.[0] || null;
@@ -83,12 +172,18 @@ export const studentService = {
             ? `${String(firstSchedule.start_time).slice(0, 5)}-${String(firstSchedule.end_time || "").slice(0, 5)}`
             : "-";
 
+          const selectedScheduleIdsRaw = enrollment?.student_snapshot?.selected_schedule_ids;
+          const selectedScheduleIds = Array.isArray(selectedScheduleIdsRaw)
+            ? selectedScheduleIdsRaw.filter((value: unknown): value is string => typeof value === "string")
+            : [];
+
           return {
             id: cls.id,
             name: cls.name,
             day,
             time,
             monthlyPrice: Math.round((cls.price_cents || 0) / 100),
+            selectedScheduleIds,
           };
         })
         .filter(Boolean);
@@ -103,7 +198,21 @@ export const studentService = {
         joinDate: student.join_date,
         notes: student.notes,
         paymentType: student.payment_type,
+        payerType: student.payer_type || "student",
+        payerName: student.payer_name || undefined,
+        payerEmail: student.payer_email || undefined,
+        payerPhone: student.payer_phone || undefined,
+        preferredPaymentMethod: student.preferred_payment_method || "cash",
+        accountNumber: student.account_number || undefined,
         jointEnrollmentGroupId: activeEnrollments.find((enrollment: any) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id || null,
+        monthlyTotalOverride: (() => {
+          const groupId = activeEnrollments.find((enrollment: any) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id;
+          if (!groupId) {
+            return undefined;
+          }
+          const pricing = groupPricingById.get(groupId);
+          return pricing ? Math.round(pricing.perMember * 100) / 100 : undefined;
+        })(),
         guardian: primaryGuardian
           ? {
               name: primaryGuardian.name,
@@ -129,6 +238,12 @@ export const studentService = {
         date_of_birth: input.birthdate ?? null,
         status: input.status,
         payment_type: input.paymentType,
+        payer_type: input.payerType ?? "student",
+        payer_name: input.payerType === "other" ? input.payerName ?? null : null,
+        payer_email: input.payerType === "other" ? input.payerEmail ?? null : null,
+        payer_phone: input.payerType === "other" ? input.payerPhone ?? null : null,
+        preferred_payment_method: input.preferredPaymentMethod ?? "cash",
+        account_number: (input.preferredPaymentMethod ?? "cash") === "transfer" ? input.accountNumber ?? null : null,
         join_date: input.joinDate ?? undefined,
         notes: input.notes ?? null,
       })
@@ -186,6 +301,24 @@ export const studentService = {
     if (input.birthdate !== undefined) payload.date_of_birth = input.birthdate ?? null;
     if (input.status !== undefined) payload.status = input.status;
     if (input.paymentType !== undefined) payload.payment_type = input.paymentType;
+    if (input.payerType !== undefined) payload.payer_type = input.payerType;
+    if (input.payerType !== undefined || input.payerName !== undefined) {
+      const payerType = input.payerType;
+      payload.payer_name = payerType === "other" ? (input.payerName ?? null) : null;
+    }
+    if (input.payerType !== undefined || input.payerEmail !== undefined) {
+      const payerType = input.payerType;
+      payload.payer_email = payerType === "other" ? (input.payerEmail ?? null) : null;
+    }
+    if (input.payerType !== undefined || input.payerPhone !== undefined) {
+      const payerType = input.payerType;
+      payload.payer_phone = payerType === "other" ? (input.payerPhone ?? null) : null;
+    }
+    if (input.preferredPaymentMethod !== undefined) payload.preferred_payment_method = input.preferredPaymentMethod;
+    if (input.preferredPaymentMethod !== undefined || input.accountNumber !== undefined) {
+      const preferredPaymentMethod = input.preferredPaymentMethod;
+      payload.account_number = preferredPaymentMethod === "transfer" ? (input.accountNumber ?? null) : null;
+    }
     if (input.joinDate !== undefined) payload.join_date = input.joinDate ?? null;
     if (input.notes !== undefined) payload.notes = input.notes ?? null;
 
@@ -215,6 +348,12 @@ export const studentService = {
 
   async updateStudentClasses(tenantId: string, studentId: string, input: StudentClassUpdateInput) {
     const uniqueClassIds = Array.from(new Set((input.classIds || []).filter(Boolean)));
+    const selectionMap = new Map(
+      (input.selections || []).map((selection) => [
+        selection.classId,
+        Array.from(new Set((selection.scheduleIds || []).filter(Boolean))),
+      ])
+    );
 
     const { data: student, error: studentError } = await supabaseAdmin
       .from("students")
@@ -247,6 +386,7 @@ export const studentService = {
     }
 
     const currentList = currentEnrollments || [];
+    const previousGroupId = currentList.find((enrollment: any) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id || null;
     const currentClassIds = new Set(currentList.map((enrollment: any) => enrollment.class_id));
     const targetClassIds = new Set(uniqueClassIds);
 
@@ -298,7 +438,7 @@ export const studentService = {
         }
       }
 
-      const fallbackGroupId = currentList.find((enrollment: any) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id || null;
+      const fallbackGroupId = previousGroupId;
       const jointEnrollmentGroupId = input.jointEnrollmentGroupId ?? fallbackGroupId;
 
       const rows = toAdd.map((classId) => ({
@@ -315,6 +455,7 @@ export const studentService = {
           guardian_name: guardian?.name || null,
           guardian_email: guardian?.email || null,
           guardian_phone: guardian?.phone || null,
+          selected_schedule_ids: selectionMap.get(classId) || [],
           updated_from_admin: true,
         },
       }));
@@ -325,6 +466,79 @@ export const studentService = {
 
       if (insertError) {
         throw new Error(`Failed to create enrollments: ${insertError.message}`);
+      }
+    }
+
+    const resolvedGroupId = input.jointEnrollmentGroupId !== undefined
+      ? input.jointEnrollmentGroupId
+      : previousGroupId;
+
+    if (currentList.some((item: any) => targetClassIds.has(item.class_id))) {
+      for (const enrollment of currentList.filter((item: any) => targetClassIds.has(item.class_id))) {
+        const selectedScheduleIds = selectionMap.get(enrollment.class_id) || [];
+        const { error: updateEnrollmentError } = await supabaseAdmin
+          .from("enrollments")
+          .update({
+            joint_enrollment_group_id: resolvedGroupId,
+            student_snapshot: {
+              first_name: String(student.name || "").split(" ")[0] || null,
+              last_name: String(student.name || "").split(" ").slice(1).join(" ") || null,
+              email: student.email,
+              phone: student.phone,
+              guardian_name: guardian?.name || null,
+              guardian_email: guardian?.email || null,
+              guardian_phone: guardian?.phone || null,
+              selected_schedule_ids: selectedScheduleIds,
+              updated_from_admin: true,
+            },
+          })
+          .eq("id", enrollment.id)
+          .eq("tenant_id", tenantId);
+
+        if (updateEnrollmentError) {
+          throw new Error(`Failed to update enrollment details: ${updateEnrollmentError.message}`);
+        }
+      }
+    }
+
+    // Dissolve an existing group for all members when explicitly set to null.
+    if (input.jointEnrollmentGroupId === null && previousGroupId) {
+      const { error: dissolveError } = await supabaseAdmin
+        .from("enrollments")
+        .update({ joint_enrollment_group_id: null })
+        .eq("tenant_id", tenantId)
+        .eq("joint_enrollment_group_id", previousGroupId)
+        .in("status", ["pending", "confirmed"]);
+
+      if (dissolveError) {
+        throw new Error(`Failed to dissolve joint enrollment group: ${dissolveError.message}`);
+      }
+    }
+
+    // When a group is selected, propagate classes/schedules to all current group members.
+    if (!input._skipGroupPropagation && resolvedGroupId) {
+      const { data: groupMembers, error: groupMembersError } = await supabaseAdmin
+        .from("enrollments")
+        .select("student_id")
+        .eq("tenant_id", tenantId)
+        .eq("joint_enrollment_group_id", resolvedGroupId)
+        .in("status", ["pending", "confirmed"]);
+
+      if (groupMembersError) {
+        throw new Error(`Failed to load joint group members: ${groupMembersError.message}`);
+      }
+
+      const memberIds = Array.from(new Set((groupMembers || []).map((row: any) => row.student_id))).filter(
+        (id) => id && id !== studentId
+      );
+
+      for (const memberId of memberIds) {
+        await this.updateStudentClasses(tenantId, memberId, {
+          classIds: uniqueClassIds,
+          jointEnrollmentGroupId: resolvedGroupId,
+          selections: input.selections,
+          _skipGroupPropagation: true,
+        });
       }
     }
 
@@ -357,7 +571,7 @@ export const studentService = {
   async removeMemberFromJointGroup(tenantId: string, groupId: string, studentId: string) {
     const { error } = await supabaseAdmin
       .from("enrollments")
-      .update({ status: "cancelled" })
+      .update({ joint_enrollment_group_id: null })
       .eq("tenant_id", tenantId)
       .eq("joint_enrollment_group_id", groupId)
       .eq("student_id", studentId)
