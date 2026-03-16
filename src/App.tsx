@@ -33,6 +33,7 @@ const ExamsPage = lazy(() => import("@/pages/admin/ExamsPage"));
 const SchoolLandingPage = lazy(() => import("@/pages/public/SchoolLandingPage"));
 const EnrollPage = lazy(() => import("@/pages/public/EnrollPage"));
 const FullSchedulePage = lazy(() => import("@/pages/public/FullSchedulePage"));
+const StudentPortalLandingPage = lazy(() => import("@/pages/public/StudentPortalLandingPage"));
 
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
