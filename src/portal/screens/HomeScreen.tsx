@@ -1,0 +1,100 @@
+import { motion } from "framer-motion";
+import { ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CURRENT_STUDENT, MOCK_PORTAL_CLASSES, MOCK_PORTAL_EVENTS, MOCK_ACHIEVEMENTS, MOCK_ACTIVITY } from "../data/mockData";
+import { PortalClassCard } from "../components/PortalClassCard";
+import { EventCard } from "../components/EventCard";
+import { AchievementBadge } from "../components/AchievementBadge";
+
+export default function HomeScreen() {
+  const todayClasses = MOCK_PORTAL_CLASSES.filter((c) => c.day === "Lunes").slice(0, 2);
+  const recentAchievements = MOCK_ACHIEVEMENTS.filter((a) => a.earned).slice(-3);
+  const nextEvent = MOCK_PORTAL_EVENTS[0];
+
+  return (
+    <div className="space-y-6 px-4 pb-24 pt-6">
+      {/* Greeting */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+        <p className="text-sm text-muted-foreground">Hola, 👋</p>
+        <h1 className="text-2xl font-bold text-foreground">{CURRENT_STUDENT.name.split(" ")[0]}</h1>
+      </motion.div>
+
+      {/* Quick stats */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="grid grid-cols-3 gap-2">
+        <QuickStat value={String(CURRENT_STUDENT.classesCompleted)} label="Clases" emoji="📚" />
+        <QuickStat value={`${CURRENT_STUDENT.currentStreak}d`} label="Racha" emoji="🔥" />
+        <QuickStat value={CURRENT_STUDENT.level} label="Nivel" emoji="⭐" />
+      </motion.div>
+
+      {/* Today classes */}
+      <Section title="Hoy" linkTo="/portal/app/classes">
+        {todayClasses.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No tienes clases hoy.</p>
+        ) : (
+          <div className="space-y-2">
+            {todayClasses.map((c) => (
+              <PortalClassCard key={c.id} cls={c} compact />
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* Activity feed */}
+      <Section title="Actividad reciente">
+        <div className="space-y-2">
+          {MOCK_ACTIVITY.slice(0, 4).map((a) => (
+            <div key={a.id} className="flex items-start gap-3 rounded-lg bg-muted/50 px-3 py-2">
+              <span className="text-lg">{a.icon}</span>
+              <div>
+                <p className="text-sm text-foreground">{a.text}</p>
+                <p className="text-[11px] text-muted-foreground">{a.timestamp}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Achievements */}
+      <Section title="Logros recientes" linkTo="/portal/app/progress">
+        <div className="flex gap-4 overflow-x-auto pb-1">
+          {recentAchievements.map((a) => (
+            <AchievementBadge key={a.id} achievement={a} size="sm" />
+          ))}
+        </div>
+      </Section>
+
+      {/* Next event */}
+      {nextEvent && (
+        <Section title="Próximo evento" linkTo="/portal/app/events">
+          <EventCard event={nextEvent} />
+        </Section>
+      )}
+    </div>
+  );
+}
+
+function QuickStat({ value, label, emoji }: { value: string; label: string; emoji: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-xl border border-border bg-card py-3">
+      <span className="text-lg">{emoji}</span>
+      <span className="text-base font-bold text-foreground">{value}</span>
+      <span className="text-[10px] text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
+function Section({ title, linkTo, children }: { title: string; linkTo?: string; children: React.ReactNode }) {
+  return (
+    <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        {linkTo && (
+          <Link to={linkTo} className="flex items-center gap-0.5 text-xs font-medium text-primary">
+            Ver todo <ChevronRight className="h-3 w-3" />
+          </Link>
+        )}
+      </div>
+      {children}
+    </motion.section>
+  );
+}
