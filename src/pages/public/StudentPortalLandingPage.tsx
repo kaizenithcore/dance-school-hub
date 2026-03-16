@@ -445,9 +445,8 @@ function FinalCTA() {
     <section className="py-20 sm:py-28">
       <div className="container">
         <motion.div
-          {...fade}
-          initial="hidden"
-          whileInView="show"
+          initial={fade.initial}
+          whileInView={fade.animate}
           viewport={{ once: true }}
           className="relative rounded-3xl border border-border bg-card p-10 sm:p-16 text-center overflow-hidden max-w-3xl mx-auto"
         >
