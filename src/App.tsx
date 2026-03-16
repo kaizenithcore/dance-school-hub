@@ -148,6 +148,15 @@ const App = () => (
             <Route path="schedule" element={withSuspense(<FullSchedulePage />)} />
           </Route>
           <Route path="/portal" element={withSuspense(<StudentPortalLandingPage />)} />
+          <Route path="/portal/onboarding" element={withSuspense(<PortalOnboarding />)} />
+          <Route path="/portal/app" element={withSuspense(<PortalAppShell />)}>
+            <Route index element={withSuspense(<PortalHome />)} />
+            <Route path="classes" element={withSuspense(<PortalClasses />)} />
+            <Route path="progress" element={withSuspense(<PortalProgress />)} />
+            <Route path="events" element={withSuspense(<PortalEvents />)} />
+            <Route path="certifications" element={withSuspense(<PortalCertifications />)} />
+            <Route path="profile" element={withSuspense(<PortalProfile />)} />
+          </Route>
           <Route path="*" element={withSuspense(<NotFound />)} />
         </Routes>
       </BrowserRouter>
