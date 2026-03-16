@@ -1,5 +1,5 @@
 export type PaymentStatus = "paid" | "pending" | "overdue" | "refunded";
-export type PaymentMethod = "Transferencia bancaria" | "Efectivo";
+export type PaymentMethod = "Transferencia bancaria" | "Efectivo" | "Tarjeta" | "MercadoPago";
 
 export interface PaymentRecord {
   id: string;

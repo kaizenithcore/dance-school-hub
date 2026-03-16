@@ -1,24 +1,18 @@
 import { motion } from "framer-motion";
-import { FileEdit, LayoutGrid, RefreshCw, ListChecks, Megaphone, Copy } from "lucide-react";
+import { Users, BookOpen, LayoutGrid, FileEdit, Award, Smartphone, Megaphone } from "lucide-react";
 
-const pillars = [
-  { icon: FileEdit, title: "Editor de matrículas flexible", desc: "Crea formularios personalizados con lógica condicional, archivos y selección de clases integrada." },
-  { icon: LayoutGrid, title: "Horario visual con drag & drop", desc: "Organiza clases, aulas y profesores arrastrando bloques sobre un calendario semanal." },
-  { icon: RefreshCw, title: "Renovaciones automáticas", desc: "Al acabar el curso, lanza renovaciones masivas y gestiona confirmaciones sin esfuerzo." },
-  { icon: ListChecks, title: "Listas de espera automáticas", desc: "Cuando se libera una plaza, el siguiente alumno recibe la oferta automáticamente." },
-  { icon: Megaphone, title: "Comunicación masiva", desc: "Envía emails segmentados a alumnos, familias o grupos de clases en segundos." },
-  { icon: Copy, title: "Copia de curso en un clic", desc: "Clona la estructura del curso anterior y empieza el nuevo periodo al instante." },
+const modules = [
+  { icon: Users, title: "Gestión de alumnos", desc: "Fichas completas, historial, documentos y seguimiento de cada alumno desde un solo lugar." },
+  { icon: BookOpen, title: "Gestión de clases", desc: "Crea clases, asigna profesores, controla aforo y gestiona grupos de forma visual." },
+  { icon: LayoutGrid, title: "Editor visual de horarios", desc: "Arrastra bloques sobre un calendario semanal para organizar clases, aulas y profesores." },
+  { icon: FileEdit, title: "Matrículas online", desc: "Formularios personalizables que los alumnos completan online. Sin papel, sin errores." },
+  { icon: Award, title: "Gestión de exámenes", desc: "Registra candidatos, califica con categorías ponderadas y genera certificados automáticamente." },
+  { icon: Smartphone, title: "Portal del alumno", desc: "Los alumnos consultan sus horarios, clases, certificaciones y perfil desde su móvil." },
+  { icon: Megaphone, title: "Comunicación con alumnos", desc: "Envía emails segmentados a alumnos, familias o grupos de clases en segundos." },
 ];
 
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
-};
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
+const item = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
 export function Solution() {
   return (
@@ -32,10 +26,10 @@ export function Solution() {
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">La solución</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Una plataforma, toda la gestión
+            Una plataforma completa para tu escuela
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Cada pilar del producto está diseñado para eliminar trabajo manual.
+            No es solo software de gestión. Es la plataforma que moderniza tu escuela de danza.
           </p>
         </motion.div>
 
@@ -44,19 +38,19 @@ export function Solution() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto"
         >
-          {pillars.map((p) => (
+          {modules.map((m) => (
             <motion.div
-              key={p.title}
+              key={m.title}
               variants={item}
               className="group rounded-xl border border-border bg-card p-6 hover:border-primary/30 hover:shadow-md transition-all"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-primary mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <p.icon className="h-5 w-5" />
+                <m.icon className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">{p.title}</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{p.desc}</p>
+              <h3 className="text-base font-semibold text-foreground">{m.title}</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{m.desc}</p>
             </motion.div>
           ))}
         </motion.div>

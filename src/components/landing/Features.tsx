@@ -1,27 +1,21 @@
 import { motion } from "framer-motion";
-import { ClipboardList, FileSpreadsheet, BarChart3, AlertTriangle, MonitorSmartphone } from "lucide-react";
+import { LayoutGrid, ListChecks, RefreshCw, FileSpreadsheet, AlertTriangle, ClipboardList } from "lucide-react";
 
 const features = [
-  { icon: ClipboardList, title: "Hojas de asistencia automáticas", desc: "Cada profesor recibe su listado generado al instante." },
-  { icon: FileSpreadsheet, title: "Importador desde Excel", desc: "Sube tus datos actuales y empieza sin partir de cero." },
-  { icon: BarChart3, title: "Detección de baja ocupación", desc: "Identifica clases con pocas inscripciones antes de que sea tarde." },
-  { icon: AlertTriangle, title: "Incidencias rápidas", desc: "Registra ausencias, cambios y notas sobre alumnos al instante." },
-  { icon: MonitorSmartphone, title: "Modo recepción", desc: "Interfaz simplificada para personal administrativo en mostrador." },
+  { icon: LayoutGrid, title: "Editor visual de horarios", desc: "Drag & drop para organizar clases, aulas y profesores sobre un calendario semanal." },
+  { icon: ListChecks, title: "Lista de espera automática", desc: "Cuando se libera una plaza, el siguiente alumno recibe la oferta automáticamente." },
+  { icon: RefreshCw, title: "Renovaciones automáticas", desc: "Al acabar el curso, lanza renovaciones masivas y gestiona confirmaciones sin esfuerzo." },
+  { icon: FileSpreadsheet, title: "Importador inteligente", desc: "Sube tu Excel de alumnos actual y empieza sin partir de cero." },
+  { icon: AlertTriangle, title: "Detección de problemas", desc: "Identifica conflictos de horarios, clases con baja ocupación y solapamientos." },
+  { icon: ClipboardList, title: "Hojas de asistencia", desc: "Generación automática de listados de asistencia para cada profesor." },
 ];
 
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
-};
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
+const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
 export function Features() {
   return (
-    <section className="py-20 sm:py-28">
+    <section className="py-20 sm:py-28 bg-muted/30">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -29,12 +23,12 @@ export function Features() {
           viewport={{ once: true }}
           className="text-center max-w-2xl mx-auto mb-14"
         >
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Ahorra tiempo</p>
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Funciones avanzadas</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Funciones que eliminan trabajo manual
+            Herramientas que ahorran horas cada semana
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Pequeñas herramientas que suman horas de ahorro cada semana.
+            Automatizaciones diseñadas para que tu equipo se centre en lo importante: enseñar.
           </p>
         </motion.div>
 
@@ -43,7 +37,7 @@ export function Features() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto"
+          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto"
         >
           {features.map((f) => (
             <motion.div
