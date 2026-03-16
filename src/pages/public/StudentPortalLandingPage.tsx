@@ -319,7 +319,7 @@ function Certifications() {
             </div>
           </motion.div>
 
-          <motion.div {...fade} initial="hidden" whileInView="show" viewport={{ once: true }}>
+            <motion.div initial={fade.initial} whileInView={fade.animate} viewport={{ once: true }}>
             <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Certificaciones</p>
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Tus logros, siempre accesibles</h2>
             <p className="mt-4 text-muted-foreground">
