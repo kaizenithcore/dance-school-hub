@@ -416,7 +416,7 @@ function SchoolFomo() {
   return (
     <section className="py-20 sm:py-28 bg-muted/30">
       <div className="container max-w-3xl text-center">
-        <motion.div {...fade} initial="hidden" whileInView="show" viewport={{ once: true }}>
+        <motion.div initial={fade.initial} whileInView={fade.animate} viewport={{ once: true }}>
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-warning/10">
             <Zap className="h-7 w-7 text-warning" />
           </div>
