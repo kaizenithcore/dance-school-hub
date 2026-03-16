@@ -16,10 +16,10 @@ export function CTA() {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/20" />
           <div className="relative">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-              Empieza a organizar tu escuela hoy
+              Empieza a modernizar tu escuela hoy
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-md mx-auto">
-              Crea tu cuenta y prueba la plataforma gratis durante 14 días.
+              Crea tu cuenta y prueba la plataforma gratis durante 14 días. Sin tarjeta de crédito.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>

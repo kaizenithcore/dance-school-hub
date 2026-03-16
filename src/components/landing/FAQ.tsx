@@ -12,11 +12,13 @@ const faqs = [
   { q: "¿Puedo gestionar varias sedes?", a: "Sí, el plan Enterprise incluye soporte multi-sede con gestión independiente de aulas, profesores y horarios por ubicación." },
   { q: "¿Necesito conocimientos técnicos?", a: "No. La plataforma está diseñada para que cualquier persona de tu equipo pueda usarla desde el primer día, sin formación técnica." },
   { q: "¿Hay periodo de prueba?", a: "Sí. Puedes probar el plan Pro durante 14 días sin compromiso y sin tarjeta de crédito." },
+  { q: "¿Incluye portal para los alumnos?", a: "Sí. Los alumnos pueden consultar sus horarios, clases, certificaciones y perfil desde una app web accesible desde el móvil." },
+  { q: "¿Cómo funcionan los exámenes y certificados?", a: "Puedes crear exámenes con categorías de evaluación ponderadas, registrar candidatos, calificar y generar certificados PDF automáticamente." },
 ];
 
 export function FAQ() {
   return (
-    <section className="py-20 sm:py-28">
+    <section id="faq" className="py-20 sm:py-28">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 12 }}

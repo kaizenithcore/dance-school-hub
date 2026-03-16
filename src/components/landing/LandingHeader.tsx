@@ -4,8 +4,8 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const nav = [
-  { label: "Cómo funciona", href: "#how-it-works" },
-  { label: "Credibilidad", href: "#credibility" },
+  { label: "Solución", href: "#solution" },
+  { label: "Portal alumno", href: "#student-portal" },
   { label: "Funciones", href: "#features" },
   { label: "Precios", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
@@ -24,7 +24,6 @@ export function LandingHeader() {
           <span className="text-base font-semibold text-foreground">DanceHub</span>
         </Link>
 
-        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-6">
           {nav.map((n) => (
             <a key={n.label} href={n.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -42,7 +41,6 @@ export function LandingHeader() {
           </Button>
         </div>
 
-        {/* Mobile toggle */}
         <button
           className="md:hidden p-2 text-foreground"
           onClick={() => setOpen(!open)}
@@ -54,7 +52,6 @@ export function LandingHeader() {
         </button>
       </div>
 
-      {/* Mobile menu */}
       {open && (
         <div id="landing-mobile-menu" className="md:hidden border-t border-border bg-card px-6 py-4 space-y-3">
           {nav.map((n) => (

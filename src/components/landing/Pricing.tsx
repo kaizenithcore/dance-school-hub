@@ -21,33 +21,34 @@ const plans: Plan[] = [
     name: "Starter",
     price: "179€",
     period: "/mes",
-    desc: "Hasta 300 alumnos",
+    desc: "Hasta 200 alumnos",
     features: [
-      "Solo limite por alumnos activos",
-      "Sin limite de profesores, clases ni aulas",
       "Gestión de alumnos",
       "Gestión de clases",
-      "Editor de matrícula",
+      "Editor de matrícula online",
       "Horario manual",
       "Hojas de asistencia",
-      "Importador Excel",
+      "Importador desde Excel",
+      "Comunicación básica",
     ],
     cta: "Empezar",
     ctaHref: "/auth/register",
   },
   {
     name: "Pro",
-    price: "499€",
+    price: "449€",
     period: "/mes",
-    desc: "Hasta 1.200 alumnos",
+    desc: "200 – 700 alumnos",
     features: [
       "Todo en Starter",
-      "Solo limite por alumnos activos",
+      "Editor visual de horarios",
       "Listas de espera automáticas",
       "Renovaciones automáticas",
       "Copia de curso anterior",
       "Comunicación masiva",
       "Detección de problemas en horarios",
+      "Gestión de exámenes",
+      "Portal del alumno",
     ],
     cta: "Probar gratis",
     ctaHref: "/auth/register",
@@ -55,22 +56,31 @@ const plans: Plan[] = [
   },
   {
     name: "Enterprise",
-    price: "949€",
+    price: "899€",
     period: "/mes",
-    desc: "Hasta 4.000 alumnos",
+    desc: "+700 alumnos",
     features: [
       "Todo en Pro",
-      "Solo limite por alumnos activos",
       "Multi-sede",
       "Roles avanzados",
       "Analítica avanzada",
       "Gestión completa de escuela",
       "Soporte prioritario",
+      "Onboarding personalizado",
     ],
     cta: "Contactar",
     ctaHref: "mailto:hola@dancehub.es?subject=Consulta%20plan%20Enterprise%20DanceHub",
     ctaExternal: true,
   },
+];
+
+const addons = [
+  "Renovaciones automáticas",
+  "Lista de espera automática",
+  "Dominio personalizado: 29€/mes",
+  "Branding personalizado: 39€/mes",
+  "Soporte prioritario: 79€/mes",
+  "Bloques extra de alumnos desde 24€/mes",
 ];
 
 export function Pricing() {
@@ -85,10 +95,10 @@ export function Pricing() {
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Precios</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Planes simples, sin sorpresas
+            Planes claros, sin sorpresas
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Una plataforma para eliminar horas administrativas cada semana. El precio escala solo por alumnos activos.
+            Elige el plan que se adapta al tamaño de tu escuela. El precio escala solo por alumnos activos.
           </p>
         </motion.div>
 
@@ -109,7 +119,7 @@ export function Pricing() {
             >
               {plan.highlighted && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-semibold text-primary-foreground">
-                  Más popular
+                  Recomendado
                 </span>
               )}
               <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
@@ -145,14 +155,14 @@ export function Pricing() {
         </div>
 
         <div className="mt-8 rounded-2xl border border-border bg-card p-6 max-w-5xl mx-auto">
-          <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Add-ons y compras puntuales</h3>
+          <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Add-ons disponibles</h3>
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
-            <p>Dominio personalizado: 29 EUR/mes</p>
-            <p>Soporte prioritario: 79 EUR/mes</p>
-            <p>Branding personalizado: 39 EUR/mes</p>
-            <p>Bloques extra de alumnos Starter (+100): 24 EUR/mes</p>
-            <p>Bloques extra de alumnos Pro (+300): 59 EUR/mes</p>
-            <p>Bloques extra de alumnos Enterprise (+500): 119 EUR/mes</p>
+            {addons.map((a) => (
+              <p key={a} className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                {a}
+              </p>
+            ))}
           </div>
         </div>
       </div>
