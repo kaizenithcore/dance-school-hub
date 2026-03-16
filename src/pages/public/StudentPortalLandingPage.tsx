@@ -234,7 +234,7 @@ function Achievements() {
   return (
     <section className="py-20 sm:py-28">
       <div className="container max-w-5xl">
-        <motion.div {...fade} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-center">
+        <motion.div initial={fade.initial} whileInView={fade.animate} viewport={{ once: true }} className="text-center">
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Sistema de logros</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Desbloquea logros bailando</h2>
           <p className="mt-4 text-muted-foreground max-w-md mx-auto">Cada clase, cada evento y cada certificación te acercan a nuevos logros. ¿Cuántos puedes conseguir?</p>
