@@ -388,7 +388,7 @@ export default function RegisterPage() {
                     <Checkbox
                       checked={addOns[key] ?? false}
                       onCheckedChange={(checked) =>
-                        setAddOns({ ...addOns, [key]: checked })
+                        setAddOns({ ...addOns, [key]: checked === true })
                       }
                     />
                     <div className="flex-1">
