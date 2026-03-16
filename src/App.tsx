@@ -138,6 +138,7 @@ const App = () => (
             <Route path="enroll" element={withSuspense(<EnrollPage />)} />
             <Route path="schedule" element={withSuspense(<FullSchedulePage />)} />
           </Route>
+          <Route path="/portal" element={withSuspense(<StudentPortalLandingPage />)} />
           <Route path="*" element={withSuspense(<NotFound />)} />
         </Routes>
       </BrowserRouter>
