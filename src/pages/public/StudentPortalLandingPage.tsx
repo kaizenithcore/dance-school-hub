@@ -197,7 +197,7 @@ function Progress() {
   return (
     <section className="py-20 sm:py-28 bg-muted/30">
       <div className="container max-w-5xl">
-        <motion.div {...fade} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-center">
+        <motion.div initial={fade.initial} whileInView={fade.animate} viewport={{ once: true }} className="text-center">
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Seguimiento de progreso</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Cada clase cuenta</h2>
           <p className="mt-4 text-muted-foreground max-w-md mx-auto">Registra tu asistencia, niveles alcanzados y certificaciones. Observa cómo creces como bailarín.</p>
