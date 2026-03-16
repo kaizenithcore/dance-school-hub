@@ -270,7 +270,7 @@ function Events() {
     <section className="py-20 sm:py-28 bg-muted/30">
       <div className="container max-w-5xl">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <motion.div {...fade} initial="hidden" whileInView="show" viewport={{ once: true }}>
+            <motion.div initial={fade.initial} whileInView={fade.animate} viewport={{ once: true }}>
             <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Eventos</p>
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Cada escenario forma parte de tu historia</h2>
             <p className="mt-4 text-muted-foreground">
