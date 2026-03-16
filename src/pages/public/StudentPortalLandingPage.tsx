@@ -138,7 +138,7 @@ function DancerProfile() {
     <section className="py-20 sm:py-28">
       <div className="container">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-5xl mx-auto">
-          <motion.div {...fade} initial="hidden" whileInView="show" viewport={{ once: true }}>
+            <motion.div initial={fade.initial} whileInView={fade.animate} viewport={{ once: true }}>
             <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Perfil de bailarín</p>
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Tu portafolio como bailarín</h2>
             <p className="mt-4 text-muted-foreground">
