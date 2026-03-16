@@ -105,7 +105,7 @@ function WhatIs() {
   return (
     <section id="que-es" className="py-20 sm:py-28 bg-muted/30">
       <div className="container max-w-4xl text-center">
-        <motion.div {...fade} initial="hidden" whileInView="show" viewport={{ once: true }}>
+        <motion.div initial={fade.initial} whileInView={fade.animate} viewport={{ once: true }}>
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">¿Qué es DanceHub?</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
             La plataforma que conecta alumnos y escuelas de danza
