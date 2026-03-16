@@ -35,6 +35,15 @@ const EnrollPage = lazy(() => import("@/pages/public/EnrollPage"));
 const FullSchedulePage = lazy(() => import("@/pages/public/FullSchedulePage"));
 const StudentPortalLandingPage = lazy(() => import("@/pages/public/StudentPortalLandingPage"));
 
+const PortalAppShell = lazy(() => import("@/portal/screens/PortalAppShell"));
+const PortalOnboarding = lazy(() => import("@/portal/screens/OnboardingScreen"));
+const PortalHome = lazy(() => import("@/portal/screens/HomeScreen"));
+const PortalClasses = lazy(() => import("@/portal/screens/ClassesScreen"));
+const PortalProgress = lazy(() => import("@/portal/screens/ProgressScreen"));
+const PortalEvents = lazy(() => import("@/portal/screens/EventsScreen"));
+const PortalCertifications = lazy(() => import("@/portal/screens/CertificationsScreen"));
+const PortalProfile = lazy(() => import("@/portal/screens/ProfileScreen"));
+
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
 const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
