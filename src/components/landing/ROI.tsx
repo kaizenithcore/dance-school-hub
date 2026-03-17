@@ -1,5 +1,8 @@
 import { motion } from "framer-motion";
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { formatEuro, planCatalog } from "@/lib/commercialCatalog";
+
+const proPlan = planCatalog.pro;
 
 export function ROI() {
   return (
