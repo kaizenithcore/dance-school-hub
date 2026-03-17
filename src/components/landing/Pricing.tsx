@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,22 +7,26 @@ import { Link } from "react-router-dom";
 
 interface Plan {
   name: string;
-  price: string;
-  period: string;
+  annualPrice: string;
+  annualTotal: string;
+  monthlyPrice: string;
   desc: string;
   features: string[];
   cta: string;
   ctaHref: string;
   ctaExternal?: boolean;
   highlighted?: boolean;
+  savings?: string;
 }
 
 const plans: Plan[] = [
   {
     name: "Starter",
-    price: "179€",
-    period: "/mes",
+    annualPrice: "149€",
+    annualTotal: "1.790€/año",
+    monthlyPrice: "179€/mes",
     desc: "Hasta 200 alumnos",
+    savings: "2 meses gratis",
     features: [
       "Gestión de alumnos",
       "Gestión de clases",
@@ -36,9 +41,11 @@ const plans: Plan[] = [
   },
   {
     name: "Pro",
-    price: "449€",
-    period: "/mes",
+    annualPrice: "374€",
+    annualTotal: "4.490€/año",
+    monthlyPrice: "449€/mes",
     desc: "200 – 700 alumnos",
+    savings: "2 meses gratis",
     features: [
       "Todo en Starter",
       "Editor visual de horarios",
@@ -56,9 +63,11 @@ const plans: Plan[] = [
   },
   {
     name: "Enterprise",
-    price: "899€",
-    period: "/mes",
+    annualPrice: "749€",
+    annualTotal: "8.990€/año",
+    monthlyPrice: "899€/mes",
     desc: "+700 alumnos",
+    savings: "2 meses gratis",
     features: [
       "Todo en Pro",
       "Multi-sede",
@@ -84,6 +93,8 @@ const addons = [
 ];
 
 export function Pricing() {
+  const [annual, setAnnual] = useState(true);
+
   return (
     <section id="pricing" className="py-20 sm:py-28">
       <div className="container">
@@ -91,16 +102,39 @@ export function Pricing() {
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center max-w-2xl mx-auto mb-14"
+          className="text-center max-w-2xl mx-auto mb-10"
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Precios</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Planes claros, sin sorpresas
+            Inviertes en tu escuela, no en una suscripción más
           </h2>
           <p className="mt-4 text-muted-foreground">
             Elige el plan que se adapta al tamaño de tu escuela. El precio escala solo por alumnos activos.
           </p>
         </motion.div>
+
+        {/* Toggle */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          <button
+            onClick={() => setAnnual(false)}
+            className={cn(
+              "text-sm font-medium px-4 py-2 rounded-full transition-colors",
+              !annual ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Mensual
+          </button>
+          <button
+            onClick={() => setAnnual(true)}
+            className={cn(
+              "text-sm font-medium px-4 py-2 rounded-full transition-colors",
+              annual ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Anual
+            <span className="ml-1.5 text-[10px] font-bold opacity-80">-17%</span>
+          </button>
+        </div>
 
         <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto items-start">
           {plans.map((plan, i) => (
@@ -124,10 +158,20 @@ export function Pricing() {
               )}
               <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-foreground">{plan.price}</span>
-                <span className="text-sm text-muted-foreground">{plan.period}</span>
+                <span className="text-4xl font-bold text-foreground">
+                  {annual ? plan.annualPrice : plan.monthlyPrice}
+                </span>
+                <span className="text-sm text-muted-foreground">/mes</span>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">{plan.desc}</p>
+              {annual && (
+                <div className="mt-1 space-y-0.5">
+                  <p className="text-xs text-muted-foreground">Facturación anual: {plan.annualTotal}</p>
+                  {plan.savings && (
+                    <p className="text-xs font-medium text-success">{plan.savings}</p>
+                  )}
+                </div>
+              )}
+              <p className="mt-2 text-sm text-muted-foreground">{plan.desc}</p>
 
               <ul className="mt-6 space-y-2.5 flex-1">
                 {plan.features.map((f) => (
@@ -154,7 +198,22 @@ export function Pricing() {
           ))}
         </div>
 
-        <div className="mt-8 rounded-2xl border border-border bg-card p-6 max-w-5xl mx-auto">
+        {/* Value block */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-8 rounded-2xl border border-primary/20 bg-card p-6 max-w-5xl mx-auto text-center"
+        >
+          <p className="text-lg font-semibold text-foreground">
+            Con solo 4–8 alumnos nuevos cubres el coste del sistema
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            El retorno de inversión es inmediato: menos gestión, más tiempo para captar y retener alumnos.
+          </p>
+        </motion.div>
+
+        <div className="mt-6 rounded-2xl border border-border bg-card p-6 max-w-5xl mx-auto">
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Add-ons disponibles</h3>
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
             {addons.map((a) => (
