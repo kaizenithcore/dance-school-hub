@@ -1,5 +1,8 @@
 import { motion } from "framer-motion";
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { formatEuro, planCatalog } from "@/lib/commercialCatalog";
+
+const proPlan = planCatalog.pro;
 
 export function ROI() {
   return (
@@ -45,8 +48,8 @@ export function ROI() {
               <TrendingDown className="h-5 w-5 text-success" />
               <span className="text-sm font-semibold text-success">Con DanceHub</span>
             </div>
-            <p className="text-3xl font-bold text-foreground">374€<span className="text-base font-normal text-muted-foreground">/mes</span></p>
-            <p className="mt-1 text-xs text-muted-foreground">Plan Pro anual · equivalente a 10 meses</p>
+            <p className="text-3xl font-bold text-foreground">{formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}<span className="text-base font-normal text-muted-foreground">/mes</span></p>
+            <p className="mt-1 text-xs text-muted-foreground">Plan Pro anual · {formatEuro(proPlan.billing.annualTotalEur)}/año ({proPlan.billing.annualSavingsLabel})</p>
             <p className="mt-2 text-sm text-muted-foreground">
               Automatiza la mayor parte del trabajo administrativo. Sin errores, sin papel, sin estrés.
             </p>

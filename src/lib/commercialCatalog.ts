@@ -56,6 +56,13 @@ interface CommercialCatalog {
     starterOnly?: boolean;
   }>;
   professionalServices: Record<string, unknown>;
+  bundles?: Record<string, unknown>;
+  studentApp?: Record<string, unknown>;
+  pricingNarrative?: {
+    anchor: string;
+    comparison: string;
+    focus: string;
+  };
 }
 
 export const commercialCatalog = commercialCatalogJson as CommercialCatalog;

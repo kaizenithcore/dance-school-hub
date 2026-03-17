@@ -4,7 +4,7 @@ import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
-import { formatEuro, getMinimumExtraStudentBlockPriceEur, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
+import { commercialCatalog, formatEuro, getMinimumExtraStudentBlockPriceEur, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
 
 interface Plan {
   name: string;
@@ -160,10 +160,10 @@ export function Pricing() {
           className="mt-8 rounded-2xl border border-primary/20 bg-card p-6 max-w-5xl mx-auto text-center"
         >
           <p className="text-lg font-semibold text-foreground">
-            Con solo 4–8 alumnos nuevos cubres el coste del sistema
+            Con solo 5–15 alumnos nuevos cubres el coste completo del sistema
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            El retorno de inversión es inmediato: menos gestión, más tiempo para captar y retener alumnos.
+            {commercialCatalog.pricingNarrative?.comparison || "Más barato que contratar a un administrativo"}. El retorno de inversión es inmediato: menos gestión, más tiempo para captar y retener alumnos.
           </p>
         </motion.div>
 
