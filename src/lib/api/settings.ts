@@ -23,6 +23,7 @@ export interface SchoolSettingsPayload {
   security: Record<string, unknown>;
   billing: {
     planType: string;
+    billingCycle?: "monthly" | "annual";
     trialPaymentCompleted?: boolean;
     trialPaymentCompletedAt?: string | null;
     addons?: Record<string, unknown>;

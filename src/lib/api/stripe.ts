@@ -28,8 +28,11 @@ interface BillingCheckoutResponse {
   checkoutUrl: string | null;
 }
 
+export type BillingCycle = "monthly" | "annual";
+
 export interface CreateBillingCheckoutInput {
   planType: "starter" | "pro" | "enterprise";
+  billingCycle: BillingCycle;
   extraStudentBlocks: number;
   addons: {
     customDomain: boolean;

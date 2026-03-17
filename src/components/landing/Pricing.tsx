@@ -4,6 +4,7 @@ import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { formatEuro, getMinimumExtraStudentBlockPriceEur, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
 
 interface Plan {
   name: string;
@@ -19,77 +20,30 @@ interface Plan {
   savings?: string;
 }
 
-const plans: Plan[] = [
-  {
-    name: "Starter",
-    annualPrice: "149€",
-    annualTotal: "1.790€/año",
-    monthlyPrice: "179€/mes",
-    desc: "Hasta 200 alumnos",
-    savings: "2 meses gratis",
-    features: [
-      "Gestión de alumnos",
-      "Gestión de clases",
-      "Editor de matrícula online",
-      "Horario manual",
-      "Hojas de asistencia",
-      "Importador desde Excel",
-      "Comunicación básica",
-    ],
-    cta: "Empezar",
-    ctaHref: "/auth/register",
-  },
-  {
-    name: "Pro",
-    annualPrice: "374€",
-    annualTotal: "4.490€/año",
-    monthlyPrice: "449€/mes",
-    desc: "200 – 700 alumnos",
-    savings: "2 meses gratis",
-    features: [
-      "Todo en Starter",
-      "Editor visual de horarios",
-      "Listas de espera automáticas",
-      "Renovaciones automáticas",
-      "Copia de curso anterior",
-      "Comunicación masiva",
-      "Detección de problemas en horarios",
-      "Gestión de exámenes",
-      "Portal del alumno",
-    ],
-    cta: "Probar gratis",
-    ctaHref: "/auth/register",
-    highlighted: true,
-  },
-  {
-    name: "Enterprise",
-    annualPrice: "749€",
-    annualTotal: "8.990€/año",
-    monthlyPrice: "899€/mes",
-    desc: "+700 alumnos",
-    savings: "2 meses gratis",
-    features: [
-      "Todo en Pro",
-      "Multi-sede",
-      "Roles avanzados",
-      "Analítica avanzada",
-      "Gestión completa de escuela",
-      "Soporte prioritario",
-      "Onboarding personalizado",
-    ],
-    cta: "Contactar",
-    ctaHref: "mailto:hola@dancehub.es?subject=Consulta%20plan%20Enterprise%20DanceHub",
-    ctaExternal: true,
-  },
-];
+const plans: Plan[] = planOrder.map((planType) => {
+  const plan = planCatalog[planType];
+
+  return {
+    name: plan.name,
+    annualPrice: formatEuro(plan.billing.annualEffectiveMonthlyPriceEur),
+    annualTotal: `${formatEuro(plan.billing.annualTotalEur)}/año`,
+    monthlyPrice: `${formatEuro(plan.billing.monthlyPriceEur)}/mes`,
+    desc: plan.limits.marketingLabel,
+    savings: plan.billing.annualSavingsLabel,
+    features: plan.display.features,
+    cta: plan.cta.label,
+    ctaHref: plan.cta.href,
+    ctaExternal: plan.cta.external,
+    highlighted: plan.highlighted,
+  };
+});
 
 const addons = [
-  "Renovaciones automáticas",
-  "Lista de espera automática",
-  "Dominio personalizado: 29€/mes",
-  "Branding personalizado: 39€/mes",
-  "Soporte prioritario: 79€/mes",
-  "Bloques extra de alumnos desde 24€/mes",
+  `${subscriptionAddonCatalog.renewalAutomation.label}: ${formatEuro(subscriptionAddonCatalog.renewalAutomation.monthlyPriceEur)}/mes`,
+  `${subscriptionAddonCatalog.waitlistAutomation.label}: ${formatEuro(subscriptionAddonCatalog.waitlistAutomation.monthlyPriceEur)}/mes`,
+  `${subscriptionAddonCatalog.customDomain.label}: ${formatEuro(subscriptionAddonCatalog.customDomain.monthlyPriceEur)}/mes`,
+  `${subscriptionAddonCatalog.prioritySupport.label}: ${formatEuro(subscriptionAddonCatalog.prioritySupport.monthlyPriceEur)}/mes`,
+  `Bloques extra de alumnos desde ${formatEuro(getMinimumExtraStudentBlockPriceEur())}/mes`,
 ];
 
 export function Pricing() {

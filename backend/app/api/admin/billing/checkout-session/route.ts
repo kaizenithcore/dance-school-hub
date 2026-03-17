@@ -6,11 +6,15 @@ import { handleCorsPreFlight } from "@/lib/cors";
 import { stripeService, type SubscriptionCheckoutLineItem } from "@/lib/services/stripeService";
 import { getEnv } from "@/lib/env";
 import { type PlanType } from "@/lib/services/featureEntitlementsService";
+import { getCommercialPlan, getSubscriptionAddon } from "@/lib/commercialCatalog";
 
 const planSchema = z.enum(["starter", "pro", "enterprise"]);
+const billingCycleSchema = z.enum(["monthly", "annual"]);
+type BillingCycle = z.infer<typeof billingCycleSchema>;
 
 const checkoutSchema = z.object({
   planType: planSchema,
+  billingCycle: billingCycleSchema.default("annual"),
   extraStudentBlocks: z.number().int().min(0).default(0),
   addons: z.object({
     customDomain: z.boolean().default(false),
@@ -22,37 +26,29 @@ const checkoutSchema = z.object({
   cancelUrl: z.string().url().optional(),
 });
 
-const PLAN_MONTHLY_AMOUNT_CENTS: Record<PlanType, number> = {
-  starter: 17900,
-  pro: 49900,
-  enterprise: 94900,
-};
-
-const BLOCK_MONTHLY_AMOUNT_CENTS: Record<PlanType, number> = {
-  starter: 2400,
-  pro: 5900,
-  enterprise: 11900,
-};
-
-const ADDON_MONTHLY_AMOUNT_CENTS = {
-  customDomain: 2900,
-  prioritySupport: 7900,
-  waitlistAutomation: 2400,
-  renewalAutomation: 3900,
-} as const;
-
 function canEdit(role: string) {
   return role === "owner" || role === "admin";
 }
 
-function buildPlanLineItem(env: ReturnType<typeof getEnv>, planType: PlanType): SubscriptionCheckoutLineItem {
-  const priceIdByPlan: Record<PlanType, string | undefined> = {
-    starter: env.STRIPE_PRICE_STARTER,
-    pro: env.STRIPE_PRICE_PRO,
-    enterprise: env.STRIPE_PRICE_ENTERPRISE,
+function intervalForCycle(billingCycle: BillingCycle): "month" | "year" {
+  return billingCycle === "annual" ? "year" : "month";
+}
+
+function buildPlanLineItem(env: ReturnType<typeof getEnv>, planType: PlanType, billingCycle: BillingCycle): SubscriptionCheckoutLineItem {
+  const priceIdByPlan: Record<BillingCycle, Record<PlanType, string | undefined>> = {
+    monthly: {
+      starter: env.STRIPE_PRICE_STARTER,
+      pro: env.STRIPE_PRICE_PRO,
+      enterprise: env.STRIPE_PRICE_ENTERPRISE,
+    },
+    annual: {
+      starter: env.STRIPE_PRICE_STARTER_ANNUAL,
+      pro: env.STRIPE_PRICE_PRO_ANNUAL,
+      enterprise: env.STRIPE_PRICE_ENTERPRISE_ANNUAL,
+    },
   };
 
-  const priceId = priceIdByPlan[planType];
+  const priceId = priceIdByPlan[billingCycle][planType];
 
   if (priceId) {
     return {
@@ -61,27 +57,43 @@ function buildPlanLineItem(env: ReturnType<typeof getEnv>, planType: PlanType): 
     };
   }
 
+  const plan = getCommercialPlan(planType);
+
   return {
     quantity: 1,
     currency: "eur",
-    unitAmountCents: PLAN_MONTHLY_AMOUNT_CENTS[planType],
+    unitAmountCents: billingCycle === "annual"
+      ? plan.billing.annualTotalEur * 100
+      : plan.billing.monthlyPriceEur * 100,
     productName: `DanceHub plan ${planType}`,
-    recurringInterval: "month",
+    recurringInterval: intervalForCycle(billingCycle),
   };
 }
 
-function buildBlockLineItem(env: ReturnType<typeof getEnv>, planType: PlanType, blocks: number): SubscriptionCheckoutLineItem | null {
+function buildBlockLineItem(
+  env: ReturnType<typeof getEnv>,
+  planType: PlanType,
+  blocks: number,
+  billingCycle: BillingCycle
+): SubscriptionCheckoutLineItem | null {
   if (blocks <= 0) {
     return null;
   }
 
-  const blockPriceIdByPlan: Record<PlanType, string | undefined> = {
-    starter: env.STRIPE_PRICE_BLOCK_STARTER,
-    pro: env.STRIPE_PRICE_BLOCK_PRO,
-    enterprise: env.STRIPE_PRICE_BLOCK_ENTERPRISE,
+  const blockPriceIdByPlan: Record<BillingCycle, Record<PlanType, string | undefined>> = {
+    monthly: {
+      starter: env.STRIPE_PRICE_BLOCK_STARTER,
+      pro: env.STRIPE_PRICE_BLOCK_PRO,
+      enterprise: env.STRIPE_PRICE_BLOCK_ENTERPRISE,
+    },
+    annual: {
+      starter: env.STRIPE_PRICE_BLOCK_STARTER_ANNUAL,
+      pro: env.STRIPE_PRICE_BLOCK_PRO_ANNUAL,
+      enterprise: env.STRIPE_PRICE_BLOCK_ENTERPRISE_ANNUAL,
+    },
   };
 
-  const priceId = blockPriceIdByPlan[planType];
+  const priceId = blockPriceIdByPlan[billingCycle][planType];
 
   if (priceId) {
     return {
@@ -90,13 +102,29 @@ function buildBlockLineItem(env: ReturnType<typeof getEnv>, planType: PlanType, 
     };
   }
 
+  const monthlyPrice = getCommercialPlan(planType).extraStudentBlocks.monthlyPriceEur;
+
   return {
     quantity: blocks,
     currency: "eur",
-    unitAmountCents: BLOCK_MONTHLY_AMOUNT_CENTS[planType],
+    unitAmountCents: (billingCycle === "annual" ? monthlyPrice * 12 : monthlyPrice) * 100,
     productName: `DanceHub extra student block (${planType})`,
-    recurringInterval: "month",
+    recurringInterval: intervalForCycle(billingCycle),
   };
+}
+
+function addonPriceId(env: ReturnType<typeof getEnv>, key: "customDomain" | "prioritySupport" | "waitlistAutomation" | "renewalAutomation", billingCycle: BillingCycle): string | undefined {
+  if (billingCycle === "annual") {
+    if (key === "customDomain") return env.STRIPE_PRICE_ADDON_CUSTOM_DOMAIN_ANNUAL;
+    if (key === "prioritySupport") return env.STRIPE_PRICE_ADDON_PRIORITY_SUPPORT_ANNUAL;
+    if (key === "waitlistAutomation") return env.STRIPE_PRICE_ADDON_WAITLIST_AUTOMATION_ANNUAL;
+    return env.STRIPE_PRICE_ADDON_RENEWAL_AUTOMATION_ANNUAL;
+  }
+
+  if (key === "customDomain") return env.STRIPE_PRICE_ADDON_CUSTOM_DOMAIN;
+  if (key === "prioritySupport") return env.STRIPE_PRICE_ADDON_PRIORITY_SUPPORT;
+  if (key === "waitlistAutomation") return env.STRIPE_PRICE_ADDON_WAITLIST_AUTOMATION;
+  return env.STRIPE_PRICE_ADDON_RENEWAL_AUTOMATION;
 }
 
 export async function OPTIONS(request: NextRequest) {
@@ -145,66 +173,91 @@ export async function POST(request: NextRequest) {
     const env = getEnv();
     const input = parsed.data;
     const planType = input.planType;
+    const billingCycle = input.billingCycle;
+
+    if (planType === "starter" && input.extraStudentBlocks > 0) {
+      return fail(
+        {
+          code: "invalid_request",
+          message: "Starter no admite bloques extra de alumnos",
+        },
+        400,
+        origin
+      );
+    }
 
     const lineItems: SubscriptionCheckoutLineItem[] = [
-      buildPlanLineItem(env, planType),
+      buildPlanLineItem(env, planType, billingCycle),
     ];
 
-    const blockLineItem = buildBlockLineItem(env, planType, input.extraStudentBlocks);
+    const blockLineItem = buildBlockLineItem(env, planType, input.extraStudentBlocks, billingCycle);
     if (blockLineItem) {
       lineItems.push(blockLineItem);
     }
 
     if (input.addons.customDomain) {
-      if (env.STRIPE_PRICE_ADDON_CUSTOM_DOMAIN) {
-        lineItems.push({ priceId: env.STRIPE_PRICE_ADDON_CUSTOM_DOMAIN, quantity: 1 });
+      const priceId = addonPriceId(env, "customDomain", billingCycle);
+      if (priceId) {
+        lineItems.push({ priceId, quantity: 1 });
       } else {
+        const monthly = getSubscriptionAddon("customDomain").monthlyPriceEur;
         lineItems.push({
           quantity: 1,
           currency: "eur",
-          unitAmountCents: ADDON_MONTHLY_AMOUNT_CENTS.customDomain,
+          unitAmountCents: (billingCycle === "annual" ? monthly * 12 : monthly) * 100,
           productName: "DanceHub add-on custom domain",
-          recurringInterval: "month",
+          recurringInterval: intervalForCycle(billingCycle),
         });
       }
     }
 
     if (input.addons.prioritySupport) {
-      if (env.STRIPE_PRICE_ADDON_PRIORITY_SUPPORT) {
-        lineItems.push({ priceId: env.STRIPE_PRICE_ADDON_PRIORITY_SUPPORT, quantity: 1 });
+      const priceId = addonPriceId(env, "prioritySupport", billingCycle);
+      if (priceId) {
+        lineItems.push({ priceId, quantity: 1 });
       } else {
+        const monthly = getSubscriptionAddon("prioritySupport").monthlyPriceEur;
         lineItems.push({
           quantity: 1,
           currency: "eur",
-          unitAmountCents: ADDON_MONTHLY_AMOUNT_CENTS.prioritySupport,
+          unitAmountCents: (billingCycle === "annual" ? monthly * 12 : monthly) * 100,
           productName: "DanceHub add-on priority support",
-          recurringInterval: "month",
+          recurringInterval: intervalForCycle(billingCycle),
         });
       }
     }
 
+    // Compatibilidad con payloads legacy: se procesa si llega en el request.
     if (input.addons.waitlistAutomation) {
-      if (env.STRIPE_PRICE_ADDON_WAITLIST_AUTOMATION) {
-        lineItems.push({ priceId: env.STRIPE_PRICE_ADDON_WAITLIST_AUTOMATION, quantity: 1 });
+      const priceId = addonPriceId(env, "waitlistAutomation", billingCycle);
+      if (priceId) {
+        lineItems.push({ priceId, quantity: 1 });
       } else {
+        const monthly = getSubscriptionAddon("waitlistAutomation").monthlyPriceEur;
         lineItems.push({
           quantity: 1,
           currency: "eur",
-          unitAmountCents: ADDON_MONTHLY_AMOUNT_CENTS.waitlistAutomation,
+          unitAmountCents: (billingCycle === "annual" ? monthly * 12 : monthly) * 100,
           productName: "DanceHub add-on waitlist automation",
-          recurringInterval: "month",
+          recurringInterval: intervalForCycle(billingCycle),
         });
       }
     }
 
     if (input.addons.renewalAutomation) {
+      const priceId = addonPriceId(env, "renewalAutomation", billingCycle);
+      if (priceId) {
+        lineItems.push({ priceId, quantity: 1 });
+      } else {
+        const monthly = getSubscriptionAddon("renewalAutomation").monthlyPriceEur;
       lineItems.push({
         quantity: 1,
         currency: "eur",
-        unitAmountCents: ADDON_MONTHLY_AMOUNT_CENTS.renewalAutomation,
+          unitAmountCents: (billingCycle === "annual" ? monthly * 12 : monthly) * 100,
         productName: "DanceHub add-on renewal automation",
-        recurringInterval: "month",
+          recurringInterval: intervalForCycle(billingCycle),
       });
+      }
     }
 
     const appBaseUrl = origin || "http://localhost:8081";
@@ -218,6 +271,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         tenantId: auth.context.tenantId,
         planType,
+        billingCycle,
         extraStudentBlocks: String(input.extraStudentBlocks),
         customDomain: String(input.addons.customDomain),
         prioritySupport: String(input.addons.prioritySupport),

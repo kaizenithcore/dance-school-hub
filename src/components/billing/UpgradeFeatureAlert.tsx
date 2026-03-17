@@ -9,7 +9,7 @@ interface UpgradeFeatureAlertProps {
   onUpgrade: () => void;
 }
 
-export function UpgradeFeatureAlert({ title, description, ctaLabel = "Mejorar plan", onUpgrade }: UpgradeFeatureAlertProps) {
+export function UpgradeFeatureAlert({ title, description, ctaLabel = "Ver planes", onUpgrade }: UpgradeFeatureAlertProps) {
   return (
     <Alert className="border-primary/25 bg-primary/5">
       <Lock className="h-4 w-4" />

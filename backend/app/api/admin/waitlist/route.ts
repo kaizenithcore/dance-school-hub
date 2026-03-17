@@ -24,6 +24,11 @@ export async function GET(request: NextRequest) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
+  const featureContext = await waitlistService.getTenantFeatureContext(auth.context.tenantId);
+  if (!featureContext.waitlistEnabled) {
+    return fail({ code: "feature_disabled", message: "Waitlist module is not active for this tenant" }, 403, origin);
+  }
+
   try {
     const classId = request.nextUrl.searchParams.get("classId");
 
@@ -49,6 +54,11 @@ export async function POST(request: NextRequest) {
 
   if (!canManageWaitlist(auth.context.role)) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
+  }
+
+  const featureContext = await waitlistService.getTenantFeatureContext(auth.context.tenantId);
+  if (!featureContext.waitlistEnabled) {
+    return fail({ code: "feature_disabled", message: "Waitlist module is not active for this tenant" }, 403, origin);
   }
 
   try {

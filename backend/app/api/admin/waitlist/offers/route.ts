@@ -24,6 +24,11 @@ export async function POST(request: NextRequest) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
+  const featureContext = await waitlistService.getTenantFeatureContext(auth.context.tenantId);
+  if (!featureContext.waitlistEnabled) {
+    return fail({ code: "feature_disabled", message: "Waitlist module is not active for this tenant" }, 403, origin);
+  }
+
   try {
     const body = await request.json();
     const action = body?.action === "process_expired" ? "process_expired" : "offer_next";

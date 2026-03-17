@@ -13,7 +13,15 @@ const envSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
+  STRIPE_PRICE_STARTER_ANNUAL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
   STRIPE_PRICE_PRO: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  STRIPE_PRICE_PRO_ANNUAL: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
@@ -21,7 +29,15 @@ const envSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
+  STRIPE_PRICE_ENTERPRISE_ANNUAL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
   STRIPE_PRICE_ADDON_CUSTOM_DOMAIN: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  STRIPE_PRICE_ADDON_CUSTOM_DOMAIN_ANNUAL: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
@@ -29,7 +45,23 @@ const envSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
+  STRIPE_PRICE_ADDON_PRIORITY_SUPPORT_ANNUAL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
   STRIPE_PRICE_ADDON_WAITLIST_AUTOMATION: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  STRIPE_PRICE_ADDON_WAITLIST_AUTOMATION_ANNUAL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  STRIPE_PRICE_ADDON_RENEWAL_AUTOMATION: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  STRIPE_PRICE_ADDON_RENEWAL_AUTOMATION_ANNUAL: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
@@ -37,11 +69,23 @@ const envSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
+  STRIPE_PRICE_BLOCK_STARTER_ANNUAL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
   STRIPE_PRICE_BLOCK_PRO: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
+  STRIPE_PRICE_BLOCK_PRO_ANNUAL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
   STRIPE_PRICE_BLOCK_ENTERPRISE: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  STRIPE_PRICE_BLOCK_ENTERPRISE_ANNUAL: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),

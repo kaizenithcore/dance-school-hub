@@ -17,11 +17,13 @@ import {
 import { toast } from "sonner";
 import { getSchoolSettings, updateSchoolSettings } from "@/lib/api/settings";
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
+import type { BillingCycle } from "@/lib/api/stripe";
 import { getCurrentAuthContext } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { validateStrongPassword } from "@/lib/security";
 import type { AuthContextResponse } from "@/lib/api/auth";
 import { useSearchParams } from "react-router-dom";
+import { planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
 
 interface SchoolInfo {
   name: string;
@@ -76,6 +78,7 @@ interface SecurityConfig {
 
 interface BillingConfig {
   planType: string;
+  billingCycle: BillingCycle;
   extraStudentBlocks: number;
   addons: {
     customDomain: boolean;
@@ -103,6 +106,7 @@ interface BillingConfig {
     attendanceSheetsPdf: boolean;
     quickIncidents: boolean;
     receptionMode: boolean;
+    examSuite: boolean;
     waitlistAutomation: boolean;
     renewalAutomation: boolean;
     courseClone: boolean;
@@ -113,11 +117,11 @@ interface BillingConfig {
   };
 }
 
-type PlanType = "starter" | "pro" | "enterprise";
-
 interface PlanInfo {
   label: string;
   monthlyPriceEur: number;
+  annualEffectiveMonthlyPriceEur: number;
+  annualTotalEur: number;
   includedActiveStudents: number;
   extraStudentsBlockSize: number;
   extraStudentsBlockPriceEur: number;
@@ -132,48 +136,40 @@ const HOURS = Array.from({ length: 17 }, (_, i) => {
 
 const PLAN_CATALOG: Record<PlanType, PlanInfo> = {
   starter: {
-    label: "Starter",
-    monthlyPriceEur: 179,
-    includedActiveStudents: 300,
-    extraStudentsBlockSize: 100,
-    extraStudentsBlockPriceEur: 15,
-    highlights: [
-      "Enlace inteligente de matrícula",
-      "Hojas de asistencia en PDF",
-      "Recepción e incidencias rápidas",
-      "Add-on de lista de espera opcional",
-    ],
+    label: planCatalog.starter.name,
+    monthlyPriceEur: planCatalog.starter.billing.monthlyPriceEur,
+    annualEffectiveMonthlyPriceEur: planCatalog.starter.billing.annualEffectiveMonthlyPriceEur,
+    annualTotalEur: planCatalog.starter.billing.annualTotalEur,
+    includedActiveStudents: planCatalog.starter.limits.includedActiveStudents,
+    extraStudentsBlockSize: planCatalog.starter.extraStudentBlocks.size,
+    extraStudentsBlockPriceEur: planCatalog.starter.extraStudentBlocks.monthlyPriceEur,
+    highlights: planCatalog.starter.display.adminHighlights,
   },
   pro: {
-    label: "Pro",
-    monthlyPriceEur: 499,
-    includedActiveStudents: 1200,
-    extraStudentsBlockSize: 300,
-    extraStudentsBlockPriceEur: 59,
-    highlights: [
-      "Todo Starter incluido",
-      "Automatización de renovaciones",
-      "Clonado de cursos",
-      "Comunicación masiva por email",
-    ],
+    label: planCatalog.pro.name,
+    monthlyPriceEur: planCatalog.pro.billing.monthlyPriceEur,
+    annualEffectiveMonthlyPriceEur: planCatalog.pro.billing.annualEffectiveMonthlyPriceEur,
+    annualTotalEur: planCatalog.pro.billing.annualTotalEur,
+    includedActiveStudents: planCatalog.pro.limits.includedActiveStudents,
+    extraStudentsBlockSize: planCatalog.pro.extraStudentBlocks.size,
+    extraStudentsBlockPriceEur: planCatalog.pro.extraStudentBlocks.monthlyPriceEur,
+    highlights: planCatalog.pro.display.adminHighlights,
   },
   enterprise: {
-    label: "Enterprise",
-    monthlyPriceEur: 949,
-    includedActiveStudents: 4000,
-    extraStudentsBlockSize: 500,
-    extraStudentsBlockPriceEur: 119,
-    highlights: [
-      "Todo Pro incluido",
-      "Roles personalizados (hasta 10)",
-      "Escala para academias multi-sede",
-      "Mayor eficiencia por alumno activo",
-    ],
+    label: planCatalog.enterprise.name,
+    monthlyPriceEur: planCatalog.enterprise.billing.monthlyPriceEur,
+    annualEffectiveMonthlyPriceEur: planCatalog.enterprise.billing.annualEffectiveMonthlyPriceEur,
+    annualTotalEur: planCatalog.enterprise.billing.annualTotalEur,
+    includedActiveStudents: planCatalog.enterprise.limits.includedActiveStudents,
+    extraStudentsBlockSize: planCatalog.enterprise.extraStudentBlocks.size,
+    extraStudentsBlockPriceEur: planCatalog.enterprise.extraStudentBlocks.monthlyPriceEur,
+    highlights: planCatalog.enterprise.display.adminHighlights,
   },
 };
 
 const DEFAULT_BILLING: BillingConfig = {
   planType: "starter",
+  billingCycle: "annual",
   extraStudentBlocks: 0,
   addons: {
     customDomain: false,
@@ -182,18 +178,18 @@ const DEFAULT_BILLING: BillingConfig = {
     renewalAutomation: false,
   },
   limits: {
-    includedActiveStudents: 300,
-    maxActiveStudents: 300,
+    includedActiveStudents: PLAN_CATALOG.starter.includedActiveStudents,
+    maxActiveStudents: PLAN_CATALOG.starter.includedActiveStudents,
   },
   pricing: {
-    monthlyPriceEur: 179,
-    extraStudentsBlockSize: 100,
-    extraStudentsBlockPriceEur: 24,
+    monthlyPriceEur: PLAN_CATALOG.starter.monthlyPriceEur,
+    extraStudentsBlockSize: PLAN_CATALOG.starter.extraStudentsBlockSize,
+    extraStudentsBlockPriceEur: PLAN_CATALOG.starter.extraStudentsBlockPriceEur,
     addons: {
-      customDomain: 29,
-      prioritySupport: 79,
-      waitlistAutomation: 24,
-      renewalAutomation: 39,
+      customDomain: subscriptionAddonCatalog.customDomain.monthlyPriceEur,
+      prioritySupport: subscriptionAddonCatalog.prioritySupport.monthlyPriceEur,
+      waitlistAutomation: subscriptionAddonCatalog.waitlistAutomation.monthlyPriceEur,
+      renewalAutomation: subscriptionAddonCatalog.renewalAutomation.monthlyPriceEur,
     },
   },
   features: {
@@ -201,6 +197,7 @@ const DEFAULT_BILLING: BillingConfig = {
     attendanceSheetsPdf: true,
     quickIncidents: true,
     receptionMode: true,
+    examSuite: false,
     waitlistAutomation: false,
     renewalAutomation: false,
     courseClone: false,
@@ -221,12 +218,11 @@ function resolvePlanType(value: string): PlanType {
 function calculateMonthlyAmount(config: BillingConfig): number {
   const planType = resolvePlanType(config.planType);
   const plan = PLAN_CATALOG[planType];
+  const effectiveBlocks = planType === "starter" ? 0 : config.extraStudentBlocks;
   const addonsTotal =
     (config.addons.customDomain ? config.pricing.addons.customDomain : 0)
-    + (config.addons.prioritySupport ? config.pricing.addons.prioritySupport : 0)
-    + (config.addons.waitlistAutomation ? config.pricing.addons.waitlistAutomation : 0)
-    + (config.addons.renewalAutomation ? config.pricing.addons.renewalAutomation : 0);
-  const blocksTotal = config.extraStudentBlocks * plan.extraStudentsBlockPriceEur;
+    + (config.addons.prioritySupport ? config.pricing.addons.prioritySupport : 0);
+  const blocksTotal = effectiveBlocks * plan.extraStudentsBlockPriceEur;
 
   return plan.monthlyPriceEur + addonsTotal + blocksTotal;
 }
@@ -249,6 +245,7 @@ function normalizeBillingFeatures(
     attendanceSheetsPdf: parseBoolean(source.attendanceSheetsPdf, base.attendanceSheetsPdf),
     quickIncidents: parseBoolean(source.quickIncidents, base.quickIncidents),
     receptionMode: parseBoolean(source.receptionMode, base.receptionMode),
+    examSuite: parseBoolean(source.examSuite, base.examSuite),
     waitlistAutomation: parseBoolean(source.waitlistAutomation, base.waitlistAutomation),
     renewalAutomation: parseBoolean(source.renewalAutomation, base.renewalAutomation),
     courseClone: parseBoolean(source.courseClone, base.courseClone),
@@ -271,12 +268,13 @@ function normalizeBillingConfig(base: BillingConfig, input?: Record<string, unkn
 
   return {
     planType: typeof source.planType === "string" ? source.planType : base.planType,
+    billingCycle: source.billingCycle === "monthly" ? "monthly" : "annual",
     extraStudentBlocks: Number(source.extraStudentBlocks ?? base.extraStudentBlocks) || 0,
     addons: {
       customDomain: parseBoolean(addons.customDomain, base.addons.customDomain),
       prioritySupport: parseBoolean(addons.prioritySupport, base.addons.prioritySupport),
-      waitlistAutomation: parseBoolean(addons.waitlistAutomation, base.addons.waitlistAutomation),
-      renewalAutomation: parseBoolean(addons.renewalAutomation, base.addons.renewalAutomation),
+      waitlistAutomation: false,
+      renewalAutomation: false,
     },
     limits: {
       includedActiveStudents: Number(limits.includedActiveStudents ?? base.limits.includedActiveStudents) || base.limits.includedActiveStudents,
@@ -468,7 +466,8 @@ export default function SettingsPage() {
 
       await redirectToBillingCheckout({
         planType: resolvePlanType(billing.planType),
-        extraStudentBlocks: billing.extraStudentBlocks,
+        billingCycle: billing.billingCycle,
+        extraStudentBlocks: resolvePlanType(billing.planType) === "starter" ? 0 : billing.extraStudentBlocks,
         addons: {
           customDomain: billing.addons.customDomain,
           prioritySupport: billing.addons.prioritySupport,
@@ -605,11 +604,15 @@ export default function SettingsPage() {
   }
 
   const selectedPlan = PLAN_CATALOG[resolvePlanType(billing.planType)];
+  const effectiveBlocks = billing.planType === "starter" ? 0 : billing.extraStudentBlocks;
   const recalculatedIncludedStudents = selectedPlan.includedActiveStudents;
-  const recalculatedMaxStudents = recalculatedIncludedStudents + billing.extraStudentBlocks * selectedPlan.extraStudentsBlockSize;
+  const recalculatedMaxStudents = recalculatedIncludedStudents + effectiveBlocks * selectedPlan.extraStudentsBlockSize;
   const currentMonthlyAmount = calculateMonthlyAmount(savedBillingSnapshot);
   const nextMonthlyAmount = calculateMonthlyAmount(billing);
   const amountDiff = nextMonthlyAmount - currentMonthlyAmount;
+  const nextCycleAmountLabel = billing.billingCycle === "annual"
+    ? `${nextMonthlyAmount * 12} EUR/año`
+    : `${nextMonthlyAmount} EUR/mes`;
 
   return (
     <PageContainer title="Configuración" description="Configura tu escuela de danza">
@@ -644,6 +647,26 @@ export default function SettingsPage() {
               <h3 className="text-sm font-semibold text-foreground">Cuenta</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Información de acceso y cambio de contraseña</p>
             </div>
+            <Separator />
+
+            <FieldGroup label="Ciclo de facturación" icon={CreditCard}>
+              <Select
+                value={billing.billingCycle}
+                onValueChange={(value) => setBilling({
+                  ...billing,
+                  billingCycle: value === "monthly" ? "monthly" : "annual",
+                })}
+              >
+                <SelectTrigger className="h-9 text-sm w-48">
+                  <SelectValue placeholder="Selecciona ciclo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="annual">Anual (recomendado)</SelectItem>
+                  <SelectItem value="monthly">Mensual</SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldGroup>
+
             <Separator />
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1101,7 +1124,7 @@ export default function SettingsPage() {
 
             <FieldGroup label="Tipo de plan" icon={CreditCard}>
               <div className="grid gap-2 sm:grid-cols-3 max-w-2xl">
-                {(Object.keys(PLAN_CATALOG) as PlanType[]).map((planKey) => {
+                {planOrder.map((planKey) => {
                   const isActive = resolvePlanType(billing.planType) === planKey;
                   return (
                     <button
@@ -1111,10 +1134,11 @@ export default function SettingsPage() {
                         setBilling({
                           ...billing,
                           planType: planKey,
+                          extraStudentBlocks: planKey === "starter" ? 0 : billing.extraStudentBlocks,
                           addons: {
                             ...billing.addons,
-                            waitlistAutomation: planKey === "starter" ? billing.addons.waitlistAutomation : false,
-                            renewalAutomation: planKey === "starter" ? billing.addons.renewalAutomation : false,
+                            waitlistAutomation: false,
+                            renewalAutomation: false,
                           },
                         });
                         setSelectedPlanForModal(planKey);
@@ -1128,6 +1152,7 @@ export default function SettingsPage() {
                     >
                       <p className="text-sm font-semibold">{PLAN_CATALOG[planKey].label}</p>
                       <p className="text-xs">{PLAN_CATALOG[planKey].monthlyPriceEur} EUR/mes</p>
+                      <p className="text-[10px] text-muted-foreground">{PLAN_CATALOG[planKey].annualEffectiveMonthlyPriceEur} EUR/mes (anual)</p>
                     </button>
                   );
                 })}
@@ -1141,7 +1166,7 @@ export default function SettingsPage() {
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Capacidad de alumnos</h4>
               <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground space-y-1">
                 <p>Incluidos por plan: <span className="font-medium text-foreground">{recalculatedIncludedStudents}</span> alumnos activos</p>
-                <p>Bloques extra activos: <span className="font-medium text-foreground">{billing.extraStudentBlocks}</span></p>
+                <p>Bloques extra activos: <span className="font-medium text-foreground">{effectiveBlocks}</span></p>
                 <p>Capacidad total actual: <span className="font-medium text-foreground">{recalculatedMaxStudents}</span> alumnos activos</p>
               </div>
 
@@ -1151,10 +1176,13 @@ export default function SettingsPage() {
                   min="0"
                   value={billing.extraStudentBlocks}
                   onChange={(e) => setBilling({ ...billing, extraStudentBlocks: Math.max(0, Number(e.target.value) || 0) })}
+                  disabled={billing.planType === "starter"}
                   className="h-9 text-sm w-32"
                 />
                 <p className="mt-1 text-[10px] text-muted-foreground">
-                  Cada bloque anade {selectedPlan.extraStudentsBlockSize} alumnos por {selectedPlan.extraStudentsBlockPriceEur} EUR/mes.
+                  {billing.planType === "starter"
+                    ? "Starter no admite bloques extra de alumnos."
+                    : `Cada bloque anade ${selectedPlan.extraStudentsBlockSize} alumnos por ${selectedPlan.extraStudentsBlockPriceEur} EUR/mes.`}
                 </p>
               </FieldGroup>
             </div>
@@ -1175,22 +1203,6 @@ export default function SettingsPage() {
                 checked={billing.addons.prioritySupport}
                 onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, prioritySupport: v } })}
               />
-              {billing.planType === "starter" && (
-                <>
-                  <SwitchRow
-                    label="Add-on lista de espera automatica"
-                    description={`Disponible en Starter (${billing.pricing.addons.waitlistAutomation} EUR/mes)`}
-                    checked={billing.addons.waitlistAutomation}
-                    onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, waitlistAutomation: v } })}
-                  />
-                  <SwitchRow
-                    label="Add-on renovaciones automáticas"
-                    description={`Disponible en Starter (${billing.pricing.addons.renewalAutomation} EUR/mes)`}
-                    checked={billing.addons.renewalAutomation}
-                    onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, renewalAutomation: v } })}
-                  />
-                </>
-              )}
             </div>
 
             <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
@@ -1212,16 +1224,15 @@ export default function SettingsPage() {
                 <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
                   <p className="text-[11px] text-muted-foreground">Nueva cuantia con cambios</p>
                   <p className="text-lg font-semibold text-foreground">{nextMonthlyAmount} EUR/mes</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">{nextCycleAmountLabel}</p>
                 </div>
               </div>
               <div className="space-y-1 text-xs text-muted-foreground">
                 <p>Base {selectedPlan.label}: <span className="font-medium text-foreground">{selectedPlan.monthlyPriceEur} EUR</span></p>
-                <p>Bloques ({billing.extraStudentBlocks} x {selectedPlan.extraStudentsBlockPriceEur} EUR): <span className="font-medium text-foreground">{billing.extraStudentBlocks * selectedPlan.extraStudentsBlockPriceEur} EUR</span></p>
+                <p>Bloques ({effectiveBlocks} x {selectedPlan.extraStudentsBlockPriceEur} EUR): <span className="font-medium text-foreground">{effectiveBlocks * selectedPlan.extraStudentsBlockPriceEur} EUR</span></p>
                 <p>Add-ons activos: <span className="font-medium text-foreground">{
                   (billing.addons.customDomain ? billing.pricing.addons.customDomain : 0)
                   + (billing.addons.prioritySupport ? billing.pricing.addons.prioritySupport : 0)
-                  + (billing.addons.waitlistAutomation ? billing.pricing.addons.waitlistAutomation : 0)
-                  + (billing.addons.renewalAutomation ? billing.pricing.addons.renewalAutomation : 0)
                 } EUR</span></p>
               </div>
             </div>
@@ -1242,7 +1253,7 @@ export default function SettingsPage() {
                 <DialogDescription>Revisa precio y ventajas antes de confirmar el cambio.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-3 sm:grid-cols-3">
-                {(Object.keys(PLAN_CATALOG) as PlanType[]).map((planKey) => {
+                {planOrder.map((planKey) => {
                   const plan = PLAN_CATALOG[planKey];
                   const isSelected = selectedPlanForModal === planKey;
                   return (
@@ -1255,6 +1266,8 @@ export default function SettingsPage() {
                         {isSelected ? <Badge>Seleccionado</Badge> : null}
                       </div>
                       <p className="mt-2 text-xl font-bold text-foreground">{plan.monthlyPriceEur} EUR/mes</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{plan.annualEffectiveMonthlyPriceEur} EUR/mes (anual)</p>
+                      <p className="text-[10px] text-muted-foreground">Total anual: {plan.annualTotalEur} EUR</p>
                       <p className="mt-1 text-xs text-muted-foreground">Incluye {plan.includedActiveStudents} alumnos activos</p>
                       <p className="text-xs text-muted-foreground">Bloque extra: {plan.extraStudentsBlockSize} alumnos por {plan.extraStudentsBlockPriceEur} EUR/mes</p>
                       <ul className="mt-3 space-y-1 text-xs text-muted-foreground">

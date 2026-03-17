@@ -21,19 +21,24 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Plus, Rocket, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { planCatalog, type PlanType } from "@/lib/commercialCatalog";
 
 type CapacityAlertLevel = "low" | "medium" | "high";
 
-function getCapacityAlertMeta(remainingPercent: number): {
+function getCapacityAlertMeta(remainingPercent: number, planType: PlanType): {
   level: CapacityAlertLevel;
   title: string;
   description: string;
 } {
+  const growthHint = planType === "starter"
+    ? "Sube a Pro para ampliar capacidad y desbloquear automatizaciones clave."
+    : "Activa bloques extra o revisa un upgrade para mantener margen operativo.";
+
   if (remainingPercent <= 5) {
     return {
       level: "high",
       title: "Capacidad critica: menos del 5% disponible",
-      description: "Activa mas bloques hoy o sube de plan para evitar bloquear nuevas altas.",
+      description: growthHint,
     };
   }
 
@@ -41,14 +46,14 @@ function getCapacityAlertMeta(remainingPercent: number): {
     return {
       level: "medium",
       title: "Capacidad muy baja: menos del 15% disponible",
-      description: "Te acercas al limite rapidamente. Te recomendamos ampliar cupo cuanto antes.",
+      description: growthHint,
     };
   }
 
   return {
     level: "low",
     title: "Capacidad en alerta: menos del 25% disponible",
-    description: "Considera subir de plan para sostener el crecimiento sin fricciones.",
+    description: growthHint,
   };
 }
 
@@ -56,6 +61,7 @@ export default function StudentsPage() {
   const navigate = useNavigate();
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [planType, setPlanType] = useState<PlanType>("starter");
   const [maxActiveStudents, setMaxActiveStudents] = useState<number>(0);
   const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -92,9 +98,12 @@ export default function StudentsPage() {
       const limits = (settings?.billing?.limits || {}) as Record<string, unknown>;
       const parsedMax = Number(limits.maxActiveStudents ?? 0);
       setMaxActiveStudents(parsedMax > 0 ? parsedMax : 0);
+      const plan = settings?.billing?.planType;
+      setPlanType(plan === "pro" || plan === "enterprise" ? plan : "starter");
     } catch (error) {
       console.error("Error loading capacity limits:", error);
       setMaxActiveStudents(0);
+      setPlanType("starter");
     }
   }, []);
 
@@ -233,7 +242,7 @@ export default function StudentsPage() {
   const usedPercent = Math.min(100, (activeStudents / effectiveMaxStudents) * 100);
   const remainingPercent = Math.max(0, 100 - usedPercent);
   const shouldShowUpgradeBanner = maxActiveStudents > 0 && remainingPercent <= 25;
-  const alertMeta = shouldShowUpgradeBanner ? getCapacityAlertMeta(remainingPercent) : null;
+  const alertMeta = shouldShowUpgradeBanner ? getCapacityAlertMeta(remainingPercent, planType) : null;
   const upgradeBannerClassName =
     alertMeta?.level === "high"
       ? "border-destructive/40 bg-destructive/10 text-destructive"
@@ -300,10 +309,14 @@ export default function StudentsPage() {
 
       <Alert className="border-primary/25 bg-primary/5">
         <ShoppingBag className="h-4 w-4" />
-        <AlertTitle>Amplia tu capacidad con bloques extra</AlertTitle>
+        <AlertTitle>{planType === "starter" ? "Escala a Pro para crecer sin fricciones" : "Amplia tu capacidad con bloques extra"}</AlertTitle>
         <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-          <span>Compra bloques de alumnos activos para seguir creciendo sin cambiar de plan base.</span>
-          <Button size="sm" variant="outline" onClick={() => navigate("/admin/settings")}>Comprar bloques</Button>
+          <span>
+            {planType === "starter"
+              ? `El plan Pro incluye hasta ${planCatalog.pro.limits.includedActiveStudents} alumnos activos y módulos avanzados.`
+              : "Compra bloques de alumnos activos para seguir creciendo sin cambiar de plan base."}
+          </span>
+          <Button size="sm" variant="outline" onClick={() => navigate("/admin/settings")}>{planType === "starter" ? "Ver plan Pro" : "Comprar bloques"}</Button>
         </AlertDescription>
       </Alert>
 

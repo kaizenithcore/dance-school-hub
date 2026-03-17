@@ -24,6 +24,11 @@ export async function GET(request: NextRequest) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
+  const featureEnabled = await renewalService.isRenewalEnabled(auth.context.tenantId);
+  if (!featureEnabled) {
+    return fail({ code: "feature_disabled", message: "Renewals module is not active for this tenant" }, 403, origin);
+  }
+
   try {
     const campaignId = request.nextUrl.searchParams.get("campaignId") || "";
     const statusRaw = request.nextUrl.searchParams.get("status");
@@ -54,6 +59,11 @@ export async function PATCH(request: NextRequest) {
 
   if (!canManageRenewals(auth.context.role)) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
+  }
+
+  const featureEnabled = await renewalService.isRenewalEnabled(auth.context.tenantId);
+  if (!featureEnabled) {
+    return fail({ code: "feature_disabled", message: "Renewals module is not active for this tenant" }, 403, origin);
   }
 
   try {

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import { outboxService } from "@/lib/services/outboxService";
+import { featureEntitlementsService } from "@/lib/services/featureEntitlementsService";
 
 export type AudienceType = "all" | "class" | "discipline";
 export type CommunicationChannel = "email" | "whatsapp_link";
@@ -85,6 +86,10 @@ function buildWaLink(phone: string, message: string): string {
   return `https://wa.me/${normalizedPhone}?text=${text}`;
 }
 
+function asObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
 function renderCampaignEmail(studentName: string, message: string): string {
   return `
     <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;">
@@ -167,6 +172,21 @@ async function recalculateCampaignStatus(tenantId: string, campaignId: string) {
 }
 
 export const communicationService = {
+  async isMassCommunicationEnabled(tenantId: string): Promise<boolean> {
+    const { data, error } = await supabaseAdmin
+      .from("school_settings")
+      .select("payment_config")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to resolve communication feature flags: ${error.message}`);
+    }
+
+    const resolved = featureEntitlementsService.resolveFromPaymentConfig(asObject(data?.payment_config));
+    return resolved.features.massCommunicationEmail;
+  },
+
   async listRecipients(
     tenantId: string,
     audience: CommunicationAudience,

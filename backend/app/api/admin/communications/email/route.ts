@@ -24,6 +24,11 @@ export async function GET(request: NextRequest) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
+  const featureEnabled = await communicationService.isMassCommunicationEnabled(auth.context.tenantId);
+  if (!featureEnabled) {
+    return fail({ code: "feature_disabled", message: "Mass communications module is not active for this tenant" }, 403, origin);
+  }
+
   try {
     const campaignId = request.nextUrl.searchParams.get("campaignId");
     if (campaignId) {
@@ -49,6 +54,11 @@ export async function POST(request: NextRequest) {
 
   if (!canManageCommunications(auth.context.role)) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
+  }
+
+  const featureEnabled = await communicationService.isMassCommunicationEnabled(auth.context.tenantId);
+  if (!featureEnabled) {
+    return fail({ code: "feature_disabled", message: "Mass communications module is not active for this tenant" }, 403, origin);
   }
 
   try {

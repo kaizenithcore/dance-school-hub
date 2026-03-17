@@ -1,3 +1,5 @@
+import { getCommercialPlan, getSubscriptionAddon } from "@/lib/commercialCatalog";
+
 export type PlanType = "starter" | "pro" | "enterprise";
 
 export interface FeatureEntitlements {
@@ -5,6 +7,7 @@ export interface FeatureEntitlements {
   attendanceSheetsPdf: boolean;
   quickIncidents: boolean;
   receptionMode: boolean;
+  examSuite: boolean;
   waitlistAutomation: boolean;
   renewalAutomation: boolean;
   courseClone: boolean;
@@ -54,79 +57,6 @@ export interface BillingResolution {
     };
   };
 }
-
-const PLAN_DEFAULTS: Record<PlanType, FeatureEntitlements> = {
-  starter: {
-    smartEnrollmentLink: true,
-    attendanceSheetsPdf: true,
-    quickIncidents: true,
-    receptionMode: true,
-    waitlistAutomation: false,
-    renewalAutomation: false,
-    courseClone: false,
-    massCommunicationEmail: false,
-    massCommunicationWhatsapp: false,
-    autoScheduler: false,
-    customRoles: false,
-    maxCustomRoles: 0,
-  },
-  pro: {
-    smartEnrollmentLink: true,
-    attendanceSheetsPdf: true,
-    quickIncidents: true,
-    receptionMode: true,
-    waitlistAutomation: true,
-    renewalAutomation: true,
-    courseClone: true,
-    massCommunicationEmail: true,
-    massCommunicationWhatsapp: false,
-    autoScheduler: false,
-    customRoles: false,
-    maxCustomRoles: 0,
-  },
-  enterprise: {
-    smartEnrollmentLink: true,
-    attendanceSheetsPdf: true,
-    quickIncidents: true,
-    receptionMode: true,
-    waitlistAutomation: true,
-    renewalAutomation: true,
-    courseClone: true,
-    massCommunicationEmail: true,
-    massCommunicationWhatsapp: false,
-    autoScheduler: false,
-    customRoles: true,
-    maxCustomRoles: 10,
-  },
-};
-
-const PLAN_COMMERCIAL_DEFAULTS: Record<PlanType, PlanCommercialDefaults> = {
-  starter: {
-    monthlyPriceEur: 179,
-    includedActiveStudents: 300,
-    extraStudentsBlockSize: 100,
-    extraStudentsBlockPriceEur: 15,
-  },
-  pro: {
-    monthlyPriceEur: 499,
-    includedActiveStudents: 1200,
-    extraStudentsBlockSize: 300,
-    extraStudentsBlockPriceEur: 59,
-  },
-  enterprise: {
-    monthlyPriceEur: 949,
-    includedActiveStudents: 4000,
-    extraStudentsBlockSize: 500,
-    extraStudentsBlockPriceEur: 119,
-  },
-};
-
-const ADDON_CATALOG = {
-  customDomain: { monthlyPriceEur: 29 },
-  prioritySupport: { monthlyPriceEur: 79 },
-  waitlistAutomation: { monthlyPriceEur: 24 },
-  renewalAutomation: { monthlyPriceEur: 39 },
-} as const;
 
 function asObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -179,17 +109,23 @@ export const featureEntitlementsService = {
       ?? paymentConfig.plan_type
     );
 
-    const defaults = PLAN_DEFAULTS[planType];
-    const commercialDefaults = PLAN_COMMERCIAL_DEFAULTS[planType];
+    const plan = getCommercialPlan(planType);
+    const defaults = plan.featureFlags;
+    const commercialDefaults: PlanCommercialDefaults = {
+      monthlyPriceEur: plan.billing.monthlyPriceEur,
+      includedActiveStudents: plan.limits.includedActiveStudents,
+      extraStudentsBlockSize: plan.extraStudentBlocks.size,
+      extraStudentsBlockPriceEur: plan.extraStudentBlocks.monthlyPriceEur,
+    };
 
     const resolvedAddons: BillingAddons = {
       customDomain: toBoolean(addons.customDomain, false),
       prioritySupport: toBoolean(addons.prioritySupport, false),
-      waitlistAutomation: toBoolean(addons.waitlistAutomation, false),
-      renewalAutomation: toBoolean(addons.renewalAutomation, false),
+      waitlistAutomation: false,
+      renewalAutomation: false,
     };
 
-    const extraStudentBlocks = toNonNegativeInteger(
+    const configuredExtraStudentBlocks = toNonNegativeInteger(
       billing.extraStudentBlocks
       ?? billing.extra_student_blocks
       ?? paymentConfig.extraStudentBlocks
@@ -197,11 +133,15 @@ export const featureEntitlementsService = {
       0
     );
 
+    // Starter no admite bloques extra; se ignora cualquier valor legado en config.
+    const extraStudentBlocks = planType === "starter" ? 0 : configuredExtraStudentBlocks;
+
     const resolved: FeatureEntitlements = {
       smartEnrollmentLink: defaults.smartEnrollmentLink,
       attendanceSheetsPdf: defaults.attendanceSheetsPdf,
       quickIncidents: defaults.quickIncidents,
       receptionMode: defaults.receptionMode,
+      examSuite: defaults.examSuite,
       waitlistAutomation: defaults.waitlistAutomation,
       renewalAutomation: defaults.renewalAutomation,
       courseClone: defaults.courseClone,
@@ -211,14 +151,6 @@ export const featureEntitlementsService = {
       customRoles: defaults.customRoles,
       maxCustomRoles: defaults.maxCustomRoles,
     };
-
-    if (resolvedAddons.waitlistAutomation) {
-      resolved.waitlistAutomation = true;
-    }
-
-    if (resolvedAddons.renewalAutomation) {
-      resolved.renewalAutomation = true;
-    }
 
     const maxActiveStudents =
       commercialDefaults.includedActiveStudents
@@ -238,10 +170,10 @@ export const featureEntitlementsService = {
         extraStudentsBlockSize: commercialDefaults.extraStudentsBlockSize,
         extraStudentsBlockPriceEur: commercialDefaults.extraStudentsBlockPriceEur,
         addons: {
-          customDomain: { ...ADDON_CATALOG.customDomain },
-          prioritySupport: { ...ADDON_CATALOG.prioritySupport },
-          waitlistAutomation: { ...ADDON_CATALOG.waitlistAutomation },
-          renewalAutomation: { ...ADDON_CATALOG.renewalAutomation },
+          customDomain: { monthlyPriceEur: getSubscriptionAddon("customDomain").monthlyPriceEur },
+          prioritySupport: { monthlyPriceEur: getSubscriptionAddon("prioritySupport").monthlyPriceEur },
+          waitlistAutomation: { monthlyPriceEur: getSubscriptionAddon("waitlistAutomation").monthlyPriceEur },
+          renewalAutomation: { monthlyPriceEur: getSubscriptionAddon("renewalAutomation").monthlyPriceEur },
         },
       },
     };

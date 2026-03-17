@@ -1,0 +1,286 @@
+{
+  "planOrder": ["starter", "pro", "enterprise"],
+  "plans": {
+    "starter": {
+      "name": "Starter",
+      "highlighted": false,
+      "cta": {
+        "label": "Empezar",
+        "href": "/auth/register"
+      },
+      "billing": {
+        "monthlyPriceEur": 199,
+        "annualEffectiveMonthlyPriceEur": 165,
+        "annualTotalEur": 1990,
+        "annualSavingsLabel": "2 meses gratis"
+      },
+      "limits": {
+        "includedActiveStudents": 200,
+        "marketingLabel": "Hasta 200 alumnos"
+      },
+      "extraStudentBlocks": {
+        "size": 50,
+        "monthlyPriceEur": 24
+      },
+      "featureFlags": {
+        "smartEnrollmentLink": true,
+        "attendanceSheetsPdf": true,
+        "quickIncidents": true,
+        "receptionMode": true,
+        "examSuite": false,
+        "waitlistAutomation": false,
+        "renewalAutomation": false,
+        "courseClone": false,
+        "massCommunicationEmail": false,
+        "massCommunicationWhatsapp": false,
+        "autoScheduler": false,
+        "customRoles": false,
+        "maxCustomRoles": 0
+      },
+      "display": {
+        "features": [
+          "Gestión de alumnos",
+          "Gestión de clases",
+          "Editor de matrícula online",
+          "Horario manual",
+          "Hojas de asistencia",
+          "Importador desde Excel",
+          "Comunicación básica",
+          "Portal del alumno (limitado)"
+        ],
+        "adminHighlights": [
+          "Enlace inteligente de matrícula",
+          "Hojas de asistencia en PDF",
+          "Recepción e incidencias rápidas",
+          "Comunicación básica con alumnos"
+        ]
+      },
+      "includedSubscriptionAddons": []
+    },
+    "pro": {
+      "name": "Pro",
+      "highlighted": true,
+      "cta": {
+        "label": "Probar gratis",
+        "href": "/auth/register"
+      },
+      "billing": {
+        "monthlyPriceEur": 649,
+        "annualEffectiveMonthlyPriceEur": 549,
+        "annualTotalEur": 6490,
+        "annualSavingsLabel": "2 meses gratis"
+      },
+      "limits": {
+        "includedActiveStudents": 700,
+        "marketingLabel": "200 – 700 alumnos"
+      },
+      "extraStudentBlocks": {
+        "size": 100,
+        "monthlyPriceEur": 49
+      },
+      "featureFlags": {
+        "smartEnrollmentLink": true,
+        "attendanceSheetsPdf": true,
+        "quickIncidents": true,
+        "receptionMode": true,
+        "examSuite": true,
+        "waitlistAutomation": true,
+        "renewalAutomation": true,
+        "courseClone": true,
+        "massCommunicationEmail": true,
+        "massCommunicationWhatsapp": false,
+        "autoScheduler": false,
+        "customRoles": false,
+        "maxCustomRoles": 0
+      },
+      "display": {
+        "features": [
+          "Todo en Starter",
+          "Editor visual de horarios",
+          "Listas de espera automáticas",
+          "Renovaciones automáticas",
+          "Copia de curso anterior",
+          "Comunicación masiva",
+          "Detección de problemas en horarios",
+          "Gestión de exámenes",
+          "Portal del alumno (app móvil incluida)",
+          "Pack de modernización incluido"
+        ],
+        "adminHighlights": [
+          "Todo Starter incluido",
+          "Automatización de renovaciones",
+          "Clonado de cursos",
+          "Comunicación masiva por email",
+          "Implementación incluida (ahorra hasta 690€)"
+        ]
+      },
+      "includedSubscriptionAddons": []
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "highlighted": false,
+      "cta": {
+        "label": "Contactar",
+        "href": "mailto:hola@dancehub.es?subject=Consulta%20plan%20Enterprise%20DanceHub",
+        "external": true
+      },
+      "billing": {
+        "monthlyPriceEur": 1149,
+        "annualEffectiveMonthlyPriceEur": 949,
+        "annualTotalEur": 11490,
+        "annualSavingsLabel": "2 meses gratis"
+      },
+      "limits": {
+        "includedActiveStudents": 2000,
+        "marketingLabel": "+700 alumnos"
+      },
+      "extraStudentBlocks": {
+        "size": 200,
+        "monthlyPriceEur": 89
+      },
+      "featureFlags": {
+        "smartEnrollmentLink": true,
+        "attendanceSheetsPdf": true,
+        "quickIncidents": true,
+        "receptionMode": true,
+        "examSuite": true,
+        "waitlistAutomation": true,
+        "renewalAutomation": true,
+        "courseClone": true,
+        "massCommunicationEmail": true,
+        "massCommunicationWhatsapp": false,
+        "autoScheduler": false,
+        "customRoles": true,
+        "maxCustomRoles": 10
+      },
+      "display": {
+        "features": [
+          "Todo en Pro",
+          "Multi-sede",
+          "Roles avanzados",
+          "Analítica avanzada",
+          "Gestión completa de escuela",
+          "Soporte prioritario",
+          "Onboarding personalizado"
+        ],
+        "adminHighlights": [
+          "Todo Pro incluido",
+          "Roles personalizados (hasta 10)",
+          "Escala para academias multi-sede",
+          "Soporte prioritario incluido"
+        ]
+      },
+      "includedSubscriptionAddons": ["prioritySupport"]
+    }
+  },
+  "subscriptionAddons": {
+    "customDomain": {
+      "label": "Dominio personalizado",
+      "monthlyPriceEur": 29
+    },
+    "prioritySupport": {
+      "label": "Soporte prioritario",
+      "monthlyPriceEur": 79
+    },
+    "waitlistAutomation": {
+      "label": "Automatización lista de espera",
+      "monthlyPriceEur": 24,
+      "starterOnly": true,
+      "upsellToPro": true
+    },
+    "renewalAutomation": {
+      "label": "Automatización renovaciones",
+      "monthlyPriceEur": 39,
+      "starterOnly": true,
+      "upsellToPro": true
+    }
+  },
+  "professionalServices": {
+    "modernizationPack": {
+      "label": "Pack de modernización",
+      "serviceType": "one_time",
+      "shortDescription": "Implementación inicial y adaptación operativa.",
+      "pricingByPlanEur": {
+        "starter": 490,
+        "pro": 690,
+        "enterprise": 990
+      },
+      "commercialStrategy": {
+        "starter": "optional",
+        "pro": "included",
+        "enterprise": "included_premium"
+      },
+      "valueAnchorEur": 690,
+      "positioning": "core_offer"
+    },
+    "integratedWebsite": {
+      "label": "Web integrada con DanceHub",
+      "serviceType": "one_time",
+      "shortDescription": "Web conectada al sistema para captar y matricular alumnos.",
+      "pricingByPlanEur": {
+        "starter": 1490,
+        "pro": 1190,
+        "enterprise": 990
+      },
+      "installments": {
+        "months": [3, 6],
+        "interestFree": true,
+        "exampleMonthlyEur": 199,
+        "exampleMonths": 6
+      },
+      "commercialStrategy": {
+        "starter": "paid",
+        "pro": "included_or_discounted",
+        "enterprise": "discounted"
+      },
+      "bundleEligible": true,
+      "bundlePriceEur": 990
+    },
+    "standaloneWebsite": {
+      "label": "Web independiente",
+      "serviceType": "one_time",
+      "shortDescription": "Web profesional para escuelas que no necesitan el SaaS.",
+      "tierPricingEur": {
+        "basic": 890,
+        "standard": 1290,
+        "advanced": 1990
+      },
+      "maintenance": {
+        "monthlyPriceEur": 29
+      },
+      "pricingFinal": false
+    }
+  },
+  "bundles": {
+    "modernizationProBundle": {
+      "label": "Pack Modernización Pro",
+      "description": "La forma más rápida de digitalizar tu escuela con todo incluido.",
+      "includes": [
+        "proPlan",
+        "modernizationPack",
+        "integratedWebsite"
+      ],
+      "pricing": {
+        "oneTimeEur": 1490,
+        "note": "Ahorra más de 1.000€ frente a contratar servicios por separado"
+      },
+      "commercialPositioning": {
+        "highlighted": true,
+        "recommended": true,
+        "conversionDriver": true
+      }
+    }
+  },
+  "studentApp": {
+    "label": "Portal del alumno",
+    "includedInPlans": ["pro", "enterprise"],
+    "starterAvailability": "limited",
+    "positioning": "value_driver",
+    "shortDescription": "App móvil para alumnos con horarios, progreso, eventos y perfil de bailarín."
+  },
+  "pricingNarrative": {
+    "anchor": "Con 5–15 alumnos cubres el coste completo del sistema",
+    "comparison": "Más barato que contratar a un administrativo",
+    "focus": "ahorro de tiempo y eficiencia operativa"
+  }
+}

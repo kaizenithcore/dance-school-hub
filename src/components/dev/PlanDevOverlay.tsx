@@ -42,6 +42,7 @@ export function PlanDevOverlay() {
     const source = settings?.billing;
     const addons = asRecord(source?.addons);
     const limits = asRecord(source?.limits);
+    const features = asRecord(source?.features);
 
     return {
       planType: toPlan(source?.planType || "starter"),
@@ -50,6 +51,9 @@ export function PlanDevOverlay() {
         customDomain: Boolean(addons.customDomain),
         prioritySupport: Boolean(addons.prioritySupport),
         waitlistAutomation: Boolean(addons.waitlistAutomation),
+      },
+      features: {
+        examSuite: Boolean(features.examSuite),
       },
       maxActiveStudents: Number(limits.maxActiveStudents ?? 0) || 0,
     };
@@ -121,6 +125,18 @@ export function PlanDevOverlay() {
     [billing.addons, billing.planType, saveBilling]
   );
 
+  const toggleFeature = useCallback(
+    async (key: "examSuite") => {
+      await saveBilling({
+        features: {
+          ...asRecord(settings?.billing?.features),
+          [key]: !billing.features[key],
+        },
+      });
+    },
+    [billing.features, settings?.billing?.features, saveBilling]
+  );
+
   if (!import.meta.env.DEV) {
     return null;
   }
@@ -171,6 +187,11 @@ export function PlanDevOverlay() {
                 <Badge className="cursor-pointer" variant={billing.addons.customDomain ? "default" : "secondary"} onClick={() => void toggleAddon("customDomain")}>Dominio</Badge>
                 <Badge className="cursor-pointer" variant={billing.addons.prioritySupport ? "default" : "secondary"} onClick={() => void toggleAddon("prioritySupport")}>Soporte</Badge>
                 <Badge className="cursor-pointer" variant={billing.addons.waitlistAutomation ? "default" : "secondary"} onClick={() => void toggleAddon("waitlistAutomation")}>Waitlist Starter</Badge>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <p className="w-full text-xs text-muted-foreground">Módulos</p>
+                <Badge className="cursor-pointer" variant={billing.features.examSuite ? "default" : "secondary"} onClick={() => void toggleFeature("examSuite")}>Exámenes</Badge>
               </div>
 
               <div className="flex gap-2">

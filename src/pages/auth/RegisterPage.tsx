@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { registerSchool } from "@/lib/auth";
+import { getSelectableSubscriptionAddons, planCatalog, planOrder, type PlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
 
 interface ValidationErrors {
   [key: string]: string | undefined;
@@ -32,30 +33,32 @@ export default function RegisterPage() {
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   // Step 3 - Plan selection
-  const [selectedPlan, setSelectedPlan] = useState<string>("pro");
-  const [addOns, setAddOns] = useState<Record<string, boolean>>({
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>("pro");
+  const [addOns, setAddOns] = useState<Record<SubscriptionAddonKey, boolean>>({
     customDomain: false,
-    branding: false,
     prioritySupport: false,
+    waitlistAutomation: false,
+    renewalAutomation: false,
   });
 
-  const plans = {
-    starter: { name: "Starter", price: 179, students: 300 },
-    pro: { name: "Pro", price: 499, students: 1200 },
-    enterprise: { name: "Enterprise", price: 949, students: 4000 },
-  };
+  const plans = Object.fromEntries(
+    planOrder.map((planType) => [
+      planType,
+      {
+        name: planCatalog[planType].name,
+        price: planCatalog[planType].billing.monthlyPriceEur,
+        students: planCatalog[planType].limits.includedActiveStudents,
+      },
+    ])
+  ) as Record<PlanType, { name: string; price: number; students: number }>;
 
-  const addOnsPrices = {
-    customDomain: 29,
-    branding: 39,
-    prioritySupport: 79,
-  };
+  const selectableAddOns = getSelectableSubscriptionAddons(selectedPlan);
 
   const calculateTotal = () => {
-    const planPrice = plans[selectedPlan as keyof typeof plans].price;
-    const addOnTotal = Object.entries(addOns)
-      .filter(([_, selected]) => selected)
-      .reduce((sum, [key]) => sum + addOnsPrices[key as keyof typeof addOnsPrices], 0);
+    const planPrice = plans[selectedPlan].price;
+    const addOnTotal = selectableAddOns
+      .filter((addon) => addOns[addon.key])
+      .reduce((sum, addon) => sum + addon.monthlyPriceEur, 0);
     return planPrice + addOnTotal;
   };
 
@@ -132,9 +135,9 @@ export default function RegisterPage() {
         // Store selected plan and add-ons for later billing setup
         localStorage.setItem("selected_plan", selectedPlan);
         localStorage.setItem("selected_addons", JSON.stringify(
-          Object.entries(addOns)
-            .filter(([_, selected]) => selected)
-            .map(([key]) => key)
+          selectableAddOns
+            .filter((addon) => addOns[addon.key])
+            .map((addon) => addon.key)
         ));
         
         toast.success("Registro exitoso. Redirigiendo al panel...");
@@ -351,7 +354,10 @@ export default function RegisterPage() {
 
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">Plan base</Label>
-                {Object.entries(plans).map(([key, plan]) => (
+                {planOrder.map((key) => {
+                  const plan = plans[key];
+
+                  return (
                   <div
                     key={key}
                     onClick={() => setSelectedPlan(key)}
@@ -371,16 +377,13 @@ export default function RegisterPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">Add-ons opcionales</Label>
-                {[
-                  { key: "customDomain", label: "Dominio personalizado", price: 29 },
-                  { key: "branding", label: "Branding personalizado", price: 39 },
-                  { key: "prioritySupport", label: "Soporte prioritario", price: 79 },
-                ].map(({ key, label, price }) => (
+                {selectableAddOns.map(({ key, label, monthlyPriceEur, starterOnly }) => (
                   <label
                     key={key}
                     className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition"
@@ -393,8 +396,9 @@ export default function RegisterPage() {
                     />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">{label}</p>
+                      {starterOnly ? <p className="text-xs text-muted-foreground">Disponible en Starter</p> : null}
                     </div>
-                    <p className="text-sm font-semibold text-primary">+{price}€</p>
+                    <p className="text-sm font-semibold text-primary">+{monthlyPriceEur}€</p>
                   </label>
                 ))}
               </div>

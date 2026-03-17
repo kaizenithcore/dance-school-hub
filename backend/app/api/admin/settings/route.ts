@@ -47,6 +47,10 @@ function asNonNegativeInteger(value: unknown, fallback = 0): number {
   return fallback;
 }
 
+function normalizeBillingCycle(value: unknown): "monthly" | "annual" {
+  return value === "monthly" ? "monthly" : "annual";
+}
+
 function buildResponsePayload(input: {
   tenantName: string;
   tenantSlug: string;
@@ -58,6 +62,7 @@ function buildResponsePayload(input: {
   planType: string;
   trialPaymentCompleted: boolean;
   trialPaymentCompletedAt: string | null;
+  billingCycle: "monthly" | "annual";
   features: unknown;
   addons: Record<string, unknown>;
   limits: Record<string, unknown>;
@@ -86,6 +91,7 @@ function buildResponsePayload(input: {
       planType: input.planType,
       trialPaymentCompleted: input.trialPaymentCompleted,
       trialPaymentCompletedAt: input.trialPaymentCompletedAt,
+      billingCycle: input.billingCycle,
       features: input.features,
       addons: input.addons,
       limits: input.limits,
@@ -159,6 +165,7 @@ export async function GET(request: NextRequest) {
       planType: billing.planType,
       trialPaymentCompleted: asBoolean(rawBillingConfig.trialPaymentCompleted, false),
       trialPaymentCompletedAt: asString(rawBillingConfig.trialPaymentCompletedAt) || null,
+      billingCycle: normalizeBillingCycle(rawBillingConfig.billingCycle),
       features: billing.features,
       addons: billing.addons as unknown as Record<string, unknown>,
       limits: billing.limits as unknown as Record<string, unknown>,
@@ -230,6 +237,7 @@ export async function PUT(request: NextRequest) {
     const existingPaymentConfig = asObject(existingSettings?.payment_config);
     const existingBillingConfig = asObject(existingPaymentConfig.billing ?? existingPaymentConfig.billing_config);
     const requestedPlanType = asString(billing.planType);
+    const requestedBillingCycle = normalizeBillingCycle(billing.billingCycle);
     const requestedAddons = asObject(billing.addons);
     const requestedExtraStudentBlocks = asNonNegativeInteger(billing.extraStudentBlocks ?? billing.extra_student_blocks, 0);
     const existingPlanType =
@@ -268,6 +276,7 @@ export async function PUT(request: NextRequest) {
       billing: {
         ...existingBillingConfig,
         planType: nextPlanType,
+        billingCycle: requestedBillingCycle,
         extraStudentBlocks: requestedExtraStudentBlocks,
       },
       addons: {
@@ -277,12 +286,12 @@ export async function PUT(request: NextRequest) {
         waitlistAutomation: asBoolean(requestedAddons.waitlistAutomation, false),
         renewalAutomation: asBoolean(requestedAddons.renewalAutomation, false),
       },
-      features: {
-        ...existingResolvedBilling.features,
-      },
     };
 
     const resolvedBilling = featureEntitlementsService.resolveFromPaymentConfig(nextPaymentConfig);
+    nextPaymentConfig.features = {
+      ...resolvedBilling.features,
+    };
 
     const { error: upsertError } = await supabaseAdmin
       .from("school_settings")
@@ -313,6 +322,7 @@ export async function PUT(request: NextRequest) {
         planType: resolvedBilling.planType,
         trialPaymentCompleted: asBoolean(asObject(nextPaymentConfig.billing).trialPaymentCompleted, false),
         trialPaymentCompletedAt: asString(asObject(nextPaymentConfig.billing).trialPaymentCompletedAt) || null,
+        billingCycle: normalizeBillingCycle(asObject(nextPaymentConfig.billing).billingCycle),
         features: resolvedBilling.features,
         addons: resolvedBilling.addons as unknown as Record<string, unknown>,
         limits: resolvedBilling.limits as unknown as Record<string, unknown>,

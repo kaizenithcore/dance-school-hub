@@ -19,7 +19,7 @@ export function FeatureLockDialog({ open, onOpenChange, title, description, onUp
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Ahora no</Button>
-          <Button onClick={onUpgrade}>Ver planes</Button>
+          <Button onClick={onUpgrade}>Ver planes y precios</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

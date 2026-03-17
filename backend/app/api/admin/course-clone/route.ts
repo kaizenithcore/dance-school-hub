@@ -24,6 +24,11 @@ export async function GET(request: NextRequest) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
+  const featureEnabled = await courseCloneService.isCourseCloneEnabled(auth.context.tenantId);
+  if (!featureEnabled) {
+    return fail({ code: "feature_disabled", message: "Course clone is not active for this tenant" }, 403, origin);
+  }
+
   try {
     const jobs = await courseCloneService.listCloneJobs(auth.context.tenantId);
     return ok(jobs, 200, origin);
@@ -43,6 +48,11 @@ export async function POST(request: NextRequest) {
 
   if (!canManageClone(auth.context.role)) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
+  }
+
+  const featureEnabled = await courseCloneService.isCourseCloneEnabled(auth.context.tenantId);
+  if (!featureEnabled) {
+    return fail({ code: "feature_disabled", message: "Course clone is not active for this tenant" }, 403, origin);
   }
 
   try {

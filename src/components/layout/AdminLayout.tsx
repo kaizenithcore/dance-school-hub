@@ -13,6 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { getSchoolSettings, updateSchoolSettings } from "@/lib/api/settings";
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
 import { toast } from "sonner";
+import type { BillingCycle } from "@/lib/api/stripe";
+import { getSelectableSubscriptionAddons, planCatalog, planOrder, type PlanType as CatalogPlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
 
 const LOGIN_WELCOME_KEY = "dancehub:welcome-overlay-until";
 const LOGIN_WELCOME_DURATION_MS = 2000;
@@ -25,21 +27,14 @@ const FREE_TRIAL_DAYS = 14;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const TRIAL_WARNING_DAYS = 3;
 
-type CheckoutPlanType = "starter" | "pro" | "enterprise";
-type CheckoutAddonKey = "customDomain" | "prioritySupport" | "waitlistAutomation" | "renewalAutomation";
+type CheckoutPlanType = CatalogPlanType;
+type CheckoutAddonKey = SubscriptionAddonKey;
 
 const CHECKOUT_PLANS: Record<CheckoutPlanType, { label: string; monthlyPriceEur: number; students: number }> = {
-  starter: { label: "Starter", monthlyPriceEur: 179, students: 300 },
-  pro: { label: "Pro", monthlyPriceEur: 499, students: 1200 },
-  enterprise: { label: "Enterprise", monthlyPriceEur: 949, students: 4000 },
+  starter: { label: planCatalog.starter.name, monthlyPriceEur: planCatalog.starter.billing.monthlyPriceEur, students: planCatalog.starter.limits.includedActiveStudents },
+  pro: { label: planCatalog.pro.name, monthlyPriceEur: planCatalog.pro.billing.monthlyPriceEur, students: planCatalog.pro.limits.includedActiveStudents },
+  enterprise: { label: planCatalog.enterprise.name, monthlyPriceEur: planCatalog.enterprise.billing.monthlyPriceEur, students: planCatalog.enterprise.limits.includedActiveStudents },
 };
-
-const CHECKOUT_ADDONS: Array<{ key: CheckoutAddonKey; label: string; monthlyPriceEur: number; starterOnly?: boolean }> = [
-  { key: "customDomain", label: "Dominio personalizado", monthlyPriceEur: 29 },
-  { key: "prioritySupport", label: "Soporte prioritario", monthlyPriceEur: 79 },
-  { key: "waitlistAutomation", label: "Automatización lista de espera", monthlyPriceEur: 24, starterOnly: true },
-  { key: "renewalAutomation", label: "Automatización renovaciones", monthlyPriceEur: 39, starterOnly: true },
-];
 
 function toCheckoutPlanType(value: string): CheckoutPlanType {
   if (value === "pro" || value === "enterprise") {
@@ -282,6 +277,7 @@ export function AdminLayout() {
   const [showFirstLoginGuide, setShowFirstLoginGuide] = useState(false);
   const [activeSectionIntro, setActiveSectionIntro] = useState<SectionIntro | null>(null);
   const [checkoutPlanType, setCheckoutPlanType] = useState<CheckoutPlanType>("starter");
+  const [checkoutBillingCycle, setCheckoutBillingCycle] = useState<BillingCycle>("annual");
   const [checkoutAddons, setCheckoutAddons] = useState<Record<CheckoutAddonKey, boolean>>({
     customDomain: false,
     prioritySupport: false,
@@ -379,7 +375,8 @@ export function AdminLayout() {
 
   const checkoutMonthlyTotal = useMemo(() => {
     const planTotal = CHECKOUT_PLANS[checkoutPlanType].monthlyPriceEur;
-    const addonsTotal = CHECKOUT_ADDONS.reduce((sum, addon) => {
+    const selectableAddons = getSelectableSubscriptionAddons(checkoutPlanType);
+    const addonsTotal = selectableAddons.reduce((sum, addon) => {
       if (!checkoutAddons[addon.key]) {
         return sum;
       }
@@ -389,6 +386,28 @@ export function AdminLayout() {
 
     return planTotal + addonsTotal;
   }, [checkoutAddons, checkoutPlanType]);
+
+  const selectableCheckoutAddons = useMemo(
+    () => getSelectableSubscriptionAddons(checkoutPlanType),
+    [checkoutPlanType]
+  );
+
+  const checkoutCycleTotalLabel = useMemo(() => {
+    if (checkoutBillingCycle === "annual") {
+      const annualPlan = planCatalog[checkoutPlanType].billing.annualTotalEur;
+      const addonsAnnual = selectableCheckoutAddons.reduce((sum, addon) => {
+        return checkoutAddons[addon.key] ? sum + addon.monthlyPriceEur * 12 : sum;
+      }, 0);
+      return `${annualPlan + addonsAnnual} EUR/año`;
+    }
+
+    return `${checkoutMonthlyTotal} EUR/mes`;
+  }, [checkoutAddons, checkoutBillingCycle, checkoutMonthlyTotal, checkoutPlanType, selectableCheckoutAddons]);
+
+  const selectableCheckoutAddonKeys = useMemo(
+    () => new Set(selectableCheckoutAddons.map((addon) => addon.key)),
+    [selectableCheckoutAddons]
+  );
 
   const persistBillingSelection = useCallback(
     async (trialPaymentCompleted: boolean, trialPaymentCompletedAt: string | null) => {
@@ -402,13 +421,14 @@ export function AdminLayout() {
         billing: {
           ...settings.billing,
           planType: checkoutPlanType,
+          billingCycle: checkoutBillingCycle,
           extraStudentBlocks: Number(settings.billing.extraStudentBlocks ?? 0),
           addons: {
             ...(settings.billing.addons || {}),
-            customDomain: checkoutAddons.customDomain,
-            prioritySupport: checkoutAddons.prioritySupport,
-            waitlistAutomation: checkoutPlanType === "starter" ? checkoutAddons.waitlistAutomation : false,
-            renewalAutomation: checkoutPlanType === "starter" ? checkoutAddons.renewalAutomation : false,
+            customDomain: selectableCheckoutAddonKeys.has("customDomain") ? checkoutAddons.customDomain : false,
+            prioritySupport: selectableCheckoutAddonKeys.has("prioritySupport") ? checkoutAddons.prioritySupport : false,
+            waitlistAutomation: selectableCheckoutAddonKeys.has("waitlistAutomation") ? checkoutAddons.waitlistAutomation : false,
+            renewalAutomation: selectableCheckoutAddonKeys.has("renewalAutomation") ? checkoutAddons.renewalAutomation : false,
           },
           trialPaymentCompleted,
           trialPaymentCompletedAt,
@@ -419,7 +439,7 @@ export function AdminLayout() {
         throw new Error("No se pudo guardar la configuración de billing");
       }
     },
-    [checkoutAddons, checkoutPlanType]
+    [checkoutAddons, checkoutBillingCycle, checkoutPlanType, selectableCheckoutAddonKeys]
   );
 
   const handleTrialCheckout = useCallback(async () => {
@@ -437,12 +457,13 @@ export function AdminLayout() {
 
       await redirectToBillingCheckout({
         planType: checkoutPlanType,
+        billingCycle: checkoutBillingCycle,
         extraStudentBlocks: 0,
         addons: {
-          customDomain: checkoutAddons.customDomain,
-          prioritySupport: checkoutAddons.prioritySupport,
-          waitlistAutomation: checkoutPlanType === "starter" ? checkoutAddons.waitlistAutomation : false,
-          renewalAutomation: checkoutPlanType === "starter" ? checkoutAddons.renewalAutomation : false,
+          customDomain: selectableCheckoutAddonKeys.has("customDomain") ? checkoutAddons.customDomain : false,
+          prioritySupport: selectableCheckoutAddonKeys.has("prioritySupport") ? checkoutAddons.prioritySupport : false,
+          waitlistAutomation: selectableCheckoutAddonKeys.has("waitlistAutomation") ? checkoutAddons.waitlistAutomation : false,
+          renewalAutomation: selectableCheckoutAddonKeys.has("renewalAutomation") ? checkoutAddons.renewalAutomation : false,
         },
         successUrl,
         cancelUrl,
@@ -452,7 +473,7 @@ export function AdminLayout() {
       toast.error(message);
       setCheckoutLoading(false);
     }
-  }, [checkoutAddons, checkoutLoading, checkoutPlanType, persistBillingSelection, refresh]);
+  }, [checkoutAddons, checkoutBillingCycle, checkoutLoading, checkoutPlanType, persistBillingSelection, refresh, selectableCheckoutAddonKeys]);
 
   useEffect(() => {
     const raw = window.sessionStorage.getItem(LOGIN_WELCOME_KEY);
@@ -687,7 +708,7 @@ export function AdminLayout() {
 
             <div className="mt-6 space-y-3">
               <p className="text-sm font-semibold text-foreground">Plan base</p>
-              {(Object.keys(CHECKOUT_PLANS) as CheckoutPlanType[]).map((planKey) => {
+              {planOrder.map((planKey) => {
                 const plan = CHECKOUT_PLANS[planKey];
                 const isSelected = checkoutPlanType === planKey;
 
@@ -713,31 +734,42 @@ export function AdminLayout() {
             </div>
 
             <div className="mt-6 space-y-2">
-              <p className="text-sm font-semibold text-foreground">Add-ons</p>
-              {CHECKOUT_ADDONS.map((addon) => {
-                const disabled = addon.starterOnly === true && checkoutPlanType !== "starter";
+              <p className="text-sm font-semibold text-foreground">Ciclo de facturación</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={checkoutBillingCycle === "annual" ? "default" : "outline"}
+                  onClick={() => setCheckoutBillingCycle("annual")}
+                >
+                  Anual
+                </Button>
+                <Button
+                  type="button"
+                  variant={checkoutBillingCycle === "monthly" ? "default" : "outline"}
+                  onClick={() => setCheckoutBillingCycle("monthly")}
+                >
+                  Mensual
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Por defecto recomendamos anual para mejor precio.</p>
+            </div>
 
+            <div className="mt-6 space-y-2">
+              <p className="text-sm font-semibold text-foreground">Add-ons</p>
+              {selectableCheckoutAddons.map((addon) => {
                 return (
                   <label
                     key={addon.key}
-                    className={`flex items-center gap-3 rounded-lg border border-border p-3 text-sm ${
-                      disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-                    }`}
+                    className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm cursor-pointer"
                   >
                     <Checkbox
-                      checked={disabled ? false : checkoutAddons[addon.key]}
+                      checked={checkoutAddons[addon.key]}
                       onCheckedChange={(checked) => {
-                        if (disabled) {
-                          return;
-                        }
-
                         setCheckoutAddons((prev) => ({ ...prev, [addon.key]: checked === true }));
                       }}
-                      disabled={disabled}
                     />
                     <span className="flex-1 text-muted-foreground">
                       {addon.label}
-                      {addon.starterOnly ? " (solo plan Starter)" : ""}
                     </span>
                     <span className="font-medium text-foreground">+{addon.monthlyPriceEur} EUR</span>
                   </label>
@@ -746,8 +778,8 @@ export function AdminLayout() {
             </div>
 
             <div className="mt-6 rounded-lg border border-primary/20 bg-primary/10 p-4">
-              <p className="text-xs text-muted-foreground">Total mensual estimado</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{checkoutMonthlyTotal} EUR/mes</p>
+              <p className="text-xs text-muted-foreground">Total estimado ({checkoutBillingCycle === "annual" ? "anual" : "mensual"})</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{checkoutCycleTotalLabel}</p>
             </div>
 
             <Button className="mt-6 w-full" onClick={() => void handleTrialCheckout()} disabled={checkoutLoading}>

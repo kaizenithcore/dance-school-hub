@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getSchoolSettings } from "@/lib/api/settings";
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
+import { planCatalog } from "@/lib/commercialCatalog";
 
 type PlanType = "starter" | "pro" | "enterprise";
 
@@ -29,8 +30,8 @@ const DEFAULT_ENTITLEMENTS: BillingEntitlements = {
   planType: "starter",
   trialPaymentCompleted: false,
   trialPaymentCompletedAt: null,
-  maxActiveStudents: 300,
-  includedActiveStudents: 300,
+  maxActiveStudents: planCatalog.starter.limits.includedActiveStudents,
+  includedActiveStudents: planCatalog.starter.limits.includedActiveStudents,
   addons: {
     customDomain: false,
     prioritySupport: false,
@@ -117,6 +118,7 @@ export function useBillingEntitlements() {
 
       await redirectToBillingCheckout({
         planType,
+        billingCycle: "annual",
         extraStudentBlocks: 0,
         addons: {
           customDomain: billing.addons.customDomain,
