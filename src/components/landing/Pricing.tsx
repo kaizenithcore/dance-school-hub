@@ -4,7 +4,7 @@ import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
-import { formatEuro, getMinimumExtraStudentBlockPriceEur, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
+import { commercialCatalog, formatEuro, getMinimumExtraStudentBlockPriceEur, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
 
 interface Plan {
   name: string;

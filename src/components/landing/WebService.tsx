@@ -1,6 +1,11 @@
 import { motion } from "framer-motion";
 import { Globe, Link2, Palette, CreditCard, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { commercialCatalog, formatEuro } from "@/lib/commercialCatalog";
+
+const webCatalog = commercialCatalog.professionalServices as Record<string, any>;
+const integratedWeb = webCatalog.integratedWebsite;
+const standaloneWeb = webCatalog.standaloneWebsite;
 
 const integrated = [
   { icon: Link2, text: "Conectada a matrículas online" },
@@ -35,9 +40,17 @@ export function WebService() {
             viewport={{ once: true }}
             className="rounded-2xl border border-primary/20 bg-card p-7 ring-1 ring-primary/10"
           >
-            <h3 className="text-lg font-semibold text-foreground mb-1">Web integrada con DanceHub</h3>
-            <p className="text-sm text-muted-foreground mb-5">
+            <h3 className="text-lg font-semibold text-foreground mb-1">{integratedWeb.label}</h3>
+            <p className="text-sm text-muted-foreground mb-2">
               Tu web y tu sistema trabajan juntos. Los alumnos pasan de la web a la matrícula sin fricciones.
+            </p>
+            <p className="text-sm font-medium text-foreground mb-5">
+              Desde {formatEuro(Math.min(...Object.values(integratedWeb.pricingByPlanEur as Record<string, number>)))}
+              {integratedWeb.bundleEligible && (
+                <span className="ml-1 text-xs text-primary font-semibold">
+                  · {formatEuro(integratedWeb.bundlePriceEur)} en pack
+                </span>
+              )}
             </p>
             <ul className="space-y-3">
               {integrated.map((item) => (
@@ -59,9 +72,12 @@ export function WebService() {
             transition={{ delay: 0.1 }}
             className="rounded-2xl border border-border bg-card p-7"
           >
-            <h3 className="text-lg font-semibold text-foreground mb-1">Web independiente</h3>
-            <p className="text-sm text-muted-foreground mb-5">
+            <h3 className="text-lg font-semibold text-foreground mb-1">{standaloneWeb.label}</h3>
+            <p className="text-sm text-muted-foreground mb-2">
               ¿Solo necesitas una web? También podemos ayudarte. Sin necesidad de contratar el software de gestión.
+            </p>
+            <p className="text-sm font-medium text-foreground mb-5">
+              Desde {formatEuro(standaloneWeb.tierPricingEur.basic)}
             </p>
 
             <div className="space-y-4">
@@ -77,11 +93,18 @@ export function WebService() {
                   <CreditCard className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium text-foreground">Pago fraccionado</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Divide el coste en 3–6 meses sin intereses ni permanencias.</p>
+                <p className="text-xs text-muted-foreground">
+                  Divide el coste en {integratedWeb.installments.months.join("–")} meses sin intereses.
+                  Ejemplo: {formatEuro(integratedWeb.installments.exampleMonthlyEur)}/mes durante {integratedWeb.installments.exampleMonths} meses.
+                </p>
               </div>
             </div>
 
-            <p className="mt-4 text-xs text-muted-foreground text-center">Sin costes ocultos ni permanencias</p>
+            {standaloneWeb.maintenance && (
+              <p className="mt-4 text-xs text-muted-foreground text-center">
+                Mantenimiento opcional: {formatEuro(standaloneWeb.maintenance.monthlyPriceEur)}/mes
+              </p>
+            )}
           </motion.div>
         </div>
 
