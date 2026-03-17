@@ -45,9 +45,10 @@ export function ROI() {
               <TrendingDown className="h-5 w-5 text-success" />
               <span className="text-sm font-semibold text-success">Con DanceHub</span>
             </div>
-            <p className="text-3xl font-bold text-foreground">449€<span className="text-base font-normal text-muted-foreground">/mes</span></p>
+            <p className="text-3xl font-bold text-foreground">374€<span className="text-base font-normal text-muted-foreground">/mes</span></p>
+            <p className="mt-1 text-xs text-muted-foreground">Plan Pro anual · equivalente a 10 meses</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Automatiza la mayor parte del trabajo administrativo con el plan Pro. Sin errores, sin papel, sin estrés.
+              Automatiza la mayor parte del trabajo administrativo. Sin errores, sin papel, sin estrés.
             </p>
             <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
               <li>• Matrículas 100% online y autoservicio</li>

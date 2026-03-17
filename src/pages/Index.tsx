@@ -2,10 +2,14 @@ import { LandingHeader } from "@/components/landing/LandingHeader";
 import { Hero } from "@/components/landing/Hero";
 import { Problems } from "@/components/landing/Problems";
 import { Solution } from "@/components/landing/Solution";
+import { ModernizationPack } from "@/components/landing/ModernizationPack";
 import { DigitalTransformation } from "@/components/landing/DigitalTransformation";
 import { StudentPortal } from "@/components/landing/StudentPortal";
+import { WebService } from "@/components/landing/WebService";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Features } from "@/components/landing/Features";
+import { WhatYouGet } from "@/components/landing/WhatYouGet";
+import { DecisionCompare } from "@/components/landing/DecisionCompare";
 import { Pricing } from "@/components/landing/Pricing";
 import { LaunchOffer } from "@/components/landing/LaunchOffer";
 import { ROI } from "@/components/landing/ROI";
@@ -23,14 +27,22 @@ const Index = () => (
     <div id="solution">
       <Solution />
     </div>
+    <div id="modernization">
+      <ModernizationPack />
+    </div>
     <DigitalTransformation />
     <div id="student-portal">
       <StudentPortal />
+    </div>
+    <div id="web-service">
+      <WebService />
     </div>
     <HowItWorks />
     <div id="features">
       <Features />
     </div>
+    <WhatYouGet />
+    <DecisionCompare />
     <div id="pricing">
       <Pricing />
     </div>

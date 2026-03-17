@@ -6,8 +6,8 @@ import { Link } from "react-router-dom";
 const benefits = [
   "Matrículas online automáticas",
   "Gestión de clases y horarios",
-  "Portal del alumno",
-  "Comunicación con alumnos",
+  "Portal del alumno (app)",
+  "Imagen digital profesional",
 ];
 
 export function Hero() {
@@ -25,7 +25,7 @@ export function Hero() {
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground mb-6">
               <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-              Plataforma completa para escuelas de danza
+              Digitaliza tu escuela en semanas
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight text-foreground leading-[1.1]">
@@ -34,7 +34,7 @@ export function Hero() {
             </h1>
 
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-lg">
-              Automatiza matrículas, horarios, clases, alumnos y comunicación desde una sola plataforma diseñada para escuelas de danza.
+              De Excel y WhatsApp a una plataforma profesional. Automatiza matrículas, horarios, clases, alumnos y comunicación. Más alumnos, menos gestión.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
