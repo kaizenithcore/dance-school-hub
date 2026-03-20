@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import type { CreateStudentInput, UpdateStudentInput } from "@/lib/validators/studentSchemas";
 import { studentQuotaService } from "@/lib/services/studentQuotaService";
 import { pricingService } from "@/lib/services/pricingService";
+import { communicationService } from "@/lib/services/communicationService";
 import type { ClassSelection } from "@/lib/types/pricing";
 
 type Guardian = {
@@ -603,6 +604,8 @@ export const studentService = {
   },
 
   async deleteStudent(tenantId: string, studentId: string) {
+    await communicationService.purgePendingDeliveriesForStudent(tenantId, studentId);
+
     const { error } = await supabaseAdmin
       .from("students")
       .delete()

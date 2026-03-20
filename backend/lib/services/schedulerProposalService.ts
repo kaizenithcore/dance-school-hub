@@ -16,12 +16,16 @@ export interface ScheduleProposal {
   label: "A" | "B" | "C";
   strategy: string;
   score: number;
+  /** Number of locked sessions kept as anchors */
+  lockedSessions: number;
   summary: {
     requestedSessions: number;
     plannedSessions: number;
     unplannedSessions: number;
   };
   creates: ProposalCreateOperation[];
+  /** IDs of unlocked existing schedules that will be removed when applying in replaceUnlocked mode */
+  schedulesToDelete: string[];
 }
 
 interface ClassRow {
@@ -46,8 +50,19 @@ interface ScheduleRow {
   start_time: string;
   end_time: string;
   is_active: boolean;
+  is_locked: boolean;
   effective_from: string;
   effective_to: string | null;
+}
+
+interface TeacherAvailabilityRow {
+  id: string;
+  /** Weekday numbers (1=Mon…7=Sun) the teacher is available */
+  available_days: number[] | null;
+  /** Earliest start hour (e.g. 9 for 09:00) */
+  earliest_hour: number | null;
+  /** Latest end hour (e.g. 20 for 20:00) */
+  latest_hour: number | null;
 }
 
 interface EnrollmentRow {
@@ -126,7 +141,18 @@ function normalizeClassGroup(name: string): string {
 }
 
 export const schedulerProposalService = {
-  async generate(tenantId: string): Promise<{ generatedAt: string; proposals: ScheduleProposal[] }> {
+  /**
+   * Generate A/B/C schedule proposals.
+   *
+   * @param replaceUnlocked - When true, existing non-locked schedules are treated as
+   *   candidates for removal and are NOT counted as already-scheduled.
+   *   The proposal will include their IDs in `schedulesToDelete`.
+   *   Locked schedules are always kept as fixed anchors.
+   */
+  async generate(
+    tenantId: string,
+    replaceUnlocked = false,
+  ): Promise<{ generatedAt: string; replaceUnlocked: boolean; proposals: ScheduleProposal[] }> {
     const today = new Date().toISOString().slice(0, 10);
 
     const [
@@ -155,7 +181,7 @@ export const schedulerProposalService = {
         .returns<RoomRow[]>(),
       supabaseAdmin
         .from("class_schedules")
-        .select("id, class_id, room_id, weekday, start_time, end_time, is_active, effective_from, effective_to")
+        .select("id, class_id, room_id, weekday, start_time, end_time, is_active, is_locked, effective_from, effective_to")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .lte("effective_from", today)
@@ -179,14 +205,52 @@ export const schedulerProposalService = {
     const rooms = roomsResponse.data || [];
     const currentSchedules = schedulesResponse.data || [];
     const enrollments = enrollmentsResponse.data || [];
+    let teacherAvailabilityRows: TeacherAvailabilityRow[] = [];
+
+    // Sprint 7: teacher_availability may not exist in all environments yet.
+    try {
+      const { data: teacherAvailabilityData } = await supabaseAdmin
+        .from("teacher_availability")
+        .select("id, available_days, earliest_hour, latest_hour")
+        .eq("tenant_id", tenantId)
+        .returns<TeacherAvailabilityRow[]>();
+      teacherAvailabilityRows = teacherAvailabilityData || [];
+    } catch {
+      teacherAvailabilityRows = [];
+    }
+
+    // Sprint 7: Split into locked (anchors) and unlocked (candidates for replacement)
+    const lockedSchedules = currentSchedules.filter((s) => s.is_locked);
+    const unlockedSchedules = currentSchedules.filter((s) => !s.is_locked);
+    // IDs that will be deleted when applying a replaceUnlocked proposal
+    const unlockedScheduleIds = unlockedSchedules.map((s) => s.id);
+
+    // Sprint 7: Teacher availability map (id → { availableDays, earliestHour, latestHour })
+    const teacherAvailabilityMap = new Map<
+      string,
+      { availableDays: Set<number>; earliestHour: number; latestHour: number }
+    >();
+    for (const avail of teacherAvailabilityRows) {
+      teacherAvailabilityMap.set(avail.id, {
+        availableDays: new Set(avail.available_days || []),
+        earliestHour: avail.earliest_hour ?? 0,
+        latestHour: avail.latest_hour ?? 24,
+      });
+    }
 
     if (rooms.length === 0 || classes.length === 0) {
+      const empty: ScheduleProposal = {
+        id: "A", label: "A", strategy: "Demanda", score: 0, lockedSessions: 0,
+        summary: { requestedSessions: 0, plannedSessions: 0, unplannedSessions: 0 },
+        creates: [], schedulesToDelete: [],
+      };
       return {
         generatedAt: new Date().toISOString(),
+        replaceUnlocked,
         proposals: [
-          { id: "A", label: "A", strategy: "Demanda", score: 0, summary: { requestedSessions: 0, plannedSessions: 0, unplannedSessions: 0 }, creates: [] },
-          { id: "B", label: "B", strategy: "Continuidad de profesor", score: 0, summary: { requestedSessions: 0, plannedSessions: 0, unplannedSessions: 0 }, creates: [] },
-          { id: "C", label: "C", strategy: "Balance de aulas", score: 0, summary: { requestedSessions: 0, plannedSessions: 0, unplannedSessions: 0 }, creates: [] },
+          empty,
+          { ...empty, id: "B", label: "B", strategy: "Continuidad de profesor" },
+          { ...empty, id: "C", label: "C", strategy: "Balance de aulas" },
         ],
       };
     }
@@ -210,15 +274,27 @@ export const schedulerProposalService = {
       confirmedByClass.set(enrollment.class_id, (confirmedByClass.get(enrollment.class_id) || 0) + 1);
     }
 
+    // Sprint 7: When replaceUnlocked=true, only locked schedules count toward "already scheduled".
+    // Unlocked schedules will be deleted and replaced by the proposal.
+    const schedulesForCounting = replaceUnlocked ? lockedSchedules : currentSchedules;
+
     const existingCountByClass = new Map<string, number>();
     const durationByClass = new Map<string, number>();
 
-    for (const schedule of currentSchedules) {
+    for (const schedule of schedulesForCounting) {
       existingCountByClass.set(schedule.class_id, (existingCountByClass.get(schedule.class_id) || 0) + 1);
       durationByClass.set(schedule.class_id, durationMinutes(schedule.start_time, schedule.end_time));
     }
+    // Also capture durations from unlocked (even when not counting them)
+    for (const schedule of currentSchedules) {
+      if (!durationByClass.has(schedule.class_id)) {
+        durationByClass.set(schedule.class_id, durationMinutes(schedule.start_time, schedule.end_time));
+      }
+    }
 
-    const baseSlots: Slot[] = currentSchedules.map((item) => ({
+    // Sprint 7: baseSlots for conflict avoidance - always include locked, optionally include unlocked
+    const anchorSchedules = replaceUnlocked ? lockedSchedules : currentSchedules;
+    const baseSlots: Slot[] = anchorSchedules.map((item) => ({
       weekday: item.weekday,
       roomId: item.room_id,
       startMinutes: timeToMinutes(item.start_time),
@@ -226,6 +302,9 @@ export const schedulerProposalService = {
       classId: item.class_id,
       teacherId: classById.get(item.class_id)?.teacher_id || null,
     }));
+
+    // Sprint 7: Count of locked sessions that serve as anchors (for UI display)
+    const lockedSessionsCount = lockedSchedules.length;
 
     const requestUnits = classes.flatMap((klass) => {
       const target = Math.max(klass.weekly_frequency || 1, 1);
@@ -283,6 +362,14 @@ export const schedulerProposalService = {
       });
 
       for (const unit of ordered) {
+        // Sprint 7: Determine effective day/hour constraints from teacher availability
+        const teacherAvail = unit.teacherId ? teacherAvailabilityMap.get(unit.teacherId) : undefined;
+        const effectiveDays = teacherAvail?.availableDays.size
+          ? dayOrder.filter((d) => teacherAvail.availableDays.has(d))
+          : dayOrder;
+        const teacherStartHour = teacherAvail ? Math.max(startHour, teacherAvail.earliestHour) : startHour;
+        const teacherEndHour = teacherAvail ? Math.min(endHour, teacherAvail.latestHour) : endHour;
+
         let best:
           | {
               weekday: number;
@@ -303,12 +390,12 @@ export const schedulerProposalService = {
           return 0;
         });
 
-        for (const weekday of dayOrder) {
+        for (const weekday of effectiveDays) {
           for (const room of roomsOrdered) {
-            for (let hour = startHour; hour <= endHour; hour += 1) {
+            for (let hour = teacherStartHour; hour <= teacherEndHour; hour += 1) {
               const startMinutes = hour * 60;
               const endMinutes = startMinutes + unit.duration;
-              if (endMinutes > endHour * 60) continue;
+              if (endMinutes > teacherEndHour * 60) continue;
 
               const roomConflict = slots.some(
                 (slot) => slot.weekday === weekday && slot.roomId === room.id && overlaps(startMinutes, endMinutes, slot.startMinutes, slot.endMinutes)
@@ -343,12 +430,14 @@ export const schedulerProposalService = {
               }
 
               if (Number.isFinite(minGroupDayDistance) && minGroupDayDistance < 2) {
-                // Keep at least one day gap between sessions of same class name.
                 cost += 45;
               }
 
               if (variant === "A") {
                 if (startMinutes < 10 * 60 || startMinutes > 19 * 60) cost += 20;
+                // Sprint 7: boost high-demand classes toward peak hours (Variant A)
+                const demandWeight = Math.min(unit.demand, 20);
+                if (startMinutes >= 10 * 60 && startMinutes <= 14 * 60) cost -= Math.floor(demandWeight * 0.5);
                 cost += Math.max(10 - unit.demand, 0) * 2;
               } else if (variant === "B") {
                 const teacherSlots = unit.teacherId
@@ -362,7 +451,9 @@ export const schedulerProposalService = {
                       Math.min(Math.abs(startMinutes - slot.endMinutes), Math.abs(slot.startMinutes - endMinutes))
                     )
                   );
+                  // Sprint 7: penalize large gaps for teacher continuity
                   cost += Math.floor(minGap / 15);
+                  if (minGap > 120) cost += 20; // extra penalty for 2h+ idle
                 }
               } else {
                 cost += Math.floor((roomLoadMinutes.get(room.id) || 0) / 30);
@@ -421,17 +512,20 @@ export const schedulerProposalService = {
               ? "Continuidad de profesor"
               : "Balance de aulas",
         score,
+        lockedSessions: lockedSessionsCount,
         summary: {
           requestedSessions,
           plannedSessions,
           unplannedSessions,
         },
         creates,
+        schedulesToDelete: replaceUnlocked ? unlockedScheduleIds : [],
       };
     };
 
     return {
       generatedAt: new Date().toISOString(),
+      replaceUnlocked,
       proposals: [generateVariant("A"), generateVariant("B"), generateVariant("C")],
     };
   },

@@ -79,6 +79,25 @@ export interface AnalyticsData {
   methodDistribution: Record<string, number>;
   totalRevenue: number;
   pendingRevenue: number;
+  avgRevenuePerActiveStudent: number;
+  avgRevenuePerPayingStudent: number;
+  avgPaymentAmount: number;
+  collectionRatePct: number;
+  topPayingStudents: Array<{
+    studentId: string;
+    studentName: string;
+    totalPaid: number;
+    paymentsCount: number;
+    avgPayment: number;
+    lastPaymentAt: string | null;
+  }>;
+  highestPendingBalances: Array<{
+    studentId: string;
+    studentName: string;
+    pendingAmount: number;
+    itemsCount: number;
+    latestDueAt: string | null;
+  }>;
 }
 
 export async function getAnalyticsData(): Promise<AnalyticsData | null> {

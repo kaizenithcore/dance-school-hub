@@ -6,6 +6,7 @@ export interface ClassCardData {
   sourceClassId?: string;
   scheduleId?: string;
   name: string;
+  branchName?: string;
   teacher: string;
   category?: string;
   time: string;
@@ -26,6 +27,7 @@ interface ClassCardProps extends ClassCardData {
 
 export function ClassCard({
   name,
+  branchName,
   teacher,
   time,
   room,
@@ -40,6 +42,7 @@ export function ClassCard({
 }: ClassCardProps) {
   const almostFull = spotsLeft <= 3 && spotsLeft > 0;
   const full = spotsLeft === 0;
+  const locationLabel = branchName ? `${branchName}${room ? ` · ${room}` : ""}` : room;
 
   return (
     <button
@@ -69,12 +72,12 @@ export function ClassCard({
           <Clock className="h-3 w-3 shrink-0" />
           <span>{time}</span>
         </div>
-        {!compact && (
+        {locationLabel ? (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3 shrink-0" />
-            <span>{room}</span>
+            <span>{locationLabel}</span>
           </div>
-        )}
+        ) : null}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           {recurrence === "weekly" ? (
             <>

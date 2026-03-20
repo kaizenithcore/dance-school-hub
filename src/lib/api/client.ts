@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabase";
+import { getDemoAdminTenantSlug } from "@/lib/demoAdmin";
+import { getSelectedAdminOrganizationId, getSelectedAdminTenantId } from "@/lib/adminContextSelection";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -66,6 +68,33 @@ export async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const accessToken = await resolveAccessToken();
+  const demoTenantSlug = getDemoAdminTenantSlug();
+  const method = String(options.method || "GET").toUpperCase();
+  const selectedTenantId = getSelectedAdminTenantId();
+  const selectedOrganizationId = getSelectedAdminOrganizationId();
+  const shouldAttachContext = endpoint.startsWith("/api/admin") || endpoint.startsWith("/api/auth/me");
+
+  const requestUrl = (() => {
+    if (demoTenantSlug) {
+      return `${API_BASE_URL}${endpoint}${endpoint.includes("?") ? "&" : "?"}demo=${encodeURIComponent(demoTenantSlug)}`;
+    }
+
+    if (!shouldAttachContext) {
+      return `${API_BASE_URL}${endpoint}`;
+    }
+
+    const [basePath, rawQuery = ""] = endpoint.split("?");
+    const params = new URLSearchParams(rawQuery);
+    if (selectedTenantId) {
+      params.set("tenantId", selectedTenantId);
+    }
+    if (selectedOrganizationId) {
+      params.set("organizationId", selectedOrganizationId);
+    }
+
+    const query = params.toString();
+    return query ? `${API_BASE_URL}${basePath}?${query}` : `${API_BASE_URL}${basePath}`;
+  })();
 
   const headers = new Headers(options.headers || undefined);
 
@@ -78,8 +107,18 @@ export async function apiRequest<T>(
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
+  if (demoTenantSlug && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+    return {
+      success: false,
+      error: {
+        code: "demo_mode",
+        message: "Modo demo: las funciones de guardado están deshabilitadas.",
+      },
+    };
+  }
+
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(requestUrl, {
       ...options,
       headers,
     });

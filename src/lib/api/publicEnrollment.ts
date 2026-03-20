@@ -62,6 +62,8 @@ export interface ClassSchedule {
   startHour: number;
   duration: number;
   room: string;
+  branchName?: string;
+  branchSlug?: string;
 }
 
 export interface PublicClass {
@@ -69,6 +71,8 @@ export interface PublicClass {
   name: string;
   discipline: string;
   category: string;
+  min_age?: number | null;
+  max_age?: number | null;
   price_cents: number;
   capacity: number;
   enrolled_count: number;
@@ -79,12 +83,22 @@ export interface PublicSchoolProfile {
   tagline?: string;
   description?: string;
   address?: string;
+  city?: string;
   phone?: string;
   email?: string;
   website?: string;
   instagram?: string;
   facebook?: string;
   tiktok?: string;
+}
+
+export interface PublicBranchProfile {
+  tenantId: string;
+  tenantName: string;
+  tenantSlug: string;
+  isPrimary: boolean;
+  address?: string;
+  city?: string;
 }
 
 export interface PublicScheduleConfig {
@@ -96,7 +110,17 @@ export interface PublicScheduleConfig {
 export interface PublicFormData {
   tenantId: string;
   tenantName: string;
+  branches?: PublicBranchProfile[];
   formConfig: EnrollmentFormConfig;
+  demo?: {
+    isDemo: boolean;
+    readonly: boolean;
+    highlightedModules: readonly string[];
+    cta: {
+      title: string;
+      description: string;
+    };
+  };
   publicProfile?: PublicSchoolProfile;
   scheduleConfig?: PublicScheduleConfig;
   availableClasses: PublicClass[];

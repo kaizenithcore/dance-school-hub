@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getAcademicYears, setCurrentAcademicYear, type AcademicYear } from "@/lib/api/academicYears";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UseAcademicYearResult {
   academicYears: AcademicYear[];
@@ -10,9 +11,12 @@ interface UseAcademicYearResult {
 }
 
 export function useAcademicYear(): UseAcademicYearResult {
+  const { authContext } = useAuth();
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [currentAcademicYearId, setCurrentAcademicYearId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const activeTenantId = authContext?.tenant.id;
 
   useEffect(() => {
     const loadAcademicYears = async () => {
@@ -30,7 +34,7 @@ export function useAcademicYear(): UseAcademicYearResult {
     };
 
     void loadAcademicYears();
-  }, []);
+  }, [activeTenantId]);
 
   const handleSetCurrentAcademicYear = useCallback(async (yearId: string) => {
     try {

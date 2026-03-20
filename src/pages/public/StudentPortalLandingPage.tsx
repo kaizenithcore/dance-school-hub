@@ -485,6 +485,9 @@ function PortalHeader() {
           <span className="text-sm font-semibold text-foreground">DanceHub <span className="text-muted-foreground font-normal">Portal</span></span>
         </Link>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/portal/mockup">Ver mockup</Link>
+          </Button>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/auth/login">Iniciar sesión</Link>
           </Button>

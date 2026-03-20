@@ -431,8 +431,94 @@ export const scheduleService = {
       roomName: string;
       capacity: number;
       studentCount: number;
+      branchName: string;
+      branchSlug: string;
+      branchAddress?: string;
     })[]
   > {
+    const { data: currentOrgLink } = await supabaseAdmin
+      .from("organization_tenants")
+      .select("organization_id")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    let branchRows: Array<{
+      tenant_id: string;
+      tenants: { name: string; slug: string; is_active?: boolean } | Array<{ name: string; slug: string; is_active?: boolean }> | null;
+    }> = [];
+
+    if (currentOrgLink?.organization_id) {
+      const { data: linkedRows } = await supabaseAdmin
+        .from("organization_tenants")
+        .select("tenant_id, tenants(name, slug, is_active)")
+        .eq("organization_id", currentOrgLink.organization_id)
+        .order("display_order", { ascending: true });
+
+      branchRows = (linkedRows as typeof branchRows) || [];
+    }
+
+    if (branchRows.length === 0) {
+      const { data: singleTenantRow } = await supabaseAdmin
+        .from("tenants")
+        .select("id, name, slug, is_active")
+        .eq("id", tenantId)
+        .maybeSingle();
+
+      if (singleTenantRow?.id && singleTenantRow.name && singleTenantRow.slug) {
+        branchRows = [
+          {
+            tenant_id: singleTenantRow.id,
+            tenants: {
+              name: singleTenantRow.name,
+              slug: singleTenantRow.slug,
+              is_active: singleTenantRow.is_active,
+            },
+          },
+        ];
+      }
+    }
+
+    const activeBranchRows = branchRows.filter((row) => {
+      const tenant = Array.isArray(row.tenants) ? row.tenants[0] : row.tenants;
+      return tenant?.is_active !== false;
+    });
+
+    const scopedTenantIds = Array.from(new Set(activeBranchRows.map((row) => row.tenant_id)));
+
+    if (scopedTenantIds.length === 0) {
+      return [];
+    }
+
+    const branchInfoByTenant = new Map(
+      activeBranchRows.map((row) => {
+        const tenant = Array.isArray(row.tenants) ? row.tenants[0] : row.tenants;
+        return [
+          row.tenant_id,
+          {
+            name: tenant?.name || "Sede",
+            slug: tenant?.slug || "",
+          },
+        ];
+      })
+    );
+
+    const { data: branchSettingsRows } = await supabaseAdmin
+      .from("school_settings")
+      .select("tenant_id, enrollment_config")
+      .in("tenant_id", scopedTenantIds);
+
+    const branchAddressByTenant = new Map<string, string | undefined>();
+    for (const row of branchSettingsRows || []) {
+      const enrollmentConfig = row.enrollment_config as Record<string, unknown> | null;
+      const profileSource =
+        enrollmentConfig?.public_profile && typeof enrollmentConfig.public_profile === "object"
+          ? (enrollmentConfig.public_profile as Record<string, unknown>)
+          : enrollmentConfig?.publicProfile && typeof enrollmentConfig.publicProfile === "object"
+            ? (enrollmentConfig.publicProfile as Record<string, unknown>)
+            : {};
+      branchAddressByTenant.set(row.tenant_id, typeof profileSource.address === "string" ? profileSource.address : undefined);
+    }
+
     let query = supabaseAdmin
       .from("class_schedules")
       .select(
@@ -443,7 +529,7 @@ export const scheduleService = {
         enrollments:enrollments(count)
       `
       )
-      .eq("tenant_id", tenantId)
+      .in("tenant_id", scopedTenantIds)
       .eq("is_active", true)
       .filter("effective_from", "<=", fromDate || new Date().toISOString().split("T")[0]);
 
@@ -464,7 +550,19 @@ export const scheduleService = {
         roomName: (schedule.rooms as unknown as { name: string } | null)?.name || "",
         capacity: (schedule.classes as unknown as { capacity: number } | null)?.capacity || 0,
         studentCount: (schedule.enrollments as unknown as Array<{ count: number }> | null)?.[0]?.count || 0,
+        branchName: branchInfoByTenant.get(schedule.tenant_id)?.name || "Sede",
+        branchSlug: branchInfoByTenant.get(schedule.tenant_id)?.slug || "",
+        branchAddress: branchAddressByTenant.get(schedule.tenant_id),
       })
-    ) as unknown as (ClassSchedule & { className: string; roomName: string; discipline: string; capacity: number; studentCount: number })[];
+    ) as unknown as (ClassSchedule & {
+      className: string;
+      roomName: string;
+      discipline: string;
+      capacity: number;
+      studentCount: number;
+      branchName: string;
+      branchSlug: string;
+      branchAddress?: string;
+    })[];
   },
 };

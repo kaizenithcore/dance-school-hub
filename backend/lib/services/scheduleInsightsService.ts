@@ -1,7 +1,13 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 
 type InsightSeverity = "high" | "medium" | "low";
-type InsightType = "low_demand" | "over_demand" | "teacher_gap" | "room_underutilized";
+// Sprint 6: Five insight types for schedule problem detection
+type InsightType = 
+  | "low_demand"      // Classes <40% occupancy
+  | "over_demand"     // Classes >capacity or with waitlist
+  | "unused_teacher"  // Teachers with 0 classes scheduled
+  | "schedule_gap"    // Teachers with fragmented schedules
+  | "unused_room";    // Rooms with minimal usage
 
 export interface ScheduleInsight {
   id: string;
@@ -29,8 +35,9 @@ export interface ScheduleInsightsResult {
     low: number;
     lowDemandClasses: number;
     overDemandClasses: number;
-    teacherGaps: number;
-    underutilizedRooms: number;
+    unusedTeachers: number;      // Sprint 6: new insight type
+    scheduleGaps: number;         // Renamed from teacherGaps
+    unusedRooms: number;          // Renamed from underutilizedRooms
   };
   metrics: {
     totalClassesWithSchedule: number;
@@ -306,7 +313,7 @@ export const scheduleInsightsService = {
         if (maxGapMinutes >= 120) {
           alerts.push({
             id: `teacher-gap-${teacherId}-${weekday}`,
-            type: "teacher_gap",
+            type: "schedule_gap",  // Renamed from teacher_gap
             severity: maxGapMinutes >= 180 ? "high" : "medium",
             title: `Hueco amplio de profesor${teacher?.name ? `: ${teacher.name}` : ""}`,
             description: `Se detecto un hueco maximo de ${Math.round(maxGapMinutes)} minutos en el dia ${weekday}.`,
@@ -323,6 +330,26 @@ export const scheduleInsightsService = {
       }
     }
 
+    // Sprint 6: Detect unused teachers (no classes scheduled)
+    for (const teacher of teachers) {
+      if (!teacherSlots.has(teacher.id)) {
+        alerts.push({
+          id: `unused-teacher-${teacher.id}`,
+          type: "unused_teacher",
+          severity: "medium",
+          title: `Profesor sin clases: ${teacher.name}`,
+          description: `${teacher.name} no tiene clases programadas en los próximos períodos.`,
+          suggestedAction: "Asignar clases disponibles o ajustar disponibilidad temporal.",
+          teacherId: teacher.id,
+          teacherName: teacher.name,
+          metrics: {
+            scheduledClasses: 0,
+            lastAssigned: "N/A",
+          },
+        });
+      }
+    }
+
     // Room underutilization
     for (const room of rooms) {
       const usedHours = roomHours.get(room.id) || 0;
@@ -331,7 +358,7 @@ export const scheduleInsightsService = {
       if (utilizationPct < 20) {
         alerts.push({
           id: `room-under-${room.id}`,
-          type: "room_underutilized",
+          type: "unused_room",  // Renamed from room_underutilized
           severity: utilizationPct < 10 ? "medium" : "low",
           title: `Aula infrautilizada: ${room.name}`,
           description: `Uso semanal estimado ${usedHours.toFixed(1)}h de ${weeklyCapacityHours.toFixed(1)}h (${utilizationPct.toFixed(1)}%).`,
@@ -375,8 +402,9 @@ export const scheduleInsightsService = {
         low: sortedAlerts.filter((alert) => alert.severity === "low").length,
         lowDemandClasses: sortedAlerts.filter((alert) => alert.type === "low_demand").length,
         overDemandClasses: sortedAlerts.filter((alert) => alert.type === "over_demand").length,
-        teacherGaps: sortedAlerts.filter((alert) => alert.type === "teacher_gap").length,
-        underutilizedRooms: sortedAlerts.filter((alert) => alert.type === "room_underutilized").length,
+        unusedTeachers: sortedAlerts.filter((alert) => alert.type === "unused_teacher").length,
+        scheduleGaps: sortedAlerts.filter((alert) => alert.type === "schedule_gap").length,
+        unusedRooms: sortedAlerts.filter((alert) => alert.type === "unused_room").length,
       },
       metrics: {
         totalClassesWithSchedule: classes.filter((classData) => (classHours.get(classData.id) || 0) > 0).length,

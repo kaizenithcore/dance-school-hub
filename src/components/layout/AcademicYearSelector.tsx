@@ -1,4 +1,5 @@
 import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -6,9 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { useAcademicYear } from "@/hooks/useAcademicYear";
 
 export function AcademicYearSelector() {
+  const navigate = useNavigate();
   const { academicYears, currentAcademicYear, loading, setCurrentAcademicYear } = useAcademicYear();
   const selectedAcademicYear =
     currentAcademicYear
@@ -31,9 +34,15 @@ export function AcademicYearSelector() {
 
   if (!selectedAcademicYear) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-secondary/50">
-        <span className="text-sm text-muted-foreground">Sin curso académico</span>
-      </div>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-8"
+        onClick={() => navigate("/admin/settings")}
+      >
+        Configurar curso
+      </Button>
     );
   }
 

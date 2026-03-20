@@ -4,13 +4,10 @@ import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
 import { incidentService } from "@/lib/services/incidentService";
 import { updateIncidentSchema } from "@/lib/validators/incidentSchemas";
+import { permissionService } from "@/lib/services/permissionService";
 
 interface RouteContext {
   params: Promise<{ incidentId: string }>;
-}
-
-function canManageIncidents(role: string) {
-  return role === "owner" || role === "admin" || role === "staff";
 }
 
 export async function OPTIONS(request: NextRequest) {
@@ -25,7 +22,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return auth.response;
   }
 
-  if (!canManageIncidents(auth.context.role)) {
+  if (!permissionService.canManageIncidents({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 

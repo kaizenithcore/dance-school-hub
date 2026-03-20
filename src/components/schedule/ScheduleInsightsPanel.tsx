@@ -27,8 +27,10 @@ function severityClass(severity: ScheduleInsight["severity"]) {
 function typeLabel(type: ScheduleInsight["type"]) {
   if (type === "low_demand") return "Baja demanda";
   if (type === "over_demand") return "Sobredemanda";
-  if (type === "teacher_gap") return "Hueco profesor";
-  return "Aula infrautilizada";
+  if (type === "unused_teacher") return "Profesor sin clases";
+  if (type === "schedule_gap") return "Hueco de horario";
+  if (type === "unused_room") return "Aula infrautilizada";
+  return "Otro";
 }
 
 export function ScheduleInsightsPanel({
@@ -88,7 +90,7 @@ export function ScheduleInsightsPanel({
 
       {expanded ? (
         <>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             <div className="rounded-md border border-border p-2.5">
               <p className="text-[11px] text-muted-foreground">Baja demanda</p>
               <p className="text-sm font-semibold text-foreground">{insights.summary.lowDemandClasses}</p>
@@ -98,12 +100,16 @@ export function ScheduleInsightsPanel({
               <p className="text-sm font-semibold text-foreground">{insights.summary.overDemandClasses}</p>
             </div>
             <div className="rounded-md border border-border p-2.5">
-              <p className="text-[11px] text-muted-foreground">Huecos profesor</p>
-              <p className="text-sm font-semibold text-foreground">{insights.summary.teacherGaps}</p>
+              <p className="text-[11px] text-muted-foreground">Profesores sin clases</p>
+              <p className="text-sm font-semibold text-foreground">{insights.summary.unusedTeachers}</p>
+            </div>
+            <div className="rounded-md border border-border p-2.5">
+              <p className="text-[11px] text-muted-foreground">Huecos de horario</p>
+              <p className="text-sm font-semibold text-foreground">{insights.summary.scheduleGaps}</p>
             </div>
             <div className="rounded-md border border-border p-2.5">
               <p className="text-[11px] text-muted-foreground">Aulas infrautilizadas</p>
-              <p className="text-sm font-semibold text-foreground">{insights.summary.underutilizedRooms}</p>
+              <p className="text-sm font-semibold text-foreground">{insights.summary.unusedRooms}</p>
             </div>
           </div>
 
@@ -123,10 +129,12 @@ export function ScheduleInsightsPanel({
                     <Badge variant="secondary" className="text-[10px]">
                       {typeLabel(alert.type)}
                     </Badge>
-                    {alert.type === "teacher_gap" ? (
+                    {alert.type === "schedule_gap" ? (
                       <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
-                    ) : alert.type === "room_underutilized" ? (
+                    ) : alert.type === "unused_room" ? (
                       <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : alert.type === "unused_teacher" ? (
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
                     ) : (
                       <Users className="h-3.5 w-3.5 text-muted-foreground" />
                     )}

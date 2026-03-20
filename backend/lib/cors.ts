@@ -13,7 +13,7 @@ export function corsHeaders(origin?: string | null) {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
     "Access-Control-Allow-Headers":
-      "Content-Type, Authorization, X-Tenant-Id, X-User-Id, X-Tenant-Role",
+      "Content-Type, Authorization, X-Tenant-Id, X-User-Id, X-Tenant-Role, X-Demo-Tenant",
     "Access-Control-Max-Age": "86400",
   };
 

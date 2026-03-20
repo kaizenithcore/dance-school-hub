@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, MapPin, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import { MOCK_PORTAL_EVENTS, type PortalEvent } from "../data/mockData";
 import { EventCard } from "../components/EventCard";
 import { cn } from "@/lib/utils";
+import { usePortalPersona } from "../services/portalPersona";
 
 const types = ["Todos", "Festival", "Workshop", "Competición", "Exhibición"] as const;
 const typeMap: Record<string, PortalEvent["type"] | "all"> = {
@@ -11,12 +13,33 @@ const typeMap: Record<string, PortalEvent["type"] | "all"> = {
 };
 
 export default function EventsScreen() {
+  const { persona } = usePortalPersona();
   const [filter, setFilter] = useState("Todos");
   const [detail, setDetail] = useState<PortalEvent | null>(null);
 
   const filtered = filter === "Todos"
     ? MOCK_PORTAL_EVENTS
     : MOCK_PORTAL_EVENTS.filter((e) => e.type === typeMap[filter]);
+
+  if (persona === "prospect") {
+    return (
+      <div className="px-4 pb-24 pt-6 space-y-4">
+        <h1 className="text-xl font-bold text-foreground">Eventos</h1>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-sm font-medium text-foreground">Eventos publicos de escuelas cercanas</p>
+          <p className="mt-1 text-xs text-muted-foreground">Puedes seguir eventos y festivales abiertos incluso antes de matricularte.</p>
+        </div>
+        <div className="space-y-3">
+          {MOCK_PORTAL_EVENTS.slice(0, 2).map((e) => (
+            <EventCard key={e.id} event={e} onClick={() => setDetail(e)} />
+          ))}
+        </div>
+        <Link to="/portal" className="block rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground">
+          Ver mas en el landing del portal
+        </Link>
+      </div>
+    );
+  }
 
   if (detail) {
     const d = new Date(detail.date);
@@ -47,6 +70,11 @@ export default function EventsScreen() {
   return (
     <div className="px-4 pb-24 pt-6 space-y-4">
       <h1 className="text-xl font-bold text-foreground">Eventos</h1>
+      {persona === "community" ? (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-foreground">
+          Comunidad activa: puedes crear publicaciones y eventos internos desde el feed social de tu escuela.
+        </div>
+      ) : null}
       <div className="flex gap-2 overflow-x-auto">
         {types.map((t) => (
           <button

@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
 import { outboxService } from "@/lib/services/outboxService";
+import { permissionService } from "@/lib/services/permissionService";
 
 function canRunJobs(role: string) {
   return role === "owner" || role === "admin";
@@ -20,7 +21,10 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  if (!canRunJobs(auth.context.role)) {
+  if (!permissionService.canManageBilling({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 

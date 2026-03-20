@@ -3,6 +3,7 @@ import type { PublicEnrollmentInput, JointEnrollmentInput } from "@/lib/validato
 import { enrollmentFormConfigService } from "@/lib/services/enrollmentFormConfigService";
 import { waitlistService } from "@/lib/services/waitlistService";
 import { studentQuotaService } from "@/lib/services/studentQuotaService";
+import { DEMO_TENANT_CONFIG, isDemoTenantSlug } from "@/lib/constants/demoTenant";
 
 function normalizeName(value: string | null | undefined) {
   return String(value || "")
@@ -25,6 +26,7 @@ export interface PublicSchoolProfile {
   tagline?: string;
   description?: string;
   address?: string;
+  city?: string;
   phone?: string;
   email?: string;
   website?: string;
@@ -33,10 +35,29 @@ export interface PublicSchoolProfile {
   tiktok?: string;
 }
 
+export interface PublicBranchProfile {
+  tenantId: string;
+  tenantName: string;
+  tenantSlug: string;
+  isPrimary: boolean;
+  address?: string;
+  city?: string;
+}
+
 export interface PublicFormData {
   tenantId: string;
   tenantName: string;
+  branches?: PublicBranchProfile[];
   formConfig: unknown;
+  demo?: {
+    isDemo: boolean;
+    readonly: boolean;
+    highlightedModules: readonly string[];
+    cta: {
+      title: string;
+      description: string;
+    };
+  };
   publicProfile?: PublicSchoolProfile;
   scheduleConfig?: {
     startHour?: string;
@@ -48,6 +69,8 @@ export interface PublicFormData {
     name: string;
     discipline: string;
     category: string;
+    min_age?: number | null;
+    max_age?: number | null;
     price_cents: number;
     capacity: number;
     enrolled_count: number;
@@ -57,6 +80,8 @@ export interface PublicFormData {
       startHour: number;
       duration: number;
       room: string;
+      branchName?: string;
+      branchSlug?: string;
     }>;
   }>;
 }
@@ -66,6 +91,8 @@ export const publicEnrollmentService = {
    * Get public form configuration for a tenant
    */
   async getFormData(tenantSlug: string): Promise<PublicFormData | null> {
+      const isDemo = isDemoTenantSlug(tenantSlug);
+
     // Get tenant by slug
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from("tenants")
@@ -104,6 +131,7 @@ export const publicEnrollmentService = {
       tagline: typeof profileSource.tagline === "string" ? profileSource.tagline : undefined,
       description: typeof profileSource.description === "string" ? profileSource.description : undefined,
       address: typeof profileSource.address === "string" ? profileSource.address : undefined,
+      city: typeof profileSource.city === "string" ? profileSource.city : undefined,
       phone: typeof profileSource.phone === "string" ? profileSource.phone : undefined,
       email: typeof profileSource.email === "string" ? profileSource.email : undefined,
       website: typeof profileSource.website === "string" ? profileSource.website : undefined,
@@ -112,12 +140,84 @@ export const publicEnrollmentService = {
       tiktok: typeof profileSource.tiktok === "string" ? profileSource.tiktok : undefined,
     };
 
+    const { data: currentOrgLink } = await supabaseAdmin
+      .from("organization_tenants")
+      .select("organization_id")
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+
+    let branchRows: Array<{
+      tenant_id: string;
+      is_primary: boolean;
+      display_order: number;
+      tenants: { name: string; slug: string; is_active?: boolean } | Array<{ name: string; slug: string; is_active?: boolean }> | null;
+    }> = [
+      {
+        tenant_id: tenant.id,
+        is_primary: true,
+        display_order: 0,
+        tenants: { name: tenant.name, slug: tenantSlug, is_active: true },
+      },
+    ];
+
+    if (currentOrgLink?.organization_id) {
+      const { data: linkedRows } = await supabaseAdmin
+        .from("organization_tenants")
+        .select("tenant_id, is_primary, display_order, tenants(name, slug, is_active)")
+        .eq("organization_id", currentOrgLink.organization_id)
+        .order("display_order", { ascending: true });
+
+      if (linkedRows && linkedRows.length > 0) {
+        branchRows = linkedRows as typeof branchRows;
+      }
+    }
+
+    const branchTenantIds = Array.from(new Set(branchRows.map((row) => row.tenant_id)));
+    const { data: branchSettingsRows } = await supabaseAdmin
+      .from("school_settings")
+      .select("tenant_id, enrollment_config")
+      .in("tenant_id", branchTenantIds);
+
+    const branchSettingsByTenant = new Map(
+      (branchSettingsRows || []).map((row) => [row.tenant_id, row.enrollment_config as Record<string, unknown> | null])
+    );
+
+    const branches: PublicBranchProfile[] = branchRows
+      .map((row) => {
+        const branchTenant = Array.isArray(row.tenants) ? row.tenants[0] : row.tenants;
+        if (!branchTenant?.name || !branchTenant.slug) {
+          return null;
+        }
+
+        if (branchTenant.is_active === false) {
+          return null;
+        }
+
+        const branchEnrollmentConfig = branchSettingsByTenant.get(row.tenant_id);
+        const branchProfileSource =
+          branchEnrollmentConfig?.public_profile && typeof branchEnrollmentConfig.public_profile === "object"
+            ? (branchEnrollmentConfig.public_profile as Record<string, unknown>)
+            : branchEnrollmentConfig?.publicProfile && typeof branchEnrollmentConfig.publicProfile === "object"
+              ? (branchEnrollmentConfig.publicProfile as Record<string, unknown>)
+              : {};
+
+        return {
+          tenantId: row.tenant_id,
+          tenantName: branchTenant.name,
+          tenantSlug: branchTenant.slug,
+          isPrimary: Boolean(row.is_primary),
+          address: typeof branchProfileSource.address === "string" ? branchProfileSource.address : undefined,
+          city: typeof branchProfileSource.city === "string" ? branchProfileSource.city : undefined,
+        } satisfies PublicBranchProfile;
+      })
+      .filter((branch): branch is PublicBranchProfile => branch !== null);
+
     const scheduleConfigSource =
       settingsData?.schedule_config && typeof settingsData.schedule_config === "object"
         ? (settingsData.schedule_config as Record<string, unknown>)
         : {};
 
-    const scheduleConfig = {
+    const scheduleConfig: PublicFormData["scheduleConfig"] = {
       startHour: typeof scheduleConfigSource.startHour === "string" ? scheduleConfigSource.startHour : undefined,
       endHour: typeof scheduleConfigSource.endHour === "string" ? scheduleConfigSource.endHour : undefined,
       recurringSelectionMode:
@@ -127,7 +227,22 @@ export const publicEnrollmentService = {
     };
 
     // Get active classes with enrollment count
-    const { data: classes, error: classesError } = await supabaseAdmin
+    type PublicClassRow = {
+      id: string;
+      name: string;
+      discipline_id: string;
+      category_id: string;
+      price_cents: number;
+      capacity: number;
+      min_age?: number | null;
+      max_age?: number | null;
+    };
+
+    let classes: PublicClassRow[] | null = null;
+
+    let classesError: { message: string } | null = null;
+
+    const classesWithAge = await supabaseAdmin
       .from("classes")
       .select(`
         id,
@@ -135,10 +250,33 @@ export const publicEnrollmentService = {
         discipline_id,
         category_id,
         price_cents,
-        capacity
+        capacity,
+        min_age,
+        max_age
       `)
       .eq("tenant_id", tenant.id)
       .eq("status", "active");
+
+    if (classesWithAge.error) {
+      const fallbackClasses = await supabaseAdmin
+        .from("classes")
+        .select(`
+          id,
+          name,
+          discipline_id,
+          category_id,
+          price_cents,
+          capacity
+        `)
+        .eq("tenant_id", tenant.id)
+        .eq("status", "active");
+
+      classes = (fallbackClasses.data as PublicClassRow[] | null) || [];
+      classesError = fallbackClasses.error ? { message: fallbackClasses.error.message } : null;
+    } else {
+      classes = (classesWithAge.data as PublicClassRow[] | null) || [];
+      classesError = null;
+    }
 
     if (classesError) {
       console.error("Error fetching classes:", classesError);
@@ -146,7 +284,21 @@ export const publicEnrollmentService = {
       return {
         tenantId: tenant.id,
         tenantName: tenant.name,
+        branches,
         formConfig,
+        ...(isDemo
+          ? {
+              demo: {
+                isDemo: true,
+                readonly: DEMO_TENANT_CONFIG.readonly,
+                highlightedModules: DEMO_TENANT_CONFIG.highlightedModules,
+                cta: {
+                  title: DEMO_TENANT_CONFIG.cta.title,
+                  description: DEMO_TENANT_CONFIG.cta.description,
+                },
+              },
+            }
+          : {}),
         publicProfile,
         scheduleConfig,
         availableClasses: [],
@@ -161,6 +313,7 @@ export const publicEnrollmentService = {
       .from("class_schedules")
       .select(`
         id,
+        tenant_id,
         class_id,
         weekday,
         start_time,
@@ -180,7 +333,15 @@ export const publicEnrollmentService = {
     }>>();
 
     (schedules || []).forEach((schedule: unknown) => {
-      const s = schedule as { id: string; class_id: string; weekday: number; start_time: string; end_time: string; rooms?: { name: string } | null };
+      const s = schedule as {
+        id: string;
+        tenant_id: string;
+        class_id: string;
+        weekday: number;
+        start_time: string;
+        end_time: string;
+        rooms?: { name: string } | null;
+      };
       
       // Convert start_time (HH:MM:SS) to hour number
       const startHour = parseInt(s.start_time.split(':')[0], 10);
@@ -192,12 +353,15 @@ export const publicEnrollmentService = {
       const duration = (endHour - startHour) + (endMinutes - startMinutes) / 60;
       
       const classSchedules = schedulesByClass.get(s.class_id) || [];
+      const branch = branches.find((item) => item.tenantId === s.tenant_id);
       classSchedules.push({
         id: s.id,
         day: WEEKDAYS[s.weekday - 1] || 'Lunes', // weekday is 1-7, array is 0-6
         startHour,
         duration,
         room: s.rooms?.name || "Sin aula",
+        branchName: branch?.tenantName || tenant.name,
+        branchSlug: branch?.tenantSlug || tenantSlug,
       });
       schedulesByClass.set(s.class_id, classSchedules);
     });
@@ -233,11 +397,13 @@ export const publicEnrollmentService = {
       });
     }
 
-    const availableClasses = (classes || []).map((cls: { id: string; name: string; discipline_id: string; category_id: string; price_cents: number; capacity: number }) => ({
+    const availableClasses = (classes || []).map((cls: { id: string; name: string; discipline_id: string; category_id: string; price_cents: number; capacity: number; min_age?: number | null; max_age?: number | null }) => ({
       id: cls.id,
       name: cls.name,
       discipline: disciplineMap.get(cls.discipline_id) || "General",
       category: categoryMap.get(cls.category_id) || "General",
+      min_age: typeof cls.min_age === "number" ? cls.min_age : null,
+      max_age: typeof cls.max_age === "number" ? cls.max_age : null,
       price_cents: cls.price_cents,
       capacity: cls.capacity,
       enrolled_count: confirmedEnrollmentsByClass.get(cls.id) || 0,
@@ -249,7 +415,21 @@ export const publicEnrollmentService = {
     return {
       tenantId: tenant.id,
       tenantName: tenant.name,
+      branches,
       formConfig,
+      ...(isDemo
+        ? {
+            demo: {
+              isDemo: true,
+              readonly: DEMO_TENANT_CONFIG.readonly,
+              highlightedModules: DEMO_TENANT_CONFIG.highlightedModules,
+              cta: {
+                title: DEMO_TENANT_CONFIG.cta.title,
+                description: DEMO_TENANT_CONFIG.cta.description,
+              },
+            },
+          }
+        : {}),
       publicProfile,
       scheduleConfig,
       availableClasses,
@@ -263,6 +443,10 @@ export const publicEnrollmentService = {
     tenantSlug: string,
     input: PublicEnrollmentInput
   ): Promise<{ enrollmentId?: string; studentId?: string; waitlistCreated?: boolean; waitlistCount?: number; message?: string }> {
+        if (isDemoTenantSlug(tenantSlug)) {
+          throw Object.assign(new Error("Modo demo: las modificaciones están deshabilitadas."), { status: 403 });
+        }
+
         const classIds = Array.from(new Set((input.class_ids && input.class_ids.length > 0
           ? input.class_ids
           : input.class_id
@@ -540,6 +724,10 @@ export const publicEnrollmentService = {
       tenantSlug: string,
       input: JointEnrollmentInput
     ): Promise<{ enrollmentIds: string[]; studentIds: string[]; groupId: string }> {
+      if (isDemoTenantSlug(tenantSlug)) {
+        throw Object.assign(new Error("Modo demo: las modificaciones están deshabilitadas."), { status: 403 });
+      }
+
      // Get tenant by slug
       const { data: tenant, error: tenantError } = await supabaseAdmin
         .from("tenants")

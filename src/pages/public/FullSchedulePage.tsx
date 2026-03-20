@@ -12,6 +12,7 @@ interface ClassForDisplay {
   id: string;
   classId: string;
   name: string;
+  branchName?: string;
   teacher: string;
   time: string;
   room: string;
@@ -50,6 +51,7 @@ export default function FullSchedulePage() {
             id: schedule.id,
             classId: schedule.class_id,
             name: schedule.className || "Clase",
+            branchName: schedule.branchName || undefined,
             teacher: "Prof. (datos en desarrollo)",
             time: `${schedule.start_time}–${schedule.end_time}`,
             room: schedule.roomName || "Aula",

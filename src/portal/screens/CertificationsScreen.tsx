@@ -2,8 +2,25 @@ import { motion } from "framer-motion";
 import { Award, Download, ChevronRight } from "lucide-react";
 import { MOCK_CERTIFICATIONS } from "../data/mockData";
 import { cn } from "@/lib/utils";
+import { usePortalPersona } from "../services/portalPersona";
 
 export default function CertificationsScreen() {
+  const { persona } = usePortalPersona();
+
+  if (persona === "prospect") {
+    return (
+      <div className="px-4 pb-24 pt-6 space-y-4">
+        <h1 className="text-xl font-bold text-foreground">Certificaciones</h1>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-sm font-medium text-foreground">Aun no tienes certificaciones registradas</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Cuando curses clases en una escuela conectada, tus examenes y diplomas apareceran aqui.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 pb-24 pt-6 space-y-4">
       <h1 className="text-xl font-bold text-foreground">Certificaciones</h1>

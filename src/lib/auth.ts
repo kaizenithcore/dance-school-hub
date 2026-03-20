@@ -1,6 +1,13 @@
 import { supabase } from "@/lib/supabase";
 import { createTenant, getAuthContext } from "@/lib/api/auth";
 import type { AuthContextResponse } from "@/lib/api/auth";
+import { clearDemoAdminSession, getDemoAdminTenantSlug } from "@/lib/demoAdmin";
+import {
+  clearSelectedAdminContext,
+  getSelectedAdminOrganizationId,
+  getSelectedAdminTenantId,
+  syncSelectedAdminContext,
+} from "@/lib/adminContextSelection";
 
 export interface RegisterSchoolData {
   schoolName: string;
@@ -98,6 +105,9 @@ export async function registerSchool(data: RegisterSchoolData): Promise<AuthResu
  */
 export async function login(credentials: LoginCredentials): Promise<AuthResult> {
   try {
+    clearDemoAdminSession();
+    clearSelectedAdminContext();
+
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: credentials.email,
       password: credentials.password,
@@ -138,6 +148,8 @@ export async function login(credentials: LoginCredentials): Promise<AuthResult> 
  * Log out current user
  */
 export async function logout(): Promise<void> {
+  clearDemoAdminSession();
+  clearSelectedAdminContext();
   await supabase.auth.signOut();
 }
 
@@ -150,14 +162,34 @@ export async function getCurrentAuthContext(): Promise<AuthContextResponse | nul
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return null;
+    const demoTenantSlug = getDemoAdminTenantSlug();
+    if (!demoTenantSlug) {
+      return null;
+    }
+
+    const contextResult = await getAuthContext({
+      tenantId: getSelectedAdminTenantId() ?? undefined,
+      organizationId: getSelectedAdminOrganizationId() ?? undefined,
+    });
+    if (!contextResult.success || !contextResult.data) {
+      return null;
+    }
+
+    syncSelectedAdminContext(contextResult.data);
+
+    return contextResult.data;
   }
 
-  const contextResult = await getAuthContext();
+  const contextResult = await getAuthContext({
+    tenantId: getSelectedAdminTenantId() ?? undefined,
+    organizationId: getSelectedAdminOrganizationId() ?? undefined,
+  });
 
   if (!contextResult.success || !contextResult.data) {
     return null;
   }
+
+  syncSelectedAdminContext(contextResult.data);
 
   return contextResult.data;
 }

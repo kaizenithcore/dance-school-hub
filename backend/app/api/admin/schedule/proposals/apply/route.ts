@@ -3,6 +3,8 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { ok, fail } from "@/lib/http";
 import { scheduleService } from "@/lib/services/scheduleService";
 import { applyScheduleProposalSchema } from "@/lib/validators/scheduleProposalSchemas";
+import { permissionService, Permission } from "@/lib/services/permissionService";
+import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -10,6 +12,14 @@ export async function POST(request: NextRequest) {
 
   if (!auth.authorized || !auth.context) {
     return auth.response;
+  }
+
+  // Sprint 7: Only users with SCHEDULE_WRITE can apply proposals
+  if (!permissionService.hasPermission(
+    { tenantRole: auth.context.role, organizationRole: auth.context.organizationRole },
+    Permission.SCHEDULE_WRITE
+  )) {
+    return fail({ code: "insufficient_permissions", message: "Permisos insuficientes para aplicar propuestas de horario" }, 403, origin);
   }
 
   try {
@@ -28,6 +38,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const deletedIds: string[] = [];
+    const deleteErrors: string[] = [];
+
+    // Sprint 7: Delete unlocked schedules before applying proposal (replaceUnlocked mode)
+    if (parsed.data.schedulesToDelete.length > 0) {
+      // Only delete schedules that belong to this tenant and are NOT locked (safety check)
+      const { data: toDelete, error: fetchErr } = await supabaseAdmin
+        .from("class_schedules")
+        .select("id, is_locked")
+        .eq("tenant_id", auth.context.tenantId)
+        .in("id", parsed.data.schedulesToDelete);
+
+      if (fetchErr) {
+        return fail({ code: "delete_fetch_failed", message: fetchErr.message }, 500, origin);
+      }
+
+      const safeToDelete = (toDelete || []).filter((s) => !s.is_locked).map((s) => s.id);
+
+      if (safeToDelete.length > 0) {
+        const { error: deleteErr } = await supabaseAdmin
+          .from("class_schedules")
+          .delete()
+          .eq("tenant_id", auth.context.tenantId)
+          .in("id", safeToDelete);
+
+        if (deleteErr) {
+          deleteErrors.push(deleteErr.message);
+        } else {
+          deletedIds.push(...safeToDelete);
+        }
+      }
+    }
+
     const result = await scheduleService.saveScheduleBatch(auth.context.tenantId, {
       creates: parsed.data.creates,
       updates: [],
@@ -37,6 +80,8 @@ export async function POST(request: NextRequest) {
     return ok(
       {
         proposalId: parsed.data.proposalId,
+        deletedPriorSchedules: deletedIds.length,
+        deleteErrors,
         result,
       },
       result.errors.length > 0 ? 207 : 200,

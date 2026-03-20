@@ -1,7 +1,8 @@
 import {
   LayoutDashboard, Calendar, GraduationCap, Users, BookOpen, ClipboardList,
-  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award, Lock,
+  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award, Lock, Building2, MapPinned,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,7 @@ import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 
 type FeatureKey = "waitlistAutomation" | "renewalAutomation" | "courseClone" | "massCommunicationEmail" | "examSuite";
 
-const navItems: Array<{ title: string; url: string; icon: any; featureKey?: FeatureKey }> = [
+const navItems: Array<{ title: string; url: string; icon: LucideIcon; featureKey?: FeatureKey }> = [
   { title: "Panel", url: "/admin", icon: LayoutDashboard },
   { title: "Alumnos", url: "/admin/students", icon: Users },
     { title: "Formulario de inscripción", url: "/admin/form-builder", icon: FileEdit },
@@ -23,6 +24,7 @@ const navItems: Array<{ title: string; url: string; icon: any; featureKey?: Feat
   { title: "Profesores", url: "/admin/teachers", icon: BookOpen },
   { title: "Aulas", url: "/admin/rooms", icon: DoorOpen },
   { title: "Recepción", url: "/admin/reception", icon: Monitor },
+  { title: "Sedes", url: "/admin/branches", icon: MapPinned, featureKey: "examSuite" },
   { title: "Pagos", url: "/admin/payments", icon: CreditCard },
   { title: "Tarifas y Bonos", url: "/admin/pricing", icon: Tags },
   { title: "Comunicación", url: "/admin/communications", icon: Megaphone, featureKey: "massCommunicationEmail" },
@@ -30,6 +32,7 @@ const navItems: Array<{ title: string; url: string; icon: any; featureKey?: Feat
   { title: "Renovaciones", url: "/admin/renewals", icon: Repeat, featureKey: "renewalAutomation" },
   { title: "Duplicar cursos", url: "/admin/course-clone", icon: Copy, featureKey: "courseClone" },
   { title: "Exámenes", url: "/admin/exams", icon: Award, featureKey: "examSuite" },
+  { title: "Roles y escuelas", url: "/admin/organization-access", icon: Building2, featureKey: "examSuite" },
   { title: "Analíticas", url: "/admin/analytics", icon: BarChart3 },
   { title: "Configuración", url: "/admin/settings", icon: Settings },
 ];

@@ -4,6 +4,7 @@ import { CURRENT_STUDENT, MOCK_ACHIEVEMENTS } from "../data/mockData";
 import { ProgressCard } from "../components/ProgressCard";
 import { AchievementBadge } from "../components/AchievementBadge";
 import { cn } from "@/lib/utils";
+import { usePortalPersona } from "../services/portalPersona";
 
 const categories = ["Todos", "Asistencia", "Eventos", "Hitos", "Certificaciones"] as const;
 const categoryMap: Record<string, string> = {
@@ -15,7 +16,22 @@ const categoryMap: Record<string, string> = {
 };
 
 export default function ProgressScreen() {
+  const { persona } = usePortalPersona();
   const [cat, setCat] = useState("Todos");
+
+  if (persona === "prospect") {
+    return (
+      <div className="px-4 pb-24 pt-6 space-y-4">
+        <h1 className="text-xl font-bold text-foreground">Progreso</h1>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-sm font-medium text-foreground">Tu progreso se activara al matricularte</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Aqui veras asistencia, nivel, hitos y certificaciones en cuanto tengas una escuela conectada.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const filtered = cat === "Todos"
     ? MOCK_ACHIEVEMENTS

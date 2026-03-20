@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { ok, fail } from "@/lib/http";
 import { scheduleInsightsService } from "@/lib/services/scheduleInsightsService";
+import { permissionService, Permission } from "@/lib/services/permissionService";
 
 export async function GET(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -12,6 +13,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Sprint 6: Permission check - require schedule read access for insights
+    if (!permissionService.hasPermission(
+      {
+        tenantRole: auth.context.role,
+        organizationRole: auth.context.organizationRole,
+      },
+      Permission.SCHEDULE_READ
+    )) {
+      return fail(
+        {
+          code: "insufficient_permissions",
+          message: "Solo administradores y gestores pueden ver análisis de horarios",
+        },
+        403,
+        origin
+      );
+    }
+
     const insights = await scheduleInsightsService.getInsights(auth.context.tenantId);
     return ok(insights, 200, origin);
   } catch (error) {

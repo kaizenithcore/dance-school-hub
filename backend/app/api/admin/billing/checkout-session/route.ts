@@ -7,6 +7,7 @@ import { stripeService, type SubscriptionCheckoutLineItem } from "@/lib/services
 import { getEnv } from "@/lib/env";
 import { type PlanType } from "@/lib/services/featureEntitlementsService";
 import { getCommercialPlan, getSubscriptionAddon } from "@/lib/commercialCatalog";
+import { permissionService } from "@/lib/services/permissionService";
 
 const planSchema = z.enum(["starter", "pro", "enterprise"]);
 const billingCycleSchema = z.enum(["monthly", "annual"]);
@@ -139,7 +140,10 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  if (!canEdit(auth.context.role)) {
+  if (!permissionService.canManageBilling({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 

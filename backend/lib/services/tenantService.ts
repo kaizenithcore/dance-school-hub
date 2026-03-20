@@ -16,6 +16,67 @@ interface CreateTenantResult {
   role: TenantRole;
 }
 
+async function ensureDefaultSchoolOrganization(
+  tenantId: string,
+  tenantName: string,
+  tenantSlug: string,
+  ownerUserId: string
+): Promise<void> {
+  const { error: organizationError } = await supabaseAdmin.from("organizations").upsert(
+    {
+      id: tenantId,
+      name: tenantName,
+      slug: tenantSlug,
+      kind: "school",
+      is_active: true,
+      metadata: {
+        source: "tenant_service_bootstrap",
+      },
+    },
+    {
+      onConflict: "id",
+    }
+  );
+
+  if (organizationError) {
+    throw new Error(`Unable to create default organization: ${organizationError.message}`);
+  }
+
+  const { error: orgTenantError } = await supabaseAdmin.from("organization_tenants").upsert(
+    {
+      organization_id: tenantId,
+      tenant_id: tenantId,
+      is_primary: true,
+      display_order: 0,
+    },
+    {
+      onConflict: "organization_id,tenant_id",
+    }
+  );
+
+  if (orgTenantError) {
+    throw new Error(`Unable to link tenant to default organization: ${orgTenantError.message}`);
+  }
+
+  const { error: organizationMembershipError } = await supabaseAdmin.from("organization_memberships").upsert(
+    {
+      organization_id: tenantId,
+      user_id: ownerUserId,
+      role: "owner",
+      is_active: true,
+    },
+    {
+      onConflict: "organization_id,user_id",
+    }
+  );
+
+  if (organizationMembershipError) {
+    throw new Error(
+      `Unable to create default organization membership: ${organizationMembershipError.message}`
+    );
+  }
+}
+
 function normalizeSlug(rawSlug: string): string {
   return rawSlug
     .trim()
@@ -127,6 +188,20 @@ export const tenantService = {
       await supabaseAdmin.from("tenants").delete().eq("id", tenantId);
       await supabaseAdmin.auth.admin.deleteUser(ownerUserId);
       throw new Error(`Unable to create tenant settings: ${settingsError.message}`);
+    }
+
+    try {
+      await ensureDefaultSchoolOrganization(tenantId, input.tenantName, tenantRow.slug, ownerUserId);
+    } catch (error) {
+      await supabaseAdmin.from("school_settings").delete().eq("tenant_id", tenantId);
+      await supabaseAdmin.from("tenant_memberships").delete().eq("tenant_id", tenantId);
+      await supabaseAdmin.from("organization_memberships").delete().eq("organization_id", tenantId);
+      await supabaseAdmin.from("organization_tenants").delete().eq("organization_id", tenantId);
+      await supabaseAdmin.from("organizations").delete().eq("id", tenantId);
+      await supabaseAdmin.from("tenants").delete().eq("id", tenantId);
+      await supabaseAdmin.auth.admin.deleteUser(ownerUserId);
+      const message = error instanceof Error ? error.message : "Unable to create default organization.";
+      throw new Error(message);
     }
 
     return {

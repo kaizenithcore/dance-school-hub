@@ -5,11 +5,45 @@ import { CURRENT_STUDENT, MOCK_PORTAL_CLASSES, MOCK_PORTAL_EVENTS, MOCK_ACHIEVEM
 import { PortalClassCard } from "../components/PortalClassCard";
 import { EventCard } from "../components/EventCard";
 import { AchievementBadge } from "../components/AchievementBadge";
+import { usePortalPersona } from "../services/portalPersona";
 
 export default function HomeScreen() {
+  const { persona } = usePortalPersona();
   const todayClasses = MOCK_PORTAL_CLASSES.filter((c) => c.day === "Lunes").slice(0, 2);
   const recentAchievements = MOCK_ACHIEVEMENTS.filter((a) => a.earned).slice(-3);
   const nextEvent = MOCK_PORTAL_EVENTS[0];
+
+  if (persona === "prospect") {
+    return (
+      <div className="space-y-6 px-4 pb-24 pt-6">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <p className="text-sm text-muted-foreground">Hola, 👋</p>
+          <h1 className="text-2xl font-bold text-foreground">Bailarin</h1>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-3 gap-2">
+          <QuickStat value="0" label="Escuelas" emoji="🏫" />
+          <QuickStat value="40%" label="Perfil" emoji="🧩" />
+          <QuickStat value="1" label="Solicitud" emoji="📨" />
+        </motion.div>
+
+        <Section title="Siguiente paso">
+          <div className="space-y-2">
+            <CardLine title="Completa tu perfil" detail="Anade estilos, nivel y objetivos para mejorar el matching." />
+            <CardLine title="Explora escuelas" detail="3 centros cercanos tienen matricula abierta este mes." />
+            <CardLine title="Sigue tu solicitud" detail="Dance North Academy esta revisando tu acceso." />
+          </div>
+        </Section>
+
+        <Section title="Acciones recomendadas">
+          <div className="space-y-2">
+            <ActionButton to="/portal" label="Buscar escuelas" />
+            <ActionButton to="/portal/onboarding" label="Completar perfil" />
+          </div>
+        </Section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 px-4 pb-24 pt-6">
@@ -42,7 +76,7 @@ export default function HomeScreen() {
       {/* Activity feed */}
       <Section title="Actividad reciente">
         <div className="space-y-2">
-          {MOCK_ACTIVITY.slice(0, 4).map((a) => (
+          {MOCK_ACTIVITY.slice(0, persona === "community" ? 5 : 4).map((a) => (
             <div key={a.id} className="flex items-start gap-3 rounded-lg bg-muted/50 px-3 py-2">
               <span className="text-lg">{a.icon}</span>
               <div>
@@ -51,6 +85,11 @@ export default function HomeScreen() {
               </div>
             </div>
           ))}
+          {persona === "community" ? (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-foreground">
+              Tu escuela tiene comunidad activa: ahora puedes publicar avances y participar en eventos colaborativos.
+            </div>
+          ) : null}
         </div>
       </Section>
 
@@ -70,6 +109,24 @@ export default function HomeScreen() {
         </Section>
       )}
     </div>
+  );
+}
+
+function CardLine({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2">
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      <p className="text-xs text-muted-foreground">{detail}</p>
+    </div>
+  );
+}
+
+function ActionButton({ to, label }: { to: string; label: string }) {
+  return (
+    <Link to={to} className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground">
+      {label}
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+    </Link>
   );
 }
 

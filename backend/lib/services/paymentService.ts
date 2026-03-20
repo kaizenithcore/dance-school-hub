@@ -2,6 +2,15 @@ import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 
 export type PaymentStatus = "pending" | "paid" | "overdue" | "refunded";
 
+interface AnalyticsStudentRow {
+  student_id: string | null;
+  amount_cents: number | null;
+  status: PaymentStatus;
+  paid_at: string | null;
+  due_at: string | null;
+  students: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
+}
+
 interface PaymentRecord {
   id: string;
   studentId: string;
@@ -204,6 +213,16 @@ export const paymentService = {
       .select("amount_cents, status, paid_at, created_at, provider")
       .eq("tenant_id", tenantId);
 
+    const { data: studentPayments } = await supabaseAdmin
+      .from("payments")
+      .select("student_id, amount_cents, status, paid_at, due_at, students(name, email)")
+      .eq("tenant_id", tenantId);
+
+    const { data: students } = await supabaseAdmin
+      .from("students")
+      .select("id, status")
+      .eq("tenant_id", tenantId);
+
     // Get enrollments by status
     const { data: enrollments } = await supabaseAdmin
       .from("enrollments")
@@ -253,19 +272,93 @@ export const paymentService = {
       methodDistribution[method] = (methodDistribution[method] || 0) + 1;
     });
 
+    const totalRevenueCents = paidPayments.reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0);
+    const pendingRevenueCents = (payments || [])
+      .filter((p: any) => p.status === "pending" || p.status === "overdue")
+      .reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0);
+
+    const activeStudentsCount = (students || []).filter((student: any) => student.status === "active").length;
+    const paidStudentMap = new Map<string, { studentName: string; totalPaidCents: number; paymentsCount: number; lastPaymentAt: string | null }>();
+    const pendingStudentMap = new Map<string, { studentName: string; pendingCents: number; itemsCount: number; latestDueAt: string | null }>();
+
+    (studentPayments || []).forEach((payment: AnalyticsStudentRow) => {
+      if (!payment.student_id) {
+        return;
+      }
+
+      const student = Array.isArray(payment.students) ? payment.students[0] : payment.students;
+      const studentName = student?.name || "Alumno sin nombre";
+      const amountCents = payment.amount_cents || 0;
+
+      if (payment.status === "paid") {
+        const existing = paidStudentMap.get(payment.student_id) || {
+          studentName,
+          totalPaidCents: 0,
+          paymentsCount: 0,
+          lastPaymentAt: null,
+        };
+
+        existing.totalPaidCents += amountCents;
+        existing.paymentsCount += 1;
+        existing.lastPaymentAt = [existing.lastPaymentAt, payment.paid_at].filter(Boolean).sort().at(-1) || null;
+        paidStudentMap.set(payment.student_id, existing);
+      }
+
+      if (payment.status === "pending" || payment.status === "overdue") {
+        const existing = pendingStudentMap.get(payment.student_id) || {
+          studentName,
+          pendingCents: 0,
+          itemsCount: 0,
+          latestDueAt: null,
+        };
+
+        existing.pendingCents += amountCents;
+        existing.itemsCount += 1;
+        existing.latestDueAt = [existing.latestDueAt, payment.due_at].filter(Boolean).sort().at(-1) || null;
+        pendingStudentMap.set(payment.student_id, existing);
+      }
+    });
+
+    const topPayingStudents = Array.from(paidStudentMap.entries())
+      .map(([studentId, value]) => ({
+        studentId,
+        studentName: value.studentName,
+        totalPaid: Math.round(value.totalPaidCents / 100),
+        paymentsCount: value.paymentsCount,
+        avgPayment: value.paymentsCount > 0 ? Math.round(value.totalPaidCents / value.paymentsCount / 100) : 0,
+        lastPaymentAt: value.lastPaymentAt,
+      }))
+      .sort((a, b) => b.totalPaid - a.totalPaid)
+      .slice(0, 5);
+
+    const highestPendingBalances = Array.from(pendingStudentMap.entries())
+      .map(([studentId, value]) => ({
+        studentId,
+        studentName: value.studentName,
+        pendingAmount: Math.round(value.pendingCents / 100),
+        itemsCount: value.itemsCount,
+        latestDueAt: value.latestDueAt,
+      }))
+      .sort((a, b) => b.pendingAmount - a.pendingAmount)
+      .slice(0, 5);
+
+    const payingStudentsCount = paidStudentMap.size;
+    const paidPaymentsCount = paidPayments.length;
+    const totalTrackedRevenueCents = totalRevenueCents + pendingRevenueCents;
+
     return {
       revenueByMonth,
       enrollmentsByStatus,
       studentsByClass,
       methodDistribution,
-      totalRevenue: Math.round(
-        paidPayments.reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0) / 100
-      ),
-      pendingRevenue: Math.round(
-        (payments || [])
-          .filter((p: any) => p.status === "pending" || p.status === "overdue")
-          .reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0) / 100
-      ),
+      totalRevenue: Math.round(totalRevenueCents / 100),
+      pendingRevenue: Math.round(pendingRevenueCents / 100),
+      avgRevenuePerActiveStudent: activeStudentsCount > 0 ? Math.round(totalRevenueCents / activeStudentsCount / 100) : 0,
+      avgRevenuePerPayingStudent: payingStudentsCount > 0 ? Math.round(totalRevenueCents / payingStudentsCount / 100) : 0,
+      avgPaymentAmount: paidPaymentsCount > 0 ? Math.round(totalRevenueCents / paidPaymentsCount / 100) : 0,
+      collectionRatePct: totalTrackedRevenueCents > 0 ? Math.round((totalRevenueCents / totalTrackedRevenueCents) * 100) : 0,
+      topPayingStudents,
+      highestPendingBalances,
     };
   },
 

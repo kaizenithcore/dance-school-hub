@@ -42,6 +42,7 @@ interface ScheduleBlock {
   startHour: number;
   duration: number;
   room: string;
+  branchName?: string;
   class: PublicClass;
 }
 
@@ -93,6 +94,7 @@ export function PublicScheduleSelector({
     return classItem.schedules.map((schedule) => ({
       ...schedule,
       class: classItem,
+      branchName: schedule.branchName,
     }));
   });
 
@@ -348,7 +350,9 @@ export function PublicScheduleSelector({
                       <div className="text-[10px] text-muted-foreground truncate">{block.class.category}</div>
                     ) : null}
                     {effectiveConfig.calendarFields.showRoom ? (
-                      <div className="text-[10px] text-muted-foreground truncate">{block.room}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {block.branchName ? `${block.branchName} · ${block.room}` : block.room}
+                      </div>
                     ) : null}
                     {(effectiveConfig.calendarFields.showPrice || effectiveConfig.calendarFields.showCapacity) ? (
                       <div className="mt-auto flex items-center justify-between gap-1 pt-1">
@@ -452,6 +456,7 @@ export function PublicScheduleSelector({
                         <span>
                           {schedule.day} {schedule.startHour}:00
                         </span>
+                        {schedule.branchName ? <span>· {schedule.branchName}</span> : null}
                         <Clock className="h-3 w-3 ml-1" />
                         <span>{schedule.duration}h</span>
                       </div>

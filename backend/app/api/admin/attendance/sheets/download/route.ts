@@ -4,6 +4,7 @@ import { fail } from "@/lib/http";
 import { corsHeaders, handleCorsPreFlight } from "@/lib/cors";
 import { attendanceService } from "@/lib/services/attendanceService";
 import { attendanceSheetQuerySchema } from "@/lib/validators/incidentSchemas";
+import { permissionService } from "@/lib/services/permissionService";
 
 export const runtime = "nodejs";
 
@@ -23,7 +24,10 @@ export async function GET(request: NextRequest) {
     return auth.response;
   }
 
-  if (!canDownloadAttendance(auth.context.role)) {
+  if (!permissionService.canDownloadAttendance({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 

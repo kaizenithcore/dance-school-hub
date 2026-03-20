@@ -4,8 +4,29 @@ import { Settings, Award, CalendarDays, ChevronRight, LogOut } from "lucide-reac
 import { CURRENT_STUDENT, MOCK_ACHIEVEMENTS, MOCK_CERTIFICATIONS, MOCK_PORTAL_EVENTS } from "../data/mockData";
 import { ProfileHeader } from "../components/ProfileHeader";
 import { AchievementBadge } from "../components/AchievementBadge";
+import { usePortalPersona } from "../services/portalPersona";
 
 export default function ProfileScreen() {
+  const { persona } = usePortalPersona();
+
+  if (persona === "prospect") {
+    return (
+      <div className="px-4 pb-24 pt-6 space-y-4">
+        <h1 className="text-xl font-bold text-foreground">Perfil</h1>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-sm font-medium text-foreground">Perfil de bailarin en construccion</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Completa estilos, nivel y disponibilidad para recibir propuestas de escuelas.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+            <StatBox value="40%" label="Completado" />
+            <StatBox value="0" label="Escuelas" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const earnedAchievements = MOCK_ACHIEVEMENTS.filter((a) => a.earned);
   const passedCerts = MOCK_CERTIFICATIONS.filter((c) => c.status === "passed");
 
@@ -20,8 +41,14 @@ export default function ProfileScreen() {
       <div className="grid grid-cols-3 gap-2 text-center">
         <StatBox value={String(CURRENT_STUDENT.classesCompleted)} label="Clases" />
         <StatBox value={String(earnedAchievements.length)} label="Logros" />
-        <StatBox value={`${CURRENT_STUDENT.yearsExperience} años`} label="Experiencia" />
+        <StatBox value={persona === "community" ? "Comunidad" : `${CURRENT_STUDENT.yearsExperience} años`} label={persona === "community" ? "Modo" : "Experiencia"} />
       </div>
+
+      {persona === "community" ? (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-foreground">
+          Tienes habilitado el modulo social. Tu perfil tambien muestra publicaciones, comentarios y eventos colaborativos.
+        </div>
+      ) : null}
 
       {/* Achievements preview */}
       <Section title="Logros" linkTo="/portal/app/progress">

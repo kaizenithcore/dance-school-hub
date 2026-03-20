@@ -74,3 +74,20 @@ Contents:
 - `updated_at` triggers
 
 Apply in Supabase SQL Editor by running the migration SQL file, or with Supabase CLI migrations if configured.
+
+## Public Demo Tenant (Static)
+
+Seed file:
+
+- `supabase/seeds/seed_public_demo_tenant.sql`
+
+Purpose:
+
+- Creates/updates a canonical public demo tenant with slug `escuela-demo-dancehub`.
+- Populates static fictional data (teachers, rooms, classes, schedules, students, enrollments).
+- Keeps data idempotent so it can be re-run safely.
+
+Notes:
+
+- This seed is intended for conversion/demo flows.
+- Data is fictitious and isolated under the demo tenant id.

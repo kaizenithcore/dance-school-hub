@@ -5,13 +5,10 @@ import { handleCorsPreFlight } from "@/lib/cors";
 import { examSuiteService } from "@/lib/services/examSuiteService";
 import { examSuiteFeatureService } from "@/lib/services/examSuiteFeatureService";
 import { updateExamSchema } from "@/lib/validators/examSuiteSchemas";
+import { permissionService } from "@/lib/services/permissionService";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
-}
-
-function canManage(role: string) {
-  return role === "owner" || role === "admin";
 }
 
 export async function OPTIONS(request: NextRequest) {
@@ -26,7 +23,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return auth.response;
   }
 
-  if (!canManage(auth.context.role)) {
+  if (!permissionService.canManageExams({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
@@ -58,7 +58,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return auth.response;
   }
 
-  if (!canManage(auth.context.role)) {
+  if (!permissionService.canManageExams({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
@@ -93,7 +96,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     return auth.response;
   }
 
-  if (!canManage(auth.context.role)) {
+  if (!permissionService.canManageExams({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 

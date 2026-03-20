@@ -1,13 +1,38 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 import { MOCK_PORTAL_CLASSES, DAYS_OF_WEEK } from "../data/mockData";
 import { PortalClassCard } from "../components/PortalClassCard";
 import type { PortalClass } from "../data/mockData";
+import { usePortalPersona } from "../services/portalPersona";
 
 export default function ClassesScreen() {
+  const { persona } = usePortalPersona();
   const [selected, setSelected] = useState<PortalClass | null>(null);
   const activeDays = DAYS_OF_WEEK.filter((d) => MOCK_PORTAL_CLASSES.some((c) => c.day === d));
+
+  if (persona === "prospect") {
+    return (
+      <div className="px-4 pb-24 pt-6">
+        <h1 className="mb-3 text-xl font-bold text-foreground">Mis Clases</h1>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-sm font-medium text-foreground">Aun no tienes clases asignadas</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Cuando tu solicitud sea aprobada, aqui veras tu horario semanal automaticamente.
+          </p>
+          <div className="mt-3 space-y-2">
+            <Link to="/portal" className="block rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground">
+              Explorar escuelas
+            </Link>
+            <Link to="/portal/onboarding" className="block rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground">
+              Completar perfil
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (selected) {
     return (

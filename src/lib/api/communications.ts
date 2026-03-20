@@ -109,3 +109,18 @@ export async function tickJobs(limit = 30) {
 
   return response.data;
 }
+
+export async function cancelQueuedCampaignDeliveries(campaignId: string) {
+  const response = await apiRequest<{
+    cancelledCount: number;
+    outboxCancelledCount: number;
+  }>(`/api/admin/communications/email?campaignId=${encodeURIComponent(campaignId)}`, {
+    method: "DELETE",
+  });
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || "No se pudieron eliminar los mensajes en cola");
+  }
+
+  return response.data;
+}

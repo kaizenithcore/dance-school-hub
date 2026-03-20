@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Plus, Rocket, ShoppingBag } from "lucide-react";
+import { AlertTriangle, FileUp, Plus, Rocket, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { planCatalog, type PlanType } from "@/lib/commercialCatalog";
@@ -255,9 +255,14 @@ export default function StudentsPage() {
       title="Alumnos"
       description="Gestiona los registros de alumnos"
       actions={
-        <Button size="sm" onClick={handleCreate}>
-          <Plus className="h-4 w-4 mr-1" /> Nuevo Alumno
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => navigate("/admin/students/import")}>
+            <FileUp className="h-4 w-4 mr-1" /> Importar
+          </Button>
+          <Button size="sm" onClick={handleCreate}>
+            <Plus className="h-4 w-4 mr-1" /> Nuevo Alumno
+          </Button>
+        </div>
       }
     >
       <section className="space-y-3">

@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { PublicScheduleSelector } from "@/components/schedule/PublicScheduleSelector";
 import { DynamicPricingSummary } from "@/components/pricing/DynamicPricingSummary";
@@ -140,6 +140,26 @@ function selectionIdToScheduleId(selectionId: string) {
 
 function normalizeRecurringMode(value: unknown): "linked" | "single_day" | undefined {
   return value === "single_day" || value === "linked" ? value : undefined;
+}
+
+function parseOptionalInt(value: string | null): number | null {
+  if (!value) return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function overlapsAgeRange(
+  classMinAge: number | null | undefined,
+  classMaxAge: number | null | undefined,
+  queryMinAge: number | null,
+  queryMaxAge: number | null
+): boolean {
+  if (queryMinAge == null && queryMaxAge == null) return true;
+  const effectiveClassMin = classMinAge ?? 0;
+  const effectiveClassMax = classMaxAge ?? 120;
+  const effectiveQueryMin = queryMinAge ?? 0;
+  const effectiveQueryMax = queryMaxAge ?? 120;
+  return effectiveClassMin <= effectiveQueryMax && effectiveClassMax >= effectiveQueryMin;
 }
 
 function renderField(
@@ -287,6 +307,22 @@ export default function EnrollPage() {
     return sections.filter((section) => section.id !== payerSection.id);
   }, [formConfig, payerSection]);
 
+  const smartFilteredClasses = useMemo(() => {
+    if (!formConfig) return [];
+
+    const disciplineFromQuery = (searchParams.get("discipline") || "").trim().toLowerCase();
+    const queryMinAge = parseOptionalInt(searchParams.get("minAge") || searchParams.get("min_age"));
+    const queryMaxAge = parseOptionalInt(searchParams.get("maxAge") || searchParams.get("max_age"));
+
+    return formConfig.availableClasses.filter((klass) => {
+      if (disciplineFromQuery && klass.discipline.trim().toLowerCase() !== disciplineFromQuery) {
+        return false;
+      }
+
+      return overlapsAgeRange(klass.min_age, klass.max_age, queryMinAge, queryMaxAge);
+    });
+  }, [formConfig, searchParams]);
+
   useEffect(() => {
     const loadFormData = async () => {
       if (!tenantSlug) return;
@@ -327,7 +363,7 @@ export default function EnrollPage() {
       return;
     }
 
-    const classIdFromQuery = searchParams.get("classId") || searchParams.get("class_id");
+    const classIdFromQuery = searchParams.get("class") || searchParams.get("classId") || searchParams.get("class_id");
     const classIdsFromQuery = (searchParams.get("classIds") || searchParams.get("class_ids") || "")
       .split(",")
       .map((item) => item.trim())
@@ -339,16 +375,16 @@ export default function EnrollPage() {
     classIdsFromQuery.forEach((id) => selectedFromQuery.add(id));
 
     if (disciplineFromQuery) {
-      formConfig.availableClasses
+      smartFilteredClasses
         .filter((item) => item.discipline.trim().toLowerCase() === disciplineFromQuery)
         .forEach((item) => selectedFromQuery.add(item.id));
     }
 
-    const validSelection = Array.from(selectedFromQuery).filter((id) => formConfig.availableClasses.some((item) => item.id === id));
+    const validSelection = Array.from(selectedFromQuery).filter((id) => smartFilteredClasses.some((item) => item.id === id));
     if (validSelection.length > 0) {
       if (isJointEnrollmentEnabled) {
         const mappedJointSelection = validSelection.map((classId) => {
-          const classInfo = formConfig.availableClasses.find((item) => item.id === classId);
+          const classInfo = smartFilteredClasses.find((item) => item.id === classId);
           const firstScheduleId = classInfo?.schedules?.[0]?.id;
           return firstScheduleId ? `${classId}::${firstScheduleId}` : classId;
         });
@@ -366,7 +402,7 @@ export default function EnrollPage() {
         const recurringMode = normalizeRecurringMode(formConfig.scheduleConfig?.recurringSelectionMode) ?? baseScheduleConfig?.recurringSelectionMode;
 
         const mappedSelection = validSelection.flatMap((classId) => {
-          const classInfo = formConfig.availableClasses.find((item) => item.id === classId);
+          const classInfo = smartFilteredClasses.find((item) => item.id === classId);
           const schedules = classInfo?.schedules || [];
           if (schedules.length === 0) return [classId];
 
@@ -480,7 +516,7 @@ export default function EnrollPage() {
     }
 
     setSmartDefaultsApplied(true);
-  }, [formConfig, isJointEnrollmentEnabled, payerSection, searchParams, smartDefaultsApplied, studentSections]);
+  }, [formConfig, isJointEnrollmentEnabled, payerSection, searchParams, smartDefaultsApplied, smartFilteredClasses, studentSections]);
 
   const visibleSections = useMemo(() => {
     const config: EnrollmentFormConfig | undefined = formConfig?.formConfig;
@@ -495,6 +531,37 @@ export default function EnrollPage() {
       : selectedClassIds;
     return formConfig.availableClasses.filter((item) => classIds.includes(item.id) || classIds.some((selectionId) => selectionIdToClassId(selectionId) === item.id));
   }, [formConfig, isJointEnrollmentEnabled, jointStudents, selectedClassIds]);
+
+  const visibleBranches = useMemo(() => {
+    if (!formConfig) return [];
+
+    const fromBranches = (formConfig.branches || []).filter((branch) => {
+      const hasAddress = Boolean((branch.address || "").trim());
+      const hasCity = Boolean((branch.city || "").trim());
+      return hasAddress || hasCity;
+    });
+
+    if (fromBranches.length > 0) {
+      return fromBranches;
+    }
+
+    const profileAddress = (formConfig.publicProfile?.address || "").trim();
+    const profileCity = (formConfig.publicProfile?.city || "").trim();
+    if (!profileAddress && !profileCity) {
+      return [];
+    }
+
+    return [
+      {
+        tenantId: formConfig.tenantId,
+        tenantName: formConfig.tenantName,
+        tenantSlug: "",
+        isPrimary: true,
+        address: profileAddress || undefined,
+        city: profileCity || undefined,
+      },
+    ];
+  }, [formConfig]);
 
   const selectedPricingClasses = useMemo(() => {
     if (!formConfig) return [];
@@ -808,11 +875,38 @@ export default function EnrollPage() {
           <p className="text-muted-foreground text-lg">Formulario de Matrícula</p>
         </div>
 
+        {visibleBranches.length > 0 ? (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Dirección de sedes</CardTitle>
+              <CardDescription>
+                Estas direcciones se muestran según la configuración pública de cada sede.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {visibleBranches.map((branch) => (
+                <div key={branch.tenantId} className="flex items-start gap-2 rounded-md border p-3">
+                  <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      {branch.tenantName}
+                      {branch.isPrimary ? " (principal)" : ""}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {[branch.address, branch.city].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : null}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {isJointEnrollmentEnabled ? (
             <JointEnrollmentForm
               sections={formConfig.formConfig.sections}
-              availableClasses={formConfig.availableClasses}
+              availableClasses={smartFilteredClasses}
               jointConfig={formConfig.formConfig.jointEnrollment}
               scheduleSettings={formConfig.formConfig.scheduleSettings ?? formConfig.formConfig.jointEnrollment?.schedule}
               payerValues={payerValues}
@@ -858,7 +952,7 @@ export default function EnrollPage() {
                   </CardHeader>
                   <CardContent>
                     <PublicScheduleSelector
-                      classes={formConfig.availableClasses}
+                      classes={smartFilteredClasses}
                       selectedClassIds={selectedClassIds}
                       onToggleClass={toggleClass}
                       error={errors.class_id}
@@ -876,7 +970,7 @@ export default function EnrollPage() {
                     <div className="space-y-2">
                       <Label>Clases *</Label>
                       <div className="space-y-2 rounded-lg border p-3 max-h-72 overflow-auto">
-                        {formConfig.availableClasses.map((item) => {
+                        {smartFilteredClasses.map((item) => {
                           const isFull = item.enrolled_count >= item.capacity;
                           const checked = selectedClassIds.includes(item.id);
                           return (

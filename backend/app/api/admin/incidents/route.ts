@@ -4,10 +4,7 @@ import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
 import { incidentService } from "@/lib/services/incidentService";
 import { createIncidentSchema, listIncidentsQuerySchema } from "@/lib/validators/incidentSchemas";
-
-function canManageIncidents(role: string) {
-  return role === "owner" || role === "admin" || role === "staff";
-}
+import { permissionService } from "@/lib/services/permissionService";
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreFlight(request.headers.get("origin"));
@@ -21,7 +18,10 @@ export async function GET(request: NextRequest) {
     return auth.response;
   }
 
-  if (!canManageIncidents(auth.context.role)) {
+  if (!permissionService.canManageIncidents({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
@@ -63,7 +63,10 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  if (!canManageIncidents(auth.context.role)) {
+  if (!permissionService.canManageIncidents({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 

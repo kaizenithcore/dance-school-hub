@@ -14,12 +14,20 @@ export async function GET(request: NextRequest) {
     return auth.response;
   }
 
+  const activeMembership = auth.memberships.find(
+    (membership) => membership.tenantId === auth.context?.tenantId
+  );
+
   return ok({
     user: auth.user,
     tenant: {
       id: auth.context.tenantId,
       role: auth.context.role,
+      organizationId: activeMembership?.organizationId ?? null,
+      organizationRole: activeMembership?.organizationRole ?? null,
     },
     memberships: auth.memberships,
+    organizations: auth.organizations ?? [],
+    activeOrganization: auth.activeOrganization ?? null,
   }, 200, origin);
 }

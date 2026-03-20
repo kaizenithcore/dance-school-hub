@@ -3,10 +3,7 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
 import { enrollmentFormConfigService } from "@/lib/services/enrollmentFormConfigService";
-
-function canEdit(role: string) {
-  return role === "owner" || role === "admin";
-}
+import { permissionService } from "@/lib/services/permissionService";
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreFlight(request.headers.get("origin"));
@@ -44,11 +41,14 @@ export async function PUT(request: NextRequest) {
     return auth.response;
   }
 
-  if (!canEdit(auth.context.role)) {
+  if (!permissionService.canManageSettings({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail(
       {
         code: "forbidden",
-        message: "Only owner/admin can update enrollment form config",
+        message: "Insufficient permissions",
       },
       403,
       origin

@@ -12,5 +12,7 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /s/escuela-demo-dancehub
+Disallow: /s/escuela-demo-dancehub/*
 
 Sitemap: https://dancehub.es/sitemap.xml

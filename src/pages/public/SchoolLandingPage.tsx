@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { PublicScheduleSelector } from "@/components/schedule/PublicScheduleSelector";
 import { ArrowRight, MapPin, Phone, Mail, Sparkles, Loader2, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getPublicFormData, type PublicFormData } from "@/lib/api/publicEnrollment";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DemoBanner } from "@/components/public/DemoBanner";
+import { DemoTourCard } from "@/components/public/DemoTourCard";
+import { activateDemoAdminSession, DEMO_ADMIN_SLUG } from "@/lib/demoAdmin";
 
 const DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -19,10 +23,34 @@ function normalizeRecurringMode(value: unknown): "linked" | "single_day" | undef
 
 export default function SchoolLandingPage() {
   const { schoolSlug } = useParams();
+  const navigate = useNavigate();
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<PublicFormData | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
+
+  const isDemo = formData?.demo?.isDemo ?? false;
+
+  // Prevent search engines from indexing demo pages
+  useEffect(() => {
+    if (!isDemo) return;
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex,nofollow";
+    meta.setAttribute("data-demo", "true");
+    document.head.appendChild(meta);
+    return () => {
+      document.head.querySelector('meta[data-demo="true"]')?.remove();
+    };
+  }, [isDemo]);
+
+  const handleEnrollClick = (e: React.MouseEvent) => {
+    if (isDemo) {
+      e.preventDefault();
+      setDemoModalOpen(true);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -130,6 +158,29 @@ export default function SchoolLandingPage() {
 
   return (
     <div className="animate-fade-in">
+      {isDemo && <DemoBanner />}
+      {isDemo && <DemoTourCard />}
+
+      <Dialog open={demoModalOpen} onOpenChange={setDemoModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Estás en el modo demo</DialogTitle>
+            <DialogDescription className="pt-1">
+              Los datos de esta escuela son ficticios. Para gestionar matrículas reales, crea tu propia escuela — es gratis durante 14 días.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button className="w-full" onClick={() => { navigate("/auth/register"); }}>
+              Crear mi escuela gratis
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setDemoModalOpen(false)}>
+              Seguir explorando el demo
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <section className="relative overflow-hidden border-b border-border">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/30" />
         <div className="container relative py-16 sm:py-24">
@@ -146,7 +197,7 @@ export default function SchoolLandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg">
-                <Link to={enrollPath}>
+                <Link to={enrollPath} onClick={handleEnrollClick}>
                   Comenzar Inscripción
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
@@ -154,6 +205,16 @@ export default function SchoolLandingPage() {
               <Button variant="outline" size="lg" asChild>
                 <a href="#schedule">Ver Clases</a>
               </Button>
+              {isDemo && (
+                <Button variant="secondary" size="lg" asChild>
+                  <Link
+                    to={`/admin?demo=${DEMO_ADMIN_SLUG}`}
+                    onClick={() => activateDemoAdminSession(DEMO_ADMIN_SLUG)}
+                  >
+                    Ver Panel Admin Demo
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -187,7 +248,7 @@ export default function SchoolLandingPage() {
           <div className="flex gap-2">
             {selectedClasses.length > 0 && (
               <Button asChild className="animate-fade-in">
-                <Link to={enrollPath}>
+                <Link to={enrollPath} onClick={handleEnrollClick}>
                   Inscribirse en {selectedClasses.length} clase{selectedClasses.length > 1 ? "s" : ""}
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>

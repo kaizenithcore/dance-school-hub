@@ -7,7 +7,7 @@ const projectRoot = path.dirname(__filename);
 
 const nextConfig: NextConfig = {
   turbopack: {
-    root: projectRoot,
+    root: path.resolve(projectRoot, ".."),
   },
 };
 

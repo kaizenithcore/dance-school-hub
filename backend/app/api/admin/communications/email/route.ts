@@ -3,10 +3,7 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
 import { communicationService } from "@/lib/services/communicationService";
-
-function canManageCommunications(role: string) {
-  return role === "owner" || role === "admin";
-}
+import { permissionService } from "@/lib/services/permissionService";
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreFlight(request.headers.get("origin"));
@@ -20,7 +17,10 @@ export async function GET(request: NextRequest) {
     return auth.response;
   }
 
-  if (!canManageCommunications(auth.context.role)) {
+  if (!permissionService.canManageCommunications({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
@@ -52,7 +52,10 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  if (!canManageCommunications(auth.context.role)) {
+  if (!permissionService.canManageCommunications({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
@@ -101,5 +104,39 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to queue campaign";
     return fail({ code: "create_failed", message }, 500, origin);
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  const auth = await requireAuth(request);
+
+  if (!auth.authorized || !auth.context) {
+    return auth.response;
+  }
+
+  const featureEnabled = await communicationService.isMassCommunicationEnabled(auth.context.tenantId);
+  if (!featureEnabled) {
+    return fail({ code: "feature_disabled", message: "Mass communications module is not active for this tenant" }, 403, origin);
+  }
+
+  if (!permissionService.canManageCommunications({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
+    return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
+  }
+
+  try {
+    const campaignId = request.nextUrl.searchParams.get("campaignId") || "";
+    if (!campaignId) {
+      return fail({ code: "invalid_request", message: "campaignId is required" }, 400, origin);
+    }
+
+    const result = await communicationService.cancelQueuedDeliveries(auth.context.tenantId, campaignId);
+    return ok(result, 200, origin);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to cancel queued deliveries";
+    return fail({ code: "cancel_failed", message }, 500, origin);
   }
 }

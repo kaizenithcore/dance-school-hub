@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { StatCard } from "@/components/cards/StatCard";
-import { Users, CreditCard, TrendingUp, AlertTriangle, Loader2 } from "lucide-react";
+import { Users, CreditCard, TrendingUp, AlertTriangle, Loader2, Wallet, Trophy } from "lucide-react";
 import { getAnalyticsData, getDashboardMetrics, type AnalyticsData, type DashboardMetrics } from "@/lib/api/payments";
 import { getStudents } from "@/lib/api/students";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend,
@@ -107,6 +109,13 @@ export default function AnalyticsPage() {
       .slice(0, 8);
   }, [analytics]);
 
+  const formatCurrency = (value: number) => `${value.toLocaleString("es-ES")} EUR`;
+  const formatShortDate = (value: string | null) => {
+    if (!value) return "Sin fecha";
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? "Sin fecha" : format(parsed, "d MMM", { locale: es });
+  };
+
   if (loading) {
     return (
       <PageContainer title="Analíticas" description="Indicadores de rendimiento de la escuela">
@@ -155,6 +164,20 @@ export default function AnalyticsPage() {
           }
           changeType={(metrics?.overduePayments || 0) > 0 ? "negative" : "positive"}
           icon={AlertTriangle}
+        />
+        <StatCard
+          title="Ticket medio / alumno"
+          value={formatCurrency(analytics?.avgRevenuePerActiveStudent || 0)}
+          change={formatCurrency(analytics?.avgRevenuePerPayingStudent || 0) + " entre alumnos que pagan"}
+          changeType="positive"
+          icon={Users}
+        />
+        <StatCard
+          title="Importe medio / cobro"
+          value={formatCurrency(analytics?.avgPaymentAmount || 0)}
+          change={`Tasa de cobro ${analytics?.collectionRatePct || 0}%`}
+          changeType={(analytics?.collectionRatePct || 0) >= 80 ? "positive" : "neutral"}
+          icon={Wallet}
         />
       </div>
 
@@ -241,6 +264,62 @@ export default function AnalyticsPage() {
               <Tooltip />
             </PieChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2 mt-4">
+        <div className="rounded-lg border border-border bg-card p-5 shadow-soft">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Alumnos que más pagan</h3>
+          </div>
+          <div className="space-y-3">
+            {(analytics?.topPayingStudents || []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Todavía no hay pagos suficientes para calcular el ranking.</p>
+            ) : (
+              analytics?.topPayingStudents.map((student, index) => (
+                <div key={student.studentId} className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{index + 1}. {student.studentName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {student.paymentsCount} cobro(s) · ticket medio {formatCurrency(student.avgPayment)} · último pago {formatShortDate(student.lastPaymentAt)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-foreground">{formatCurrency(student.totalPaid)}</p>
+                    <p className="text-xs text-muted-foreground">acumulado</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-5 shadow-soft">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <h3 className="text-sm font-semibold text-foreground">Mayor saldo pendiente</h3>
+          </div>
+          <div className="space-y-3">
+            {(analytics?.highestPendingBalances || []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay deuda pendiente acumulada en este momento.</p>
+            ) : (
+              analytics?.highestPendingBalances.map((student) => (
+                <div key={student.studentId} className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{student.studentName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {student.itemsCount} recibo(s) pendiente(s) · último vencimiento {formatShortDate(student.latestDueAt)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-warning">{formatCurrency(student.pendingAmount)}</p>
+                    <p className="text-xs text-muted-foreground">por recuperar</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </PageContainer>

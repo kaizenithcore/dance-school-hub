@@ -125,6 +125,11 @@ export async function POST(request: NextRequest) {
     }
 
     const message = error instanceof Error ? error.message : "Failed to create enrollment";
+    const status = error instanceof Error && "status" in error ? (error as Error & { status: number }).status : null;
+
+    if (status === 403) {
+      return fail({ code: "demo_mode", message }, 403, origin);
+    }
     
     // Return appropriate error based on message
     if (message.includes("not found")) {

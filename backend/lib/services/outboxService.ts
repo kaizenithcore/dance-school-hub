@@ -328,4 +328,55 @@ export const outboxService = {
       remainingApprox: Math.max(0, ((data || []).length - processed)),
     };
   },
+
+  async cancelQueuedEmailsByDeliveryIds(
+    tenantId: string,
+    deliveryIds: string[],
+    reason = "Delivery cancelled"
+  ): Promise<number> {
+    const uniqueIds = Array.from(new Set(deliveryIds.filter(Boolean)));
+    if (uniqueIds.length === 0) {
+      return 0;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("audit_log")
+      .select("id, metadata")
+      .eq("tenant_id", tenantId)
+      .eq("action", "outbox_email_queued")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to load outbox rows for cancellation: ${error.message}`);
+    }
+
+    const idsSet = new Set(uniqueIds);
+    let cancelled = 0;
+
+    for (const row of (data || []) as OutboxRow[]) {
+      const metadata = asOutboxMetadata(row.metadata || {});
+      if (!metadata) {
+        continue;
+      }
+
+      if (metadata.status !== "queued") {
+        continue;
+      }
+
+      const context = readCommunicationContext(metadata);
+      if (!context.deliveryId || !idsSet.has(context.deliveryId)) {
+        continue;
+      }
+
+      await updateOutboxStatus(row.id, {
+        ...metadata,
+        status: "failed",
+        attempts: metadata.maxAttempts,
+        lastError: reason,
+      });
+      cancelled += 1;
+    }
+
+    return cancelled;
+  },
 };

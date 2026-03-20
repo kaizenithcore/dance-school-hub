@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { getClasses } from "@/lib/api/classes";
 import { getDisciplines } from "@/lib/api/disciplines";
 import {
+  cancelQueuedCampaignDeliveries,
   getCampaignDeliveries,
   getEmailCampaigns,
   previewEmailAudience,
@@ -64,6 +65,7 @@ export default function CommunicationsPage() {
   const [sending, setSending] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
+  const [cancellingQueue, setCancellingQueue] = useState(false);
   const [lockOpen, setLockOpen] = useState(false);
 
   const communicationLocked = !billingLoading && !billing.features.massCommunicationEmail;
@@ -194,6 +196,25 @@ export default function CommunicationsPage() {
     }
   };
 
+  const handleCancelQueued = async () => {
+    if (!selectedCampaignId) {
+      toast.error("Selecciona una campaña para eliminar su cola");
+      return;
+    }
+
+    setCancellingQueue(true);
+    try {
+      const result = await cancelQueuedCampaignDeliveries(selectedCampaignId);
+      toast.success(`Mensajes en cola eliminados: ${result.cancelledCount}`);
+      await loadMeta();
+      await loadDeliveries(selectedCampaignId);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudieron eliminar los mensajes en cola");
+    } finally {
+      setCancellingQueue(false);
+    }
+  };
+
   return (
     <PageContainer
       title="Comunicados"
@@ -318,7 +339,17 @@ export default function CommunicationsPage() {
       </div>
 
       <div className="rounded-lg border border-border bg-card p-5 shadow-soft">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Estado por destinatario</h3>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-foreground">Estado por destinatario</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleCancelQueued()}
+            disabled={!selectedCampaignId || cancellingQueue}
+          >
+            {cancellingQueue ? "Eliminando cola..." : "Eliminar mensajes en cola"}
+          </Button>
+        </div>
         {!selectedCampaignId ? (
           <p className="text-sm text-muted-foreground">Selecciona una campaña para ver detalle.</p>
         ) : loadingDeliveries ? (

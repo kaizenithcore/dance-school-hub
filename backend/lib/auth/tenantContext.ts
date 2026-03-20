@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import type { TenantMembership } from "@/types/domain";
+import type { OrganizationMembership, TenantMembership } from "@/types/domain";
 
 function parseBearerToken(authorization: string | null): string | null {
   if (!authorization) {
@@ -48,6 +48,29 @@ export function getSelectedTenantId(request: NextRequest, memberships: TenantMem
   return memberships[0].tenantId;
 }
 
+export function getSelectedOrganizationId(
+  request: NextRequest,
+  organizations: OrganizationMembership[]
+): string | null {
+  const requestedOrganizationId =
+    request.headers.get("x-organization-id") ?? request.nextUrl.searchParams.get("organizationId");
+
+  if (requestedOrganizationId) {
+    const matchingOrganization = organizations.find(
+      (organization) => organization.organizationId === requestedOrganizationId
+    );
+    if (matchingOrganization) {
+      return matchingOrganization.organizationId;
+    }
+  }
+
+  if (organizations.length === 0) {
+    return null;
+  }
+
+  return organizations[0].organizationId;
+}
+
 export function findMembershipByTenantId(
   memberships: TenantMembership[],
   tenantId: string
@@ -65,5 +88,7 @@ export function buildTenantContextFromMembership(userId: string, membership: Ten
     userId,
     tenantId: membership.tenantId,
     role: membership.role,
+    organizationId: membership.organizationId,
+    organizationRole: membership.organizationRole,
   };
 }

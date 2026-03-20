@@ -466,6 +466,100 @@ export const communicationService = {
     }));
   },
 
+  async cancelQueuedDeliveries(tenantId: string, campaignId: string) {
+    const { data, error } = await supabaseAdmin
+      .from("message_deliveries")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("campaign_id", campaignId)
+      .in("status", ["queued", "ready"]);
+
+    if (error) {
+      throw new Error(`Failed to load queued deliveries: ${error.message}`);
+    }
+
+    const deliveryIds = ((data || []) as Array<{ id: string }>).map((row) => row.id);
+    if (deliveryIds.length === 0) {
+      return { cancelledCount: 0, outboxCancelledCount: 0 };
+    }
+
+    const outboxCancelledCount = await outboxService.cancelQueuedEmailsByDeliveryIds(
+      tenantId,
+      deliveryIds,
+      "Delivery cancelled by admin"
+    );
+
+    const { error: updateError } = await supabaseAdmin
+      .from("message_deliveries")
+      .update({
+        status: "skipped",
+        error_message: "Cancelled by admin",
+      })
+      .eq("tenant_id", tenantId)
+      .eq("campaign_id", campaignId)
+      .in("status", ["queued", "ready"]);
+
+    if (updateError) {
+      throw new Error(`Failed to cancel queued deliveries: ${updateError.message}`);
+    }
+
+    await recalculateCampaignStatus(tenantId, campaignId);
+
+    return {
+      cancelledCount: deliveryIds.length,
+      outboxCancelledCount,
+    };
+  },
+
+  async purgePendingDeliveriesForStudent(tenantId: string, studentId: string) {
+    const { data, error } = await supabaseAdmin
+      .from("message_deliveries")
+      .select("id, campaign_id")
+      .eq("tenant_id", tenantId)
+      .eq("recipient_student_id", studentId)
+      .in("status", ["queued", "ready"]);
+
+    if (error) {
+      throw new Error(`Failed to load student pending deliveries: ${error.message}`);
+    }
+
+    const rows = (data || []) as Array<{ id: string; campaign_id: string }>;
+    if (rows.length === 0) {
+      return { removedCount: 0, campaignsUpdated: 0 };
+    }
+
+    const deliveryIds = rows.map((row) => row.id);
+    await outboxService.cancelQueuedEmailsByDeliveryIds(
+      tenantId,
+      deliveryIds,
+      "Recipient deleted"
+    );
+
+    const { error: updateError } = await supabaseAdmin
+      .from("message_deliveries")
+      .update({
+        status: "skipped",
+        error_message: "Recipient deleted",
+      })
+      .eq("tenant_id", tenantId)
+      .eq("recipient_student_id", studentId)
+      .in("status", ["queued", "ready"]);
+
+    if (updateError) {
+      throw new Error(`Failed to purge student pending deliveries: ${updateError.message}`);
+    }
+
+    const campaignIds = Array.from(new Set(rows.map((row) => row.campaign_id).filter(Boolean)));
+    for (const campaignId of campaignIds) {
+      await recalculateCampaignStatus(tenantId, campaignId);
+    }
+
+    return {
+      removedCount: deliveryIds.length,
+      campaignsUpdated: campaignIds.length,
+    };
+  },
+
   async markDeliveryStatusFromQueue(input: {
     tenantId: string;
     campaignId?: string;

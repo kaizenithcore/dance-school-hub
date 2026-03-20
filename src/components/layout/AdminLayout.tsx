@@ -15,6 +15,7 @@ import { redirectToBillingCheckout } from "@/lib/api/stripe";
 import { toast } from "sonner";
 import type { BillingCycle } from "@/lib/api/stripe";
 import { getSelectableSubscriptionAddons, planCatalog, planOrder, type PlanType as CatalogPlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
+import { isDemoAdminSessionActive } from "@/lib/demoAdmin";
 
 const LOGIN_WELCOME_KEY = "dancehub:welcome-overlay-until";
 const LOGIN_WELCOME_DURATION_MS = 2000;
@@ -204,11 +205,27 @@ const SECTION_INTROS: Array<{ prefix: string; intro: SectionIntro }> = [
     },
   },
   {
+    prefix: "/admin/branches",
+    intro: {
+      key: "branches",
+      title: "Sedes",
+      summary: "Centraliza métricas y configuración clave de todas las sedes desde un solo lugar.",
+    },
+  },
+  {
     prefix: "/admin/exams",
     intro: {
       key: "exams",
       title: "Exámenes",
       summary: "Prepara convocatorias, resultados y control de evaluaciones.",
+    },
+  },
+  {
+    prefix: "/admin/organization-access",
+    intro: {
+      key: "organization-access",
+      title: "Roles y escuelas",
+      summary: "Gestiona miembros, permisos y escuelas vinculadas dentro de una misma cuenta.",
     },
   },
   {
@@ -288,6 +305,7 @@ export function AdminLayout() {
   const firstRenderRef = useRef(true);
   const lastIntroPathRef = useRef<string | null>(null);
   const checkoutInitializedRef = useRef(false);
+  const isDemoSession = isDemoAdminSessionActive();
 
   const trialStatus = useMemo(() => {
     if (!authContext) {
@@ -644,6 +662,11 @@ export function AdminLayout() {
             </>
           ) : null}
         </div>
+        {isDemoSession ? (
+          <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 md:px-6">
+            Estás en el tenant demo de solo lectura. Puedes explorar el panel real, pero los cambios no se guardan.
+          </div>
+        ) : null}
         <main className="relative flex-1 overflow-hidden p-4 md:p-6">
           <AnimatedPage key={displayedPathname} animateOnMount={!firstRenderRef.current}>
             {displayedOutlet}

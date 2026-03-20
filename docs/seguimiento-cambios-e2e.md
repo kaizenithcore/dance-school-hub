@@ -133,9 +133,9 @@ En /settings:
     Nota de verificación (2026-03-12): revisado en Settings, con edición de cuenta, moneda por defecto EUR, selector de plan por botones y redirección a Stripe cuando cambia billing.
 
 En /communications:
-- [ ] Cuando un alumno se elimina se debe borrar de la lista de comunicados pendientes de envío
-- [ ] Se deben poder eliminar mensajes en cola
-    Nota de verificación (2026-03-12): sigue pendiente; no hay endpoint/UI para eliminar mensajes en cola y al borrar alumno las entregas quedan con recipient_student_id en null (on delete set null), por lo que no se depuran automáticamente.
+- [x] Cuando un alumno se elimina se debe borrar de la lista de comunicados pendientes de envío
+- [x] Se deben poder eliminar mensajes en cola
+    Nota de verificación (2026-03-19): implementado endpoint DELETE /api/admin/communications/email?campaignId=... para cancelar cola (estado queued/ready -> skipped), botón en UI "Eliminar mensajes en cola" y depuración automática de pendientes al eliminar alumno.
 
 En /renewals:
 - [ ] Las renovaciones las deben poder hacer los alumnos, por lo que las propuestas de renovación deben poder tener un enlace público para que las personas matriculadas renueven su plaza, por ejemplo creando una nueva página pública donde se tengan que buscar rellenando sus datos (sólo pueden ver el resultado de la búsqueda si introducen los datos completos para verificar que se trata de la persona y no se muestren datos de otras personas), y entonces confirmar su plaza (se debe poder dejar la opción de confirmar manualmente desde /renewals) (confirmar la renovaciónd desde esta página pública realizaría la misma función que confirmar manualmente desde /renewals)

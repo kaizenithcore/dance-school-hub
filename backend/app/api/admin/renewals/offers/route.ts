@@ -3,10 +3,7 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
 import { renewalService } from "@/lib/services/renewalService";
-
-function canManageRenewals(role: string) {
-  return role === "owner" || role === "admin";
-}
+import { permissionService } from "@/lib/services/permissionService";
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreFlight(request.headers.get("origin"));
@@ -20,7 +17,10 @@ export async function GET(request: NextRequest) {
     return auth.response;
   }
 
-  if (!canManageRenewals(auth.context.role)) {
+  if (!permissionService.canManageRenewals({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 
@@ -57,7 +57,10 @@ export async function PATCH(request: NextRequest) {
     return auth.response;
   }
 
-  if (!canManageRenewals(auth.context.role)) {
+  if (!permissionService.canManageRenewals({
+    tenantRole: auth.context.role,
+    organizationRole: auth.context.organizationRole,
+  })) {
     return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
   }
 

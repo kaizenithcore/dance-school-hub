@@ -16,6 +16,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getStudents } from "@/lib/api/students";
 import { getClasses } from "@/lib/api/classes";
 import { getEnrollments } from "@/lib/api/enrollments";
@@ -83,6 +84,8 @@ const NAV_ITEMS: SearchItem[] = [
   { id: "nav-renewals", label: "Renovaciones", target: "/admin/renewals", group: "Navegación" },
   { id: "nav-course-clone", label: "Duplicar cursos", target: "/admin/course-clone", group: "Navegación" },
   { id: "nav-reception", label: "Recepción", target: "/admin/reception", group: "Navegación" },
+  { id: "nav-branches", label: "Sedes", target: "/admin/branches", group: "Navegación" },
+  { id: "nav-organization-access", label: "Roles y escuelas", target: "/admin/organization-access", group: "Navegación" },
   { id: "nav-analytics", label: "Analíticas", target: "/admin/analytics", group: "Navegación" },
   { id: "nav-settings", label: "Configuración", target: "/admin/settings", group: "Navegación" },
 ];
@@ -103,7 +106,7 @@ export function Topbar({ title }: TopbarProps) {
     emailPaymentOverdue: true,
   });
   const [schoolIdentity, setSchoolIdentity] = useState<SchoolIdentity | null>(null);
-  const { authContext } = useAuth();
+  const { authContext, setActiveOrganization, setActiveTenant } = useAuth();
 
   const loadRuntimeSettings = useCallback(async () => {
     try {
@@ -461,6 +464,34 @@ export function Topbar({ title }: TopbarProps) {
     [activeMembership?.tenantName, schoolIdentity?.name, title]
   );
 
+  const organizations = useMemo(() => authContext?.organizations ?? [], [authContext?.organizations]);
+
+  const activeOrganizationId = useMemo(() => {
+    if (!authContext) {
+      return null;
+    }
+
+    return authContext.activeOrganization?.organizationId || organizations[0]?.organizationId || null;
+  }, [authContext, organizations]);
+
+  const tenantsInActiveOrganization = useMemo(() => {
+    if (!authContext) {
+      return [];
+    }
+
+    if (!activeOrganizationId) {
+      return authContext.memberships;
+    }
+
+    const organization = organizations.find((item) => item.organizationId === activeOrganizationId);
+    if (!organization || organization.tenantIds.length === 0) {
+      return authContext.memberships;
+    }
+
+    const allowedTenantIds = new Set(organization.tenantIds);
+    return authContext.memberships.filter((membership) => allowedTenantIds.has(membership.tenantId));
+  }, [activeOrganizationId, authContext, organizations]);
+
   const schoolSlug = useMemo(
     () => activeMembership?.tenantSlug || schoolIdentity?.slug || null,
     [activeMembership?.tenantSlug, schoolIdentity?.slug]
@@ -502,6 +533,14 @@ export function Topbar({ title }: TopbarProps) {
     }
   }, [navigate, signingOut]);
 
+  const handleOrganizationChange = useCallback((organizationId: string) => {
+    void setActiveOrganization(organizationId);
+  }, [setActiveOrganization]);
+
+  const handleTenantChange = useCallback((tenantId: string) => {
+    void setActiveTenant(tenantId);
+  }, [setActiveTenant]);
+
   return (
     <>
       <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-10">
@@ -525,6 +564,49 @@ export function Topbar({ title }: TopbarProps) {
             Ver página pública
           </Button>
           <div className="h-6 w-px bg-border" />
+          {organizations.length > 0 ? (
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Organización</p>
+              <Select
+                value={activeOrganizationId ?? organizations[0]?.organizationId}
+                onValueChange={handleOrganizationChange}
+                disabled={organizations.length <= 1}
+              >
+                <SelectTrigger className="h-8 w-[220px]">
+                  <SelectValue placeholder="Selecciona organización" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((organization) => (
+                    <SelectItem key={organization.organizationId} value={organization.organizationId}>
+                      {organization.organizationName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+          {tenantsInActiveOrganization.length > 0 ? (
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Sede activa</p>
+              <Select
+                value={authContext?.tenant.id}
+                onValueChange={handleTenantChange}
+                disabled={tenantsInActiveOrganization.length <= 1}
+              >
+                <SelectTrigger className="h-8 w-[220px]">
+                  <SelectValue placeholder="Selecciona sede" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tenantsInActiveOrganization.map((membership) => (
+                    <SelectItem key={membership.tenantId} value={membership.tenantId}>
+                      {membership.tenantName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+          {(organizations.length > 0 || tenantsInActiveOrganization.length > 0) ? <div className="h-6 w-px bg-border" /> : null}
           <AcademicYearSelector />
         </div>
 

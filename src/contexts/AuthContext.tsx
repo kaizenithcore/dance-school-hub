@@ -2,6 +2,14 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { supabase } from "@/lib/supabase";
 import { getCurrentAuthContext, logout as authLogout } from "@/lib/auth";
 import type { AuthContextResponse } from "@/lib/api/auth";
+import { getAuthContext } from "@/lib/api/auth";
+import {
+  getSelectedAdminOrganizationId,
+  getSelectedAdminTenantId,
+  setSelectedAdminOrganizationId,
+  setSelectedAdminTenantId,
+  syncSelectedAdminContext,
+} from "@/lib/adminContextSelection";
 import { getSchoolSettings } from "@/lib/api/settings";
 import { parseSessionTimeoutMinutes } from "@/lib/security";
 import { toast } from "sonner";
@@ -11,6 +19,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   authContext: AuthContextResponse | null;
   refreshAuthContext: () => Promise<void>;
+  setActiveTenant: (tenantId: string) => Promise<void>;
+  setActiveOrganization: (organizationId: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -40,12 +50,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const context = await getCurrentAuthContext();
       setAuthContext(context);
+      syncSelectedAdminContext(context);
       if (context) {
         await loadSecuritySettings();
       }
     } catch (error) {
       console.error("Failed to refresh auth context:", error);
       setAuthContext(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadSecuritySettings]);
+
+  const setActiveTenant = useCallback(async (tenantId: string) => {
+    setIsLoading(true);
+    try {
+      setSelectedAdminTenantId(tenantId);
+      const contextResult = await getAuthContext({
+        tenantId,
+        organizationId: getSelectedAdminOrganizationId() ?? undefined,
+      });
+
+      if (!contextResult.success || !contextResult.data) {
+        throw new Error(contextResult.error?.message || "No se pudo cambiar la escuela activa");
+      }
+
+      syncSelectedAdminContext(contextResult.data);
+      setAuthContext(contextResult.data);
+      await loadSecuritySettings();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo cambiar la escuela activa";
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadSecuritySettings]);
+
+  const setActiveOrganization = useCallback(async (organizationId: string) => {
+    setIsLoading(true);
+    try {
+      setSelectedAdminOrganizationId(organizationId);
+      const contextResult = await getAuthContext({
+        organizationId,
+        tenantId: getSelectedAdminTenantId() ?? undefined,
+      });
+
+      if (!contextResult.success || !contextResult.data) {
+        throw new Error(contextResult.error?.message || "No se pudo cambiar la organización activa");
+      }
+
+      syncSelectedAdminContext(contextResult.data);
+      setAuthContext(contextResult.data);
+      await loadSecuritySettings();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo cambiar la organización activa";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -129,6 +188,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!authContext,
         authContext,
         refreshAuthContext,
+        setActiveTenant,
+        setActiveOrganization,
         logout: handleLogout,
       }}
     >

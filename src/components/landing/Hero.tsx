@@ -45,10 +45,10 @@ export function Hero() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="h-12 px-7 text-base" asChild>
-                <a href="mailto:hola@dancehub.es?subject=Solicitud%20de%20demo%20DanceHub">
+                <Link to="/s/escuela-demo-dancehub">
                   <Play className="mr-1 h-4 w-4" />
                   Ver demo
-                </a>
+                </Link>
               </Button>
             </div>
 

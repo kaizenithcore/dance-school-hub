@@ -22,6 +22,9 @@ export interface ScheduleWithRelations extends ClassSchedule {
   roomName?: string;
   capacity?: number;
   studentCount?: number;
+  branchName?: string;
+  branchSlug?: string;
+  branchAddress?: string;
 }
 
 export interface CreateScheduleRequest {
@@ -63,7 +66,13 @@ export interface ListSchedulesQuery {
 }
 
 export type ScheduleInsightSeverity = "high" | "medium" | "low";
-export type ScheduleInsightType = "low_demand" | "over_demand" | "teacher_gap" | "room_underutilized";
+// Sprint 6: Updated to match backend insight types
+export type ScheduleInsightType = 
+  | "low_demand"      // Classes <40% occupancy
+  | "over_demand"     // Classes >capacity or with waitlist
+  | "unused_teacher"  // Teachers with 0 classes scheduled
+  | "schedule_gap"    // Teachers with fragmented schedules (gaps >= 120 min)
+  | "unused_room";    // Rooms with minimal usage (<20%)
 
 export interface ScheduleInsight {
   id: string;
@@ -91,8 +100,9 @@ export interface ScheduleInsightsResult {
     low: number;
     lowDemandClasses: number;
     overDemandClasses: number;
-    teacherGaps: number;
-    underutilizedRooms: number;
+    unusedTeachers: number;      // Sprint 6: Count of unused teachers
+    scheduleGaps: number;         // Sprint 6: Renamed from teacherGaps
+    unusedRooms: number;          // Sprint 6: Renamed from underutilizedRooms
   };
   metrics: {
     totalClassesWithSchedule: number;
@@ -119,16 +129,21 @@ export interface ScheduleProposal {
   label: "A" | "B" | "C";
   strategy: string;
   score: number;
+  /** Number of locked sessions kept as fixed anchors */
+  lockedSessions: number;
   summary: {
     requestedSessions: number;
     plannedSessions: number;
     unplannedSessions: number;
   };
   creates: ScheduleProposalCreateOperation[];
+  /** IDs of existing unlocked schedules to remove when applying. Only set when replaceUnlocked=true */
+  schedulesToDelete: string[];
 }
 
 export interface ScheduleProposalsResponse {
   generatedAt: string;
+  replaceUnlocked: boolean;
   proposals: ScheduleProposal[];
 }
 
@@ -232,10 +247,10 @@ export async function getScheduleInsights(): Promise<ScheduleInsightsResult | nu
   return response.success ? response.data || null : null;
 }
 
-export async function generateScheduleProposals(): Promise<ScheduleProposalsResponse | null> {
+export async function generateScheduleProposals(replaceUnlocked = false): Promise<ScheduleProposalsResponse | null> {
   const response = await apiRequest<ScheduleProposalsResponse>("/api/admin/schedule/proposals/generate", {
     method: "POST",
-    body: JSON.stringify({ includeExisting: true }),
+    body: JSON.stringify({ includeExisting: true, replaceUnlocked }),
   });
 
   return response.success ? response.data || null : null;
@@ -243,6 +258,7 @@ export async function generateScheduleProposals(): Promise<ScheduleProposalsResp
 
 export async function applyScheduleProposal(proposal: ScheduleProposal): Promise<{
   proposalId: string;
+  deletedPriorSchedules: number;
   result: {
     created: ScheduleWithRelations[];
     updated: ScheduleWithRelations[];
@@ -252,6 +268,7 @@ export async function applyScheduleProposal(proposal: ScheduleProposal): Promise
 } | null> {
   const response = await apiRequest<{
     proposalId: string;
+    deletedPriorSchedules: number;
     result: {
       created: ScheduleWithRelations[];
       updated: ScheduleWithRelations[];
@@ -263,6 +280,7 @@ export async function applyScheduleProposal(proposal: ScheduleProposal): Promise
     body: JSON.stringify({
       proposalId: proposal.id,
       creates: proposal.creates,
+      schedulesToDelete: proposal.schedulesToDelete,
     }),
   });
 
