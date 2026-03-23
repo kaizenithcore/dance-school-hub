@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Calendar, GraduationCap, Users, BookOpen, ClipboardList,
-  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award, Lock, Building2, MapPinned,
+  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award, Lock, Building2, MapPinned, CalendarHeart,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
