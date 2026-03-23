@@ -32,6 +32,7 @@ const ReceptionPage = lazy(() => import("@/pages/admin/ReceptionPage"));
 const BranchesPage = lazy(() => import("@/pages/admin/BranchesPage"));
 const ExamsPage = lazy(() => import("@/pages/admin/ExamsPage"));
 const OrganizationAccessPage = lazy(() => import("@/pages/admin/OrganizationAccessPage"));
+const EventsPage = lazy(() => import("@/pages/admin/EventsPage"));
 
 const SchoolLandingPage = lazy(() => import("@/pages/public/SchoolLandingPage"));
 const EnrollPage = lazy(() => import("@/pages/public/EnrollPage"));
