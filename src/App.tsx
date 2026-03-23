@@ -147,6 +147,7 @@ const App = () => (
             <Route path="reception" element={withSuspense(<ReceptionPage />)} />
             <Route path="branches" element={withSuspense(<BranchesPage />)} />
             <Route path="exams" element={withSuspense(<ExamsPage />)} />
+            <Route path="events" element={withSuspense(<EventsPage />)} />
             <Route path="organization-access" element={withSuspense(<OrganizationAccessPage />)} />
             <Route path="settings" element={withSuspense(<SettingsPage />)} />
           </Route>

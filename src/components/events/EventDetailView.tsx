@@ -28,20 +28,7 @@ export function EventDetailView({ event, onBack, onEdit, onAddSession, onUpdateS
   return (
     <PageContainer
       title={event.name}
-      description={
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant={event.status === "published" ? "default" : "secondary"}>
-            {event.status === "published" ? "Publicado" : "Borrador"}
-          </Badge>
-          <span className="text-muted-foreground text-sm flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5" />
-            {format(new Date(event.startDate), "d MMM yyyy", { locale: es })}
-          </span>
-          <span className="text-muted-foreground text-sm flex items-center gap-1">
-            <MapPin className="h-3.5 w-3.5" /> {event.location}
-          </span>
-        </div>
-      }
+      description={`${event.status === "published" ? "Publicado" : "Borrador"} · ${format(new Date(event.startDate), "d MMM yyyy", { locale: es })} · ${event.location}`}
     >
       <div className="flex items-center gap-2 mb-4">
         <Button variant="ghost" size="sm" onClick={onBack}>

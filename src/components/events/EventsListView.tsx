@@ -25,11 +25,8 @@ export function EventsListView({ events, onCreateNew, onView, onEdit, onDuplicat
         icon={Calendar}
         title="Sin eventos todavía"
         description="Crea tu primer evento para empezar a organizar festivales y exhibiciones."
-        action={
-          <Button onClick={onCreateNew}>
-            <Plus className="h-4 w-4 mr-1" /> Crear evento
-          </Button>
-        }
+        actionLabel="Crear evento"
+        onAction={onCreateNew}
       />
     );
   }

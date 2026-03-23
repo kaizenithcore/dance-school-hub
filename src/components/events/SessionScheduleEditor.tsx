@@ -154,7 +154,7 @@ function ScheduleRow({ block, isExpanded, onToggleExpand, onUpdate, onRemove, on
             value={block.groupName}
             onChange={(e) => onUpdate({ groupName: e.target.value })}
             placeholder="Nombre del grupo"
-            className={cn("h-8 text-xs", hasMissingGroup && "border-amber-400")}
+            className={cn("h-8 text-xs", hasMissingGroup && "border-destructive/50")}
           />
         </div>
         <div className="flex items-center gap-0.5">
