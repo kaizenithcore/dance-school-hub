@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Calendar, GraduationCap, Users, BookOpen, ClipboardList,
-  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award, Lock, Building2, MapPinned,
+  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award, Lock, Building2, MapPinned, CalendarHeart,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -32,6 +32,7 @@ const navItems: Array<{ title: string; url: string; icon: LucideIcon; featureKey
   { title: "Renovaciones", url: "/admin/renewals", icon: Repeat, featureKey: "renewalAutomation" },
   { title: "Duplicar cursos", url: "/admin/course-clone", icon: Copy, featureKey: "courseClone" },
   { title: "Exámenes", url: "/admin/exams", icon: Award, featureKey: "examSuite" },
+  { title: "Eventos", url: "/admin/events", icon: CalendarHeart },
   { title: "Roles y escuelas", url: "/admin/organization-access", icon: Building2, featureKey: "examSuite" },
   { title: "Analíticas", url: "/admin/analytics", icon: BarChart3 },
   { title: "Configuración", url: "/admin/settings", icon: Settings },

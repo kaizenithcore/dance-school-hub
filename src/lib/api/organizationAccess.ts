@@ -43,7 +43,7 @@ export interface OrganizationAccessSnapshot {
 }
 
 async function expectSnapshotResponse(
-  promise: Promise<ReturnType<typeof apiRequest<OrganizationAccessSnapshot>>>
+  promise: Promise<{ success: boolean; data?: OrganizationAccessSnapshot; error?: { message: string } }>
 ): Promise<OrganizationAccessSnapshot> {
   const response = await promise;
   if (!response.success || !response.data) {
