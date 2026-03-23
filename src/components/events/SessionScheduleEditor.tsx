@@ -60,7 +60,7 @@ export function SessionScheduleEditor({ event, sessionId, updateEvent }: Props) 
       </div>
 
       {missingGroups.length > 0 && (
-        <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 rounded-md px-3 py-2">
+        <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50/80 dark:bg-amber-950/30 dark:text-amber-400 rounded-md px-3 py-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {missingGroups.length} {missingGroups.length === 1 ? "bloque sin nombre de grupo" : "bloques sin nombre de grupo"}
         </div>
