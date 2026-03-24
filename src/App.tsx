@@ -48,6 +48,7 @@ const PortalProgress = lazy(() => import("@/portal/screens/ProgressScreen"));
 const PortalEvents = lazy(() => import("@/portal/screens/EventsScreen"));
 const PortalCertifications = lazy(() => import("@/portal/screens/CertificationsScreen"));
 const PortalProfile = lazy(() => import("@/portal/screens/ProfileScreen"));
+const PortalFeed = lazy(() => import("@/portal/screens/FeedScreen"));
 
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
