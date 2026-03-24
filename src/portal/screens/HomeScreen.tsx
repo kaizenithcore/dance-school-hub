@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Heart, School } from "lucide-react";
 import { Link } from "react-router-dom";
-import { CURRENT_STUDENT, MOCK_PORTAL_CLASSES, MOCK_PORTAL_EVENTS, MOCK_ACHIEVEMENTS, MOCK_ACTIVITY } from "../data/mockData";
+import { CURRENT_STUDENT, MOCK_PORTAL_CLASSES, MOCK_PORTAL_EVENTS, MOCK_ACHIEVEMENTS, MOCK_ACTIVITY, MOCK_FEED_POSTS } from "../data/mockData";
 import { PortalClassCard } from "../components/PortalClassCard";
 import { EventCard } from "../components/EventCard";
 import { AchievementBadge } from "../components/AchievementBadge";
@@ -12,13 +12,14 @@ export default function HomeScreen() {
   const todayClasses = MOCK_PORTAL_CLASSES.filter((c) => c.day === "Lunes").slice(0, 2);
   const recentAchievements = MOCK_ACHIEVEMENTS.filter((a) => a.earned).slice(-3);
   const nextEvent = MOCK_PORTAL_EVENTS[0];
+  const featuredPosts = MOCK_FEED_POSTS.slice(0, 2);
 
   if (persona === "prospect") {
     return (
       <div className="space-y-6 px-4 pb-24 pt-6">
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-sm text-muted-foreground">Hola, 👋</p>
-          <h1 className="text-2xl font-bold text-foreground">Bailarin</h1>
+          <h1 className="text-2xl font-bold text-foreground">Bailarín</h1>
         </motion.div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-3 gap-2">
@@ -29,9 +30,9 @@ export default function HomeScreen() {
 
         <Section title="Siguiente paso">
           <div className="space-y-2">
-            <CardLine title="Completa tu perfil" detail="Anade estilos, nivel y objetivos para mejorar el matching." />
-            <CardLine title="Explora escuelas" detail="3 centros cercanos tienen matricula abierta este mes." />
-            <CardLine title="Sigue tu solicitud" detail="Dance North Academy esta revisando tu acceso." />
+            <CardLine title="Completa tu perfil" detail="Añade estilos, nivel y objetivos para mejorar el matching." />
+            <CardLine title="Explora escuelas" detail="3 centros cercanos tienen matrícula abierta este mes." />
+            <CardLine title="Sigue tu solicitud" detail="Dance North Academy está revisando tu acceso." />
           </div>
         </Section>
 
@@ -71,6 +72,31 @@ export default function HomeScreen() {
             ))}
           </div>
         )}
+      </Section>
+
+      {/* Feed highlight */}
+      <Section title="Novedades de tu escuela" linkTo="/portal/app/feed">
+        <div className="space-y-3">
+          {featuredPosts.map((post) => (
+            <div key={post.id} className="rounded-xl border border-border bg-card overflow-hidden">
+              {post.imageUrl && (
+                <img src={post.imageUrl} alt="" className="h-32 w-full object-cover" loading="lazy" />
+              )}
+              <div className="px-3 py-2.5">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
+                    <School className="h-3 w-3 text-primary" />
+                  </div>
+                  <span className="text-[11px] font-medium text-muted-foreground">{post.authorName}</span>
+                </div>
+                <p className="text-sm text-foreground line-clamp-2">{post.text}</p>
+                <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+                  <Heart className="h-3 w-3" /> {post.likes}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </Section>
 
       {/* Activity feed */}

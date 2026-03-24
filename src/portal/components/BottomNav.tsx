@@ -1,11 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, BookOpen, TrendingUp, CalendarDays, User } from "lucide-react";
+import { Home, BookOpen, Newspaper, CalendarDays, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { to: "/portal/app", icon: Home, label: "Inicio" },
   { to: "/portal/app/classes", icon: BookOpen, label: "Clases" },
-  { to: "/portal/app/progress", icon: TrendingUp, label: "Progreso" },
+  { to: "/portal/app/feed", icon: Newspaper, label: "Feed" },
   { to: "/portal/app/events", icon: CalendarDays, label: "Eventos" },
   { to: "/portal/app/profile", icon: User, label: "Perfil" },
 ] as const;
