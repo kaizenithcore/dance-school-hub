@@ -164,6 +164,7 @@ const App = () => (
             <Route index element={withSuspense(<PortalHome />)} />
             <Route path="classes" element={withSuspense(<PortalClasses />)} />
             <Route path="progress" element={withSuspense(<PortalProgress />)} />
+            <Route path="feed" element={withSuspense(<PortalFeed />)} />
             <Route path="events" element={withSuspense(<PortalEvents />)} />
             <Route path="certifications" element={withSuspense(<PortalCertifications />)} />
             <Route path="profile" element={withSuspense(<PortalProfile />)} />
