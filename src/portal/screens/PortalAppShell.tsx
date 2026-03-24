@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { BottomNav } from "../components/BottomNav";
 import { PortalPersonaProvider, usePortalPersona } from "../services/portalPersona";
 import { cn } from "@/lib/utils";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function PortalAppShell() {
   return (
@@ -17,9 +18,15 @@ export default function PortalAppShell() {
 
 function PersonaSwitcher() {
   const { persona, setPersona, options } = usePortalPersona();
+  const isOnline = useOnlineStatus();
 
   return (
     <div className="sticky top-0 z-40 border-b border-border bg-background/95 px-3 py-2 backdrop-blur">
+      {!isOnline ? (
+        <div className="mb-2 rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[11px] text-warning">
+          Estas en modo offline. Mostrando datos recientes en cache.
+        </div>
+      ) : null}
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         Demo conceptual · tipo de usuario
       </p>

@@ -221,6 +221,46 @@ const SECTION_INTROS: Array<{ prefix: string; intro: SectionIntro }> = [
     },
   },
   {
+    prefix: "/admin/school/settings",
+    intro: {
+      key: "school-settings",
+      title: "Perfil de escuela",
+      summary: "Actualiza la identidad pública y branding para el portal de alumnos.",
+    },
+  },
+  {
+    prefix: "/admin/school/analytics",
+    intro: {
+      key: "school-analytics",
+      title: "Analíticas de escuela",
+      summary: "Consulta alumnos, actividad y engagement del canal social de la escuela.",
+    },
+  },
+  {
+    prefix: "/admin/school/posts",
+    intro: {
+      key: "school-posts",
+      title: "Publicaciones",
+      summary: "Gestiona el contenido de escuela y la aprobación de posts docentes.",
+    },
+  },
+  {
+    prefix: "/admin/school/announcements",
+    intro: {
+      key: "school-announcements",
+      title: "Anuncios",
+      summary: "Publica avisos importantes y urgentes para alumnos en tiempo real.",
+    },
+  },
+  {
+    prefix: "/admin/school/gallery",
+    intro: {
+      key: "school-gallery",
+      title: "Galería",
+      summary: "Organiza álbumes y fotos para mostrar clases y eventos en el portal.",
+    },
+  },
+  {
     prefix: "/admin/organization-access",
     intro: {
       key: "organization-access",

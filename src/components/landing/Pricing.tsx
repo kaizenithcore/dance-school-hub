@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { commercialCatalog, formatEuro, getMinimumExtraStudentBlockPriceEur, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
+import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 interface Plan {
+  planType: PlanType;
   name: string;
   annualPrice: string;
   annualTotal: string;
@@ -24,6 +26,7 @@ const plans: Plan[] = planOrder.map((planType) => {
   const plan = planCatalog[planType];
 
   return {
+    planType,
     name: plan.name,
     annualPrice: formatEuro(plan.billing.annualEffectiveMonthlyPriceEur),
     annualTotal: `${formatEuro(plan.billing.annualTotalEur)}/año`,
@@ -48,6 +51,21 @@ const addons = [
 
 export function Pricing() {
   const [annual, setAnnual] = useState(true);
+
+  const handlePlanClick = (plan: Plan) => {
+    trackPortalEvent({
+      eventName: "click_pricing_plan",
+      category: "funnel",
+      metadata: {
+        section: "pricing",
+        planType: plan.planType,
+        planName: plan.name,
+        billingMode: annual ? "annual" : "monthly",
+        destination: plan.ctaHref,
+        external: Boolean(plan.ctaExternal),
+      },
+    });
+  };
 
   return (
     <section id="pricing" className="py-20 sm:py-28">
@@ -143,9 +161,9 @@ export function Pricing() {
                 asChild
               >
                 {plan.ctaExternal ? (
-                  <a href={plan.ctaHref}>{plan.cta}<ArrowRight className="ml-1 h-4 w-4" /></a>
+                  <a href={plan.ctaHref} onClick={() => handlePlanClick(plan)}>{plan.cta}<ArrowRight className="ml-1 h-4 w-4" /></a>
                 ) : (
-                  <Link to={plan.ctaHref}>{plan.cta}<ArrowRight className="ml-1 h-4 w-4" /></Link>
+                  <Link to={plan.ctaHref} onClick={() => handlePlanClick(plan)}>{plan.cta}<ArrowRight className="ml-1 h-4 w-4" /></Link>
                 )}
               </Button>
             </motion.div>

@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { PublicScheduleSelector } from "@/components/schedule/PublicScheduleSelector";
 import { DynamicPricingSummary } from "@/components/pricing/DynamicPricingSummary";
 import { JointEnrollmentForm, type JointStudentFormData } from "@/components/forms/JointEnrollmentForm";
+import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 function isBlank(value: unknown) {
   if (value === undefined || value === null) return true;
@@ -357,6 +358,19 @@ export default function EnrollPage() {
     setJointStudents([{ id: "student-1", values: {}, selectedClassIds: [], errors: {} }]);
     setSmartDefaultsApplied(false);
   }, [formConfig?.tenantId]);
+
+  useEffect(() => {
+    if (!formConfig?.tenantId) return;
+    trackPortalEvent({
+      eventName: "enrollment_page_view",
+      category: "funnel",
+      tenantId: formConfig.tenantId,
+      metadata: {
+        tenantSlug,
+        jointEnrollmentEnabled: Boolean(formConfig.formConfig?.jointEnrollment?.enabled),
+      },
+    });
+  }, [formConfig?.tenantId, formConfig?.formConfig?.jointEnrollment?.enabled, tenantSlug]);
 
   useEffect(() => {
     if (!formConfig || smartDefaultsApplied) {
@@ -753,6 +767,19 @@ export default function EnrollPage() {
       return;
     }
 
+    trackPortalEvent({
+      eventName: "enrollment_started",
+      category: "funnel",
+      tenantId: formConfig?.tenantId,
+      metadata: {
+        tenantSlug,
+        mode: isJointEnrollmentEnabled ? "joint" : "single",
+        selectedClassesCount: isJointEnrollmentEnabled
+          ? jointStudents.reduce((total, student) => total + student.selectedClassIds.length, 0)
+          : selectedClassIds.length,
+      },
+    });
+
     setSubmitting(true);
     try {
       if (isJointEnrollmentEnabled) {
@@ -798,6 +825,16 @@ export default function EnrollPage() {
         });
 
         setSuccess(true);
+        trackPortalEvent({
+          eventName: "enrollment_completed",
+          category: "funnel",
+          tenantId: formConfig?.tenantId,
+          metadata: {
+            tenantSlug,
+            mode: "joint",
+            studentsCount: jointStudents.length,
+          },
+        });
         toast.success(response?.message || "Inscripción enviada exitosamente");
       } else {
         const selectedClassIdsUnique = Array.from(new Set(selectedClassIds.map(selectionIdToClassId)));
@@ -812,9 +849,29 @@ export default function EnrollPage() {
         });
 
         setSuccess(true);
+        trackPortalEvent({
+          eventName: "enrollment_completed",
+          category: "funnel",
+          tenantId: formConfig?.tenantId,
+          metadata: {
+            tenantSlug,
+            mode: "single",
+            classesCount: selectedClassIdsUnique.length,
+          },
+        });
         toast.success(response?.message || "Inscripción enviada exitosamente");
       }
     } catch (error) {
+      trackPortalEvent({
+        eventName: "enrollment_failed",
+        category: "funnel",
+        tenantId: formConfig?.tenantId,
+        metadata: {
+          tenantSlug,
+          mode: isJointEnrollmentEnabled ? "joint" : "single",
+          error: error instanceof Error ? error.message : "unknown_error",
+        },
+      });
       toast.error(error instanceof Error ? error.message : "Error al enviar la inscripción");
     } finally {
       setSubmitting(false);

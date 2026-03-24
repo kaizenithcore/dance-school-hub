@@ -99,7 +99,7 @@ export async function apiRequest<T>(
   const headers = new Headers(options.headers || undefined);
 
   // Only set JSON content type when the request has a body.
-  if (options.body && !headers.has("Content-Type")) {
+  if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 

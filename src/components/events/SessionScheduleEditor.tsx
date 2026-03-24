@@ -3,20 +3,31 @@ import { useSessionSchedule } from "@/hooks/useEvents";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, GripVertical, Trash2, Copy, ChevronDown, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
+import { Plus, GripVertical, Trash2, Copy, ChevronDown, ChevronRight, RefreshCw, AlertCircle, Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { exportSchedulePdf } from "@/lib/api/events";
 import type { DanceEvent, ScheduleItem } from "@/lib/types/events";
+import type { ScheduleItemInput } from "@/lib/api/events";
 
 interface Props {
   event: DanceEvent;
   sessionId: string;
-  updateEvent: (id: string, data: Partial<DanceEvent>) => void;
+  scheduleActions: {
+    createScheduleItem: (eventId: string, sessionId: string, data: ScheduleItemInput) => Promise<ScheduleItem>;
+    updateScheduleItem: (eventId: string, sessionId: string, itemId: string, data: Partial<ScheduleItemInput>) => Promise<ScheduleItem>;
+    deleteScheduleItem: (eventId: string, sessionId: string, itemId: string) => Promise<void>;
+    moveScheduleItem: (eventId: string, sessionId: string, fromIndex: number, toIndex: number) => Promise<void>;
+    recalculateSchedule: (eventId: string, sessionId: string) => Promise<void>;
+  };
 }
 
-export function SessionScheduleEditor({ event, sessionId, updateEvent }: Props) {
-  const { schedule, addBlock, updateBlock, removeBlock, duplicateBlock, moveBlock, recalcTimes, totalDuration } = useSessionSchedule(event, sessionId, updateEvent);
+export function SessionScheduleEditor({ event, sessionId, scheduleActions }: Props) {
+  const { schedule, addBlock, updateBlock, removeBlock, duplicateBlock, moveBlock, recalcTimes, totalDuration } = useSessionSchedule(event, sessionId, scheduleActions);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const { toast } = useToast();
 
   const handleDragStart = (idx: number) => (e: React.DragEvent) => {
     setDragIdx(idx);
@@ -26,12 +37,32 @@ export function SessionScheduleEditor({ event, sessionId, updateEvent }: Props) 
   const handleDragOver = (idx: number) => (e: React.DragEvent) => {
     e.preventDefault();
     if (dragIdx !== null && dragIdx !== idx) {
-      moveBlock(dragIdx, idx);
+      void moveBlock(dragIdx, idx);
       setDragIdx(idx);
     }
   };
 
   const handleDragEnd = () => setDragIdx(null);
+
+  const handleExportPdf = async () => {
+    try {
+      setIsExportingPdf(true);
+      await exportSchedulePdf(event.id, sessionId);
+      toast({
+        title: "Éxito",
+        description: "La escaleta ha sido descargada correctamente.",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo descargar la escaleta";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   const missingGroups = schedule.filter((b) => !b.groupName.trim());
 
@@ -52,6 +83,20 @@ export function SessionScheduleEditor({ event, sessionId, updateEvent }: Props) 
               </Button>
             </TooltipTrigger>
             <TooltipContent>Ajusta los tiempos consecutivamente según la duración de cada bloque</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPdf}
+                disabled={isExportingPdf || schedule.length === 0}
+              >
+                <Download className="h-3.5 w-3.5 mr-1" />
+                {isExportingPdf ? "Generando..." : "Descargar PDF"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Descarga la escaleta como PDF imprimible</TooltipContent>
           </Tooltip>
           <Button size="sm" onClick={addBlock}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Añadir
@@ -89,8 +134,8 @@ export function SessionScheduleEditor({ event, sessionId, updateEvent }: Props) 
               isExpanded={expandedRow === block.id}
               onToggleExpand={() => setExpandedRow(expandedRow === block.id ? null : block.id)}
               onUpdate={(data) => updateBlock(block.id, data)}
-              onRemove={() => removeBlock(block.id)}
-              onDuplicate={() => duplicateBlock(block.id)}
+              onRemove={() => { void removeBlock(block.id); }}
+              onDuplicate={() => { void duplicateBlock(block.id); }}
               onDragStart={handleDragStart(idx)}
               onDragOver={handleDragOver(idx)}
               onDragEnd={handleDragEnd}

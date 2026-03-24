@@ -9,23 +9,55 @@ import type { DanceEvent } from "@/lib/types/events";
 type View = { mode: "list" } | { mode: "detail"; eventId: string } | { mode: "create" } | { mode: "edit"; eventId: string };
 
 export default function EventsPage() {
-  const { events, createEvent, updateEvent, deleteEvent, duplicateEvent } = useEvents();
+  const {
+    events,
+    isLoading,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    duplicateEvent,
+    addSession,
+    updateSession,
+    deleteSession,
+    createScheduleItem,
+    updateScheduleItem,
+    deleteScheduleItem,
+    moveScheduleItem,
+    recalculateSchedule,
+  } = useEvents();
   const [view, setView] = useState<View>({ mode: "list" });
 
   const activeEventId = view.mode === "detail" || view.mode === "edit" ? view.eventId : undefined;
-  const { event, addSession, updateSession, deleteSession } = useEvent(activeEventId, events, updateEvent);
+  const { event, addSession: addEventSession, updateSession: updateEventSession, deleteSession: deleteEventSession } = useEvent(
+    activeEventId,
+    events,
+    { addSession, updateSession, deleteSession }
+  );
 
-  const handleCreate = (data: Omit<DanceEvent, "id" | "createdAt" | "sessions">) => {
-    const created = createEvent(data);
-    setView({ mode: "detail", eventId: created.id });
+  const handleCreate = async (data: Omit<DanceEvent, "id" | "createdAt" | "sessions">) => {
+    const created = await createEvent(data);
+    if (created) {
+      setView({ mode: "detail", eventId: created.id });
+    }
   };
 
-  const handleUpdate = (data: Omit<DanceEvent, "id" | "createdAt" | "sessions">) => {
+  const handleUpdate = async (data: Omit<DanceEvent, "id" | "createdAt" | "sessions">) => {
     if (activeEventId) {
-      updateEvent(activeEventId, data);
+      await updateEvent(activeEventId, data);
       setView({ mode: "detail", eventId: activeEventId });
     }
   };
+
+  if (isLoading && view.mode === "list") {
+    return (
+      <PageContainer
+        title="Eventos"
+        description="Cargando eventos..."
+      >
+        <div className="text-sm text-muted-foreground">Cargando eventos...</div>
+      </PageContainer>
+    );
+  }
 
   if (view.mode === "detail" && event) {
     return (
@@ -33,10 +65,16 @@ export default function EventsPage() {
         event={event}
         onBack={() => setView({ mode: "list" })}
         onEdit={() => setView({ mode: "edit", eventId: event.id })}
-        onAddSession={addSession}
-        onUpdateSession={updateSession}
-        onDeleteSession={deleteSession}
-        updateEvent={updateEvent}
+        onAddSession={addEventSession}
+        onUpdateSession={updateEventSession}
+        onDeleteSession={deleteEventSession}
+        scheduleActions={{
+          createScheduleItem,
+          updateScheduleItem,
+          deleteScheduleItem,
+          moveScheduleItem,
+          recalculateSchedule,
+        }}
       />
     );
   }
@@ -51,15 +89,15 @@ export default function EventsPage() {
         onCreateNew={() => setView({ mode: "create" })}
         onView={(id) => setView({ mode: "detail", eventId: id })}
         onEdit={(id) => setView({ mode: "edit", eventId: id })}
-        onDuplicate={duplicateEvent}
-        onDelete={deleteEvent}
+        onDuplicate={(id) => { void duplicateEvent(id); }}
+        onDelete={(id) => { void deleteEvent(id); }}
       />
 
       <EventFormModal
         open={view.mode === "create" || view.mode === "edit"}
         onOpenChange={(open) => { if (!open) setView({ mode: "list" }); }}
         event={view.mode === "edit" ? events.find((e) => e.id === view.eventId) : undefined}
-        onSubmit={view.mode === "edit" ? handleUpdate : handleCreate}
+        onSubmit={(data) => { void (view.mode === "edit" ? handleUpdate(data) : handleCreate(data)); }}
       />
     </PageContainer>
   );

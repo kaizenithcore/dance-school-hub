@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Pencil, Calendar, MapPin, Users, Ticket, Info } from "lucide-react";
 import { SessionsTab } from "./SessionsTab";
 import { EventParticipantsTab } from "./EventParticipantsTab";
-import type { DanceEvent, EventSession } from "@/lib/types/events";
+import type { DanceEvent, EventSession, ScheduleItem } from "@/lib/types/events";
+import type { ScheduleItemInput } from "@/lib/api/events";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -15,13 +16,27 @@ interface Props {
   event: DanceEvent;
   onBack: () => void;
   onEdit: () => void;
-  onAddSession: (s: Omit<EventSession, "id" | "schedule">) => void;
-  onUpdateSession: (sessionId: string, data: Partial<EventSession>) => void;
-  onDeleteSession: (sessionId: string) => void;
-  updateEvent: (id: string, data: Partial<DanceEvent>) => void;
+  onAddSession: (s: Omit<EventSession, "id" | "schedule">) => Promise<EventSession | undefined>;
+  onUpdateSession: (sessionId: string, data: Partial<EventSession>) => Promise<EventSession | undefined>;
+  onDeleteSession: (sessionId: string) => Promise<void | undefined>;
+  scheduleActions: {
+    createScheduleItem: (eventId: string, sessionId: string, data: ScheduleItemInput) => Promise<ScheduleItem>;
+    updateScheduleItem: (eventId: string, sessionId: string, itemId: string, data: Partial<ScheduleItemInput>) => Promise<ScheduleItem>;
+    deleteScheduleItem: (eventId: string, sessionId: string, itemId: string) => Promise<void>;
+    moveScheduleItem: (eventId: string, sessionId: string, fromIndex: number, toIndex: number) => Promise<void>;
+    recalculateSchedule: (eventId: string, sessionId: string) => Promise<void>;
+  };
 }
 
-export function EventDetailView({ event, onBack, onEdit, onAddSession, onUpdateSession, onDeleteSession, updateEvent }: Props) {
+export function EventDetailView({
+  event,
+  onBack,
+  onEdit,
+  onAddSession,
+  onUpdateSession,
+  onDeleteSession,
+  scheduleActions,
+}: Props) {
   const [tab, setTab] = useState("overview");
   const totalBlocks = event.sessions.reduce((sum, s) => sum + s.schedule.length, 0);
 
@@ -93,7 +108,7 @@ export function EventDetailView({ event, onBack, onEdit, onAddSession, onUpdateS
             onAddSession={onAddSession}
             onUpdateSession={onUpdateSession}
             onDeleteSession={onDeleteSession}
-            updateEvent={updateEvent}
+            scheduleActions={scheduleActions}
           />
         </TabsContent>
 

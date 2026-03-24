@@ -5,6 +5,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 const faqs = [
   { q: "¿Puedo importar mis alumnos desde Excel?", a: "Sí. El importador inteligente mapea automáticamente las columnas de tu archivo y crea los registros de alumnos en segundos." },
@@ -17,6 +18,25 @@ const faqs = [
 ];
 
 export function FAQ() {
+  const handleValueChange = (value: string) => {
+    if (!value) {
+      return;
+    }
+
+    const index = Number(value.replace("faq-", ""));
+    const question = Number.isNaN(index) ? undefined : faqs[index]?.q;
+
+    trackPortalEvent({
+      eventName: "click_faq_expand",
+      category: "funnel",
+      metadata: {
+        section: "faq",
+        itemId: value,
+        question,
+      },
+    });
+  };
+
   return (
     <section id="faq" className="py-20 sm:py-28">
       <div className="container">
@@ -38,7 +58,7 @@ export function FAQ() {
           viewport={{ once: true }}
           className="max-w-2xl mx-auto"
         >
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion type="single" collapsible className="w-full" onValueChange={handleValueChange}>
             {faqs.map((faq, i) => (
               <AccordionItem key={i} value={`faq-${i}`}>
                 <AccordionTrigger className="text-left text-foreground">

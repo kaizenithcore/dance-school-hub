@@ -2,8 +2,33 @@ import { motion } from "framer-motion";
 import { ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 export function CTA() {
+  const handlePrimaryClick = () => {
+    trackPortalEvent({
+      eventName: "click_cta_primary",
+      category: "funnel",
+      metadata: {
+        section: "final_cta",
+        ctaLabel: "Probar gratis",
+        destination: "/auth/register",
+      },
+    });
+  };
+
+  const handleDemoClick = () => {
+    trackPortalEvent({
+      eventName: "click_cta_demo",
+      category: "funnel",
+      metadata: {
+        section: "final_cta",
+        ctaLabel: "Ver demo en vivo",
+        destination: "/s/escuela-demo-dancehub",
+      },
+    });
+  };
+
   return (
     <section className="py-20 sm:py-28 bg-muted/30">
       <div className="container">
@@ -23,13 +48,13 @@ export function CTA() {
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
-                <Link to="/auth/register">
+                <Link to="/auth/register" onClick={handlePrimaryClick}>
                   Probar gratis
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
-                <Link to="/s/escuela-demo-dancehub">
+                <Link to="/s/escuela-demo-dancehub" onClick={handleDemoClick}>
                   <Play className="mr-1 h-4 w-4" />
                   Ver demo en vivo
                 </Link>

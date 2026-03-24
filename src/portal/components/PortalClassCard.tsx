@@ -13,7 +13,7 @@ export function PortalClassCard({ cls, compact, onClick }: Props) {
     <button
       onClick={onClick}
       className={cn(
-        "w-full rounded-xl border border-border bg-card p-4 text-left transition-shadow hover:shadow-md",
+        "w-full rounded-xl border border-border bg-card p-4 text-left transition-shadow hover:shadow-md touch-manipulation active:scale-[0.99]",
         compact && "p-3"
       )}
     >

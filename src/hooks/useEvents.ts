@@ -1,91 +1,415 @@
-import { useState, useCallback, useMemo } from "react";
-import { mockEvents } from "@/lib/data/mockEvents";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { DanceEvent, EventSession, ScheduleItem } from "@/lib/types/events";
+import {
+  createEvent as createEventRequest,
+  createScheduleItem as createScheduleItemRequest,
+  createSession as createSessionRequest,
+  deleteEvent as deleteEventRequest,
+  deleteScheduleItem as deleteScheduleItemRequest,
+  deleteSession as deleteSessionRequest,
+  getEvent,
+  getEvents,
+  getScheduleItems,
+  recalcScheduleTimes,
+  reorderScheduleItems,
+  updateEvent as updateEventRequest,
+  updateScheduleItem as updateScheduleItemRequest,
+  updateSession as updateSessionRequest,
+  type EventInput,
+  type ScheduleItemInput,
+  type SessionInput,
+} from "@/lib/api/events";
 
 function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 export function useEvents() {
-  const [events, setEvents] = useState<DanceEvent[]>(mockEvents);
+  const [events, setEvents] = useState<DanceEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const createEvent = useCallback((data: Omit<DanceEvent, "id" | "createdAt" | "sessions">) => {
-    const newEvent: DanceEvent = { ...data, id: uid(), createdAt: new Date().toISOString(), sessions: [] };
-    setEvents((prev) => [newEvent, ...prev]);
-    return newEvent;
+  const refreshEvents = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await getEvents();
+      setEvents(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudieron cargar los eventos");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const updateEvent = useCallback((id: string, data: Partial<DanceEvent>) => {
-    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...data } : e)));
-  }, []);
+  useEffect(() => {
+    void refreshEvents();
+  }, [refreshEvents]);
 
-  const deleteEvent = useCallback((id: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
-  }, []);
-
-  const duplicateEvent = useCallback((id: string) => {
+  const upsertEvent = useCallback((event: DanceEvent) => {
     setEvents((prev) => {
-      const original = prev.find((e) => e.id === id);
-      if (!original) return prev;
-      const copy: DanceEvent = {
-        ...original,
-        id: uid(),
-        name: `${original.name} (copia)`,
-        status: "draft",
-        createdAt: new Date().toISOString(),
-        sessions: original.sessions.map((s) => ({
-          ...s,
-          id: uid(),
-          schedule: s.schedule.map((si) => ({ ...si, id: uid() })),
-        })),
-      };
-      return [copy, ...prev];
+      const exists = prev.some((item) => item.id === event.id);
+      if (!exists) {
+        return [event, ...prev];
+      }
+      return prev.map((item) => (item.id === event.id ? event : item));
     });
   }, []);
 
-  return { events, createEvent, updateEvent, deleteEvent, duplicateEvent };
+  const replaceEventFromServer = useCallback(async (eventId: string) => {
+    const event = await getEvent(eventId);
+    if (event) {
+      upsertEvent(event);
+    }
+    return event;
+  }, [upsertEvent]);
+
+  const createEvent = useCallback(async (data: Omit<DanceEvent, "id" | "createdAt" | "sessions">) => {
+    const created = await createEventRequest(data as EventInput);
+    if (!created) {
+      throw new Error("No se pudo crear el evento");
+    }
+
+    upsertEvent(created);
+    return created;
+  }, [upsertEvent]);
+
+  const updateEvent = useCallback(async (id: string, data: Partial<DanceEvent>) => {
+    const updated = await updateEventRequest(id, data as Partial<EventInput>);
+    if (!updated) {
+      throw new Error("No se pudo actualizar el evento");
+    }
+
+    upsertEvent(updated);
+    return updated;
+  }, [upsertEvent]);
+
+  const deleteEvent = useCallback(async (id: string) => {
+    await deleteEventRequest(id);
+    setEvents((prev) => prev.filter((item) => item.id !== id));
+  }, []);
+
+  const addSession = useCallback(async (eventId: string, session: Omit<EventSession, "id" | "schedule">) => {
+    const created = await createSessionRequest(eventId, session as SessionInput);
+    if (!created) {
+      throw new Error("No se pudo crear la sesión");
+    }
+
+    setEvents((prev) => prev.map((event) => {
+      if (event.id !== eventId) {
+        return event;
+      }
+
+      return {
+        ...event,
+        sessions: [...event.sessions, created],
+      };
+    }));
+
+    return created;
+  }, []);
+
+  const updateSession = useCallback(async (
+    eventId: string,
+    sessionId: string,
+    data: Partial<EventSession>
+  ) => {
+    const updated = await updateSessionRequest(eventId, sessionId, data as Partial<SessionInput>);
+    if (!updated) {
+      throw new Error("No se pudo actualizar la sesión");
+    }
+
+    setEvents((prev) => prev.map((event) => {
+      if (event.id !== eventId) {
+        return event;
+      }
+
+      return {
+        ...event,
+        sessions: event.sessions.map((session) =>
+          session.id === sessionId ? { ...session, ...updated, schedule: session.schedule } : session
+        ),
+      };
+    }));
+
+    return updated;
+  }, []);
+
+  const deleteSession = useCallback(async (eventId: string, sessionId: string) => {
+    await deleteSessionRequest(eventId, sessionId);
+
+    setEvents((prev) => prev.map((event) => {
+      if (event.id !== eventId) {
+        return event;
+      }
+
+      return {
+        ...event,
+        sessions: event.sessions.filter((session) => session.id !== sessionId),
+      };
+    }));
+  }, []);
+
+  const createScheduleItem = useCallback(async (
+    eventId: string,
+    sessionId: string,
+    data: ScheduleItemInput
+  ) => {
+    const created = await createScheduleItemRequest(eventId, sessionId, data);
+    if (!created) {
+      throw new Error("No se pudo crear el bloque");
+    }
+
+    setEvents((prev) => prev.map((event) => {
+      if (event.id !== eventId) {
+        return event;
+      }
+
+      return {
+        ...event,
+        sessions: event.sessions.map((session) =>
+          session.id === sessionId
+            ? { ...session, schedule: [...session.schedule, created] }
+            : session
+        ),
+      };
+    }));
+
+    return created;
+  }, []);
+
+  const updateScheduleItem = useCallback(async (
+    eventId: string,
+    sessionId: string,
+    itemId: string,
+    data: Partial<ScheduleItemInput>
+  ) => {
+    const updated = await updateScheduleItemRequest(eventId, sessionId, itemId, data);
+    if (!updated) {
+      throw new Error("No se pudo actualizar el bloque");
+    }
+
+    setEvents((prev) => prev.map((event) => {
+      if (event.id !== eventId) {
+        return event;
+      }
+
+      return {
+        ...event,
+        sessions: event.sessions.map((session) =>
+          session.id === sessionId
+            ? {
+                ...session,
+                schedule: session.schedule.map((item) => (item.id === itemId ? { ...item, ...updated } : item)),
+              }
+            : session
+        ),
+      };
+    }));
+
+    return updated;
+  }, []);
+
+  const deleteScheduleItem = useCallback(async (eventId: string, sessionId: string, itemId: string) => {
+    await deleteScheduleItemRequest(eventId, sessionId, itemId);
+
+    setEvents((prev) => prev.map((event) => {
+      if (event.id !== eventId) {
+        return event;
+      }
+
+      return {
+        ...event,
+        sessions: event.sessions.map((session) =>
+          session.id === sessionId
+            ? { ...session, schedule: session.schedule.filter((item) => item.id !== itemId) }
+            : session
+        ),
+      };
+    }));
+  }, []);
+
+  const moveScheduleItem = useCallback(async (
+    eventId: string,
+    sessionId: string,
+    fromIndex: number,
+    toIndex: number
+  ) => {
+    let nextOrder: ScheduleItem[] = [];
+
+    setEvents((prev) => prev.map((event) => {
+      if (event.id !== eventId) {
+        return event;
+      }
+
+      return {
+        ...event,
+        sessions: event.sessions.map((session) => {
+          if (session.id !== sessionId) {
+            return session;
+          }
+
+          const copied = [...session.schedule];
+          const [moved] = copied.splice(fromIndex, 1);
+          copied.splice(toIndex, 0, moved);
+          nextOrder = copied;
+
+          return {
+            ...session,
+            schedule: copied,
+          };
+        }),
+      };
+    }));
+
+    await reorderScheduleItems(
+      eventId,
+      sessionId,
+      nextOrder.map((item, index) => ({ id: item.id, position: index }))
+    );
+  }, []);
+
+  const recalculateSchedule = useCallback(async (eventId: string, sessionId: string) => {
+    await recalcScheduleTimes(eventId, sessionId);
+    const schedule = await getScheduleItems(eventId, sessionId);
+
+    setEvents((prev) => prev.map((event) => {
+      if (event.id !== eventId) {
+        return event;
+      }
+
+      return {
+        ...event,
+        sessions: event.sessions.map((session) =>
+          session.id === sessionId ? { ...session, schedule } : session
+        ),
+      };
+    }));
+  }, []);
+
+  const duplicateEvent = useCallback(async (id: string) => {
+    const original = events.find((item) => item.id === id);
+    if (!original) {
+      return null;
+    }
+
+    const duplicated = await createEventRequest({
+      ...original,
+      name: `${original.name} (copia)`,
+      status: "draft",
+    } as EventInput);
+
+    if (!duplicated) {
+      throw new Error("No se pudo duplicar el evento");
+    }
+
+    for (const session of original.sessions) {
+      const createdSession = await createSessionRequest(duplicated.id, {
+        date: session.date,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        name: session.name,
+        notes: session.notes,
+      });
+
+      if (!createdSession) {
+        continue;
+      }
+
+      for (const block of session.schedule) {
+        await createScheduleItemRequest(duplicated.id, createdSession.id, {
+          time: block.time,
+          duration: block.duration,
+          groupName: block.groupName,
+          choreography: block.choreography,
+          participantsCount: block.participantsCount,
+          notes: block.notes,
+        });
+      }
+    }
+
+    return replaceEventFromServer(duplicated.id);
+  }, [events, replaceEventFromServer]);
+
+  return {
+    events,
+    isLoading,
+    error,
+    refreshEvents,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    duplicateEvent,
+    addSession,
+    updateSession,
+    deleteSession,
+    createScheduleItem,
+    updateScheduleItem,
+    deleteScheduleItem,
+    moveScheduleItem,
+    recalculateSchedule,
+  };
 }
 
-export function useEvent(id: string | undefined, allEvents: DanceEvent[], updateEvent: (id: string, data: Partial<DanceEvent>) => void) {
+interface EventActions {
+  addSession: (eventId: string, data: Omit<EventSession, "id" | "schedule">) => Promise<EventSession>;
+  updateSession: (eventId: string, sessionId: string, data: Partial<EventSession>) => Promise<EventSession>;
+  deleteSession: (eventId: string, sessionId: string) => Promise<void>;
+}
+
+export function useEvent(id: string | undefined, allEvents: DanceEvent[], actions: EventActions) {
   const event = useMemo(() => allEvents.find((e) => e.id === id), [allEvents, id]);
 
-  const addSession = useCallback((session: Omit<EventSession, "id" | "schedule">) => {
+  const addSession = useCallback(async (session: Omit<EventSession, "id" | "schedule">) => {
     if (!event) return;
-    const newSession: EventSession = { ...session, id: uid(), schedule: [] };
-    updateEvent(event.id, { sessions: [...event.sessions, newSession] });
-  }, [event, updateEvent]);
+    return actions.addSession(event.id, session);
+  }, [actions, event]);
 
-  const updateSession = useCallback((sessionId: string, data: Partial<EventSession>) => {
+  const updateSession = useCallback(async (sessionId: string, data: Partial<EventSession>) => {
     if (!event) return;
-    updateEvent(event.id, {
-      sessions: event.sessions.map((s) => (s.id === sessionId ? { ...s, ...data } : s)),
-    });
-  }, [event, updateEvent]);
+    return actions.updateSession(event.id, sessionId, data);
+  }, [actions, event]);
 
-  const deleteSession = useCallback((sessionId: string) => {
+  const deleteSession = useCallback(async (sessionId: string) => {
     if (!event) return;
-    updateEvent(event.id, { sessions: event.sessions.filter((s) => s.id !== sessionId) });
-  }, [event, updateEvent]);
+    return actions.deleteSession(event.id, sessionId);
+  }, [actions, event]);
 
   return { event, addSession, updateSession, deleteSession };
+}
+
+interface ScheduleActions {
+  createScheduleItem: (eventId: string, sessionId: string, data: ScheduleItemInput) => Promise<ScheduleItem>;
+  updateScheduleItem: (
+    eventId: string,
+    sessionId: string,
+    itemId: string,
+    data: Partial<ScheduleItemInput>
+  ) => Promise<ScheduleItem>;
+  deleteScheduleItem: (eventId: string, sessionId: string, itemId: string) => Promise<void>;
+  moveScheduleItem: (eventId: string, sessionId: string, fromIndex: number, toIndex: number) => Promise<void>;
+  recalculateSchedule: (eventId: string, sessionId: string) => Promise<void>;
 }
 
 export function useSessionSchedule(
   event: DanceEvent | undefined,
   sessionId: string | undefined,
-  updateEvent: (id: string, data: Partial<DanceEvent>) => void
+  actions: ScheduleActions
 ) {
   const session = useMemo(() => event?.sessions.find((s) => s.id === sessionId), [event, sessionId]);
   const schedule = session?.schedule || [];
+  const updateTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  const updateSchedule = useCallback((newSchedule: ScheduleItem[]) => {
+  useEffect(() => {
+    return () => {
+      Object.values(updateTimersRef.current).forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
+
+  const addBlock = useCallback(async () => {
     if (!event || !sessionId) return;
-    updateEvent(event.id, {
-      sessions: event.sessions.map((s) => (s.id === sessionId ? { ...s, schedule: newSchedule } : s)),
-    });
-  }, [event, sessionId, updateEvent]);
 
-  const addBlock = useCallback(() => {
     const lastItem = schedule[schedule.length - 1];
     let nextTime = session?.startTime || "10:00";
     if (lastItem) {
@@ -93,46 +417,64 @@ export function useSessionSchedule(
       const total = h * 60 + m + lastItem.duration;
       nextTime = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
     }
-    const item: ScheduleItem = { id: uid(), time: nextTime, duration: 5, groupName: "" };
-    updateSchedule([...schedule, item]);
-  }, [schedule, session, updateSchedule]);
+
+    await actions.createScheduleItem(event.id, sessionId, {
+      time: nextTime,
+      duration: 5,
+      groupName: "",
+    });
+  }, [actions, event, schedule, session, sessionId]);
 
   const updateBlock = useCallback((blockId: string, data: Partial<ScheduleItem>) => {
-    updateSchedule(schedule.map((b) => (b.id === blockId ? { ...b, ...data } : b)));
-  }, [schedule, updateSchedule]);
+    if (!event || !sessionId) return;
 
-  const removeBlock = useCallback((blockId: string) => {
-    updateSchedule(schedule.filter((b) => b.id !== blockId));
-  }, [schedule, updateSchedule]);
+    if (updateTimersRef.current[blockId]) {
+      clearTimeout(updateTimersRef.current[blockId]);
+    }
 
-  const duplicateBlock = useCallback((blockId: string) => {
+    updateTimersRef.current[blockId] = setTimeout(() => {
+      void actions.updateScheduleItem(event.id, sessionId, blockId, {
+        time: data.time,
+        duration: data.duration,
+        groupName: data.groupName,
+        choreography: data.choreography,
+        participantsCount: data.participantsCount,
+        notes: data.notes,
+      });
+    }, 350);
+  }, [actions, event, sessionId]);
+
+  const removeBlock = useCallback(async (blockId: string) => {
+    if (!event || !sessionId) return;
+    await actions.deleteScheduleItem(event.id, sessionId, blockId);
+  }, [actions, event, sessionId]);
+
+  const duplicateBlock = useCallback(async (blockId: string) => {
+    if (!event || !sessionId) return;
+
     const idx = schedule.findIndex((b) => b.id === blockId);
     if (idx === -1) return;
-    const copy = { ...schedule[idx], id: uid() };
-    const next = [...schedule];
-    next.splice(idx + 1, 0, copy);
-    updateSchedule(next);
-  }, [schedule, updateSchedule]);
+    const source = schedule[idx];
 
-  const moveBlock = useCallback((fromIdx: number, toIdx: number) => {
-    const next = [...schedule];
-    const [moved] = next.splice(fromIdx, 1);
-    next.splice(toIdx, 0, moved);
-    updateSchedule(next);
-  }, [schedule, updateSchedule]);
-
-  const recalcTimes = useCallback(() => {
-    if (!session) return;
-    let cursor = session.startTime || "10:00";
-    const updated = schedule.map((item) => {
-      const newItem = { ...item, time: cursor };
-      const [h, m] = cursor.split(":").map(Number);
-      const total = h * 60 + m + item.duration;
-      cursor = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-      return newItem;
+    await actions.createScheduleItem(event.id, sessionId, {
+      time: source.time,
+      duration: source.duration,
+      groupName: source.groupName,
+      choreography: source.choreography,
+      participantsCount: source.participantsCount,
+      notes: source.notes,
     });
-    updateSchedule(updated);
-  }, [schedule, session, updateSchedule]);
+  }, [actions, event, schedule, sessionId]);
+
+  const moveBlock = useCallback(async (fromIdx: number, toIdx: number) => {
+    if (!event || !sessionId) return;
+    await actions.moveScheduleItem(event.id, sessionId, fromIdx, toIdx);
+  }, [actions, event, sessionId]);
+
+  const recalcTimes = useCallback(async () => {
+    if (!event || !sessionId) return;
+    await actions.recalculateSchedule(event.id, sessionId);
+  }, [actions, event, sessionId]);
 
   const totalDuration = useMemo(() => schedule.reduce((sum, b) => sum + b.duration, 0), [schedule]);
 

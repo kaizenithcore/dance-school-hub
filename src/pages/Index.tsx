@@ -14,7 +14,7 @@ import { Pricing } from "@/components/landing/Pricing";
 import { LaunchOffer } from "@/components/landing/LaunchOffer";
 import { ROI } from "@/components/landing/ROI";
 import { Results } from "@/components/landing/Results";
-import { Testimonials } from "@/components/landing/Testimonials";
+import { Credibility } from "@/components/landing/Credibility";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
 import { LandingFooter } from "@/components/landing/LandingFooter";
@@ -49,7 +49,7 @@ const Index = () => (
     <LaunchOffer />
     <ROI />
     <Results />
-    <Testimonials />
+    <Credibility />
     <div id="faq">
       <FAQ />
     </div>

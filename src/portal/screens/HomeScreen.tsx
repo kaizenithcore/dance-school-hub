@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronRight, Heart, School } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -5,14 +6,106 @@ import { CURRENT_STUDENT, MOCK_PORTAL_CLASSES, MOCK_PORTAL_EVENTS, MOCK_ACHIEVEM
 import { PortalClassCard } from "../components/PortalClassCard";
 import { EventCard } from "../components/EventCard";
 import { AchievementBadge } from "../components/AchievementBadge";
+import { AnnouncementsWidget } from "../components/AnnouncementsWidget";
 import { usePortalPersona } from "../services/portalPersona";
+import {
+  getOwnPortalProfile,
+  listPersonalizedPortalFeed,
+  listPublicPortalEvents,
+  listPublicPortalFeed,
+  listPublicPortalSchools,
+  type PortalFeedPost,
+  type PortalPublicEvent,
+} from "@/lib/api/portalFoundation";
 
 export default function HomeScreen() {
   const { persona } = usePortalPersona();
+  const [displayName, setDisplayName] = useState(CURRENT_STUDENT.name);
+  const [featuredPosts, setFeaturedPosts] = useState<PortalFeedPost[]>([]);
+  const [nextEvent, setNextEvent] = useState<PortalPublicEvent | null>(null);
+  const [publicSchoolsCount, setPublicSchoolsCount] = useState<number>(0);
   const todayClasses = MOCK_PORTAL_CLASSES.filter((c) => c.day === "Lunes").slice(0, 2);
   const recentAchievements = MOCK_ACHIEVEMENTS.filter((a) => a.earned).slice(-3);
-  const nextEvent = MOCK_PORTAL_EVENTS[0];
-  const featuredPosts = MOCK_FEED_POSTS.slice(0, 2);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const [schoolsResult, feedResult, eventsResult] = await Promise.all([
+          listPublicPortalSchools({ limit: 1, offset: 0 }),
+          persona === "prospect"
+            ? listPublicPortalFeed({ limit: 2, offset: 0 })
+            : listPersonalizedPortalFeed({ limit: 2, offset: 0 }),
+          listPublicPortalEvents({ limit: 1, offset: 0, upcomingOnly: true }),
+        ]);
+
+        if (cancelled) return;
+
+        setPublicSchoolsCount(schoolsResult.total);
+        setFeaturedPosts(feedResult.items);
+        setNextEvent(eventsResult.items[0] ?? null);
+      } catch {
+        if (cancelled) return;
+        setFeaturedPosts(
+          MOCK_FEED_POSTS.slice(0, 2).map((post) => ({
+            id: post.id,
+            tenantId: "",
+            authorType: post.authorRole,
+            authorName: post.authorName,
+            authorAvatarUrl: post.authorAvatar,
+            type: post.type,
+            content: post.text,
+            imageUrls: post.imageUrl ? [post.imageUrl] : [],
+            videoUrl: null,
+            mediaIds: [],
+            mediaItems: [],
+            visibilityScope: "public",
+            likesCount: post.likes,
+            savesCount: 0,
+            publishedAt: new Date().toISOString(),
+          }))
+        );
+        const fallbackEvent = MOCK_PORTAL_EVENTS[0];
+        setNextEvent(
+          fallbackEvent
+            ? {
+                id: fallbackEvent.id,
+                tenantId: "",
+                schoolName: fallbackEvent.school,
+                name: fallbackEvent.name,
+                startDate: fallbackEvent.date,
+                endDate: null,
+                location: fallbackEvent.location,
+                description: fallbackEvent.description,
+                status: "published",
+              }
+            : null
+        );
+      }
+
+      if (persona === "prospect") {
+        return;
+      }
+
+      try {
+        const ownProfile = await getOwnPortalProfile();
+        if (!cancelled) {
+          setDisplayName(ownProfile.displayName || CURRENT_STUDENT.name);
+        }
+      } catch {
+        if (!cancelled) {
+          setDisplayName(CURRENT_STUDENT.name);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [persona]);
 
   if (persona === "prospect") {
     return (
@@ -23,7 +116,7 @@ export default function HomeScreen() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-3 gap-2">
-          <QuickStat value="0" label="Escuelas" emoji="🏫" />
+          <QuickStat value={String(publicSchoolsCount)} label="Escuelas" emoji="🏫" />
           <QuickStat value="40%" label="Perfil" emoji="🧩" />
           <QuickStat value="1" label="Solicitud" emoji="📨" />
         </motion.div>
@@ -51,7 +144,7 @@ export default function HomeScreen() {
       {/* Greeting */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <p className="text-sm text-muted-foreground">Hola, 👋</p>
-        <h1 className="text-2xl font-bold text-foreground">{CURRENT_STUDENT.name.split(" ")[0]}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{displayName.split(" ")[0]}</h1>
       </motion.div>
 
       {/* Quick stats */}
@@ -79,9 +172,17 @@ export default function HomeScreen() {
         <div className="space-y-3">
           {featuredPosts.map((post) => (
             <div key={post.id} className="rounded-xl border border-border bg-card overflow-hidden">
-              {post.imageUrl && (
-                <img src={post.imageUrl} alt="" className="h-32 w-full object-cover" loading="lazy" />
-              )}
+              {post.videoUrl ? (
+                <video
+                  src={post.videoUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="h-32 w-full object-cover bg-black"
+                />
+              ) : post.imageUrls[0] ? (
+                <img src={post.imageUrls[0]} alt="" className="h-32 w-full object-cover" loading="lazy" />
+              ) : null}
               <div className="px-3 py-2.5">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
@@ -89,15 +190,17 @@ export default function HomeScreen() {
                   </div>
                   <span className="text-[11px] font-medium text-muted-foreground">{post.authorName}</span>
                 </div>
-                <p className="text-sm text-foreground line-clamp-2">{post.text}</p>
+                <p className="text-sm text-foreground line-clamp-2">{post.content}</p>
                 <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
-                  <Heart className="h-3 w-3" /> {post.likes}
+                  <Heart className="h-3 w-3" /> {post.likesCount}
                 </div>
               </div>
             </div>
           ))}
         </div>
       </Section>
+
+      <AnnouncementsWidget />
 
       {/* Activity feed */}
       <Section title="Actividad reciente">
@@ -131,7 +234,18 @@ export default function HomeScreen() {
       {/* Next event */}
       {nextEvent && (
         <Section title="Próximo evento" linkTo="/portal/app/events">
-          <EventCard event={nextEvent} />
+          <EventCard
+            event={{
+              id: nextEvent.id,
+              name: nextEvent.name,
+              type: "festival",
+              date: nextEvent.startDate,
+              location: nextEvent.location,
+              school: nextEvent.schoolName,
+              description: nextEvent.description ?? "",
+              participants: 0,
+            }}
+          />
         </Section>
       )}
     </div>

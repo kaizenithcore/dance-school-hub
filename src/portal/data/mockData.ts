@@ -80,6 +80,7 @@ export interface FeedPost {
   schoolName: string;
   text: string;
   imageUrl?: string;
+  videoUrl?: string;
   date: string;
   likes: number;
   liked: boolean;

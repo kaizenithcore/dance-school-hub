@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 const nav = [
   { label: "Solución", href: "#solution" },
@@ -14,6 +15,19 @@ const nav = [
 
 export function LandingHeader() {
   const [open, setOpen] = useState(false);
+
+  const handlePrimaryClick = (placement: "header_desktop" | "header_mobile") => {
+    trackPortalEvent({
+      eventName: "click_cta_primary",
+      category: "funnel",
+      metadata: {
+        section: "header",
+        placement,
+        ctaLabel: "Probar gratis",
+        destination: "/auth/register",
+      },
+    });
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
@@ -38,7 +52,7 @@ export function LandingHeader() {
             <Link to="/auth/login">Iniciar sesión</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link to="/auth/register">Probar gratis</Link>
+            <Link to="/auth/register" onClick={() => handlePrimaryClick("header_desktop")}>Probar gratis</Link>
           </Button>
         </div>
 
@@ -65,7 +79,7 @@ export function LandingHeader() {
               <Link to="/auth/login">Iniciar sesión</Link>
             </Button>
             <Button size="sm" className="flex-1" asChild>
-              <Link to="/auth/register">Probar gratis</Link>
+              <Link to="/auth/register" onClick={() => handlePrimaryClick("header_mobile")}>Probar gratis</Link>
             </Button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, MapPin, Users, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -6,6 +6,14 @@ import { MOCK_PORTAL_EVENTS, type PortalEvent } from "../data/mockData";
 import { EventCard } from "../components/EventCard";
 import { cn } from "@/lib/utils";
 import { usePortalPersona } from "../services/portalPersona";
+import {
+  listPublicPortalEvents,
+} from "@/lib/api/portalFoundation";
+import {
+  listStudentPortalEvents,
+  confirmStudentEventAttendance,
+  cancelStudentEventAttendance,
+} from "@/lib/api/studentPortal";
 
 const types = ["Todos", "Festival", "Workshop", "Competición", "Exhibición"] as const;
 const typeMap: Record<string, PortalEvent["type"] | "all"> = {
@@ -16,20 +24,92 @@ export default function EventsScreen() {
   const { persona } = usePortalPersona();
   const [filter, setFilter] = useState("Todos");
   const [detail, setDetail] = useState<PortalEvent | null>(null);
-  const [attendedIds, setAttendedIds] = useState<Set<string>>(
-    new Set(MOCK_PORTAL_EVENTS.filter((e) => e.attended).map((e) => e.id))
+  const [events, setEvents] = useState<PortalEvent[]>(MOCK_PORTAL_EVENTS);
+  const [attendedIds, setAttendedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const inferType = (name: string): PortalEvent["type"] => {
+      const lower = name.toLowerCase();
+      if (lower.includes("workshop") || lower.includes("taller")) return "workshop";
+      if (lower.includes("compet") || lower.includes("concurso")) return "competition";
+      if (lower.includes("exhib")) return "exhibition";
+      return "festival";
+    };
+
+    const load = async () => {
+      try {
+        const eventsResult = persona === "prospect"
+          ? await listPublicPortalEvents({ limit: 50, offset: 0, upcomingOnly: false })
+          : await listStudentPortalEvents({ limit: 50, offset: 0, upcomingOnly: false });
+
+        if (cancelled) return;
+
+        const mappedEvents = eventsResult.items.map((event) => ({
+          id: event.id,
+          name: event.name,
+          type: inferType(event.name),
+          date: event.startDate,
+          location: event.location,
+          school: "Escuela activa",
+          description: event.description ?? "",
+          participants: 0,
+        } satisfies PortalEvent));
+
+        setEvents(mappedEvents);
+        setAttendedIds(
+          new Set(
+            eventsResult.items
+              .filter((event) => "attended" in event && Boolean(event.attended))
+              .map((event) => event.id)
+          )
+        );
+      } catch {
+        if (!cancelled) {
+          setEvents(MOCK_PORTAL_EVENTS);
+          setAttendedIds(new Set(MOCK_PORTAL_EVENTS.filter((e) => e.attended).map((e) => e.id)));
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [persona]);
+
+  const filtered = useMemo(
+    () =>
+      filter === "Todos"
+        ? events
+        : events.filter((e) => e.type === typeMap[filter]),
+    [events, filter]
   );
 
-  const filtered = filter === "Todos"
-    ? MOCK_PORTAL_EVENTS
-    : MOCK_PORTAL_EVENTS.filter((e) => e.type === typeMap[filter]);
-
   const toggleAttended = (id: string) => {
+    const wasSaved = attendedIds.has(id);
+
     setAttendedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
+    });
+
+    if (persona === "prospect") {
+      return;
+    }
+
+    const request = wasSaved ? cancelStudentEventAttendance(id) : confirmStudentEventAttendance(id);
+    request.catch(() => {
+      setAttendedIds((prev) => {
+        const next = new Set(prev);
+        if (wasSaved) next.add(id);
+        else next.delete(id);
+        return next;
+      });
     });
   };
 
@@ -42,7 +122,7 @@ export default function EventsScreen() {
           <p className="mt-1 text-xs text-muted-foreground">Puedes seguir eventos y festivales abiertos incluso antes de matricularte.</p>
         </div>
         <div className="space-y-3">
-          {MOCK_PORTAL_EVENTS.slice(0, 2).map((e) => (
+          {events.slice(0, 2).map((e) => (
             <EventCard key={e.id} event={e} onClick={() => setDetail(e)} />
           ))}
         </div>

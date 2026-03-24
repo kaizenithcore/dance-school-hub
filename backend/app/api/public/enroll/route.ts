@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { fail, ok } from "@/lib/http";
 import { publicEnrollmentService } from "@/lib/services/publicEnrollmentService";
 import { StudentLimitError } from "@/lib/services/studentQuotaService";
+import { integrationWebhookService } from "@/lib/services/integrationWebhookService";
 import { publicEnrollmentSchema, jointEnrollmentSchema } from "@/lib/validators/publicEnrollmentSchemas";
 import { handleCorsPreFlight } from "@/lib/cors";
 
@@ -54,6 +55,19 @@ export async function POST(request: NextRequest) {
           parsed.data
         );
 
+        void integrationWebhookService.emit({
+          event: "student.enrollment.created",
+          tenantId: null,
+          occurredAt: new Date().toISOString(),
+          data: {
+            tenantSlug,
+            mode: "joint",
+            groupId: result.groupId,
+            studentIds: result.studentIds,
+            enrollmentIds: result.enrollmentIds,
+          },
+        });
+
         return ok(
           {
             success: true,
@@ -86,6 +100,19 @@ export async function POST(request: NextRequest) {
           tenantSlug,
           parsed.data
         );
+
+        void integrationWebhookService.emit({
+          event: "student.enrollment.created",
+          tenantId: null,
+          occurredAt: new Date().toISOString(),
+          data: {
+            tenantSlug,
+            mode: "single",
+            studentId: result.studentId,
+            enrollmentId: result.enrollmentId,
+            waitlistCreated: Boolean(result.waitlistCreated),
+          },
+        });
 
         if (result.waitlistCreated) {
           return ok(

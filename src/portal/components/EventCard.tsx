@@ -27,7 +27,7 @@ export function EventCard({ event, onClick }: Props) {
   const day = d.getDate();
 
   return (
-    <button onClick={onClick} className="w-full rounded-xl border border-border bg-card p-4 text-left transition-shadow hover:shadow-md">
+    <button onClick={onClick} className="w-full rounded-xl border border-border bg-card p-4 text-left transition-shadow hover:shadow-md touch-manipulation active:scale-[0.99]">
       <div className="flex gap-3">
         {/* Date badge */}
         <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10">

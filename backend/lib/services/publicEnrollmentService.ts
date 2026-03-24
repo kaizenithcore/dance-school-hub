@@ -183,14 +183,14 @@ export const publicEnrollmentService = {
     );
 
     const branches: PublicBranchProfile[] = branchRows
-      .map((row) => {
+      .flatMap((row) => {
         const branchTenant = Array.isArray(row.tenants) ? row.tenants[0] : row.tenants;
         if (!branchTenant?.name || !branchTenant.slug) {
-          return null;
+          return [];
         }
 
         if (branchTenant.is_active === false) {
-          return null;
+          return [];
         }
 
         const branchEnrollmentConfig = branchSettingsByTenant.get(row.tenant_id);
@@ -201,16 +201,23 @@ export const publicEnrollmentService = {
               ? (branchEnrollmentConfig.publicProfile as Record<string, unknown>)
               : {};
 
-        return {
+        const branch: PublicBranchProfile = {
           tenantId: row.tenant_id,
           tenantName: branchTenant.name,
           tenantSlug: branchTenant.slug,
           isPrimary: Boolean(row.is_primary),
-          address: typeof branchProfileSource.address === "string" ? branchProfileSource.address : undefined,
-          city: typeof branchProfileSource.city === "string" ? branchProfileSource.city : undefined,
-        } satisfies PublicBranchProfile;
-      })
-      .filter((branch): branch is PublicBranchProfile => branch !== null);
+        };
+
+        if (typeof branchProfileSource.address === "string") {
+          branch.address = branchProfileSource.address;
+        }
+
+        if (typeof branchProfileSource.city === "string") {
+          branch.city = branchProfileSource.city;
+        }
+
+        return [branch];
+      });
 
     const scheduleConfigSource =
       settingsData?.schedule_config && typeof settingsData.schedule_config === "object"
@@ -330,6 +337,8 @@ export const publicEnrollmentService = {
       startHour: number;
       duration: number;
       room: string;
+      branchName?: string;
+      branchSlug?: string;
     }>>();
 
     (schedules || []).forEach((schedule: unknown) => {

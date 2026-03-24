@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Play, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 const benefits = [
   "Matrículas online automáticas",
@@ -11,6 +12,30 @@ const benefits = [
 ];
 
 export function Hero() {
+  const handlePrimaryClick = () => {
+    trackPortalEvent({
+      eventName: "click_cta_primary",
+      category: "funnel",
+      metadata: {
+        section: "hero",
+        ctaLabel: "Probar DanceHub",
+        destination: "/auth/register",
+      },
+    });
+  };
+
+  const handleDemoClick = () => {
+    trackPortalEvent({
+      eventName: "click_cta_demo",
+      category: "funnel",
+      metadata: {
+        section: "hero",
+        ctaLabel: "Ver demo",
+        destination: "/s/escuela-demo-dancehub",
+      },
+    });
+  };
+
   return (
     <section className="relative overflow-hidden pt-20 pb-24 sm:pt-28 sm:pb-32">
       <div className="absolute inset-0 bg-gradient-to-br from-accent/40 via-background to-background" />
@@ -39,13 +64,13 @@ export function Hero() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" className="h-12 px-7 text-base font-semibold" asChild>
-                <Link to="/auth/register">
+                <Link to="/auth/register" onClick={handlePrimaryClick}>
                   Probar DanceHub
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="h-12 px-7 text-base" asChild>
-                <Link to="/s/escuela-demo-dancehub">
+                <Link to="/s/escuela-demo-dancehub" onClick={handleDemoClick}>
                   <Play className="mr-1 h-4 w-4" />
                   Ver demo
                 </Link>

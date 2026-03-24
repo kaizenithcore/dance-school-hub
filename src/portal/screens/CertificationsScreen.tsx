@@ -1,11 +1,46 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Award, Download, ChevronRight } from "lucide-react";
-import { MOCK_CERTIFICATIONS } from "../data/mockData";
+import { Award, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePortalPersona } from "../services/portalPersona";
+import { getStudentPortalCertifications, type StudentPortalCertification } from "@/lib/api/studentPortal";
 
 export default function CertificationsScreen() {
   const { persona } = usePortalPersona();
+  const [certifications, setCertifications] = useState<StudentPortalCertification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (persona === "prospect") {
+      return;
+    }
+
+    let cancelled = false;
+
+    const load = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await getStudentPortalCertifications();
+        if (cancelled) return;
+        setCertifications(result);
+      } catch (loadError) {
+        if (cancelled) return;
+        setError(loadError instanceof Error ? loadError.message : "No se pudo cargar certificaciones");
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [persona]);
 
   if (persona === "prospect") {
     return (
@@ -26,10 +61,26 @@ export default function CertificationsScreen() {
       <h1 className="text-xl font-bold text-foreground">Certificaciones</h1>
       <p className="text-sm text-muted-foreground">Tus exámenes y certificados oficiales.</p>
 
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      {isLoading ? (
+        <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">Cargando certificaciones...</div>
+      ) : null}
+
+      {!isLoading && certifications.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          Aun no tienes certificaciones registradas.
+        </div>
+      ) : null}
+
       <div className="space-y-3">
-        {MOCK_CERTIFICATIONS.map((cert, i) => (
+        {certifications.map((cert, i) => (
           <motion.div
-            key={cert.id}
+            key={`${cert.examId}-${cert.candidateId}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08 }}
@@ -49,11 +100,11 @@ export default function CertificationsScreen() {
                 <h3 className="font-semibold text-foreground">{cert.examName}</h3>
                 <p className="text-xs text-muted-foreground">{cert.discipline} · {cert.level}</p>
                 <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>{new Date(cert.date).toLocaleDateString("es-ES")}</span>
-                  <span>{cert.school}</span>
+                  <span>{new Date(cert.examDate).toLocaleDateString("es-ES")}</span>
+                  <span>Escuela activa</span>
                 </div>
-                {cert.status === "passed" && (
-                  <p className="mt-1 text-sm font-bold text-success">Nota: {cert.grade}/10</p>
+                {(cert.status === "passed" || cert.status === "failed") && typeof cert.finalGrade === "number" && (
+                  <p className="mt-1 text-sm font-bold text-success">Nota: {cert.finalGrade}</p>
                 )}
               </div>
               <span className={cn(
@@ -65,9 +116,14 @@ export default function CertificationsScreen() {
             </div>
 
             {cert.status === "passed" && (
-              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2 text-xs font-medium text-foreground transition hover:bg-muted/80">
+              <a
+                href={cert.certificateUrl || "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2 text-xs font-medium text-foreground transition hover:bg-muted/80"
+              >
                 <Download className="h-3.5 w-3.5" /> Ver certificado
-              </button>
+              </a>
             )}
           </motion.div>
         ))}

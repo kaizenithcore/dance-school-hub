@@ -6,27 +6,34 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Clock, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { SessionScheduleEditor } from "./SessionScheduleEditor";
-import type { DanceEvent, EventSession } from "@/lib/types/events";
+import type { DanceEvent, EventSession, ScheduleItem } from "@/lib/types/events";
+import type { ScheduleItemInput } from "@/lib/api/events";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 interface Props {
   event: DanceEvent;
-  onAddSession: (s: Omit<EventSession, "id" | "schedule">) => void;
-  onUpdateSession: (sessionId: string, data: Partial<EventSession>) => void;
-  onDeleteSession: (sessionId: string) => void;
-  updateEvent: (id: string, data: Partial<DanceEvent>) => void;
+  onAddSession: (s: Omit<EventSession, "id" | "schedule">) => Promise<EventSession | undefined>;
+  onUpdateSession: (sessionId: string, data: Partial<EventSession>) => Promise<EventSession | undefined>;
+  onDeleteSession: (sessionId: string) => Promise<void | undefined>;
+  scheduleActions: {
+    createScheduleItem: (eventId: string, sessionId: string, data: ScheduleItemInput) => Promise<ScheduleItem>;
+    updateScheduleItem: (eventId: string, sessionId: string, itemId: string, data: Partial<ScheduleItemInput>) => Promise<ScheduleItem>;
+    deleteScheduleItem: (eventId: string, sessionId: string, itemId: string) => Promise<void>;
+    moveScheduleItem: (eventId: string, sessionId: string, fromIndex: number, toIndex: number) => Promise<void>;
+    recalculateSchedule: (eventId: string, sessionId: string) => Promise<void>;
+  };
 }
 
-export function SessionsTab({ event, onAddSession, onUpdateSession, onDeleteSession, updateEvent }: Props) {
+export function SessionsTab({ event, onAddSession, onUpdateSession, onDeleteSession, scheduleActions }: Props) {
   const [addOpen, setAddOpen] = useState(false);
   const [newDate, setNewDate] = useState(event.startDate);
   const [newTime, setNewTime] = useState("10:00");
   const [newName, setNewName] = useState("");
   const [expandedSession, setExpandedSession] = useState<string | null>(event.sessions[0]?.id || null);
 
-  const handleAdd = () => {
-    onAddSession({ date: newDate, startTime: newTime, name: newName.trim() || undefined });
+  const handleAdd = async () => {
+    await onAddSession({ date: newDate, startTime: newTime, name: newName.trim() || undefined });
     setAddOpen(false);
     setNewName("");
   };
@@ -73,7 +80,7 @@ export function SessionsTab({ event, onAddSession, onUpdateSession, onDeleteSess
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={(e) => { e.stopPropagation(); onDeleteSession(session.id); }}
+                    onClick={(e) => { e.stopPropagation(); void onDeleteSession(session.id); }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -85,7 +92,7 @@ export function SessionsTab({ event, onAddSession, onUpdateSession, onDeleteSess
                   <SessionScheduleEditor
                     event={event}
                     sessionId={session.id}
-                    updateEvent={updateEvent}
+                    scheduleActions={scheduleActions}
                   />
                 </CardContent>
               )}
@@ -113,7 +120,7 @@ export function SessionsTab({ event, onAddSession, onUpdateSession, onDeleteSess
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
-            <Button onClick={handleAdd} disabled={!newDate || !newTime}>Añadir</Button>
+            <Button onClick={() => { void handleAdd(); }} disabled={!newDate || !newTime}>Añadir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -7,6 +7,7 @@ import {
   Clock, TrendingUp, Smartphone, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EcosystemStatsWidget } from "@/portal/components/EcosystemStatsWidget";
 
 /* ── animation helpers ── */
 const fade = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0, transition: { duration: 0.45 } } };
@@ -527,6 +528,9 @@ export default function StudentPortalLandingPage() {
       <PortalHeader />
       <Hero />
       <WhatIs />
+      <div className="container max-w-5xl py-8">
+        <EcosystemStatsWidget />
+      </div>
       <DancerProfile />
       <Progress />
       <Achievements />

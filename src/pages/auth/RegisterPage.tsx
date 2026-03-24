@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { registerSchool } from "@/lib/auth";
 import { getSelectableSubscriptionAddons, planCatalog, planOrder, type PlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
+import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 interface ValidationErrors {
   [key: string]: string | undefined;
@@ -120,6 +121,20 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    trackPortalEvent({
+      eventName: "submit_register_start",
+      category: "funnel",
+      metadata: {
+        section: "register",
+        step,
+        selectedPlan,
+        selectedAddOns: selectableAddOns
+          .filter((addon) => addOns[addon.key])
+          .map((addon) => addon.key),
+      },
+    });
+
     setIsLoading(true);
     
     try {
@@ -360,7 +375,19 @@ export default function RegisterPage() {
                   return (
                   <div
                     key={key}
-                    onClick={() => setSelectedPlan(key)}
+                    onClick={() => {
+                      setSelectedPlan(key);
+                      trackPortalEvent({
+                        eventName: "click_pricing_plan",
+                        category: "funnel",
+                        metadata: {
+                          section: "register",
+                          planType: key,
+                          planName: plan.name,
+                          monthlyPriceEur: plan.price,
+                        },
+                      });
+                    }}
                     className={`p-3 rounded-lg border-2 cursor-pointer transition ${
                       selectedPlan === key
                         ? "border-primary bg-primary/5"

@@ -1,0 +1,40 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="675" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8FFF8"/>
+      <stop offset="1" stop-color="#FFFFFF"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#0F766E"/>
+      <stop offset="1" stop-color="#14B8A6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="675" rx="28" fill="url(#bg)"/>
+  <circle cx="1080" cy="10" r="210" fill="#14B8A6" fill-opacity="0.12"/>
+  <circle cx="110" cy="620" r="170" fill="#0F766E" fill-opacity="0.1"/>
+
+  <rect x="84" y="86" width="74" height="74" rx="16" fill="url(#brand)"/>
+  <text x="121" y="134" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#FFFFFF">D</text>
+  <text x="176" y="133" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="#111827">DanceHub</text>
+
+  <text x="84" y="250" font-family="Arial, sans-serif" font-size="60" font-weight="700" fill="#111827">Gestion real para tu escuela</text>
+  <text x="84" y="307" font-family="Arial, sans-serif" font-size="30" font-weight="500" fill="#374151">Matriculas online, horarios y cobros centralizados</text>
+
+  <rect x="84" y="372" width="302" height="52" rx="26" fill="#111827"/>
+  <text x="235" y="406" text-anchor="middle" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF">Ver demo en vivo</text>
+
+  <rect x="84" y="442" width="362" height="46" rx="23" fill="url(#brand)"/>
+  <text x="265" y="471" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#FFFFFF">x.com/dancehub_es</text>
+
+  <g>
+    <rect x="702" y="136" width="420" height="410" rx="24" fill="#FFFFFF" stroke="#D1FAE5" stroke-width="2"/>
+    <rect x="730" y="170" width="364" height="22" rx="11" fill="#ECFDF5"/>
+    <rect x="730" y="210" width="168" height="98" rx="14" fill="#CCFBF1"/>
+    <rect x="912" y="210" width="182" height="98" rx="14" fill="#99F6E4"/>
+    <rect x="730" y="328" width="332" height="18" rx="9" fill="#ECFDF5"/>
+    <rect x="730" y="360" width="304" height="18" rx="9" fill="#ECFDF5"/>
+    <rect x="730" y="392" width="272" height="18" rx="9" fill="#ECFDF5"/>
+    <rect x="730" y="438" width="174" height="44" rx="12" fill="url(#brand)"/>
+  </g>
+</svg>
