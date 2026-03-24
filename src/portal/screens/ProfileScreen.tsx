@@ -1,20 +1,24 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Settings, Award, CalendarDays, ChevronRight, LogOut } from "lucide-react";
+import { Settings, Award, CalendarDays, ChevronRight, LogOut, Users, Eye, EyeOff, Zap } from "lucide-react";
 import { CURRENT_STUDENT, MOCK_ACHIEVEMENTS, MOCK_CERTIFICATIONS, MOCK_PORTAL_EVENTS } from "../data/mockData";
 import { ProfileHeader } from "../components/ProfileHeader";
 import { AchievementBadge } from "../components/AchievementBadge";
 import { usePortalPersona } from "../services/portalPersona";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 export default function ProfileScreen() {
   const { persona } = usePortalPersona();
+  const [isPublic, setIsPublic] = useState(CURRENT_STUDENT.isPublicProfile ?? true);
 
   if (persona === "prospect") {
     return (
       <div className="px-4 pb-24 pt-6 space-y-4">
         <h1 className="text-xl font-bold text-foreground">Perfil</h1>
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-sm font-medium text-foreground">Perfil de bailarin en construccion</p>
+          <p className="text-sm font-medium text-foreground">Perfil de bailarín en construcción</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Completa estilos, nivel y disponibilidad para recibir propuestas de escuelas.
           </p>
@@ -29,6 +33,9 @@ export default function ProfileScreen() {
 
   const earnedAchievements = MOCK_ACHIEVEMENTS.filter((a) => a.earned);
   const passedCerts = MOCK_CERTIFICATIONS.filter((c) => c.status === "passed");
+  const xp = CURRENT_STUDENT.xp ?? 0;
+  const xpNext = CURRENT_STUDENT.xpToNextLevel ?? 3000;
+  const xpPercent = Math.round((xp / xpNext) * 100);
 
   return (
     <div className="px-4 pb-24 pt-6 space-y-6">
@@ -37,6 +44,36 @@ export default function ProfileScreen() {
         <ProfileHeader student={CURRENT_STUDENT} large />
       </motion.div>
 
+      {/* Followers / Following */}
+      <div className="flex items-center justify-center gap-6">
+        <div className="text-center">
+          <p className="text-lg font-bold text-foreground">{CURRENT_STUDENT.followersCount ?? 0}</p>
+          <p className="text-[11px] text-muted-foreground">Seguidores</p>
+        </div>
+        <div className="h-6 w-px bg-border" />
+        <div className="text-center">
+          <p className="text-lg font-bold text-foreground">{CURRENT_STUDENT.followingCount ?? 0}</p>
+          <p className="text-[11px] text-muted-foreground">Siguiendo</p>
+        </div>
+      </div>
+
+      {/* Public/private toggle */}
+      <button
+        onClick={() => setIsPublic(!isPublic)}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition",
+          isPublic
+            ? "border-primary/30 bg-primary/5 text-foreground"
+            : "border-border bg-card text-foreground"
+        )}
+      >
+        {isPublic ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+        Perfil {isPublic ? "público" : "privado"}
+        <span className="ml-auto text-xs text-muted-foreground">
+          {isPublic ? "Visible para otros" : "Solo tú"}
+        </span>
+      </button>
+
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2 text-center">
         <StatBox value={String(CURRENT_STUDENT.classesCompleted)} label="Clases" />
@@ -44,9 +81,24 @@ export default function ProfileScreen() {
         <StatBox value={persona === "community" ? "Comunidad" : `${CURRENT_STUDENT.yearsExperience} años`} label={persona === "community" ? "Modo" : "Experiencia"} />
       </div>
 
+      {/* XP & Level */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">Nivel {CURRENT_STUDENT.level}</span>
+          </div>
+          <span className="text-xs text-muted-foreground">{xp} / {xpNext} XP</span>
+        </div>
+        <Progress value={xpPercent} className="h-2" />
+        <p className="text-[11px] text-muted-foreground">
+          Completa clases y misiones para subir de nivel
+        </p>
+      </div>
+
       {persona === "community" ? (
         <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-foreground">
-          Tienes habilitado el modulo social. Tu perfil tambien muestra publicaciones, comentarios y eventos colaborativos.
+          Tienes habilitado el módulo social. Tu perfil también muestra publicaciones, comentarios y eventos colaborativos.
         </div>
       ) : null}
 
