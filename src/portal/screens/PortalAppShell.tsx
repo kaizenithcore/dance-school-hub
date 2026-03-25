@@ -3,6 +3,7 @@ import { BottomNav } from "../components/BottomNav";
 import { PortalPersonaProvider, usePortalPersona } from "../services/portalPersona";
 import { cn } from "@/lib/utils";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function PortalAppShell() {
   return (
