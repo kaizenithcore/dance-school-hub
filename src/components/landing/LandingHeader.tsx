@@ -58,15 +58,18 @@ export function LandingHeader() {
           </Button>
         </div>
 
-        <button
-          className="md:hidden p-2 text-foreground"
-          onClick={() => setOpen(!open)}
-          aria-label={open ? "Cerrar menú" : "Abrir menú"}
-          aria-expanded={open}
-          aria-controls="landing-mobile-menu"
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex md:hidden items-center gap-1">
+          <ThemeToggle size="sm" />
+          <button
+            className="p-2 text-foreground"
+            onClick={() => setOpen(!open)}
+            aria-label={open ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={open}
+            aria-controls="landing-mobile-menu"
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {open && (

@@ -190,10 +190,11 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="border-t border-border p-3">
+      <div className="border-t border-border p-3 flex items-center justify-between">
+        <ThemeToggle size="sm" />
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex w-full items-center justify-center rounded-lg py-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="flex items-center justify-center rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
           <ChevronLeft className={cn("h-4 w-4 transition-transform duration-300", collapsed && "rotate-180")} />
         </button>
