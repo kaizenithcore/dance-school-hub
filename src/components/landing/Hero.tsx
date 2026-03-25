@@ -3,12 +3,15 @@ import { ArrowRight, Play, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
+import { formatEuro, planCatalog } from "@/lib/commercialCatalog";
+
+const proPlan = planCatalog.pro;
 
 const benefits = [
-  "Matrículas online automáticas",
-  "Gestión de clases y horarios",
+  "Software de gestión completo",
   "Portal del alumno (app)",
-  "Imagen digital profesional",
+  "Web profesional integrada",
+  "Pack de modernización incluido",
 ];
 
 export function Hero() {
@@ -18,20 +21,8 @@ export function Hero() {
       category: "funnel",
       metadata: {
         section: "hero",
-        ctaLabel: "Probar DanceHub",
+        ctaLabel: "Empezar con Pro Anual",
         destination: "/auth/register",
-      },
-    });
-  };
-
-  const handleDemoClick = () => {
-    trackPortalEvent({
-      eventName: "click_cta_demo",
-      category: "funnel",
-      metadata: {
-        section: "hero",
-        ctaLabel: "Ver demo",
-        destination: "/s/escuela-demo-dancehub",
       },
     });
   };
@@ -50,34 +41,42 @@ export function Hero() {
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground mb-6">
               <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-              Digitaliza tu escuela en días
+              Moderniza tu escuela en días, no meses
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight text-foreground leading-[1.1]">
-              Gestionar una escuela de danza{" "}
-              <span className="text-primary">no debería ser un caos</span>
+              Deja de gestionar con Excel.{" "}
+              <span className="text-primary">Moderniza tu escuela.</span>
             </h1>
 
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-lg">
-              De Excel y WhatsApp a una plataforma profesional. Automatiza matrículas, horarios, clases, alumnos, comunicación, exámes, eventos... Más alumnos, menos gestión.
+              Software de gestión + portal del alumno + web profesional + identidad visual.
+              Todo en un solo paso. Desde {formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}/mes con el plan anual.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" className="h-12 px-7 text-base font-semibold" asChild>
                 <Link to="/auth/register" onClick={handlePrimaryClick}>
-                  Probar DanceHub
+                  Empezar con Pro Anual
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="h-12 px-7 text-base" asChild>
-                <Link to="/s/escuela-demo-dancehub" onClick={handleDemoClick}>
-                  <Play className="mr-1 h-4 w-4" />
-                  Ver demo
-                </Link>
+                <a href="#modernization-bundle">
+                  Ver Pack Modernización
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </a>
               </Button>
             </div>
 
-            <ul className="mt-8 grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-muted-foreground">
+            <div className="mt-5 flex items-center gap-4 text-xs text-muted-foreground">
+              <span>{formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}/mes anual</span>
+              <span className="text-border">|</span>
+              <span className="line-through opacity-60">{formatEuro(proPlan.billing.monthlyPriceEur)}/mes</span>
+              <span className="text-success font-medium">{proPlan.billing.annualSavingsLabel}</span>
+            </div>
+
+            <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-muted-foreground">
               {benefits.map((b) => (
                 <li key={b} className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
