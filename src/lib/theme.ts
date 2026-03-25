@@ -44,7 +44,12 @@ export function setTheme(theme: AppTheme): void {
 }
 
 export function initializeTheme(): AppTheme {
-  const theme = getStoredTheme();
+  const stored = getStoredTheme();
+  // Default to light if no preference stored
+  const theme = stored === "system" ? "light" as AppTheme : stored;
+  if (stored === "system") {
+    window.localStorage.setItem(THEME_STORAGE_KEY, "light");
+  }
   applyTheme(theme);
 
   if (typeof window !== "undefined") {

@@ -3,6 +3,7 @@ import { BottomNav } from "../components/BottomNav";
 import { PortalPersonaProvider, usePortalPersona } from "../services/portalPersona";
 import { cn } from "@/lib/utils";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function PortalAppShell() {
   return (
@@ -27,9 +28,12 @@ function PersonaSwitcher() {
           Estas en modo offline. Mostrando datos recientes en cache.
         </div>
       ) : null}
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        Demo conceptual · tipo de usuario
-      </p>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Demo conceptual · tipo de usuario
+        </p>
+        <ThemeToggle size="sm" />
+      </div>
       <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1">
         {options.map((option) => (
           <button
