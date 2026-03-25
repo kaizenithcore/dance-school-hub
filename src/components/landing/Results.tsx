@@ -3,7 +3,7 @@ import { TrendingDown, Clock, Users, Smile } from "lucide-react";
 
 const stats = [
   { icon: TrendingDown, value: "70%", label: "Menos tiempo en tareas administrativas" },
-  { icon: Clock, value: "15h", label: "Ahorro medio semanal por escuela" },
+  { icon: Clock, value: "25h", label: "Ahorro medio semanal por escuela" },
   { icon: Users, value: "100%", label: "Matrículas online sin papel" },
   { icon: Smile, value: "+40%", label: "Mejora en satisfacción de alumnos" },
 ];

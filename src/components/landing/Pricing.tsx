@@ -41,12 +41,17 @@ const plans: Plan[] = planOrder.map((planType) => {
   };
 });
 
-const addons = [
+const addonsStarter = [
   `${subscriptionAddonCatalog.renewalAutomation.label}: ${formatEuro(subscriptionAddonCatalog.renewalAutomation.monthlyPriceEur)}/mes`,
   `${subscriptionAddonCatalog.waitlistAutomation.label}: ${formatEuro(subscriptionAddonCatalog.waitlistAutomation.monthlyPriceEur)}/mes`,
+];
+
+const addons = [
   `${subscriptionAddonCatalog.customDomain.label}: ${formatEuro(subscriptionAddonCatalog.customDomain.monthlyPriceEur)}/mes`,
   `${subscriptionAddonCatalog.prioritySupport.label}: ${formatEuro(subscriptionAddonCatalog.prioritySupport.monthlyPriceEur)}/mes`,
-  `Bloques extra de alumnos desde ${formatEuro(getMinimumExtraStudentBlockPriceEur())}/mes`,
+  `Bloques extra de alumnos desde ${formatEuro(getMinimumExtraStudentBlockPriceEur())}/mes (según el plan)`,
+  `${subscriptionAddonCatalog.extraRoles.label}: ${formatEuro(subscriptionAddonCatalog.extraRoles.monthlyPriceEur)}/mes`,
+  
 ];
 
 export function Pricing() {
@@ -178,7 +183,7 @@ export function Pricing() {
           className="mt-8 rounded-2xl border border-primary/20 bg-card p-6 max-w-5xl mx-auto text-center"
         >
           <p className="text-lg font-semibold text-foreground">
-            Con solo 5–15 alumnos nuevos cubres el coste completo del sistema
+            Con solo 5–15 alumnos al mes cubres el coste completo del sistema
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {commercialCatalog.pricingNarrative?.comparison || "Más barato que contratar a un administrativo"}. El retorno de inversión es inmediato: menos gestión, más tiempo para captar y retener alumnos.
@@ -186,7 +191,18 @@ export function Pricing() {
         </motion.div>
 
         <div className="mt-6 rounded-2xl border border-border bg-card p-6 max-w-5xl mx-auto">
-          <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Add-ons disponibles</h3>
+          <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Add-ons disponibles para Starter</h3>
+          <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
+            {addonsStarter.map((a) => (
+              <p key={a} className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                {a}
+              </p>
+            ))}
+          </div>
+        </div>
+        <div className="mt-6 rounded-2xl border border-border bg-card p-6 max-w-5xl mx-auto">
+          <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Add-ons disponibles para todos</h3>
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
             {addons.map((a) => (
               <p key={a} className="flex items-center gap-2">

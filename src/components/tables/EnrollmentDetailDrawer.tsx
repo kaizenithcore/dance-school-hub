@@ -28,6 +28,10 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
   const statusCfg = STATUS_CONFIG[enrollment.status];
   const isPending = enrollment.status === "pending";
 
+  const paymentMethodFormatted = enrollment.paymentMethod === "transfer" ? "Transferencia bancaria" :
+    enrollment.paymentMethod === "cash" ? "Efectivo" :
+    enrollment.paymentMethod;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
@@ -49,7 +53,7 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
               <InfoRow icon={Mail} label="Email" value={enrollment.studentEmail} />
               <InfoRow icon={Phone} label="Teléfono" value={enrollment.studentPhone} />
               <InfoRow icon={Calendar} label="Fecha de solicitud" value={format(new Date(enrollment.date), "d MMM yyyy", { locale: es })} />
-              <InfoRow icon={CreditCard} label="Método de pago" value={enrollment.paymentMethod} />
+              <InfoRow icon={CreditCard} label="Método de pago" value={paymentMethodFormatted} />
             </div>
           </section>
 

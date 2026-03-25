@@ -341,6 +341,7 @@ export function AdminLayout() {
     waitlistAutomation: false,
     renewalAutomation: false,
   });
+  const [trialLockDismissed, setTrialLockDismissed] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const firstRenderRef = useRef(true);
   const lastIntroPathRef = useRef<string | null>(null);
@@ -388,6 +389,8 @@ export function AdminLayout() {
   }, [trialStatus]);
 
   const isTrialLocked = Boolean(trialStatus?.expired && !billing.trialPaymentCompleted);
+  const canDismissTrialLockInDev = import.meta.env.DEV;
+  const showTrialLockModal = isTrialLocked && !(canDismissTrialLockInDev && trialLockDismissed);
 
   const bannerTrialText = useMemo(() => {
     if (!trialStatus || trialStatus.remainingDays <= 0) {
@@ -408,6 +411,12 @@ export function AdminLayout() {
 
     return trialStatus.remainingDays <= TRIAL_WARNING_DAYS ? "font-medium text-amber-700" : "";
   }, [trialStatus]);
+
+  useEffect(() => {
+    if (!isTrialLocked && trialLockDismissed) {
+      setTrialLockDismissed(false);
+    }
+  }, [isTrialLocked, trialLockDismissed]);
 
   useEffect(() => {
     if (checkoutInitializedRef.current) {
@@ -761,7 +770,7 @@ export function AdminLayout() {
         <PlanDevOverlay />
       </div>
 
-      {isTrialLocked ? (
+      {showTrialLockModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 px-4 py-8">
           <div className="w-full max-w-xl rounded-xl border border-border bg-card p-6 shadow-medium md:p-8">
             <h2 className="text-xl font-semibold text-foreground">Tu prueba gratuita finalizó</h2>
@@ -848,6 +857,17 @@ export function AdminLayout() {
             <Button className="mt-6 w-full" onClick={() => void handleTrialCheckout()} disabled={checkoutLoading}>
               {checkoutLoading ? "Redirigiendo a pago..." : "Continuar al pago"}
             </Button>
+
+            {canDismissTrialLockInDev ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2 w-full"
+                onClick={() => setTrialLockDismissed(true)}
+              >
+                Cerrar aviso (solo desarrollo)
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : null}

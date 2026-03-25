@@ -133,7 +133,7 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave }: Teache
 
             <div>
               <Label htmlFor="aulary" className="text-xs font-semibold">
-                Aulario Mensual ($) *
+                Salario Mensual ($) *
               </Label>
               <Input
                 id="aulary"

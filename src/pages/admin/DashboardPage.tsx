@@ -129,7 +129,7 @@ export default function DashboardPage() {
         />
         <StatCard 
           title={`Ingresos (${new Date().toLocaleString('es-AR', { month: 'short' })})`} 
-          value={`$${(metrics?.monthRevenue ?? 0).toLocaleString()}`} 
+          value={`${(metrics?.monthRevenue ?? 0).toLocaleString()}€`} 
           change={
             (metrics?.overduePayments ?? 0) > 0 
               ? `${metrics?.overduePayments} pago(s) vencido(s)` 
@@ -284,7 +284,7 @@ export default function DashboardPage() {
                     <p className="text-[10px] text-muted-foreground">{p.concept.slice(0, 40)}…</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-semibold text-destructive">${p.amount.toLocaleString()}</p>
+                    <p className="text-sm font-semibold text-destructive">{p.amount.toLocaleString()}€</p>
                     <p className="text-[10px] text-muted-foreground">{formatSafeDate(p.createdAt)}</p>
                   </div>
                 </div>

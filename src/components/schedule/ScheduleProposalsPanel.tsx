@@ -112,7 +112,7 @@ export function ScheduleProposalsPanel({ onApplied, onPreviewChange }: ScheduleP
             />
             <div>
               <Label htmlFor="replace-unlocked" className="text-sm cursor-pointer">
-                Reemplazar sesiones no bloqueadas
+                Reemplazar sólo sesiones no bloqueadas
               </Label>
               <p className="text-xs text-muted-foreground">
                 Las sesiones con candado <Lock className="inline h-3 w-3" /> se conservan como ancla; el resto se reemplaza.

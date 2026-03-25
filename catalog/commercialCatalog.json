@@ -182,6 +182,11 @@
       "label": "Soporte prioritario",
       "monthlyPriceEur": 79
     },
+    "extraRoles": {
+      "label": "Roles personalizados extra",
+      "monthlyPriceEur": 19,
+      "description": "Precio por bloque de 5 roles personalizados adicionales (solo para Enterprise)"
+    },
     "waitlistAutomation": {
       "label": "Automatización lista de espera",
       "monthlyPriceEur": 24,
@@ -219,8 +224,8 @@
       "shortDescription": "Web conectada al sistema para captar y matricular alumnos.",
       "pricingByPlanEur": {
         "starter": 1490,
-        "pro": 1190,
-        "enterprise": 990
+        "pro": 1790,
+        "enterprise": 2190
       },
       "installments": {
         "months": [3, 6],
@@ -241,9 +246,9 @@
       "serviceType": "one_time",
       "shortDescription": "Web profesional para escuelas que no necesitan el SaaS.",
       "tierPricingEur": {
-        "basic": 890,
-        "standard": 1290,
-        "advanced": 1990
+        "basic": 1390,
+        "standard": 1590,
+        "advanced": 2990
       },
       "maintenance": {
         "monthlyPriceEur": 29

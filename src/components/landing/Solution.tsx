@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Users, BookOpen, LayoutGrid, FileEdit, Award, Smartphone, Megaphone } from "lucide-react";
+import { Users, BookOpen, LayoutGrid, FileEdit, Award, Smartphone, Megaphone, Calendar, BarChart } from "lucide-react";
 
 const modules = [
   { icon: Users, title: "Gestión de alumnos", desc: "Fichas completas, historial, documentos y seguimiento de cada alumno desde un solo lugar." },
@@ -9,6 +9,9 @@ const modules = [
   { icon: Award, title: "Gestión de exámenes", desc: "Registra candidatos, califica con categorías ponderadas y genera certificados automáticamente." },
   { icon: Smartphone, title: "Portal del alumno", desc: "Los alumnos consultan sus horarios, clases, certificaciones y perfil desde su móvil." },
   { icon: Megaphone, title: "Comunicación con alumnos", desc: "Envía emails segmentados a alumnos, familias o grupos de clases en segundos." },
+  { icon: Calendar, title: "Gestión de eventos", desc: "Organiza y coordina eventos y escaletas de manera eficiente, evitando conflictos y errores." },
+  { icon: BarChart, title: "Análisis y reportes", desc: "Genera informes detallados sobre el rendimiento de tu escuela y la participación de los alumnos." },
+  
 ];
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };

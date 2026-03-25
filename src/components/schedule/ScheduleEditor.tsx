@@ -157,10 +157,10 @@ export function ScheduleEditor({ previewProposal = null }: ScheduleEditorProps) 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <RoomSelector rooms={rooms} selected={selectedRoom} onChange={setSelectedRoom} />
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => toast.info("Función de deshacer próximamente")}>
+          {/* <Button variant="outline" size="sm" onClick={() => toast.info("Función de deshacer próximamente")}>
             <RotateCcw className="h-3.5 w-3.5 mr-1" />
             Deshacer
-          </Button>
+          </Button> */}
           <Button size="sm" onClick={handleSave} disabled={isSaving || loading}>
             <Save className="h-3.5 w-3.5 mr-1" />
             {isSaving ? "Guardando..." : "Guardar"}

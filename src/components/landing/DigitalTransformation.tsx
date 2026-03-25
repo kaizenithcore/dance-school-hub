@@ -33,7 +33,7 @@ export function DigitalTransformation() {
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Modernización digital</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Da el salto digital en semanas
+            Da el salto digital en días, no meses
           </h2>
           <p className="mt-4 text-muted-foreground">
             La mayoría de escuelas de danza siguen funcionando como hace 15 años. DanceHub te permite modernizar tu escuela sin complicaciones.

@@ -84,7 +84,7 @@ export function TeachersTable({
               <TableHead className="text-xs hidden md:table-cell">Email</TableHead>
               <TableHead className="text-xs hidden lg:table-cell">Teléfono</TableHead>
               <TableHead className="text-xs text-center">Clases</TableHead>
-              <TableHead className="text-xs text-right">Aulario</TableHead>
+              <TableHead className="text-xs text-right">Salario</TableHead>
               <TableHead className="text-xs text-center">Estado</TableHead>
               <TableHead className="text-xs text-right">Acciones</TableHead>
             </TableRow>

@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Quote, BadgeCheck, TrendingUp } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { landingTestimonials } from "@/lib/data/landingTestimonials";
+import { console } from "inspector/promises";
 
 const proofBadges = [
   "Caso documentado en produccion",
@@ -33,7 +34,7 @@ export function Credibility() {
           viewport={{ once: true }}
           className="text-center max-w-3xl mx-auto mb-12"
         >
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Credibilidad</p>
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Ya confían en nosotros</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Resultados reales en escuelas reales</h2>
           <p className="mt-4 text-muted-foreground">
             Casos publicados con impacto operativo medible para validar resultados antes de contratar.

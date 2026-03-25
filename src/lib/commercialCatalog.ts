@@ -2,6 +2,7 @@ import commercialCatalogJson from "../../catalog/commercialCatalog.json";
 
 export type PlanType = "starter" | "pro" | "enterprise";
 export type SubscriptionAddonKey = "customDomain" | "prioritySupport" | "waitlistAutomation" | "renewalAutomation";
+export type SubscriptionAddonCatalogKey = SubscriptionAddonKey | "extraRoles";
 
 interface PlanFeatureFlags {
   smartEnrollmentLink: boolean;
@@ -48,12 +49,15 @@ interface CommercialCatalog {
       features: string[];
       adminHighlights: string[];
     };
-    includedSubscriptionAddons: SubscriptionAddonKey[];
+    includedSubscriptionAddons: SubscriptionAddonCatalogKey[];
   }>;
-  subscriptionAddons: Record<SubscriptionAddonKey, {
+  subscriptionAddons: Record<SubscriptionAddonCatalogKey, {
     label: string;
     monthlyPriceEur: number;
+    description?: string;
     starterOnly?: boolean;
+    upsellToPro?: boolean;
+    enterpriseOnly?: boolean;
   }>;
   professionalServices: Record<string, unknown>;
   bundles?: Record<string, unknown>;
@@ -71,6 +75,13 @@ export const planCatalog = commercialCatalog.plans;
 export const subscriptionAddonCatalog = commercialCatalog.subscriptionAddons;
 export const professionalServicesCatalog = commercialCatalog.professionalServices;
 
+function isSelectableSubscriptionAddonKey(
+  key: SubscriptionAddonCatalogKey
+): key is SubscriptionAddonKey {
+  return key !== "extraRoles";
+}
+
+
 export function formatEuro(value: number) {
   return `${value.toLocaleString("es-ES")}€`;
 }
@@ -82,8 +93,13 @@ export function getMinimumExtraStudentBlockPriceEur() {
 }
 
 export function getSelectableSubscriptionAddons(planType: PlanType) {
-  return (Object.entries(subscriptionAddonCatalog) as Array<[SubscriptionAddonKey, typeof subscriptionAddonCatalog[SubscriptionAddonKey]]>)
+  return (Object.entries(subscriptionAddonCatalog) as Array<[SubscriptionAddonCatalogKey, typeof subscriptionAddonCatalog[SubscriptionAddonCatalogKey]]>)
     .filter(([key, addon]) => {
+      // Catalog-only addon shown in pricing docs, not selectable in self-serve checkout yet.
+      if (!isSelectableSubscriptionAddonKey(key)) {
+        return false;
+      }
+
       if (key === "waitlistAutomation" || key === "renewalAutomation") {
         return false;
       }

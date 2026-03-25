@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FileWarning, CalendarX, RotateCcw, Users, Clock } from "lucide-react";
+import { FileWarning, CalendarX, RotateCcw, Users, Clock, Calendar } from "lucide-react";
 import { ArrowDown } from "lucide-react";
 
 const problems = [
@@ -8,6 +8,7 @@ const problems = [
   { icon: RotateCcw, title: "Renovaciones manuales", desc: "Cada año, semanas recopilando confirmaciones una a una." },
   { icon: Users, title: "Listas de espera desordenadas", desc: "Alumnos que esperan sin orden ni comunicación clara." },
   { icon: Clock, title: "Demasiado tiempo administrativo", desc: "Horas perdidas en tareas que deberían ser automáticas." },
+  { icon: Calendar, title: "Eventos desorganizados", desc: "Escaletas imposibles de gestionar y coordinar." },
 ];
 
 const container = {
