@@ -133,8 +133,6 @@ export const defaultEnrollmentFormConfig = {
           options: [
             { value: "transfer", label: "Transferencia bancaria" },
             { value: "cash", label: "Efectivo" },
-            { value: "card", label: "Tarjeta de crédito/débito" },
-            { value: "mercadopago", label: "Mercado Pago" },
           ],
         },
       ],

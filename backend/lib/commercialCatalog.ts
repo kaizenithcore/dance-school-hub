@@ -2,6 +2,7 @@ import commercialCatalogJson from "../../catalog/commercialCatalog.json";
 
 type PlanType = "starter" | "pro" | "enterprise";
 type SubscriptionAddonKey = "customDomain" | "prioritySupport" | "waitlistAutomation" | "renewalAutomation";
+type SubscriptionAddonCatalogKey = SubscriptionAddonKey | "extraRoles";
 
 interface FeatureFlags {
   smartEnrollmentLink: boolean;
@@ -36,12 +37,15 @@ interface CommercialCatalog {
       monthlyPriceEur: number;
     };
     featureFlags: FeatureFlags;
-    includedSubscriptionAddons: SubscriptionAddonKey[];
+    includedSubscriptionAddons: SubscriptionAddonCatalogKey[];
   }>;
-  subscriptionAddons: Record<SubscriptionAddonKey, {
+  subscriptionAddons: Record<SubscriptionAddonCatalogKey, {
     label: string;
     monthlyPriceEur: number;
+    description?: string;
     starterOnly?: boolean;
+    upsellToPro?: boolean;
+    enterpriseOnly?: boolean;
   }>;
   professionalServices: Record<string, unknown>;
 }
