@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type FeatureKey = "waitlistAutomation" | "renewalAutomation" | "courseClone" | "massCommunicationEmail" | "examSuite";
 
