@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Globe, Link2, Palette, CreditCard, ArrowRight } from "lucide-react";
+import { Globe, Link2, Palette, CreditCard, ArrowRight, Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { commercialCatalog, formatEuro } from "@/lib/commercialCatalog";
 
@@ -7,15 +7,18 @@ const webCatalog = commercialCatalog.professionalServices as Record<string, any>
 const integratedWeb = webCatalog.integratedWebsite;
 const standaloneWeb = webCatalog.standaloneWebsite;
 
-const integrated = [
-  { icon: Link2, text: "Conectada a matrículas online" },
-  { icon: Globe, text: "Conectada a clases y horarios" },
-  { icon: Palette, text: "Conectada a eventos de la escuela" },
+const integratedFeatures = [
+  "Página pública de tu escuela",
+  "Horarios y clases visibles",
+  "Matrícula online integrada",
+  "Eventos y actividades",
+  "Acceso al portal del alumno",
+  "Diseñada para convertir visitas en matrículas",
 ];
 
 export function WebService() {
   return (
-    <section className="py-20 sm:py-28 bg-muted/30">
+    <section id="web-service" className="py-20 sm:py-28 bg-muted/30">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -25,10 +28,10 @@ export function WebService() {
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Servicio web</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Crea una web profesional para tu escuela
+            Tu escuela necesita una web profesional
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Muchas escuelas no tienen web o la suya está obsoleta. Diseñamos webs optimizadas para captar alumnos.
+            La mayoría de escuelas no tienen web o la suya está obsoleta. Diseñamos webs optimizadas para captar y matricular alumnos.
           </p>
         </motion.div>
 
@@ -38,33 +41,53 @@ export function WebService() {
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="rounded-2xl border border-primary/20 bg-card p-7 ring-1 ring-primary/10"
+            className="rounded-2xl border-2 border-primary/30 bg-card p-7 ring-1 ring-primary/10 relative"
           >
-            <h3 className="text-lg font-semibold text-foreground mb-1">{integratedWeb.label}</h3>
-            <p className="text-sm text-muted-foreground mb-2">
+            <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-[10px] font-semibold text-primary-foreground">
+              Recomendada con DanceHub
+            </span>
+
+            <div className="flex items-center gap-2 mb-2 mt-1">
+              <Link2 className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">{integratedWeb.label}</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
               Tu web y tu sistema trabajan juntos. Los alumnos pasan de la web a la matrícula sin fricciones.
             </p>
-            <p className="text-sm font-medium text-foreground mb-5">
-              Desde {formatEuro(Math.min(...Object.values(integratedWeb.pricingByPlanEur as Record<string, number>)))}
-              {integratedWeb.bundleEligible && (
-                <span className="ml-1 text-xs text-primary font-semibold">
-                  · {formatEuro(integratedWeb.bundlePriceEur)} en pack
-                </span>
-              )}
-            </p>
-            <ul className="space-y-3">
-              {integrated.map((item) => (
-                <li key={item.text} className="flex items-center gap-3 text-sm text-foreground">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-primary shrink-0">
-                    <item.icon className="h-4 w-4" />
-                  </div>
-                  {item.text}
+
+            <ul className="space-y-2 mb-5">
+              {integratedFeatures.map((f) => (
+                <li key={f} className="flex items-center gap-2 text-sm text-foreground">
+                  <Check className="h-3.5 w-3.5 text-success shrink-0" />
+                  {f}
                 </li>
               ))}
             </ul>
+
+            <div className="rounded-xl border border-border bg-background p-4 mb-4">
+              <p className="text-sm font-medium text-foreground mb-1">
+                Desde {formatEuro(Math.min(...Object.values(integratedWeb.pricingByPlanEur as Record<string, number>)))} · Pago único
+              </p>
+              {integratedWeb.bundleEligible && (
+                <p className="text-xs text-primary font-semibold">
+                  {formatEuro(integratedWeb.bundlePriceEur)} incluida en el Pack Modernización Pro
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-border bg-background p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <CreditCard className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Pago fraccionado disponible</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Divide el coste en {integratedWeb.installments.months.join("–")} meses sin intereses.
+                Ejemplo: {formatEuro(integratedWeb.installments.exampleMonthlyEur)}/mes × {integratedWeb.installments.exampleMonths} meses.
+              </p>
+            </div>
           </motion.div>
 
-          {/* Independent */}
+          {/* Standalone */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -72,36 +95,33 @@ export function WebService() {
             transition={{ delay: 0.1 }}
             className="rounded-2xl border border-border bg-card p-7"
           >
-            <h3 className="text-lg font-semibold text-foreground mb-1">{standaloneWeb.label}</h3>
-            <p className="text-sm text-muted-foreground mb-2">
-              ¿Solo necesitas una web? También podemos ayudarte. Sin necesidad de contratar el software de gestión.
-            </p>
-            <p className="text-sm font-medium text-foreground mb-5">
-              Desde {formatEuro(standaloneWeb.tierPricingEur.basic)}
+            <div className="flex items-center gap-2 mb-2">
+              <Globe className="h-5 w-5 text-muted-foreground" />
+              <h3 className="text-lg font-semibold text-foreground">{standaloneWeb.label}</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              ¿Solo necesitas una web profesional? No es necesario contratar el software de gestión. Web independiente con diseño profesional.
             </p>
 
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-background p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <CreditCard className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">Pago único</span>
+            <div className="space-y-3 mb-5">
+              {Object.entries(standaloneWeb.tierPricingEur as Record<string, number>).map(([tier, price]) => (
+                <div key={tier} className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
+                  <span className="text-sm font-medium text-foreground capitalize">{tier}</span>
+                  <span className="text-sm font-bold text-foreground">{formatEuro(price)}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Un solo pago y la web es tuya. Sin costes recurrentes.</p>
+              ))}
+            </div>
+
+            <div className="rounded-xl border border-border bg-background p-4 mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">Pago único</span>
               </div>
-              <div className="rounded-xl border border-border bg-background p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <CreditCard className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">Pago fraccionado</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Divide el coste en {integratedWeb.installments.months.join("–")} meses sin intereses.
-                  Ejemplo: {formatEuro(integratedWeb.installments.exampleMonthlyEur)}/mes durante {integratedWeb.installments.exampleMonths} meses.
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">Un solo pago y la web es tuya. Sin costes recurrentes.</p>
             </div>
 
             {standaloneWeb.maintenance && (
-              <p className="mt-4 text-xs text-muted-foreground text-center">
+              <p className="text-xs text-muted-foreground text-center">
                 Mantenimiento opcional: {formatEuro(standaloneWeb.maintenance.monthlyPriceEur)}/mes
               </p>
             )}

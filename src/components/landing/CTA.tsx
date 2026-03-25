@@ -11,20 +11,8 @@ export function CTA() {
       category: "funnel",
       metadata: {
         section: "final_cta",
-        ctaLabel: "Probar gratis",
+        ctaLabel: "Empezar con el pack",
         destination: "/auth/register",
-      },
-    });
-  };
-
-  const handleDemoClick = () => {
-    trackPortalEvent({
-      eventName: "click_cta_demo",
-      category: "funnel",
-      metadata: {
-        section: "final_cta",
-        ctaLabel: "Ver demo en vivo",
-        destination: "/s/escuela-demo-dancehub",
       },
     });
   };
@@ -43,21 +31,21 @@ export function CTA() {
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
               Empieza a modernizar tu escuela hoy
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground max-w-md mx-auto">
-              Crea tu cuenta y prueba la plataforma gratis durante 14 días. Sin tarjeta de crédito.
+            <p className="mt-4 text-lg text-muted-foreground max-w-lg mx-auto">
+              El camino recomendado: Plan Pro Anual + Pack Modernización. Todo listo para empezar en semanas.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
                 <Link to="/auth/register" onClick={handlePrimaryClick}>
-                  Probar gratis
+                  Empezar con el pack
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
-                <Link to="/s/escuela-demo-dancehub" onClick={handleDemoClick}>
+                <a href="mailto:hola@dancehub.es?subject=Solicitar%20demo%20DanceHub">
                   <Play className="mr-1 h-4 w-4" />
-                  Ver demo en vivo
-                </Link>
+                  Solicitar demo
+                </a>
               </Button>
             </div>
           </div>

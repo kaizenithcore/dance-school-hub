@@ -7,7 +7,7 @@ import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 const nav = [
   { label: "Solución", href: "#solution" },
-  { label: "Modernización", href: "#modernization" },
+  { label: "Pack Pro", href: "#modernization" },
   { label: "Portal alumno", href: "#student-portal" },
   { label: "Webs", href: "#web-service" },
   { label: "Precios", href: "#pricing" },

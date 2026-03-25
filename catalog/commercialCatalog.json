@@ -263,16 +263,38 @@
       "includes": [
         "proPlan",
         "modernizationPack",
-        "integratedWebsite"
+        "integratedWebsite",
+        "weydiIdentityReview"
       ],
       "pricing": {
         "oneTimeEur": 1490,
         "note": "Ahorra más de 1.000€ frente a contratar servicios por separado"
       },
+      "firstYearTotalEur": 7980,
+      "firstYearNote": "Plan Pro anual + Pack + Web + Revisión de identidad",
       "commercialPositioning": {
         "highlighted": true,
         "recommended": true,
         "conversionDriver": true
+      }
+    }
+  },
+  "creativeServices": {
+    "provider": "Weydi",
+    "providerDescription": "Estudio creativo con más de una década de experiencia en diseño e identidad visual.",
+    "providerUrl": "https://weydi.com",
+    "services": {
+      "identityReview": {
+        "label": "Revisión de identidad visual",
+        "description": "Análisis y mejora de tu identidad visual actual: logo, tipografía, paleta de colores y coherencia de marca.",
+        "pricingEur": 390,
+        "includedInBundle": true
+      },
+      "rebranding": {
+        "label": "Rebranding completo",
+        "description": "Rediseño integral de la identidad de tu escuela: nuevo logo, manual de marca, papelería y activos digitales.",
+        "pricingEur": 1490,
+        "includedInBundle": false
       }
     }
   },

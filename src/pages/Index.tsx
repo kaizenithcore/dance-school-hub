@@ -6,6 +6,7 @@ import { ModernizationPack } from "@/components/landing/ModernizationPack";
 import { DigitalTransformation } from "@/components/landing/DigitalTransformation";
 import { StudentPortal } from "@/components/landing/StudentPortal";
 import { WebService } from "@/components/landing/WebService";
+import { WeydiCreativeServices } from "@/components/landing/WeydiCreativeServices";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Features } from "@/components/landing/Features";
 import { WhatYouGet } from "@/components/landing/WhatYouGet";
@@ -37,6 +38,7 @@ const Index = () => (
     <div id="web-service">
       <WebService />
     </div>
+    <WeydiCreativeServices />
     <HowItWorks />
     <div id="features">
       <Features />
