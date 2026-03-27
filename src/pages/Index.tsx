@@ -50,6 +50,10 @@ const Index = () => (
     <div id="pricing">
       <Pricing />
     </div>
+    <div id="examsuit">
+      <ExamSuit />
+    </div>
+    <AssociatedSchools />
     <LaunchOffer />
     <ROI />
     <Results />
