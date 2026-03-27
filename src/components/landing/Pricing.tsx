@@ -211,7 +211,23 @@ export function Pricing() {
               </p>
             ))}
           </div>
+          </div>
         </div>
+
+        {/* ExamSuit upsell */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-6 rounded-2xl border border-primary/10 bg-card p-6 max-w-5xl mx-auto text-center"
+        >
+          <p className="text-sm font-medium text-foreground">
+            ¿Ya utilizas ExamSuit? Puedes activar el Plan Pro en un solo paso.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Empieza con exámenes. Escala a gestión completa.
+          </p>
+        </motion.div>
       </div>
     </section>
   );
