@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Globe, Link2, Palette, CreditCard, ArrowRight, Check, ExternalLink } from "lucide-react";
+import { Globe, Link2, CreditCard, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { commercialCatalog, formatEuro } from "@/lib/commercialCatalog";
 
@@ -7,14 +7,19 @@ const webCatalog = commercialCatalog.professionalServices as Record<string, any>
 const integratedWeb = webCatalog.integratedWebsite;
 const standaloneWeb = webCatalog.standaloneWebsite;
 
-const integratedFeatures = [
-  "Página pública de tu escuela",
-  "Horarios y clases visibles",
-  "Matrícula online integrada",
-  "Eventos y actividades",
+const integratedFeatures = (integratedWeb?.includes as string[] | undefined) || [
+  "Página pública profesional",
+  "Clases y horarios visibles",
+  "Matrículas online",
   "Acceso al portal del alumno",
-  "Diseñada para convertir visitas en matrículas",
+  "Conexión directa con DanceHub",
 ];
+
+const standaloneTierLabels: Record<string, string> = {
+  basic: "Basica",
+  standard: "Profesional",
+  complete: "Completa",
+};
 
 export function WebService() {
   return (
@@ -51,8 +56,8 @@ export function WebService() {
               <Link2 className="h-5 w-5 text-primary" />
               <h3 className="text-lg font-semibold text-foreground">{integratedWeb.label}</h3>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Tu web y tu sistema trabajan juntos. Los alumnos pasan de la web a la matrícula sin fricciones.
+              <p className="text-sm text-muted-foreground mb-4">
+              Tu web y tu sistema trabajan juntos. Los alumnos pasan de la web a la matricula sin fricciones.
             </p>
 
             <ul className="space-y-2 mb-5">
@@ -100,13 +105,13 @@ export function WebService() {
               <h3 className="text-lg font-semibold text-foreground">{standaloneWeb.label}</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              ¿Solo necesitas una web profesional? No es necesario contratar el software de gestión. Web independiente con diseño profesional.
+              Si solo necesitas una web profesional, no hace falta contratar el software de gestion. Web independiente y lista para captar alumnos.
             </p>
 
             <div className="space-y-3 mb-5">
               {Object.entries(standaloneWeb.tierPricingEur as Record<string, number>).map(([tier, price]) => (
                 <div key={tier} className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
-                  <span className="text-sm font-medium text-foreground capitalize">{tier}</span>
+                  <span className="text-sm font-medium text-foreground">{standaloneTierLabels[tier] || tier}</span>
                   <span className="text-sm font-bold text-foreground">{formatEuro(price)}</span>
                 </div>
               ))}
@@ -117,7 +122,7 @@ export function WebService() {
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium text-foreground">Pago único</span>
               </div>
-              <p className="text-xs text-muted-foreground">Un solo pago y la web es tuya. Sin costes recurrentes.</p>
+              <p className="text-xs text-muted-foreground">Un solo pago y la web es tuya. Opcion de pago fraccionado 3 o 6 meses sin intereses.</p>
             </div>
 
             {standaloneWeb.maintenance && (

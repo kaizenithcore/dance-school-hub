@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ClassRecord } from "@/lib/data/mockClassRecords";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Eye, Pencil, Trash2, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Pencil, Trash2, Search, Users, ChevronLeft, ChevronRight, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -19,18 +19,29 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
 };
 
 const PAGE_SIZE = 8;
+const PAGE_PREFS_KEY = "classes-table-page";
+
+type ClassSortKey = "name" | "teacher" | "discipline" | "category" | "frequency" | "price" | "occupancy" | "status";
 
 interface ClassesTableProps {
   classes: ClassRecord[];
+  isLoading?: boolean;
   onPreview: (cls: ClassRecord) => void;
   onEdit: (cls: ClassRecord) => void;
   onDelete: (cls: ClassRecord) => void;
 }
 
-export function ClassesTable({ classes, onPreview, onEdit, onDelete }: ClassesTableProps) {
+export function ClassesTable({ classes, isLoading = false, onPreview, onEdit, onDelete }: ClassesTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [page, setPage] = useState(0);
+  const [sortKey, setSortKey] = useState<ClassSortKey>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const raw = window.localStorage.getItem(PAGE_PREFS_KEY);
+    const parsed = Number(raw);
+    return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
+  });
 
   const filtered = useMemo(() => {
     return classes.filter((c) => {
@@ -43,8 +54,91 @@ export function ClassesTable({ classes, onPreview, onEdit, onDelete }: ClassesTa
     });
   }, [classes, search, statusFilter]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const sorted = useMemo(() => {
+    const direction = sortDirection === "asc" ? 1 : -1;
+    const rows = [...filtered];
+
+    rows.sort((a, b) => {
+      const getValue = (cls: ClassRecord) => {
+        switch (sortKey) {
+          case "name":
+            return cls.name.toLowerCase();
+          case "teacher":
+            return cls.teacher.toLowerCase();
+          case "discipline":
+            return cls.discipline.toLowerCase();
+          case "category":
+            return cls.category.toLowerCase();
+          case "frequency":
+            return cls.weeklyFrequency || 1;
+          case "price":
+            return cls.price;
+          case "occupancy":
+            return cls.capacity > 0 ? cls.enrolled / cls.capacity : 0;
+          case "status":
+            return STATUS_MAP[cls.status]?.label || cls.status;
+          default:
+            return "";
+        }
+      };
+
+      const aValue = getValue(a);
+      const bValue = getValue(b);
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return (aValue - bValue) * direction;
+      }
+
+      return String(aValue).localeCompare(String(bValue), "es", { sensitivity: "base" }) * direction;
+    });
+
+    return rows;
+  }, [filtered, sortKey, sortDirection]);
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  useEffect(() => {
+    window.localStorage.setItem(PAGE_PREFS_KEY, String(page));
+  }, [page]);
+
+  useEffect(() => {
+    if (totalPages === 0) {
+      if (page !== 0) setPage(0);
+      return;
+    }
+
+    if (page > totalPages - 1) {
+      setPage(totalPages - 1);
+    }
+  }, [page, totalPages]);
+
+  const toggleSort = (key: ClassSortKey) => {
+    setPage(0);
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortKey(key);
+    setSortDirection("asc");
+  };
+
+  const renderSortableHead = (label: string, key: ClassSortKey, className?: string, align: "left" | "center" | "right" = "left") => (
+    <TableHead className={cn("text-xs", className)}>
+      <button
+        type="button"
+        onClick={() => toggleSort(key)}
+        className={cn(
+          "inline-flex w-full items-center gap-1 hover:text-foreground",
+          align === "center" ? "justify-center" : align === "right" ? "justify-end" : "justify-start"
+        )}
+      >
+        <span>{label}</span>
+        {sortKey !== key ? <ArrowUpDown className="h-3 w-3 text-muted-foreground" /> : sortDirection === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+      </button>
+    </TableHead>
+  );
 
   return (
     <div className="space-y-4">
@@ -77,19 +171,28 @@ export function ClassesTable({ classes, onPreview, onEdit, onDelete }: ClassesTa
         <Table className="min-w-[640px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="text-xs">Nombre</TableHead>
-              <TableHead className="text-xs">Profesor</TableHead>
-              <TableHead className="text-xs hidden md:table-cell">Disciplina</TableHead>
-              <TableHead className="text-xs hidden lg:table-cell">Categoría</TableHead>
-              <TableHead className="text-xs text-center">Frecuencia</TableHead>
-              <TableHead className="text-xs text-right">Precio</TableHead>
-              <TableHead className="text-xs text-center hidden sm:table-cell">Ocupación</TableHead>
-              <TableHead className="text-xs text-center">Estado</TableHead>
+              {renderSortableHead("Nombre", "name")}
+              {renderSortableHead("Profesor", "teacher")}
+              {renderSortableHead("Disciplina", "discipline", "hidden md:table-cell")}
+              {renderSortableHead("Categoría", "category", "hidden lg:table-cell")}
+              {renderSortableHead("Frecuencia", "frequency", undefined, "center")}
+              {renderSortableHead("Precio", "price", undefined, "right")}
+              {renderSortableHead("Ocupación", "occupancy", "text-center hidden sm:table-cell", "center")}
+              {renderSortableHead("Estado", "status", undefined, "center")}
               <TableHead className="text-xs text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginated.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={9}>
+                  <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Cargando clases...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : paginated.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9}>
                   <EmptyState type={search || statusFilter !== "all" ? "search" : "classes"} />
@@ -180,7 +283,7 @@ export function ClassesTable({ classes, onPreview, onEdit, onDelete }: ClassesTa
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {!isLoading && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
             Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}

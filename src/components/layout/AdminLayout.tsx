@@ -9,6 +9,7 @@ import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getSchoolSettings, updateSchoolSettings } from "@/lib/api/settings";
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
@@ -27,6 +28,8 @@ const FIRST_LOGIN_GUIDE_SHOWN_KEY = "dancehub:first-login-guide-shown:v1";
 const FREE_TRIAL_DAYS = 14;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const TRIAL_WARNING_DAYS = 3;
+const FOUNDERS_PROMO_CODE = "FOUNDERS50";
+const FOUNDERS_PROMO_PERCENT = 50;
 
 type CheckoutPlanType = CatalogPlanType;
 type CheckoutAddonKey = SubscriptionAddonKey;
@@ -424,9 +427,10 @@ export function AdminLayout() {
     }
 
     const defaults = readRegisterDefaults();
-    const nextPlanType = defaults.planType ?? toCheckoutPlanType(billing.planType);
+    const nextPlanType: CheckoutPlanType = "pro";
 
     setCheckoutPlanType(nextPlanType);
+    setCheckoutBillingCycle("annual");
 
     const billingAddons = {
       customDomain: billing.addons.customDomain,
@@ -470,6 +474,25 @@ export function AdminLayout() {
 
     return `${checkoutMonthlyTotal} EUR/mes`;
   }, [checkoutAddons, checkoutBillingCycle, checkoutMonthlyTotal, checkoutPlanType, selectableCheckoutAddons]);
+
+  const checkoutPlanMonthlyPrice = CHECKOUT_PLANS[checkoutPlanType].monthlyPriceEur;
+  const checkoutAddonsMonthlyTotal = useMemo(() => {
+    return selectableCheckoutAddons.reduce((sum, addon) => {
+      return checkoutAddons[addon.key] ? sum + addon.monthlyPriceEur : sum;
+    }, 0);
+  }, [checkoutAddons, selectableCheckoutAddons]);
+
+  const checkoutMonthlySubtotal = checkoutPlanMonthlyPrice + checkoutAddonsMonthlyTotal;
+  const checkoutAnnualSubtotal = useMemo(() => {
+    const annualPlan = planCatalog[checkoutPlanType].billing.annualTotalEur;
+    const addonsAnnual = checkoutAddonsMonthlyTotal * 12;
+    return annualPlan + addonsAnnual;
+  }, [checkoutAddonsMonthlyTotal, checkoutPlanType]);
+
+  const annualEquivalentWithoutDiscount = checkoutMonthlySubtotal * 12;
+  const checkoutAnnualSavings = Math.max(0, annualEquivalentWithoutDiscount - checkoutAnnualSubtotal);
+  const foundersDiscountFirstMonth = Math.round((checkoutMonthlySubtotal * FOUNDERS_PROMO_PERCENT) / 100);
+  const firstMonthWithDiscount = Math.max(0, checkoutMonthlySubtotal - foundersDiscountFirstMonth);
 
   const selectableCheckoutAddonKeys = useMemo(
     () => new Set(selectableCheckoutAddons.map((addon) => addon.key)),
@@ -717,11 +740,17 @@ export function AdminLayout() {
           </div>
         ) : null}
         <main className="relative flex-1 overflow-hidden p-4 md:p-6">
-          <AnimatedPage key={displayedPathname} animateOnMount={!firstRenderRef.current}>
-            {displayedOutlet}
-          </AnimatedPage>
+          {!showTrialLockModal ? (
+            <AnimatedPage key={displayedPathname} animateOnMount={!firstRenderRef.current}>
+              {displayedOutlet}
+            </AnimatedPage>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-sm text-muted-foreground">Acceso bloqueado hasta completar el pago del plan.</p>
+            </div>
+          )}
 
-          {isRouteTransitioning ? (
+          {isRouteTransitioning && !showTrialLockModal ? (
             <motion.div
               key={`route-transition-${location.pathname}`}
               initial={{ opacity: 0 }}
@@ -732,7 +761,7 @@ export function AdminLayout() {
             />
           ) : null}
 
-          {showWelcomeOverlay ? (
+          {showWelcomeOverlay && !showTrialLockModal ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -747,7 +776,7 @@ export function AdminLayout() {
             </motion.div>
           ) : null}
 
-          {activeSectionIntro ? (
+          {activeSectionIntro && !showTrialLockModal ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -797,8 +826,14 @@ export function AdminLayout() {
                       <div>
                         <p className="font-semibold text-foreground">{plan.label}</p>
                         <p className="text-xs text-muted-foreground">Hasta {plan.students} alumnos</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {planCatalog[planKey].billing.annualEffectiveMonthlyPriceEur} EUR/mes con anual
+                        </p>
                       </div>
-                      <p className="text-sm font-semibold text-foreground">{plan.monthlyPriceEur} EUR/mes</p>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-foreground">{plan.monthlyPriceEur} EUR/mes</p>
+                        <p className="text-[11px] text-muted-foreground">{planCatalog[planKey].billing.annualTotalEur} EUR/año</p>
+                      </div>
                     </div>
                   </button>
                 );
@@ -826,6 +861,16 @@ export function AdminLayout() {
               <p className="text-[11px] text-muted-foreground">Por defecto recomendamos anual para mejor precio.</p>
             </div>
 
+            <div className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Codigo promocional {FOUNDERS_PROMO_CODE}</Badge>
+                <span className="text-xs font-semibold text-emerald-800">{FOUNDERS_PROMO_PERCENT}% solo primer mes</span>
+              </div>
+              <p className="mt-2 text-xs text-emerald-900">
+                El descuento se aplica una sola vez al primer mes. Desde el segundo mes se factura el precio normal del plan elegido.
+              </p>
+            </div>
+
             <div className="mt-6 space-y-2">
               <p className="text-sm font-semibold text-foreground">Add-ons</p>
               {selectableCheckoutAddons.map((addon) => {
@@ -843,15 +888,52 @@ export function AdminLayout() {
                     <span className="flex-1 text-muted-foreground">
                       {addon.label}
                     </span>
-                    <span className="font-medium text-foreground">+{addon.monthlyPriceEur} EUR</span>
+                    <span className="font-medium text-foreground">+{addon.monthlyPriceEur} EUR/mes</span>
                   </label>
                 );
               })}
             </div>
 
             <div className="mt-6 rounded-lg border border-primary/20 bg-primary/10 p-4">
-              <p className="text-xs text-muted-foreground">Total estimado ({checkoutBillingCycle === "annual" ? "anual" : "mensual"})</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{checkoutCycleTotalLabel}</p>
+              <p className="text-xs text-muted-foreground">Resumen de precio real</p>
+              <div className="mt-2 space-y-1 text-sm text-foreground">
+                <div className="flex items-center justify-between">
+                  <span>Plan base</span>
+                  <span>{checkoutPlanMonthlyPrice} EUR/mes</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Add-ons seleccionados</span>
+                  <span>{checkoutAddonsMonthlyTotal} EUR/mes</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-primary/20 pt-2 font-semibold">
+                  <span>Subtotal mensual sin promo</span>
+                  <span>{checkoutMonthlySubtotal} EUR/mes</span>
+                </div>
+                <div className="flex items-center justify-between text-emerald-700">
+                  <span>Primer mes con {FOUNDERS_PROMO_CODE}</span>
+                  <span>{firstMonthWithDiscount} EUR</span>
+                </div>
+                {checkoutBillingCycle === "annual" ? (
+                  <>
+                    <div className="flex items-center justify-between border-t border-primary/20 pt-2">
+                      <span>Total anual</span>
+                      <span className="font-semibold">{checkoutAnnualSubtotal} EUR/año</span>
+                    </div>
+                    <div className="flex items-center justify-between text-emerald-700">
+                      <span>Ahorro anual frente a mensual</span>
+                      <span className="font-semibold">{checkoutAnnualSavings} EUR/año</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between border-t border-primary/20 pt-2">
+                    <span>Total mensual</span>
+                    <span className="font-semibold">{checkoutMonthlySubtotal} EUR/mes</span>
+                  </div>
+                )}
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Total seleccionado: {checkoutCycleTotalLabel}
+              </p>
             </div>
 
             <Button className="mt-6 w-full" onClick={() => void handleTrialCheckout()} disabled={checkoutLoading}>

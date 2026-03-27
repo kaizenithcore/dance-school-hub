@@ -29,6 +29,7 @@ export default function GuidesLayout() {
             <Link to="/legal/privacy" className="hover:text-foreground">Privacidad</Link>
             <Link to="/legal/terms" className="hover:text-foreground">Terminos</Link>
             <Link to="/legal/cookies" className="hover:text-foreground">Cookies</Link>
+            <Link to="/legal/dpa" className="hover:text-foreground">DPA</Link>
           </div>
         </div>
       </footer>

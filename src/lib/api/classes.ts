@@ -18,6 +18,7 @@ interface ClassApiModel {
   capacity: number;
   weekly_frequency?: number;
   price_cents: number;
+  enrolled_count?: number;
   status: "active" | "inactive" | "draft";
   created_by: string | null;
   created_at: string;
@@ -40,6 +41,7 @@ export interface ClassWithRelations {
   capacity: number;
   weeklyFrequency: number;
   price: number;
+  enrolledCount: number;
   status: "active" | "inactive" | "draft";
   createdAt: string;
   updatedAt: string;
@@ -105,6 +107,7 @@ function mapClassFromApi(item: ClassApiModel): ClassWithRelations {
     capacity: item.capacity,
     weeklyFrequency: item.weekly_frequency ?? 1,
     price: Math.round(item.price_cents / 100),
+    enrolledCount: item.enrolled_count ?? 0,
     status: item.status,
     createdAt: item.created_at,
     updatedAt: item.updated_at,

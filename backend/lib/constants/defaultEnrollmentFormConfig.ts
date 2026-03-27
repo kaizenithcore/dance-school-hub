@@ -26,15 +26,26 @@ export const defaultEnrollmentFormConfig = {
           type: "tel",
           label: "Telefono",
           placeholder: "(011) 1234-5678",
-          required: false,
+          required: true,
           maxLength: 20,
         },
         {
           id: "student_birthdate",
           type: "date",
           label: "Fecha de nacimiento",
-          required: false,
-        }
+          required: true,
+        },
+        {
+          id: "student_level",
+          type: "select",
+          label: "Nivel de experiencia",
+          required: true,
+          options: [
+            { value: "beginner", label: "Principiante" },
+            { value: "intermediate", label: "Intermedio" },
+            { value: "advanced", label: "Avanzado" },
+          ],
+        },
       ],
     },
     {
@@ -65,7 +76,7 @@ export const defaultEnrollmentFormConfig = {
           placeholder: "tutor@ejemplo.com",
           required: false,
           maxLength: 255,
-        }
+        },
       ],
       conditions: [
         {
@@ -84,7 +95,7 @@ export const defaultEnrollmentFormConfig = {
         {
           id: "payer_type",
           type: "select",
-          label: "Quien realiza el pago",
+          label: "Quien realiza el pago?",
           required: true,
           options: [
             { value: "student", label: "El propio alumno" },
@@ -106,8 +117,8 @@ export const defaultEnrollmentFormConfig = {
         {
           id: "payer_email",
           type: "email",
-          label: "Correo del pagador",
-          placeholder: "pagador@ejemplo.com",
+          label: "Email del pagador",
+          placeholder: "correo@ejemplo.com",
           required: false,
           maxLength: 255,
           conditions: [
@@ -118,7 +129,7 @@ export const defaultEnrollmentFormConfig = {
           id: "payer_phone",
           type: "tel",
           label: "Telefono del pagador",
-          placeholder: "(011) 1234-5678",
+          placeholder: "(000) 0000-0000",
           required: false,
           maxLength: 20,
           conditions: [
@@ -133,10 +144,76 @@ export const defaultEnrollmentFormConfig = {
           options: [
             { value: "transfer", label: "Transferencia bancaria" },
             { value: "cash", label: "Efectivo" },
+            { value: "card", label: "Tarjeta de credito/debito" },
+            { value: "mercadopago", label: "Mercado Pago" },
           ],
         },
       ],
-    }
+    },
+    {
+      id: "additional",
+      title: "Informacion Adicional",
+      fields: [
+        {
+          id: "medical_notes",
+          type: "textarea",
+          label: "Condiciones medicas o alergias",
+          placeholder: "Indica cualquier condicion relevante...",
+          required: false,
+          maxLength: 500,
+        },
+        {
+          id: "how_found",
+          type: "select",
+          label: "Como nos conociste?",
+          required: false,
+          options: [
+            { value: "social", label: "Redes sociales" },
+            { value: "friend", label: "Recomendacion" },
+            { value: "search", label: "Busqueda en internet" },
+            { value: "other", label: "Otro" },
+          ],
+        },
+        {
+          id: "terms",
+          type: "checkbox",
+          label: "Consentimiento",
+          placeholder: "He leido y acepto los terminos y condiciones de inscripcion",
+          required: true,
+        },
+        {
+          id: "selector_condition_info",
+          type: "info",
+          label: "Condicion de ejemplo",
+          placeholder: "Este bloque aparece porque la fecha de nacimiento es anterior a hoy hace 18 anos (mayor de edad). Asi funcionan las condiciones de visibilidad: puedes mostrar u ocultar campos segun los valores introducidos anteriormente.",
+          required: false,
+          conditions: [
+            { id: "cond_selector_info_age", sourceFieldId: "student_birthdate", operator: "date_before", value: "today_minus_18y" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "documents",
+      title: "Documentos",
+      description: "Adjunta los documentos requeridos (opcional).",
+      fields: [
+        {
+          id: "id_document",
+          type: "file",
+          label: "Documento de identidad (DNI)",
+          required: false,
+          accept: ".pdf,.jpg,.jpeg,.png",
+        },
+        {
+          id: "medical_cert",
+          type: "file",
+          label: "Certificado medico",
+          required: false,
+          accept: ".pdf,.jpg,.jpeg,.png",
+        },
+      ],
+    },
   ],
   jointEnrollment: {
     enabled: false,

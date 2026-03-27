@@ -21,12 +21,12 @@ export function WeydiCreativeServices() {
           viewport={{ once: true }}
           className="text-center max-w-2xl mx-auto mb-14"
         >
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Diseño premium</p>
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Bloque creativo premium</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
             Dirección creativa por {creative.provider}
           </h2>
           <p className="mt-4 text-muted-foreground">
-            {creative.providerDescription} Servicios opcionales para llevar la imagen de tu escuela al siguiente nivel.
+            {creative.providerDescription} Servicios opcionales para elevar la imagen de tu escuela con criterio profesional.
           </p>
         </motion.div>
 

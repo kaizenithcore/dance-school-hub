@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Bell, CheckCheck, Clock3, ExternalLink, LogOut, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AcademicYearSelector } from "@/components/layout/AcademicYearSelector";
+import { Progress } from "@/components/ui/progress";
 import {
   CommandDialog,
   CommandEmpty,
@@ -20,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getStudents } from "@/lib/api/students";
 import { getClasses } from "@/lib/api/classes";
 import { getEnrollments } from "@/lib/api/enrollments";
+import { getEvents } from "@/lib/api/events";
 import { getPayments } from "@/lib/api/payments";
 import { getTeachers } from "@/lib/api/teachers";
 import { getRooms } from "@/lib/api/rooms";
@@ -33,7 +35,7 @@ interface TopbarProps {
   title?: string;
 }
 
-type SearchGroup = "Navegación" | "Alumnos" | "Clases" | "Inscripciones" | "Pagos" | "Profesores" | "Aulas";
+type SearchGroup = "Navegación" | "Alumnos" | "Clases" | "Inscripciones" | "Pagos" | "Profesores" | "Aulas" | "Eventos";
 type SearchAction = "preview" | "edit" | "delete";
 
 interface SearchItem {
@@ -66,7 +68,15 @@ interface SchoolIdentity {
   slug: string;
 }
 
+type PlanType = "starter" | "pro" | "enterprise";
+
+interface PlanCapacitySummary {
+  maxActiveStudents: number;
+  activeStudents: number;
+}
+
 const NOTIFICATION_READ_STORAGE_KEY = "dance-school-hub.notifications.read";
+const FORM_BUILDER_UNSAVED_KEY = "dancehub:form-builder:unsaved";
 
 const NAV_ITEMS: SearchItem[] = [
   { id: "nav-panel", label: "Panel", target: "/admin", group: "Navegación" },
@@ -85,6 +95,8 @@ const NAV_ITEMS: SearchItem[] = [
   { id: "nav-course-clone", label: "Duplicar cursos", target: "/admin/course-clone", group: "Navegación" },
   { id: "nav-reception", label: "Recepción", target: "/admin/reception", group: "Navegación" },
   { id: "nav-branches", label: "Sedes", target: "/admin/branches", group: "Navegación" },
+  { id: "nav-events", label: "Eventos", target: "/admin/events", group: "Navegación" },
+  { id: "nav-school-portal", label: "Escuela · Portal", target: "/admin/school/portal", group: "Navegación" },
   { id: "nav-school-settings", label: "Escuela · Perfil", target: "/admin/school/settings", group: "Navegación" },
   { id: "nav-school-analytics", label: "Escuela · Analíticas", target: "/admin/school/analytics", group: "Navegación" },
   { id: "nav-school-posts", label: "Escuela · Publicaciones", target: "/admin/school/posts", group: "Navegación" },
@@ -111,7 +123,12 @@ export function Topbar({ title }: TopbarProps) {
     emailPaymentOverdue: true,
   });
   const [schoolIdentity, setSchoolIdentity] = useState<SchoolIdentity | null>(null);
-  const { authContext, setActiveOrganization, setActiveTenant } = useAuth();
+  const [planType, setPlanType] = useState<PlanType>("starter");
+  const [planCapacity, setPlanCapacity] = useState<PlanCapacitySummary>({
+    maxActiveStudents: 0,
+    activeStudents: 0,
+  });
+  const { authContext, setActiveTenant } = useAuth();
 
   const loadRuntimeSettings = useCallback(async () => {
     try {
@@ -122,11 +139,21 @@ export function Topbar({ title }: TopbarProps) {
           slug: settings.school.slug,
         });
       }
+      const billingPlan = settings?.billing?.planType;
+      setPlanType(billingPlan === "pro" || billingPlan === "enterprise" ? billingPlan : "starter");
+      const limits = (settings?.billing?.limits || {}) as Record<string, unknown>;
+      const nextMaxActiveStudents = Number(limits.maxActiveStudents || 0);
+      setPlanCapacity((prev) => ({
+        ...prev,
+        maxActiveStudents: Number.isFinite(nextMaxActiveStudents) && nextMaxActiveStudents > 0 ? nextMaxActiveStudents : 0,
+      }));
       const notifications = (settings?.notifications || {}) as Partial<NotificationsRuntimeSettings>;
 
       setNotificationSettings((prev) => ({ ...prev, ...notifications }));
     } catch {
       setSchoolIdentity(null);
+      setPlanType("starter");
+      setPlanCapacity((prev) => ({ ...prev, maxActiveStudents: 0 }));
       // Keep defaults on runtime settings if settings fetch fails
     }
   }, []);
@@ -154,13 +181,14 @@ export function Topbar({ title }: TopbarProps) {
 
   const loadDynamicItems = useCallback(async () => {
     setLoading(true);
-    const [studentsResult, classesResult, enrollmentsResult, paymentsResult, teachersResult, roomsResult] = await Promise.allSettled([
+    const [studentsResult, classesResult, enrollmentsResult, paymentsResult, teachersResult, roomsResult, eventsResult] = await Promise.allSettled([
       getStudents(),
       getClasses(),
       getEnrollments(),
       getPayments(),
       getTeachers(),
       getRooms(),
+      getEvents(),
     ]);
 
     const students = studentsResult.status === "fulfilled" ? studentsResult.value : [];
@@ -169,6 +197,10 @@ export function Topbar({ title }: TopbarProps) {
     const payments = paymentsResult.status === "fulfilled" ? paymentsResult.value : [];
     const teachers = teachersResult.status === "fulfilled" ? teachersResult.value : [];
     const rooms = roomsResult.status === "fulfilled" ? roomsResult.value : [];
+    const events = eventsResult.status === "fulfilled" ? eventsResult.value : [];
+
+    const activeStudentsCount = students.filter((student) => student.status === "active").length;
+    setPlanCapacity((prev) => ({ ...prev, activeStudents: activeStudentsCount }));
 
     const buildActionTarget = (base: string, id: string, action: SearchAction) => `${base}?id=${encodeURIComponent(id)}&action=${action}`;
 
@@ -279,13 +311,34 @@ export function Topbar({ title }: TopbarProps) {
       },
       ])),
       ...rooms.map((room) => ({
-        id: `room-${room.id}`,
-        label: room.name,
+        id: `room-edit-${room.id}`,
+        label: `Editar · ${room.name}`,
         description: `Capacidad ${room.capacity}`,
-        target: "/admin/rooms",
+        target: buildActionTarget("/admin/rooms", room.id, "edit"),
         group: "Aulas" as const,
-        keywords: ["aula", room.isActive ? "activa" : "inactiva"],
+        action: "edit" as const,
+        keywords: ["aula", room.isActive ? "activa" : "inactiva", "editar"],
       })),
+      ...events.flatMap((event) => ([
+        {
+          id: `event-preview-${event.id}`,
+          label: event.name,
+          description: `Vista previa · ${event.location} · ${event.status === "published" ? "Publicado" : "Borrador"}`,
+          target: buildActionTarget("/admin/events", event.id, "preview"),
+          group: "Eventos" as const,
+          action: "preview" as const,
+          keywords: ["evento", event.location, event.status, event.startDate, event.endDate || "", "vista previa"],
+        },
+        {
+          id: `event-edit-${event.id}`,
+          label: `Editar · ${event.name}`,
+          description: `${event.location} · ${event.status === "published" ? "Publicado" : "Borrador"}`,
+          target: buildActionTarget("/admin/events", event.id, "edit"),
+          group: "Eventos" as const,
+          action: "edit" as const,
+          keywords: ["evento", event.location, event.status, "editar"],
+        },
+      ])),
     ];
 
     const enrollmentNotifications = notificationSettings.emailNewEnrollment
@@ -354,6 +407,10 @@ export function Topbar({ title }: TopbarProps) {
   }, [openNotifications, loadDynamicItems]);
 
   useEffect(() => {
+    void loadDynamicItems();
+  }, [loadDynamicItems]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -374,6 +431,7 @@ export function Topbar({ title }: TopbarProps) {
       Pagos: [],
       Profesores: [],
       Aulas: [],
+      Eventos: [],
     };
 
     for (const item of dynamicItems) {
@@ -384,6 +442,15 @@ export function Topbar({ title }: TopbarProps) {
   }, [dynamicItems]);
 
   const handleSelect = (target: string) => {
+    const hasUnsavedFormBuilderChanges = window.localStorage.getItem(FORM_BUILDER_UNSAVED_KEY) === "1";
+    if (hasUnsavedFormBuilderChanges) {
+      const confirmed = window.confirm("Tienes cambios sin guardar en el Form Builder. Si sales, se perderán. ¿Quieres continuar?");
+      if (!confirmed) {
+        return;
+      }
+      window.localStorage.removeItem(FORM_BUILDER_UNSAVED_KEY);
+    }
+
     setOpenSearch(false);
     navigate(target);
   };
@@ -538,18 +605,25 @@ export function Topbar({ title }: TopbarProps) {
     }
   }, [navigate, signingOut]);
 
-  const handleOrganizationChange = useCallback((organizationId: string) => {
-    void setActiveOrganization(organizationId);
-  }, [setActiveOrganization]);
-
   const handleTenantChange = useCallback((tenantId: string) => {
     void setActiveTenant(tenantId);
   }, [setActiveTenant]);
 
+  const shouldShowTenantSelector = planType === "enterprise" && tenantsInActiveOrganization.length > 0;
+  const hasCapacityData = planCapacity.maxActiveStudents > 0;
+  const effectiveMaxStudents = hasCapacityData
+    ? planCapacity.maxActiveStudents
+    : Math.max(planCapacity.activeStudents, 1);
+  const remainingStudents = Math.max(0, effectiveMaxStudents - planCapacity.activeStudents);
+  const usedPercent = hasCapacityData
+    ? Math.min(100, (planCapacity.activeStudents / effectiveMaxStudents) * 100)
+    : 0;
+
   return (
     <>
-      <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-10">
-        <div className="flex min-w-0 items-center gap-4">
+      <div className="sticky top-0 z-10">
+        <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-6">
+          <div className="flex min-w-0 items-center gap-4">
           <div className="min-w-0 rounded-md px-2 py-1 text-left">
             <p className="truncate text-sm font-semibold text-foreground">{schoolName}</p>
             <p className="truncate text-[11px] text-muted-foreground">
@@ -569,28 +643,7 @@ export function Topbar({ title }: TopbarProps) {
             Ver página pública
           </Button>
           <div className="h-6 w-px bg-border" />
-          {organizations.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Organización</p>
-              <Select
-                value={activeOrganizationId ?? organizations[0]?.organizationId}
-                onValueChange={handleOrganizationChange}
-                disabled={organizations.length <= 1}
-              >
-                <SelectTrigger className="h-8 w-[220px]">
-                  <SelectValue placeholder="Selecciona organización" />
-                </SelectTrigger>
-                <SelectContent>
-                  {organizations.map((organization) => (
-                    <SelectItem key={organization.organizationId} value={organization.organizationId}>
-                      {organization.organizationName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
-          {tenantsInActiveOrganization.length > 0 ? (
+          {shouldShowTenantSelector ? (
             <div className="space-y-1">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Sede activa</p>
               <Select
@@ -611,11 +664,11 @@ export function Topbar({ title }: TopbarProps) {
               </Select>
             </div>
           ) : null}
-          {(organizations.length > 0 || tenantsInActiveOrganization.length > 0) ? <div className="h-6 w-px bg-border" /> : null}
-          <AcademicYearSelector />
-        </div>
+          {shouldShowTenantSelector ? <div className="h-6 w-px bg-border" /> : null}
+            <AcademicYearSelector />
+          </div>
 
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -717,8 +770,22 @@ export function Topbar({ title }: TopbarProps) {
               </div>
             </PopoverContent>
           </Popover>
-        </div>
-      </header>
+          </div>
+        </header>
+        {hasCapacityData ? (
+          <div className="border-b border-border bg-card/70 px-6 py-2 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Capacidad del plan</span>
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <Progress value={usedPercent} className="h-1.5 flex-1" />
+                <span className="whitespace-nowrap text-[11px] text-muted-foreground">
+                  {remainingStudents} libres · {planCapacity.activeStudents}/{effectiveMaxStudents}
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       <CommandDialog open={openSearch} onOpenChange={setOpenSearch}>
         <CommandInput placeholder="Buscar secciones, alumnos, clases, pagos, inscripciones, profesores o aulas..." />

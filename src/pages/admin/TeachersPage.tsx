@@ -7,7 +7,7 @@ import { DeleteTeacherModal } from "@/components/tables/DeleteTeacherModal";
 import { AssignClassesModal } from "@/components/tables/AssignClassesModal";
 import { Class, TeacherRecord } from "@/lib/data/mockTeachers";
 import { createTeacher, deleteTeacher, getTeachers, updateTeacher } from "@/lib/api/teachers";
-import { getClasses } from "@/lib/api/classes";
+import { getClasses, updateClass } from "@/lib/api/classes";
 import { getRooms } from "@/lib/api/rooms";
 import { getSchedules } from "@/lib/api/schedules";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,7 @@ function formatScheduleSummary(schedules: Array<{ weekday: number; start_time: s
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<TeacherRecord[]>([]);
+  const [classesCatalog, setClassesCatalog] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTeacher, setSelectedTeacher] = useState<TeacherRecord | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -112,42 +113,68 @@ export default function TeachersPage() {
     []
   );
 
+  const mapClassCatalog = useCallback(
+    (
+      classesData: Awaited<ReturnType<typeof getClasses>>,
+      roomNameById: Map<string, string>,
+      schedulesByClassId: Map<string, Array<{ weekday: number; start_time: string; end_time: string }>>
+    ): Class[] => {
+      return classesData.map((klass) => {
+        const scheduleSummary = formatScheduleSummary(schedulesByClassId.get(klass.id) || []);
+        return {
+          id: klass.id,
+          name: klass.name,
+          discipline: klass.discipline || "Sin disciplina",
+          level: klass.category || "General",
+          day: scheduleSummary.day,
+          time: scheduleSummary.time,
+          room: klass.roomId ? roomNameById.get(klass.roomId) || "Aula asignada" : "Sin aula",
+          students: klass.enrolledCount || 0,
+        };
+      });
+    },
+    []
+  );
+
+  const loadTeachersPageData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [teachersData, classesData, roomsData, schedulesData] = await Promise.all([
+        getTeachers(),
+        getClasses(),
+        getRooms(),
+        getSchedules(),
+      ]);
+
+      const roomNameById = new Map(roomsData.map((room) => [room.id, room.name]));
+      const schedulesByClassId = new Map<string, Array<{ weekday: number; start_time: string; end_time: string }>>();
+      (schedulesData || []).forEach((schedule) => {
+        const slots = schedulesByClassId.get(schedule.class_id) || [];
+        slots.push({
+          weekday: schedule.weekday,
+          start_time: schedule.start_time,
+          end_time: schedule.end_time,
+        });
+        schedulesByClassId.set(schedule.class_id, slots);
+      });
+
+      const mappedTeachers = mapTeachersWithAssignedClasses(teachersData, classesData, roomNameById, schedulesByClassId);
+      setTeachers(mappedTeachers);
+      setClassesCatalog(mapClassCatalog(classesData, roomNameById, schedulesByClassId));
+    } catch (error) {
+      console.error("Error loading teachers:", error);
+      toast.error("Error al cargar profesores");
+      setTeachers([]);
+      setClassesCatalog([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [mapClassCatalog, mapTeachersWithAssignedClasses]);
+
   // Load teachers from API
   useEffect(() => {
-    const loadTeachers = async () => {
-      setLoading(true);
-      try {
-        const [teachersData, classesData, roomsData, schedulesData] = await Promise.all([
-          getTeachers(),
-          getClasses(),
-          getRooms(),
-          getSchedules(),
-        ]);
-
-        const roomNameById = new Map(roomsData.map((room) => [room.id, room.name]));
-        const schedulesByClassId = new Map<string, Array<{ weekday: number; start_time: string; end_time: string }>>();
-        (schedulesData || []).forEach((schedule) => {
-          const slots = schedulesByClassId.get(schedule.class_id) || [];
-          slots.push({
-            weekday: schedule.weekday,
-            start_time: schedule.start_time,
-            end_time: schedule.end_time,
-          });
-          schedulesByClassId.set(schedule.class_id, slots);
-        });
-
-        const mappedTeachers = mapTeachersWithAssignedClasses(teachersData, classesData, roomNameById, schedulesByClassId);
-        setTeachers(mappedTeachers);
-      } catch (error) {
-        console.error("Error loading teachers:", error);
-        toast.error("Error al cargar profesores");
-        setTeachers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadTeachers();
-  }, [mapTeachersWithAssignedClasses]);
+    void loadTeachersPageData();
+  }, [loadTeachersPageData]);
 
   useEffect(() => {
     if (loading) {
@@ -269,18 +296,60 @@ export default function TeachersPage() {
     }
   }, [deletingTeacher]);
 
-  const handleSaveClasses = useCallback((classes: Class[]) => {
-    if (teacherWithClassesToEdit) {
-      setTeachers((prev) =>
-        prev.map((t) =>
-          t.id === teacherWithClassesToEdit.id
-            ? { ...t, assignedClasses: classes }
-            : t
-        )
-      );
-      toast.success("Clases asignadas exitosamente");
+  const handleSaveClasses = useCallback(async (selectedClassIds: string[]): Promise<boolean> => {
+    if (!teacherWithClassesToEdit) {
+      return false;
     }
-  }, [teacherWithClassesToEdit]);
+
+    try {
+      const teacherId = teacherWithClassesToEdit.id;
+      const classesData = await getClasses();
+      const classById = new Map(classesData.map((klass) => [klass.id, klass]));
+
+      const currentlyAssignedClassIds = classesData
+        .filter((klass) => (klass.teacherIds || []).includes(teacherId) || klass.teacherId === teacherId)
+        .map((klass) => klass.id);
+
+      const selectedSet = new Set(selectedClassIds);
+      const currentSet = new Set(currentlyAssignedClassIds);
+      const changedClassIds = new Set<string>([...selectedSet, ...currentSet]);
+
+      for (const classId of changedClassIds) {
+        const klass = classById.get(classId);
+        if (!klass) {
+          continue;
+        }
+
+        const nextTeacherIds = Array.from(
+          new Set([...(klass.teacherIds || []), ...(klass.teacherId ? [klass.teacherId] : [])])
+        );
+        const shouldBeAssigned = selectedSet.has(classId);
+        const alreadyAssigned = nextTeacherIds.includes(teacherId);
+
+        if (shouldBeAssigned && !alreadyAssigned) {
+          nextTeacherIds.push(teacherId);
+        }
+
+        if (!shouldBeAssigned && alreadyAssigned) {
+          const filteredTeacherIds = nextTeacherIds.filter((id) => id !== teacherId);
+          await updateClass(classId, { teacher_ids: filteredTeacherIds });
+          continue;
+        }
+
+        if (shouldBeAssigned && !alreadyAssigned) {
+          await updateClass(classId, { teacher_ids: nextTeacherIds });
+        }
+      }
+
+      await loadTeachersPageData();
+      toast.success("Clases asignadas exitosamente");
+      return true;
+    } catch (error) {
+      console.error("Error saving assigned classes:", error);
+      toast.error("No se pudieron guardar las clases asignadas");
+      return false;
+    }
+  }, [loadTeachersPageData, teacherWithClassesToEdit]);
 
   return (
     <PageContainer
@@ -294,6 +363,7 @@ export default function TeachersPage() {
     >
       <TeachersTable
         teachers={teachers}
+        isLoading={loading}
         onViewProfile={handleViewProfile}
         onEdit={handleEdit}
         onEditClasses={handleEditClasses}
@@ -324,6 +394,7 @@ export default function TeachersPage() {
         open={classesOpen}
         onOpenChange={setClassesOpen}
         teacher={teacherWithClassesToEdit}
+        classesCatalog={classesCatalog}
         onSave={handleSaveClasses}
       />
     </PageContainer>

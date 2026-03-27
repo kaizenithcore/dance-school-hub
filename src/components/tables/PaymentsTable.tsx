@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { PaymentRecord, PaymentStatus, PAYMENT_METHODS } from "@/lib/data/mockPayments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, ChevronLeft, ChevronRight, Plus, Receipt, FileCheck } from "lucide-react";
+import { Search, Eye, ChevronLeft, ChevronRight, Plus, Receipt, FileCheck, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,9 +22,13 @@ const STATUS_CONFIG: Record<PaymentStatus, { label: string; className: string }>
 };
 
 const PAGE_SIZE = 8;
+const PAGE_PREFS_KEY = "payments-table-page";
+
+type PaymentSortKey = "student" | "concept" | "month" | "amount" | "method" | "status";
 
 interface PaymentsTableProps {
   payments: PaymentRecord[];
+  isLoading?: boolean;
   onViewDetail: (payment: PaymentRecord) => void;
   onAddPayment: () => void;
   onGenerateReceipt: (payment: PaymentRecord) => void;
@@ -33,6 +37,7 @@ interface PaymentsTableProps {
 
 export function PaymentsTable({
   payments,
+  isLoading = false,
   onViewDetail,
   onAddPayment,
   onGenerateReceipt,
@@ -42,7 +47,14 @@ export function PaymentsTable({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
-  const [page, setPage] = useState(0);
+  const [sortKey, setSortKey] = useState<PaymentSortKey>("month");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const raw = window.localStorage.getItem(PAGE_PREFS_KEY);
+    const parsed = Number(raw);
+    return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
+  });
 
   // Available months from data
   const availableMonths = useMemo(() => {
@@ -67,8 +79,87 @@ export function PaymentsTable({
     });
   }, [payments, search, statusFilter, methodFilter, monthFilter]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const sorted = useMemo(() => {
+    const direction = sortDirection === "asc" ? 1 : -1;
+    const rows = [...filtered];
+
+    rows.sort((a, b) => {
+      const getValue = (payment: PaymentRecord) => {
+        switch (sortKey) {
+          case "student":
+            return `${payment.studentName || ""} ${payment.payerName || ""}`.toLowerCase();
+          case "concept":
+            return (payment.concept || "").toLowerCase();
+          case "month":
+            return payment.month;
+          case "amount":
+            return payment.amount;
+          case "method":
+            return (payment.method || "").toLowerCase();
+          case "status":
+            return STATUS_CONFIG[payment.status]?.label || payment.status;
+          default:
+            return "";
+        }
+      };
+
+      const aValue = getValue(a);
+      const bValue = getValue(b);
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return (aValue - bValue) * direction;
+      }
+
+      return String(aValue).localeCompare(String(bValue), "es", { sensitivity: "base" }) * direction;
+    });
+
+    return rows;
+  }, [filtered, sortKey, sortDirection]);
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  useEffect(() => {
+    window.localStorage.setItem(PAGE_PREFS_KEY, String(page));
+  }, [page]);
+
+  useEffect(() => {
+    if (totalPages === 0) {
+      if (page !== 0) setPage(0);
+      return;
+    }
+
+    if (page > totalPages - 1) {
+      setPage(totalPages - 1);
+    }
+  }, [page, totalPages]);
+
+  const toggleSort = (key: PaymentSortKey) => {
+    setPage(0);
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortKey(key);
+    setSortDirection("asc");
+  };
+
+  const renderSortableHead = (label: string, key: PaymentSortKey, className?: string, align: "left" | "center" | "right" = "left") => (
+    <TableHead className={cn("text-xs", className)}>
+      <button
+        type="button"
+        onClick={() => toggleSort(key)}
+        className={cn(
+          "inline-flex w-full items-center gap-1 hover:text-foreground",
+          align === "center" ? "justify-center" : align === "right" ? "justify-end" : "justify-start"
+        )}
+      >
+        <span>{label}</span>
+        {sortKey !== key ? <ArrowUpDown className="h-3 w-3 text-muted-foreground" /> : sortDirection === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+      </button>
+    </TableHead>
+  );
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { paid: 0, pending: 0, overdue: 0, refunded: 0 };
@@ -178,17 +269,26 @@ export function PaymentsTable({
         <Table className="min-w-[640px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="text-xs">Alumno / Pagador</TableHead>
-              <TableHead className="text-xs hidden md:table-cell">Concepto</TableHead>
-              <TableHead className="text-xs hidden lg:table-cell">Mes</TableHead>
-              <TableHead className="text-xs text-right">Monto</TableHead>
-              <TableHead className="text-xs hidden md:table-cell">Método</TableHead>
-              <TableHead className="text-xs text-center">Estado</TableHead>
+              {renderSortableHead("Alumno / Pagador", "student")}
+              {renderSortableHead("Concepto", "concept", "hidden md:table-cell")}
+              {renderSortableHead("Mes", "month", "hidden lg:table-cell")}
+              {renderSortableHead("Monto", "amount", undefined, "right")}
+              {renderSortableHead("Método", "method", "hidden md:table-cell")}
+              {renderSortableHead("Estado", "status", undefined, "center")}
               <TableHead className="text-xs text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginated.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Cargando pagos...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : paginated.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7}>
                   <EmptyState type={search || statusFilter !== "all" || methodFilter !== "all" || monthFilter !== "all" ? "search" : "payments"} />
@@ -277,7 +377,7 @@ export function PaymentsTable({
         </Table>
       </div>
 
-      {totalPages > 1 && (
+      {!isLoading && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
             Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}

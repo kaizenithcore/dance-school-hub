@@ -129,7 +129,7 @@ export function CalendarGrid({
       <div className="min-w-[750px]">
         {/* Header */}
         <div
-          className="grid border-b border-border sticky top-0 bg-card z-20"
+          className="grid border-b border-border bg-card"
           style={{ gridTemplateColumns: `56px repeat(${gridDays.length}, minmax(0, 1fr))` }}
         >
           <div className="p-2" />

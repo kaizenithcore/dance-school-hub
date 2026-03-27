@@ -2,80 +2,136 @@ import { LegalPage, LegalSection } from "@/pages/legal/LegalContent";
 
 export default function TermsOfServicePage() {
   return (
-    <LegalPage title="Términos de Servicio" updatedAt="7 de marzo de 2026">
+    <LegalPage title="Términos de Servicio" updatedAt="26 de marzo de 2026">
       <LegalSection title="1. Objeto">
         <p>
-          Los presentes términos regulan el acceso y uso de la plataforma DanceHub, un servicio SaaS desarrollado por{" "}
-          <strong>Kaizenith</strong>{" "}
-          (
-          <a href="https://kaizenith.es" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-2 hover:underline">
-            kaizenith.es
-          </a>
-          ) para la gestión integral de escuelas de baile.
+          Estos términos regulan el acceso y uso de DanceHub, plataforma SaaS desarrollada por <strong>Kaizenith</strong> para
+          la gestión de escuelas.
         </p>
+        <p>El servicio está dirigido a escuelas y profesionales, no a consumidores finales.</p>
       </LegalSection>
 
-      <LegalSection title="2. Registro y cuenta">
+      <LegalSection title="2. Registro y cuentas">
         <ul className="list-disc space-y-1 pl-6">
-          <li>El usuario debe proporcionar información veraz y mantenerla actualizada.</li>
-          <li>Cada escuela debe registrarse con una única cuenta de administrador.</li>
-          <li>El usuario es responsable de mantener la confidencialidad de sus credenciales.</li>
+          <li>La escuela debe proporcionar información veraz.</li>
+          <li>Es responsable de su cuenta y credenciales.</li>
+          <li>Puede crear usuarios internos (staff/profesores).</li>
+          <li>Debe garantizar el uso adecuado por parte de su equipo.</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="3. Uso aceptable">
-        <p>El usuario se compromete a:</p>
+      <LegalSection title="3. Rol del servicio">
+        <p>DanceHub actúa como:</p>
         <ul className="list-disc space-y-1 pl-6">
-          <li>Utilizar la plataforma conforme a la ley y estos términos.</li>
-          <li>No introducir datos falsos, ofensivos o que vulneren derechos de terceros.</li>
-          <li>No intentar acceder a cuentas o datos de otros usuarios.</li>
-          <li>No realizar ingeniería inversa ni modificar el software.</li>
+          <li>Herramienta de gestión.</li>
+          <li>Infraestructura tecnológica.</li>
+        </ul>
+        <p>La escuela es responsable de:</p>
+        <ul className="list-disc space-y-1 pl-6">
+          <li>Los datos que introduce.</li>
+          <li>El uso del sistema.</li>
+          <li>El cumplimiento legal (especialmente RGPD).</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="4. Propiedad intelectual">
+      <LegalSection title="4. Uso aceptable">
+        <p>Queda prohibido:</p>
+        <ul className="list-disc space-y-1 pl-6">
+          <li>Introducir datos ilícitos o falsos.</li>
+          <li>Vulnerar derechos de terceros.</li>
+          <li>Acceder a datos de otros usuarios.</li>
+          <li>Realizar ingeniería inversa.</li>
+          <li>Usar la plataforma con fines ilegales.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="5. Portal y contenido">
+        <ul className="list-disc space-y-1 pl-6">
+          <li>Solo escuelas y profesores pueden publicar contenido.</li>
+          <li>Los alumnos no pueden publicar contenido.</li>
+          <li>Las escuelas son responsables del contenido que publiquen.</li>
+        </ul>
+        <p>Kaizenith podrá:</p>
+        <ul className="list-disc space-y-1 pl-6">
+          <li>Retirar contenido inapropiado.</li>
+          <li>Suspender cuentas por uso indebido.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="6. Datos y responsabilidad">
+        <ul className="list-disc space-y-1 pl-6">
+          <li>Los datos introducidos pertenecen a la escuela.</li>
+          <li>La escuela es responsable del tratamiento de datos personales.</li>
+          <li>Kaizenith actúa como encargado del tratamiento.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="7. Propiedad intelectual">
         <p>
-          La plataforma, su código, diseño, logotipos y contenido son propiedad de Kaizenith y están protegidos por la legislación
-          de propiedad intelectual e industrial. Los datos introducidos por el usuario pertenecen al usuario.
+          El software es propiedad de Kaizenith. El cliente no adquiere derechos sobre el mismo. Los datos del cliente son del
+          cliente.
         </p>
       </LegalSection>
 
-      <LegalSection title="5. Disponibilidad del servicio">
+      <LegalSection title="8. Disponibilidad">
         <p>
-          Kaizenith se esfuerza por mantener la plataforma disponible 24/7, pero no garantiza la ausencia de interrupciones por
-          mantenimiento, actualizaciones o causas de fuerza mayor.
+          No se garantiza disponibilidad continua. Puede haber interrupciones por mantenimiento o causas externas.
         </p>
       </LegalSection>
 
-      <LegalSection title="6. Limitación de responsabilidad">
+      <LegalSection title="9. Limitación de responsabilidad">
+        <p>Kaizenith no será responsable de:</p>
+        <ul className="list-disc space-y-1 pl-6">
+          <li>Pérdidas de ingresos.</li>
+          <li>Daños indirectos.</li>
+          <li>Decisiones tomadas por la escuela usando la plataforma.</li>
+          <li>Errores en datos introducidos por el usuario.</li>
+        </ul>
         <p>
-          Kaizenith no será responsable de daños indirectos, lucro cesante o pérdida de datos derivados del uso de la plataforma,
-          salvo en los casos previstos por la ley.
+          La responsabilidad total de Kaizenith quedará, en todo caso, limitada al importe efectivamente abonado por la escuela en
+          los últimos 12 meses.
         </p>
       </LegalSection>
 
-      <LegalSection title="7. Modificaciones">
+      <LegalSection title="10. Pagos y facturación">
+        <ul className="list-disc space-y-1 pl-6">
+          <li>El servicio funciona mediante suscripción.</li>
+          <li>Puede ser mensual o anual.</li>
+          <li>El pago es anticipado.</li>
+          <li>No se realizan devoluciones salvo obligación legal.</li>
+          <li>El impago puede implicar suspensión del servicio.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="11. Cancelación">
+        <ul className="list-disc space-y-1 pl-6">
+          <li>La escuela puede cancelar en cualquier momento.</li>
+          <li>La cancelación no implica devolución de importes ya abonados.</li>
+          <li>Kaizenith puede suspender cuentas por incumplimiento.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="12. Eliminación de datos">
+        <ul className="list-disc space-y-1 pl-6">
+          <li>La escuela puede solicitar eliminación de datos.</li>
+          <li>Tras cancelación, los datos pueden eliminarse tras un periodo razonable.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="13. Modificaciones">
         <p>
-          Kaizenith se reserva el derecho de modificar estos términos. Las modificaciones se comunicarán con antelación razonable.
-          El uso continuado del servicio implica la aceptación de los nuevos términos.
+          Kaizenith puede modificar estos términos con preaviso razonable. El uso continuado de la plataforma implica la aceptación
+          de dichas modificaciones.
         </p>
       </LegalSection>
 
-      <LegalSection title="8. Resolución">
+      <LegalSection title="14. Legislación">
         <p>
-          El usuario puede cancelar su cuenta en cualquier momento. Kaizenith puede suspender o cancelar cuentas que infrinjan estos
-          términos, previo aviso al usuario.
+          Estos términos se rigen por la legislación española. Las partes se someten a los tribunales competentes en España.
         </p>
       </LegalSection>
 
-      <LegalSection title="9. Legislación y jurisdicción">
-        <p>
-          Estos términos se rigen por la legislación española. Para cualquier controversia, las partes se someten a los juzgados y
-          tribunales competentes.
-        </p>
-      </LegalSection>
-
-      <LegalSection title="10. Contacto">
+      <LegalSection title="15. Contacto">
         <p>Para consultas: <strong>legal@kaizenith.es</strong></p>
       </LegalSection>
     </LegalPage>

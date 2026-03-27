@@ -4,7 +4,9 @@ import { ClassSidebar } from "./ClassSidebar";
 import { RoomSelector } from "./RoomSelector";
 import { useScheduleEditor } from "@/hooks/useScheduleEditor";
 import { Button } from "@/components/ui/button";
-import { Save, RotateCcw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Save, RotateCcw, BookmarkPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSchoolSettings } from "@/lib/api/settings";
 import type { ScheduleProposal } from "@/lib/api/schedules";
@@ -45,10 +47,16 @@ export function ScheduleEditor({ previewProposal = null }: ScheduleEditorProps) 
     toggleLock,
     hasConflict,
     saveChanges,
+    presets,
+    saveCurrentAsPreset,
+    applyPreset,
+    deletePreset,
   } = useScheduleEditor();
 
   const [isSaving, setIsSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [selectedPresetId, setSelectedPresetId] = useState<string>("");
   const [workDays, setWorkDays] = useState<string[]>(["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]);
   const [hourRange, setHourRange] = useState<{ start: number; end: number }>({ start: 8, end: 20 });
 
@@ -149,6 +157,45 @@ export function ScheduleEditor({ previewProposal = null }: ScheduleEditorProps) 
     }
   };
 
+  const handleSavePreset = () => {
+    const preset = saveCurrentAsPreset(presetName);
+    if (!preset) {
+      toast.info("Introduce un nombre para guardar el horario");
+      return;
+    }
+
+    setPresetName("");
+    setSelectedPresetId(preset.id);
+    toast.success(`Preset guardado: ${preset.name}`);
+  };
+
+  const handleApplyPreset = () => {
+    if (!selectedPresetId) {
+      toast.info("Selecciona un preset para aplicar");
+      return;
+    }
+
+    const ok = applyPreset(selectedPresetId);
+    if (!ok) {
+      toast.error("No se pudo aplicar el preset seleccionado");
+      return;
+    }
+
+    toast.success("Preset aplicado. Guarda para persistir los cambios.");
+  };
+
+  const handleDeletePreset = () => {
+    if (!selectedPresetId) {
+      toast.info("Selecciona un preset para eliminar");
+      return;
+    }
+
+    const selectedPreset = presets.find((preset) => preset.id === selectedPresetId);
+    deletePreset(selectedPresetId);
+    setSelectedPresetId("");
+    toast.success(`Preset eliminado${selectedPreset ? `: ${selectedPreset.name}` : ""}`);
+  };
+
   const defaultRoom = rooms[0];
 
   return (
@@ -156,7 +203,43 @@ export function ScheduleEditor({ previewProposal = null }: ScheduleEditorProps) 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <RoomSelector rooms={rooms} selected={selectedRoom} onChange={setSelectedRoom} />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            value={presetName}
+            onChange={(event) => setPresetName(event.target.value)}
+            placeholder="Nombre del preset"
+            className="h-9 w-[180px]"
+          />
+          <Button variant="outline" size="sm" onClick={handleSavePreset} disabled={loading}>
+            <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
+            Guardar preset
+          </Button>
+          <Select value={selectedPresetId} onValueChange={setSelectedPresetId}>
+            <SelectTrigger className="h-9 w-[220px]">
+              <SelectValue placeholder="Horarios guardados" />
+            </SelectTrigger>
+            <SelectContent>
+              {presets.length === 0 ? (
+                <SelectItem value="__none__" disabled>
+                  Sin presets guardados
+                </SelectItem>
+              ) : (
+                presets.map((preset) => (
+                  <SelectItem key={preset.id} value={preset.id}>
+                    {preset.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={handleApplyPreset} disabled={loading || presets.length === 0}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+            Reemplazar con preset
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleDeletePreset} disabled={presets.length === 0}>
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
+            Eliminar preset
+          </Button>
           {/* <Button variant="outline" size="sm" onClick={() => toast.info("Función de deshacer próximamente")}>
             <RotateCcw className="h-3.5 w-3.5 mr-1" />
             Deshacer

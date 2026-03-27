@@ -512,6 +512,7 @@ function PortalFooter() {
         <div className="flex gap-4">
           <Link to="/legal/privacy" className="hover:text-foreground transition-colors">Privacidad</Link>
           <Link to="/legal/terms" className="hover:text-foreground transition-colors">Términos</Link>
+          <Link to="/legal/dpa" className="hover:text-foreground transition-colors">DPA</Link>
           <Link to="/" className="hover:text-foreground transition-colors">Para escuelas →</Link>
         </div>
       </div>

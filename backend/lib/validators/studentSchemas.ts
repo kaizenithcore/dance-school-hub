@@ -18,6 +18,10 @@ const studentBaseSchema = z.object({
   name: z.string().trim().min(1).max(120),
   email: z.string().email(),
   phone: z.string().trim().min(1).max(32),
+  address: z.string().trim().max(180).optional().nullable(),
+  locality: z.string().trim().max(120).optional().nullable(),
+  identityDocumentType: z.enum(["dni", "passport"]).optional().nullable(),
+  identityDocumentNumber: z.string().trim().max(50).optional().nullable(),
   birthdate: z.string().optional().nullable(),
   status: z.enum(["active", "inactive"]).optional().default("active"),
   paymentType: z.enum(["monthly", "per_class", "none"]).optional().default("monthly"),
@@ -60,6 +64,18 @@ export const createStudentSchema = studentBaseSchema.refine((data) => {
 }, {
   message: "Para alumnos menores de edad, el tutor legal es obligatorio",
   path: ["guardian"],
+}).refine((data) => {
+  if (!data.identityDocumentNumber?.trim()) return true;
+  return Boolean(data.identityDocumentType);
+}, {
+  message: "Debes indicar si el documento es DNI o pasaporte",
+  path: ["identityDocumentType"],
+}).refine((data) => {
+  if (!data.identityDocumentType) return true;
+  return Boolean(data.identityDocumentNumber?.trim());
+}, {
+  message: "Debes indicar el número del documento",
+  path: ["identityDocumentNumber"],
 }).refine((data) => {
   if (data.payerType !== "other") return true;
   return Boolean(data.payerName?.trim() && data.payerEmail?.trim() && data.payerPhone?.trim());

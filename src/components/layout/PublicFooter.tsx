@@ -19,6 +19,8 @@ export function PublicFooter() {
             <span>·</span>
             <Link to="/legal/cookies" className="hover:text-foreground hover:underline">Cookies</Link>
             <span>·</span>
+            <Link to="/legal/dpa" className="hover:text-foreground hover:underline">DPA</Link>
+            <span>·</span>
             <Link to="/legal/notice" className="hover:text-foreground hover:underline">Aviso Legal</Link>
           </nav>
         </div>

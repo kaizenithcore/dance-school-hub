@@ -2,7 +2,7 @@ import commercialCatalogJson from "../../catalog/commercialCatalog.json";
 
 export type PlanType = "starter" | "pro" | "enterprise";
 export type SubscriptionAddonKey = "customDomain" | "prioritySupport" | "waitlistAutomation" | "renewalAutomation";
-export type SubscriptionAddonCatalogKey = SubscriptionAddonKey | "extraRoles";
+export type SubscriptionAddonCatalogKey = SubscriptionAddonKey | "extraRoles" | "branding";
 
 interface PlanFeatureFlags {
   smartEnrollmentLink: boolean;
@@ -66,6 +66,7 @@ interface CommercialCatalog {
     anchor: string;
     comparison: string;
     focus: string;
+    launchDiscountStrategy?: string;
   };
 }
 
@@ -78,7 +79,7 @@ export const professionalServicesCatalog = commercialCatalog.professionalService
 function isSelectableSubscriptionAddonKey(
   key: SubscriptionAddonCatalogKey
 ): key is SubscriptionAddonKey {
-  return key !== "extraRoles";
+  return key !== "extraRoles" && key !== "branding";
 }
 
 

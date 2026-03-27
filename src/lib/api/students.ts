@@ -5,6 +5,10 @@ export interface SaveStudentRequest {
   name: string;
   email: string;
   phone: string;
+  address?: string;
+  locality?: string;
+  identityDocumentType?: "dni" | "passport";
+  identityDocumentNumber?: string;
   birthdate?: string;
   status: "active" | "inactive";
   joinDate?: string;

@@ -5,6 +5,7 @@ const legalLinks = [
   { to: "/legal/privacy", label: "Política de Privacidad" },
   { to: "/legal/cookies", label: "Política de Cookies" },
   { to: "/legal/terms", label: "Términos de Servicio" },
+  { to: "/legal/dpa", label: "DPA" },
   { to: "/legal/notice", label: "Aviso Legal" },
 ];
 

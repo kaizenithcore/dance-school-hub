@@ -348,7 +348,7 @@ export default function SettingsPage() {
   const [security, setSecurity] = useState<SecurityConfig>({
     requireStrongPassword: true,
     allowTwoFactor: false,
-    sessionTimeoutMinutes: "120",
+    sessionTimeoutMinutes: "480",
     loginAlerts: true,
   });
 

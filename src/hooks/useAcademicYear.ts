@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getAcademicYears, setCurrentAcademicYear, type AcademicYear } from "@/lib/api/academicYears";
+import {
+  createAcademicYear,
+  getAcademicYears,
+  setCurrentAcademicYear,
+  type AcademicYear,
+  type CreateAcademicYearInput,
+} from "@/lib/api/academicYears";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface UseAcademicYearResult {
@@ -8,6 +14,7 @@ interface UseAcademicYearResult {
   currentAcademicYear: AcademicYear | null;
   loading: boolean;
   setCurrentAcademicYear: (yearId: string) => Promise<void>;
+  createNewAcademicYear: (input: CreateAcademicYearInput) => Promise<void>;
 }
 
 export function useAcademicYear(): UseAcademicYearResult {
@@ -18,23 +25,23 @@ export function useAcademicYear(): UseAcademicYearResult {
 
   const activeTenantId = authContext?.tenant.id;
 
-  useEffect(() => {
-    const loadAcademicYears = async () => {
-      try {
-        setLoading(true);
-        const data = await getAcademicYears();
-        setAcademicYears(data.academicYears);
-        setCurrentAcademicYearId(data.currentAcademicYearId);
-      } catch (error) {
-        console.error("Failed to load academic years:", error);
-        toast.error("No se pudieron cargar los años académicos");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadAcademicYears = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getAcademicYears();
+      setAcademicYears(data.academicYears);
+      setCurrentAcademicYearId(data.currentAcademicYearId);
+    } catch (error) {
+      console.error("Failed to load academic years:", error);
+      toast.error("No se pudieron cargar los años académicos");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
+  useEffect(() => {
     void loadAcademicYears();
-  }, [activeTenantId]);
+  }, [activeTenantId, loadAcademicYears]);
 
   const handleSetCurrentAcademicYear = useCallback(async (yearId: string) => {
     try {
@@ -48,6 +55,18 @@ export function useAcademicYear(): UseAcademicYearResult {
     }
   }, []);
 
+  const handleCreateAcademicYear = useCallback(async (input: CreateAcademicYearInput) => {
+    try {
+      await createAcademicYear(input);
+      toast.success("Curso creado correctamente");
+      await loadAcademicYears();
+    } catch (error) {
+      console.error("Failed to create academic year:", error);
+      toast.error("No se pudo crear el curso");
+      throw error;
+    }
+  }, [loadAcademicYears]);
+
   const currentAcademicYear = academicYears.find((year) => year.id === currentAcademicYearId) || null;
 
   return {
@@ -55,5 +74,6 @@ export function useAcademicYear(): UseAcademicYearResult {
     currentAcademicYear,
     loading,
     setCurrentAcademicYear: handleSetCurrentAcademicYear,
+    createNewAcademicYear: handleCreateAcademicYear,
   };
 }

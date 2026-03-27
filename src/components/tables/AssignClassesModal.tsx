@@ -9,81 +9,19 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Book, Plus, X } from "lucide-react";
 
-// Mock available classes
-const MOCK_AVAILABLE_CLASSES: Class[] = [
-  {
-    id: "c1",
-    name: "Ballet Clásico Iniciación",
-    discipline: "Ballet",
-    level: "Iniciación",
-    day: "Lunes",
-    time: "09:00–10:30",
-    room: "Aula Principal",
-    students: 12,
-  },
-  {
-    id: "c2",
-    name: "Ballet Clásico Avanzado",
-    discipline: "Ballet",
-    level: "Avanzado",
-    day: "Viernes",
-    time: "10:00–11:30",
-    room: "Aula Principal",
-    students: 8,
-  },
-  {
-    id: "c3",
-    name: "Salsa y Bachata",
-    discipline: "Latino",
-    level: "Nivel 1",
-    day: "Martes",
-    time: "19:00–20:30",
-    room: "Aula 2",
-    students: 15,
-  },
-  {
-    id: "c4",
-    name: "Hip Hop Urbano",
-    discipline: "Hip Hop",
-    level: "Todos",
-    day: "Miércoles",
-    time: "18:00–19:00",
-    room: "Aula 3 - Estudio",
-    students: 10,
-  },
-  {
-    id: "c5",
-    name: "Danza Contemporánea",
-    discipline: "Contemporáneo",
-    level: "Intermedio",
-    day: "Jueves",
-    time: "20:00–21:30",
-    room: "Aula Principal",
-    students: 9,
-  },
-  {
-    id: "c6",
-    name: "Ballet Infantil",
-    discipline: "Ballet",
-    level: "Infantil",
-    day: "Sábado",
-    time: "09:00–10:00",
-    room: "Aula 2",
-    students: 14,
-  },
-];
-
 interface AssignClassesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   teacher: TeacherRecord | null;
-  onSave: (classes: Class[]) => void;
+  classesCatalog: Class[];
+  onSave: (classIds: string[]) => Promise<boolean>;
 }
 
 export function AssignClassesModal({
   open,
   onOpenChange,
   teacher,
+  classesCatalog,
   onSave,
 }: AssignClassesModalProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -106,11 +44,10 @@ export function AssignClassesModal({
   const handleSave = useCallback(async () => {
     setIsLoading(true);
     try {
-      const selectedClasses = MOCK_AVAILABLE_CLASSES.filter((c) =>
-        assignedClassIds.includes(c.id)
-      );
-      onSave(selectedClasses);
-      onOpenChange(false);
+      const ok = await onSave(assignedClassIds);
+      if (ok) {
+        onOpenChange(false);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -118,11 +55,11 @@ export function AssignClassesModal({
 
   if (!teacher) return null;
 
-  const assignedClasses = MOCK_AVAILABLE_CLASSES.filter((c) =>
+  const assignedClasses = classesCatalog.filter((c) =>
     assignedClassIds.includes(c.id)
   );
 
-  const availableClasses = MOCK_AVAILABLE_CLASSES.filter(
+  const availableClasses = classesCatalog.filter(
     (c) => !assignedClassIds.includes(c.id)
   );
 

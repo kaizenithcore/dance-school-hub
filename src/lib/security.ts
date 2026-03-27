@@ -28,7 +28,7 @@ export function validateStrongPassword(password: string): PasswordPolicyResult {
   };
 }
 
-export function parseSessionTimeoutMinutes(value: unknown, fallback = 120): number {
+export function parseSessionTimeoutMinutes(value: unknown, fallback = 480): number {
   if (typeof value === "number" && Number.isFinite(value) && value >= 15) {
     return Math.floor(value);
   }

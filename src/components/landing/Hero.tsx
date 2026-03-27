@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Play, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 import { formatEuro, planCatalog } from "@/lib/commercialCatalog";
+import { SharedDemoCta } from "@/components/landing/SharedDemoCta";
 
 const proPlan = planCatalog.pro;
 
@@ -61,12 +62,10 @@ export function Hero() {
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-7 text-base" asChild>
-                <a href="#modernization-bundle">
-                  Ver Pack Modernización
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
-              </Button>
+              <SharedDemoCta
+                section="hero"
+                className="h-12 px-7 text-base"
+              />
             </div>
 
             <div className="mt-5 flex items-center gap-4 text-xs text-muted-foreground">

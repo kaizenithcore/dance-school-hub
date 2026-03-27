@@ -25,6 +25,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { createRoom, deleteRoom, getRooms, Room, updateRoom } from "@/lib/api/rooms";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 type RoomForm = {
   name: string;
@@ -49,6 +50,7 @@ export default function RoomsPage() {
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [deletingRoom, setDeletingRoom] = useState<Room | null>(null);
   const [form, setForm] = useState<RoomForm>(EMPTY_FORM);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const activeCount = useMemo(() => rooms.filter((r) => r.isActive).length, [rooms]);
 
@@ -68,6 +70,32 @@ export default function RoomsPage() {
 
     loadRooms();
   }, []);
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    const targetId = searchParams.get("id");
+    const action = searchParams.get("action");
+
+    if (!targetId || !action) {
+      return;
+    }
+
+    const targetRoom = rooms.find((room) => room.id === targetId);
+    if (!targetRoom) {
+      return;
+    }
+
+    if (action === "edit" || action === "preview") {
+      openEdit(targetRoom);
+    } else if (action === "delete") {
+      openDelete(targetRoom);
+    }
+
+    setSearchParams({}, { replace: true });
+  }, [loading, rooms, searchParams, setSearchParams]);
 
   const openCreate = () => {
     setEditingRoom(null);

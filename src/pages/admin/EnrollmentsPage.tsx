@@ -87,7 +87,8 @@ export default function EnrollmentsPage() {
       description="Revisa y gestiona las solicitudes de inscripción"
     >
       <EnrollmentsTable
-        enrollments={loading ? [] : enrollments}
+        enrollments={enrollments}
+        isLoading={loading}
         onViewDetail={handleViewDetail}
       />
 

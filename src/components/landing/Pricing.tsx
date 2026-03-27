@@ -48,6 +48,7 @@ const addonsStarter = [
 
 const addons = [
   `${subscriptionAddonCatalog.customDomain.label}: ${formatEuro(subscriptionAddonCatalog.customDomain.monthlyPriceEur)}/mes`,
+  `${subscriptionAddonCatalog.branding.label}: ${formatEuro(subscriptionAddonCatalog.branding.monthlyPriceEur)}/mes`,
   `${subscriptionAddonCatalog.prioritySupport.label}: ${formatEuro(subscriptionAddonCatalog.prioritySupport.monthlyPriceEur)}/mes`,
   `Bloques extra de alumnos desde ${formatEuro(getMinimumExtraStudentBlockPriceEur())}/mes (según el plan)`,
   `${subscriptionAddonCatalog.extraRoles.label}: ${formatEuro(subscriptionAddonCatalog.extraRoles.monthlyPriceEur)}/mes`,
@@ -188,6 +189,9 @@ export function Pricing() {
           <p className="mt-1 text-sm text-muted-foreground">
             {commercialCatalog.pricingNarrative?.comparison || "Más barato que contratar a un administrativo"}. El retorno de inversión es inmediato: menos gestión, más tiempo para captar y retener alumnos.
           </p>
+          {commercialCatalog.pricingNarrative?.launchDiscountStrategy && (
+            <p className="mt-2 text-xs font-medium text-primary">{commercialCatalog.pricingNarrative.launchDiscountStrategy}</p>
+          )}
         </motion.div>
 
         <div className="mt-6 rounded-2xl border border-border bg-card p-6 max-w-5xl mx-auto">

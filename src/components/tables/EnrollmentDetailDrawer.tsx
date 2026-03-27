@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, Calendar, CreditCard, Clock, FileText, StickyNote, CheckCircle, XCircle, Ban } from "lucide-react";
+import { Mail, Phone, Calendar, CreditCard, Clock, FileText, StickyNote, CheckCircle, XCircle, Ban, UserRound, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -32,6 +32,22 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
     enrollment.paymentMethod === "cash" ? "Efectivo" :
     enrollment.paymentMethod;
 
+  const isTransferPayment = (() => {
+    const normalized = (enrollment.paymentMethod || "").toLowerCase();
+    return normalized === "transfer" || normalized === "bank_transfer" || normalized.includes("transfer");
+  })();
+
+  const guardians = enrollment.guardians || [];
+
+  const formatMaybeDate = (value?: string) => {
+    if (!value) return "No disponible";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return format(parsed, "d MMM yyyy", { locale: es });
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
@@ -49,12 +65,35 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
           <section className="space-y-3">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Datos del Alumno</h4>
             <div className="space-y-2.5">
-              <InfoRow icon={Mail} label="Nombre" value={enrollment.studentName} />
+              <InfoRow icon={UserRound} label="Nombre" value={enrollment.studentName} />
               <InfoRow icon={Mail} label="Email" value={enrollment.studentEmail} />
               <InfoRow icon={Phone} label="Teléfono" value={enrollment.studentPhone} />
+              <InfoRow icon={Calendar} label="Fecha de nacimiento" value={formatMaybeDate(enrollment.studentBirthDate)} />
               <InfoRow icon={Calendar} label="Fecha de solicitud" value={format(new Date(enrollment.date), "d MMM yyyy", { locale: es })} />
               <InfoRow icon={CreditCard} label="Método de pago" value={paymentMethodFormatted} />
+              {isTransferPayment && (
+                <InfoRow icon={CreditCard} label="IBAN/CBU" value={enrollment.studentIban || "No disponible"} />
+              )}
             </div>
+
+            {guardians.length > 0 && (
+              <div className="rounded-md border border-border bg-muted/20 p-3 space-y-2.5">
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Tutores</p>
+                </div>
+
+                <div className="space-y-2">
+                  {guardians.map((guardian, index) => (
+                    <div key={`${guardian.name}-${index}`} className="rounded-md border border-border bg-background px-3 py-2.5 space-y-1.5">
+                      <p className="text-sm font-medium text-foreground">{guardian.name || `Tutor ${index + 1}`}</p>
+                      {guardian.phone && <p className="text-xs text-muted-foreground">Tel: {guardian.phone}</p>}
+                      {guardian.email && <p className="text-xs text-muted-foreground truncate">Email: {guardian.email}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
           <Separator />
@@ -158,13 +197,13 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
   );
 }
 
-function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value?: string }) {
   return (
     <div className="flex items-center gap-2.5">
       <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-muted-foreground">{label}</p>
-        <p className="text-sm text-foreground truncate">{value}</p>
+        <p className="text-sm text-foreground truncate">{value || "No disponible"}</p>
       </div>
     </div>
   );
