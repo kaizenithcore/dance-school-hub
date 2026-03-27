@@ -12,6 +12,8 @@ import { Features } from "@/components/landing/Features";
 import { WhatYouGet } from "@/components/landing/WhatYouGet";
 import { DecisionCompare } from "@/components/landing/DecisionCompare";
 import { Pricing } from "@/components/landing/Pricing";
+import { ExamSuit } from "@/components/landing/ExamSuit";
+import { AssociatedSchools } from "@/components/landing/AssociatedSchools";
 import { LaunchOffer } from "@/components/landing/LaunchOffer";
 import { ROI } from "@/components/landing/ROI";
 import { Results } from "@/components/landing/Results";
