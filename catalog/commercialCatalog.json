@@ -309,5 +309,67 @@
     "anchor": "Con 5–15 alumnos cubres el coste completo del sistema",
     "comparison": "Más barato que contratar a un administrativo",
     "focus": "ahorro de tiempo y eficiencia operativa"
+  },
+  "examSuit": {
+    "label": "ExamSuit",
+    "tagline": "Para asociaciones y entidades certificadoras",
+    "description": "Sistema completo para gestionar convocatorias, matrículas, evaluaciones y certificados.",
+    "plans": {
+      "associations": {
+        "name": "ExamSuit (Asociaciones)",
+        "billing": {
+          "monthlyPriceEur": 299,
+          "annualEffectiveMonthlyPriceEur": 249,
+          "annualTotalEur": 2988,
+          "annualSavingsLabel": "Ahorra 600€/año"
+        },
+        "maintenanceMonthlyEur": 49,
+        "maintenanceNote": "Fuera de periodos activos de exámenes",
+        "features": [
+          "Gestión completa de convocatorias",
+          "Matrícula de exámenes online",
+          "Gestión multi-escuela",
+          "Evaluación configurable",
+          "Generación automática de certificados",
+          "Panel de control y estadísticas"
+        ],
+        "cta": {
+          "label": "Solicitar acceso",
+          "href": "mailto:hola@dancehub.es?subject=Consulta%20ExamSuit%20Asociaciones",
+          "external": true
+        }
+      },
+      "schools": {
+        "name": "ExamSuit Lite (Escuelas)",
+        "billing": {
+          "monthlyPriceEur": 129,
+          "annualEffectiveMonthlyPriceEur": 99,
+          "annualTotalEur": 1188,
+          "annualSavingsLabel": "Ahorra 360€/año"
+        },
+        "features": [
+          "Matrícula de exámenes",
+          "Gestión de alumnos en exámenes",
+          "Evaluación y certificados"
+        ],
+        "note": "Sin gestión completa de escuela (clases, pagos, etc.)",
+        "cta": {
+          "label": "Solicitar acceso",
+          "href": "mailto:hola@dancehub.es?subject=Consulta%20ExamSuit%20Lite",
+          "external": true
+        }
+      }
+    },
+    "associatedSchoolsBenefits": {
+      "title": "Si tu asociación usa ExamSuit, tú tienes ventaja",
+      "subtitle": "Las escuelas dentro de asociaciones que usan ExamSuit obtienen acceso directo al ecosistema DanceHub.",
+      "benefits": [
+        "10% de descuento en Plan Pro anual",
+        "Activación inmediata sin configuración",
+        "Importación automática de alumnos",
+        "Historial de exámenes ya integrado"
+      ],
+      "closingLine": "Empiezas con exámenes. Terminas automatizando toda tu escuela."
+    }
   }
 }
