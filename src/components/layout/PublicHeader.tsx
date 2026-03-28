@@ -39,7 +39,6 @@ export function PublicHeader() {
           >
             Inscribirme
           </Link>
-          </Link>
         </nav>
       </div>
     </header>
