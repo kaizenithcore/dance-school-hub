@@ -38,7 +38,7 @@ export function EcosystemStatsWidget() {
   return (
     <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-semibold text-foreground">Ecosistema DanceHub</p>
+        <p className="text-sm font-semibold text-foreground">Ecosistema Nexa</p>
         <p className="text-[11px] text-muted-foreground">
           Activas: {stats?.activeSchools ?? 0} ({(stats?.activeSchoolsRate ?? 0).toFixed(1)}%)
         </p>

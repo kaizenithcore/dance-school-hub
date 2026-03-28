@@ -1,4 +1,4 @@
-const THEME_STORAGE_KEY = "dancehub.theme";
+const THEME_STORAGE_KEY = "nexa.theme";
 
 export type AppTheme = "light" | "dark" | "system";
 

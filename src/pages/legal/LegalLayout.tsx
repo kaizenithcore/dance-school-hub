@@ -20,7 +20,7 @@ export default function LegalLayout() {
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
               <Music className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-foreground">DanceHub</span>
+            <span className="font-semibold text-foreground">Nexa</span>
           </Link>
           <Link to="/auth/login" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3 w-3" /> Volver

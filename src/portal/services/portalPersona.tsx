@@ -27,7 +27,7 @@ export const PORTAL_PERSONA_OPTIONS: PortalPersonaOption[] = [
   },
 ];
 
-const STORAGE_KEY = "dancehub:portal:persona";
+const STORAGE_KEY = "nexa:portal:persona";
 
 interface PortalPersonaContextValue {
   persona: PortalPersona;

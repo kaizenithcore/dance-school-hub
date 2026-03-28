@@ -33,7 +33,7 @@ export function ROI() {
           <div className="rounded-2xl border border-destructive/20 bg-card p-7">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="h-5 w-5 text-destructive" />
-              <span className="text-sm font-semibold text-destructive">Sin DanceHub</span>
+              <span className="text-sm font-semibold text-destructive">Sin Nexa</span>
             </div>
             <p className="text-3xl font-bold text-foreground">+1.200€<span className="text-base font-normal text-muted-foreground">/mes</span></p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -50,7 +50,7 @@ export function ROI() {
           <div className="rounded-2xl border border-success/30 bg-card p-7 ring-1 ring-success/10">
             <div className="flex items-center gap-2 mb-4">
               <TrendingDown className="h-5 w-5 text-success" />
-              <span className="text-sm font-semibold text-success">Con DanceHub Pro Anual</span>
+              <span className="text-sm font-semibold text-success">Con Nexa Pro</span>
             </div>
             <p className="text-3xl font-bold text-foreground">{formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}<span className="text-base font-normal text-muted-foreground">/mes</span></p>
             <p className="mt-1 text-xs text-muted-foreground">Facturación anual: {formatEuro(proPlan.billing.annualTotalEur)}/año ({proPlan.billing.annualSavingsLabel})</p>

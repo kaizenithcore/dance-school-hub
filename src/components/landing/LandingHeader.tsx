@@ -8,7 +8,7 @@ import { trackPortalEvent } from "@/lib/portalTelemetry";
 const nav = [
   { label: "Solución", href: "#solution" },
   { label: "Pack Pro", href: "#modernization" },
-  { label: "Portal alumno", href: "#student-portal" },
+  { label: "Nexa Club", href: "#student-portal" },
   { label: "Webs", href: "#web-service" },
   { label: "Precios", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
@@ -35,9 +35,12 @@ export function LandingHeader() {
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">D</span>
+            <span className="text-sm font-bold text-primary-foreground">N</span>
           </div>
-          <span className="text-base font-semibold text-foreground">DanceHub</span>
+          <div className="leading-tight">
+            <span className="block text-base font-semibold text-foreground">Nexa</span>
+            <span className="hidden text-[11px] text-muted-foreground md:block">Todo tu centro, en un solo sistema</span>
+          </div>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
@@ -54,7 +57,7 @@ export function LandingHeader() {
             <Link to="/auth/login">Iniciar sesión</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link to="/auth/register" onClick={() => handlePrimaryClick("header_desktop")}>Probar gratis</Link>
+            <Link to="/auth/register" className="rounded-xl shadow-sm hover:shadow-md" onClick={() => handlePrimaryClick("header_desktop")}>Probar Nexa</Link>
           </Button>
         </div>
 
@@ -84,7 +87,7 @@ export function LandingHeader() {
               <Link to="/auth/login">Iniciar sesión</Link>
             </Button>
             <Button size="sm" className="flex-1" asChild>
-              <Link to="/auth/register" onClick={() => handlePrimaryClick("header_mobile")}>Probar gratis</Link>
+              <Link to="/auth/register" className="rounded-xl" onClick={() => handlePrimaryClick("header_mobile")}>Probar Nexa</Link>
             </Button>
           </div>
         </div>

@@ -302,18 +302,18 @@ export default function SettingsPage() {
   const [thankYouOpen, setThankYouOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [school, setSchool] = useState<SchoolInfo>({
-    name: "DanceHub Studio",
-    slug: "dancehub",
-    email: "info@dancehub.com",
+    name: "Nexa Studio",
+    slug: "nexa",
+    email: "info@nexa.com",
     phone: "(011) 5555-0000",
     address: "Av. Corrientes 1234, Piso 3",
     city: "Buenos Aires",
     tagline: "Escuela de danza para todas las edades",
     description: "Escuela de danza con más de 15 años de trayectoria ofreciendo clases de ballet, contemporáneo, jazz, tango, salsa y más.",
-    website: "https://dancehub.com",
-    instagram: "@dancehub.studio",
-    facebook: "dancehubstudio",
-    tiktok: "@dancehub",
+    website: "https://nexa.com",
+    instagram: "@nexa.studio",
+    facebook: "nexastudio",
+    tiktok: "@nexa",
   });
 
   const [schedule, setSchedule] = useState<ScheduleConfig>({
@@ -332,7 +332,7 @@ export default function SettingsPage() {
     gracePeriodDays: "5",
     enableTransfer: true,
     enableCash: true,
-    transferAlias: "dancehub.studio",
+    transferAlias: "nexa.studio",
     transferCBU: "0000003100012345678901",
     autoReminders: true,
   });

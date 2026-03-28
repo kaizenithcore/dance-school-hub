@@ -14,12 +14,12 @@ interface SharedDemoCtaProps {
 
 export function SharedDemoCta({
   section,
-  subject = "Solicitar demo DanceHub",
+  subject = "Solicitar demo Nexa",
   label = "Ver demo",
   variant = "outline",
   className,
 }: SharedDemoCtaProps) {
-  const href = `mailto:hola@dancehub.es?subject=${encodeURIComponent(subject)}`;
+  const href = `mailto:hola@nexa.es?subject=${encodeURIComponent(subject)}`;
 
   const handleClick = () => {
     trackPortalEvent({

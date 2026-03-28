@@ -11,8 +11,8 @@ const integratedFeatures = (integratedWeb?.includes as string[] | undefined) || 
   "Página pública profesional",
   "Clases y horarios visibles",
   "Matrículas online",
-  "Acceso al portal del alumno",
-  "Conexión directa con DanceHub",
+  "Acceso a Nexa Club",
+  "Conexión directa con Nexa",
 ];
 
 const standaloneTierLabels: Record<string, string> = {
@@ -49,7 +49,7 @@ export function WebService() {
             className="rounded-2xl border-2 border-primary/30 bg-card p-7 ring-1 ring-primary/10 relative"
           >
             <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-[10px] font-semibold text-primary-foreground">
-              Recomendada con DanceHub
+              Recomendada con Nexa
             </span>
 
             <div className="flex items-center gap-2 mb-2 mt-1">
@@ -140,7 +140,7 @@ export function WebService() {
           className="mt-10 text-center"
         >
           <Button size="lg" variant="outline" className="h-11" asChild>
-            <a href="mailto:hola@dancehub.es?subject=Consulta%20servicio%20web%20DanceHub">
+            <a href="mailto:hola@nexa.es?subject=Consulta%20servicio%20web%20Nexa">
               Solicitar información
               <ArrowRight className="ml-1 h-4 w-4" />
             </a>

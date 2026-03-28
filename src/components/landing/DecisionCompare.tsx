@@ -42,7 +42,7 @@ export function DecisionCompare() {
             viewport={{ once: true }}
             className="rounded-2xl border border-destructive/20 bg-card p-7"
           >
-            <h3 className="text-sm font-semibold text-destructive uppercase tracking-wider mb-5">Sin DanceHub</h3>
+            <h3 className="text-sm font-semibold text-destructive uppercase tracking-wider mb-5">Sin Nexa</h3>
             <ul className="space-y-3">
               {without.map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
@@ -59,7 +59,7 @@ export function DecisionCompare() {
             viewport={{ once: true }}
             className="rounded-2xl border border-success/30 bg-card p-7 ring-1 ring-success/10"
           >
-            <h3 className="text-sm font-semibold text-success uppercase tracking-wider mb-5">Con DanceHub</h3>
+            <h3 className="text-sm font-semibold text-success uppercase tracking-wider mb-5">Con Nexa</h3>
             <ul className="space-y-3">
               {withDH.map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm text-foreground">

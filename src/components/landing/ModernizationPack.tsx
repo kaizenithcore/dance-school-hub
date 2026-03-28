@@ -9,9 +9,9 @@ const bundleCatalog = (commercialCatalog as any).bundles?.modernizationProBundle
 const creativeServices = (commercialCatalog as any).creativeServices;
 
 const bundleIncludes = [
-  { label: "Plan Pro anual", desc: "Gestión completa, automatizaciones, portal del alumno" },
+  { label: "Plan Pro anual", desc: "Gestión completa, automatizaciones y Nexa Club" },
   { label: "Pack de modernización", desc: "Implementación, migración de datos y puesta en marcha" },
-  { label: "Web integrada con DanceHub", desc: "Página pública conectada a matrículas y horarios" },
+  { label: "Web integrada con Nexa", desc: "Página pública conectada a matrículas y horarios" },
   { label: "Revisión de identidad visual", desc: `Por ${creativeServices?.provider || "Weydi"}: análisis y mejora de tu imagen de marca` },
 ];
 
@@ -30,7 +30,7 @@ export function ModernizationPack() {
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="relative rounded-3xl border-2 border-primary/30 bg-card overflow-hidden max-w-5xl mx-auto"
+          className="relative rounded-3xl border-2 border-primary/30 bg-card max-w-5xl mx-auto"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/20" />
 
@@ -109,9 +109,9 @@ export function ModernizationPack() {
                 </ul>
 
                 <div className="mt-6 flex flex-col gap-2">
-                  <Button size="lg" className="h-12 text-base font-semibold" asChild>
+                  <Button size="lg" className="h-12 rounded-xl text-base font-semibold shadow-md hover:shadow-lg" asChild>
                     <Link to="/auth/register">
-                      Empezar con el pack
+                      Crear mi escuela
                       <ArrowRight className="ml-1 h-4 w-4" />
                     </Link>
                   </Button>

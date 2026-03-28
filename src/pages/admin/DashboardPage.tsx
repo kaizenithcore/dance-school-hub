@@ -98,7 +98,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <PageContainer title="Panel" description="Resumen general de tu escuela de danza">
+      <PageContainer title="Estado de tu escuela" description="Gestiona en segundos lo que importa cada dia">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -108,8 +108,8 @@ export default function DashboardPage() {
 
   return (
     <PageContainer
-      title="Panel"
-      description="Resumen general de tu escuela de danza"
+      title="Estado de tu escuela"
+      description="Bienvenido a Nexa"
     >
       {/* KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -237,7 +237,7 @@ export default function DashboardPage() {
           {recentEnrollments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-6 text-center">
               <UserPlus className="h-6 w-6 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No hay inscripciones</p>
+              <p className="text-sm text-muted-foreground">Empieza creando tu primera clase</p>
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -273,7 +273,7 @@ export default function DashboardPage() {
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <CheckCircle className="h-8 w-8 text-success mb-2" />
               <p className="text-sm font-medium text-foreground">Todo al día</p>
-              <p className="text-xs text-muted-foreground">No hay pagos vencidos</p>
+              <p className="text-xs text-muted-foreground">Control total sin pagos vencidos</p>
             </div>
           ) : (
             <div className="space-y-2.5">

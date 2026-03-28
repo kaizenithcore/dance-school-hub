@@ -7,13 +7,13 @@ export function LandingFooter() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-              <span className="text-xs font-bold text-primary-foreground">D</span>
+              <span className="text-xs font-bold text-primary-foreground">N</span>
             </div>
-            <span className="text-sm font-medium text-foreground">DanceHub</span>
+            <span className="text-sm font-medium text-foreground">Nexa</span>
           </div>
 
           <nav className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <a href="mailto:hola@dancehub.es" className="hover:text-foreground">Contacto</a>
+            <a href="mailto:hola@nexa.es" className="hover:text-foreground">Contacto</a>
             <span>·</span>
             <Link to="/legal/privacy" className="hover:text-foreground">Privacidad</Link>
             <span>·</span>

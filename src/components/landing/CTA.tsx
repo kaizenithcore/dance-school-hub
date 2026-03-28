@@ -30,15 +30,15 @@ export function CTA() {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/20" />
           <div className="relative">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-              Empieza a modernizar tu escuela hoy
+              Todo tu centro, en un solo sistema
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-lg mx-auto">
-              El camino recomendado: Plan Pro Anual + Pack Modernización. Todo listo para empezar en semanas.
+              Ahorra horas cada semana y gestiona con control total desde Nexa.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
+              <Button size="lg" className="h-12 rounded-xl px-8 text-base font-semibold shadow-md hover:shadow-lg" asChild>
                 <Link to="/auth/register" onClick={handlePrimaryClick}>
-                  Empezar con el pack
+                  Empezar ahora
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>

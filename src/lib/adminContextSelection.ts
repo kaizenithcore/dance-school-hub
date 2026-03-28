@@ -1,7 +1,7 @@
 import type { AuthContextResponse } from "@/lib/api/auth";
 
-const ADMIN_SELECTED_TENANT_KEY = "dancehub:admin:selected-tenant-id";
-const ADMIN_SELECTED_ORGANIZATION_KEY = "dancehub:admin:selected-organization-id";
+const ADMIN_SELECTED_TENANT_KEY = "nexa:admin:selected-tenant-id";
+const ADMIN_SELECTED_ORGANIZATION_KEY = "nexa:admin:selected-organization-id";
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";

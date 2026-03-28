@@ -9,10 +9,9 @@ import { SharedDemoCta } from "@/components/landing/SharedDemoCta";
 const proPlan = planCatalog.pro;
 
 const benefits = [
-  "Software de gestión completo",
-  "Portal del alumno (app)",
-  "Web profesional integrada",
-  "Pack de modernización incluido",
+  "Ahorra horas cada semana",
+  "Automatiza tareas clave",
+  "Haz crecer tu escuela sin complicaciones",
 ];
 
 export function Hero() {
@@ -42,29 +41,30 @@ export function Hero() {
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground mb-6">
               <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-              Moderniza tu escuela en días, no meses
+              Menos gestión, más enseñanza
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight text-foreground leading-[1.1]">
-              Deja de gestionar con Excel.{" "}
-              <span className="text-primary">Moderniza tu escuela.</span>
+              Todo tu centro,{" "}
+              <span className="text-primary">en un solo sistema.</span>
             </h1>
 
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-lg">
-              Software de gestión + portal del alumno + web profesional + identidad visual.
-              Todo en un solo paso. Desde {formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}/mes con el plan anual.
+              Gestiona alumnos, clases, pagos y comunicación desde un único lugar.
+              Empieza desde {formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}/mes con el plan anual.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" className="h-12 px-7 text-base font-semibold" asChild>
+              <Button size="lg" className="h-12 rounded-xl px-7 text-base font-semibold shadow-md hover:shadow-lg" asChild>
                 <Link to="/auth/register" onClick={handlePrimaryClick}>
-                  Empezar con Pro Anual
+                  Probar gratis
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
               <SharedDemoCta
                 section="hero"
-                className="h-12 px-7 text-base"
+                label="Ver cómo funciona"
+                className="h-12 rounded-xl px-7 text-base"
               />
             </div>
 
@@ -96,7 +96,7 @@ export function Hero() {
                 <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
-                <span className="ml-3 text-[11px] text-muted-foreground font-mono">app.dancehub.es/admin</span>
+                <span className="ml-3 text-[11px] text-muted-foreground font-mono">app.nexa/admin</span>
               </div>
               <div className="p-5 space-y-4">
                 <div className="grid grid-cols-3 gap-3">

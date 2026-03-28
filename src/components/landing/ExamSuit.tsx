@@ -30,13 +30,13 @@ export function ExamSuit() {
           className="text-center max-w-2xl mx-auto mb-14"
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
-            Para asociaciones y certificaciones
+            Certifier
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            ¿Gestionas exámenes o certificaciones?
+            Gestiona certificaciones con Certifier
           </h2>
           <p className="mt-4 text-muted-foreground text-lg">
-            Centraliza convocatorias, matrículas, evaluaciones y certificados en un solo sistema.
+            Automatiza inscripciones, resultados y certificados en un único flujo.
           </p>
         </motion.div>
 
@@ -63,8 +63,8 @@ export function ExamSuit() {
           className="max-w-3xl mx-auto mb-14"
         >
           <p className="text-muted-foreground text-center leading-relaxed">
-            DanceHub incluye <strong className="text-foreground">ExamSuit</strong>, un sistema diseñado para asociaciones,
-            federaciones y entidades que organizan exámenes. Gestiona todo el proceso y conecta automáticamente con las escuelas de tu red.
+            Nexa incluye <strong className="text-foreground">Certifier</strong>, diseñado para asociaciones,
+            federaciones y escuelas que necesitan control total en certificaciones.
           </p>
         </motion.div>
 

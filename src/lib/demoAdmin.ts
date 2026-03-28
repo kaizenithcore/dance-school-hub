@@ -1,12 +1,20 @@
-const DEMO_ADMIN_STORAGE_KEY = "dancehub:demo-admin-tenant";
-export const DEMO_ADMIN_SLUG = "escuela-demo-dancehub";
+const DEMO_ADMIN_STORAGE_KEY = "nexa:demo-admin-tenant";
+export const DEMO_ADMIN_SLUG = "escuela-demo-nexa";
 
 function canUseWindow() {
   return typeof window !== "undefined";
 }
 
 function normalizeDemoSlug(value: string | null | undefined) {
-  return value === DEMO_ADMIN_SLUG ? value : null;
+  if (value === DEMO_ADMIN_SLUG) {
+    return DEMO_ADMIN_SLUG;
+  }
+
+  return null;
+}
+
+export function isDemoAdminSlug(slug: string | null | undefined): boolean {
+  return normalizeDemoSlug(slug) !== null;
 }
 
 export function getDemoAdminTenantSlug(): string | null {
@@ -16,8 +24,8 @@ export function getDemoAdminTenantSlug(): string | null {
 
   const querySlug = normalizeDemoSlug(new URLSearchParams(window.location.search).get("demo"));
   if (querySlug) {
-    window.sessionStorage.setItem(DEMO_ADMIN_STORAGE_KEY, querySlug);
-    return querySlug;
+    window.sessionStorage.setItem(DEMO_ADMIN_STORAGE_KEY, DEMO_ADMIN_SLUG);
+    return DEMO_ADMIN_SLUG;
   }
 
   if (!window.location.pathname.startsWith("/admin")) {
@@ -34,7 +42,7 @@ export function activateDemoAdminSession(slug: string) {
 
   const normalizedSlug = normalizeDemoSlug(slug);
   if (normalizedSlug) {
-    window.sessionStorage.setItem(DEMO_ADMIN_STORAGE_KEY, normalizedSlug);
+    window.sessionStorage.setItem(DEMO_ADMIN_STORAGE_KEY, DEMO_ADMIN_SLUG);
   }
 }
 

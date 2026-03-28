@@ -2,7 +2,7 @@ import { NavLink as RouterNavLink, NavLinkProps, useLocation, type To } from "re
 import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
-const FORM_BUILDER_UNSAVED_KEY = "dancehub:form-builder:unsaved";
+const FORM_BUILDER_UNSAVED_KEY = "nexa:form-builder:unsaved";
 
 interface NavLinkCompatProps extends Omit<NavLinkProps, "className"> {
   className?: string;

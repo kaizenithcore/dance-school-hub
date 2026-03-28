@@ -3,9 +3,9 @@ import { LegalPage, LegalSection } from "@/pages/legal/LegalContent";
 export default function DpaPage() {
   return (
     <LegalPage title="Contrato de Encargado del Tratamiento (DPA)" updatedAt="marzo 2026">
-      <LegalSection title="DanceHub - Kaizenith">
+      <LegalSection title="Nexa - Kaizenith">
         <p>
-          Documento contractual de encargo del tratamiento aplicable al uso de la plataforma DanceHub por parte de escuelas,
+          Documento contractual de encargo del tratamiento aplicable al uso de la plataforma Nexa por parte de escuelas,
           academias y entidades clientes.
         </p>
       </LegalSection>
@@ -13,11 +13,11 @@ export default function DpaPage() {
       <LegalSection title="1. Partes">
         <p><strong>Responsable del tratamiento (Cliente):</strong></p>
         <p>
-          La escuela, academia o entidad que contrata DanceHub y decide sobre los datos personales tratados.
+          La escuela, academia o entidad que contrata Nexa y decide sobre los datos personales tratados.
         </p>
         <p><strong>Encargado del tratamiento (Proveedor):</strong></p>
         <p>
-          Kaizenith, titular de DanceHub, accesible en{" "}
+          Kaizenith, titular de Nexa, accesible en{" "}
           <a href="https://kaizenith.es" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-2 hover:underline">
             kaizenith.es
           </a>
@@ -31,7 +31,7 @@ export default function DpaPage() {
           El presente contrato regula el tratamiento de datos personales por parte de Kaizenith como encargado del tratamiento,
           conforme al artículo 28 del Reglamento (UE) 2016/679 (RGPD).
         </p>
-        <p>Kaizenith tratará datos personales únicamente para prestar el servicio SaaS DanceHub, incluyendo:</p>
+        <p>Kaizenith tratará datos personales únicamente para prestar el servicio SaaS Nexa, incluyendo:</p>
         <ul className="list-disc space-y-1 pl-6">
           <li>Gestión de alumnos, profesores y clases.</li>
           <li>Matrículas online.</li>
@@ -207,7 +207,7 @@ export default function DpaPage() {
       </LegalSection>
 
       <LegalSection title="11. Jerarquía contractual">
-        <p>Este DPA forma parte del contrato principal de uso de DanceHub.</p>
+        <p>Este DPA forma parte del contrato principal de uso de Nexa.</p>
         <p>En caso de conflicto, prevalecerá este documento en materia de protección de datos.</p>
       </LegalSection>
 

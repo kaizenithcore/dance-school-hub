@@ -5,7 +5,7 @@ export default function TermsOfServicePage() {
     <LegalPage title="Términos de Servicio" updatedAt="26 de marzo de 2026">
       <LegalSection title="1. Objeto">
         <p>
-          Estos términos regulan el acceso y uso de DanceHub, plataforma SaaS desarrollada por <strong>Kaizenith</strong> para
+          Estos términos regulan el acceso y uso de Nexa, plataforma SaaS desarrollada por <strong>Kaizenith</strong> para
           la gestión de escuelas.
         </p>
         <p>El servicio está dirigido a escuelas y profesionales, no a consumidores finales.</p>
@@ -21,7 +21,7 @@ export default function TermsOfServicePage() {
       </LegalSection>
 
       <LegalSection title="3. Rol del servicio">
-        <p>DanceHub actúa como:</p>
+        <p>Nexa actúa como:</p>
         <ul className="list-disc space-y-1 pl-6">
           <li>Herramienta de gestión.</li>
           <li>Infraestructura tecnológica.</li>

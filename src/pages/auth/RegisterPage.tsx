@@ -1,15 +1,40 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Music, ArrowLeft, ArrowRight, Loader2, Eye, EyeOff, AlertCircle, Check } from "lucide-react";
+import { Music, ArrowLeft, ArrowRight, Loader2, Eye, EyeOff, AlertCircle, Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { registerSchool } from "@/lib/auth";
-import { getSelectableSubscriptionAddons, planCatalog, planOrder, type PlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
+import { commercialCatalog, getSelectableSubscriptionAddons, planCatalog, planOrder, type PlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
+
+const FOUNDERS_PROMO_CODE = "FOUNDERS";
+const FOUNDERS_MONTHLY_PROMO_PERCENT = 50;
+const FOUNDERS_ANNUAL_PROMO_PERCENT = 15;
+const ASSOCIATED_PRO_ANNUAL_DISCOUNT_PERCENT = 10;
+
+type BillingCycle = "monthly" | "annual";
+type RegisterOfferId = PlanType | "certifier" | "certifierLite";
+
+interface RegisterOffer {
+  id: RegisterOfferId;
+  kind: "nexa" | "certifier" | "certifierLite";
+  name: string;
+  description: string;
+  studentsLabel: string;
+  monthlyPriceEur: number;
+  annualEffectiveMonthlyPriceEur: number;
+  annualTotalEur: number;
+  annualSavingsLabel?: string;
+  highlighted?: boolean;
+}
+
+function isNexaPlan(value: RegisterOfferId): value is PlanType {
+  return value === "starter" || value === "pro" || value === "enterprise";
+}
 
 interface ValidationErrors {
   [key: string]: string | undefined;
@@ -34,7 +59,10 @@ export default function RegisterPage() {
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   // Step 3 - Plan selection
-  const [selectedPlan, setSelectedPlan] = useState<PlanType>("pro");
+  const [selectedPlan, setSelectedPlan] = useState<RegisterOfferId>("pro");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
+  const [foundersCodeCopied, setFoundersCodeCopied] = useState(false);
+  const [isAssociatedSchool, setIsAssociatedSchool] = useState(false);
   const [addOns, setAddOns] = useState<Record<SubscriptionAddonKey, boolean>>({
     customDomain: false,
     prioritySupport: false,
@@ -42,25 +70,82 @@ export default function RegisterPage() {
     renewalAutomation: false,
   });
 
-  const plans = Object.fromEntries(
-    planOrder.map((planType) => [
-      planType,
-      {
-        name: planCatalog[planType].name,
-        price: planCatalog[planType].billing.monthlyPriceEur,
-        students: planCatalog[planType].limits.includedActiveStudents,
-      },
-    ])
-  ) as Record<PlanType, { name: string; price: number; students: number }>;
+  const certifierAssociationsPlan = commercialCatalog.examSuit?.plans?.associations;
+  const certifierSchoolsPlan = commercialCatalog.examSuit?.plans?.schools;
 
-  const selectableAddOns = getSelectableSubscriptionAddons(selectedPlan);
+  const offers: RegisterOffer[] = [
+    ...planOrder.map((planType) => ({
+      id: planType,
+      kind: "nexa" as const,
+      name: planCatalog[planType].name,
+      description: `Plan ${planCatalog[planType].name} para gestión completa de escuela.`,
+      studentsLabel: planCatalog[planType].limits.marketingLabel,
+      monthlyPriceEur: planCatalog[planType].billing.monthlyPriceEur,
+      annualEffectiveMonthlyPriceEur: planCatalog[planType].billing.annualEffectiveMonthlyPriceEur,
+      annualTotalEur: planCatalog[planType].billing.annualTotalEur,
+      annualSavingsLabel: planCatalog[planType].billing.annualSavingsLabel,
+      highlighted: planCatalog[planType].highlighted,
+    })),
+    ...(certifierAssociationsPlan
+      ? [{
+          id: "certifier" as const,
+          kind: "certifier" as const,
+          name: certifierAssociationsPlan.name,
+          description: "Para asociaciones y entidades certificadoras.",
+          studentsLabel: "Gestión de convocatorias y exámenes",
+          monthlyPriceEur: certifierAssociationsPlan.billing.monthlyPriceEur,
+          annualEffectiveMonthlyPriceEur: certifierAssociationsPlan.billing.annualEffectiveMonthlyPriceEur,
+          annualTotalEur: certifierAssociationsPlan.billing.annualTotalEur,
+          annualSavingsLabel: certifierAssociationsPlan.billing.annualSavingsLabel,
+          highlighted: false,
+        }]
+      : []),
+    ...(certifierSchoolsPlan
+      ? [{
+          id: "certifierLite" as const,
+          kind: "certifierLite" as const,
+          name: certifierSchoolsPlan.name,
+          description: "Para escuelas que sólo necesitan gestión de exámenes y certificados.",
+          studentsLabel: "Escenario examen + certificación",
+          monthlyPriceEur: certifierSchoolsPlan.billing.monthlyPriceEur,
+          annualEffectiveMonthlyPriceEur: certifierSchoolsPlan.billing.annualEffectiveMonthlyPriceEur,
+          annualTotalEur: certifierSchoolsPlan.billing.annualTotalEur,
+          annualSavingsLabel: certifierSchoolsPlan.billing.annualSavingsLabel,
+          highlighted: false,
+        }]
+      : []),
+  ];
 
-  const calculateTotal = () => {
-    const planPrice = plans[selectedPlan].price;
-    const addOnTotal = selectableAddOns
-      .filter((addon) => addOns[addon.key])
-      .reduce((sum, addon) => sum + addon.monthlyPriceEur, 0);
-    return planPrice + addOnTotal;
+  const selectedOffer = offers.find((offer) => offer.id === selectedPlan) ?? offers[0];
+  const selectedNexaPlan = isNexaPlan(selectedPlan) ? selectedPlan : null;
+  const selectableAddOns = selectedNexaPlan ? getSelectableSubscriptionAddons(selectedNexaPlan) : [];
+
+  const addOnMonthlyTotal = selectableAddOns
+    .filter((addon) => addOns[addon.key])
+    .reduce((sum, addon) => sum + addon.monthlyPriceEur, 0);
+
+  const monthlySubtotal = selectedOffer.monthlyPriceEur + addOnMonthlyTotal;
+  const annualSubtotal = selectedOffer.annualTotalEur + addOnMonthlyTotal * 12;
+  const annualEquivalentWithoutSavings = monthlySubtotal * 12;
+  const annualSavingsAmount = Math.max(0, annualEquivalentWithoutSavings - annualSubtotal);
+
+  const foundersPercent = billingCycle === "annual" ? FOUNDERS_ANNUAL_PROMO_PERCENT : FOUNDERS_MONTHLY_PROMO_PERCENT;
+  const foundersDiscountAmount = Math.round((billingCycle === "annual" ? annualSubtotal : monthlySubtotal) * (foundersPercent / 100));
+  const totalWithFounders = Math.max(0, (billingCycle === "annual" ? annualSubtotal : monthlySubtotal) - foundersDiscountAmount);
+
+  const proAnnualBase = planCatalog.pro.billing.annualTotalEur;
+  const proAnnualWithFounders = Math.max(0, proAnnualBase - Math.round(proAnnualBase * (FOUNDERS_ANNUAL_PROMO_PERCENT / 100)));
+  const proAnnualSavingsVsMonthly = Math.max(0, planCatalog.pro.billing.monthlyPriceEur * 12 - planCatalog.pro.billing.annualTotalEur);
+
+  const copyFoundersCode = async () => {
+    try {
+      await navigator.clipboard.writeText(FOUNDERS_PROMO_CODE);
+      setFoundersCodeCopied(true);
+      toast.success("Código FOUNDERS copiado");
+      window.setTimeout(() => setFoundersCodeCopied(false), 2000);
+    } catch {
+      toast.error("No se pudo copiar el código. Cópialo manualmente: FOUNDERS");
+    }
   };
 
   const validateStep1 = () => {
@@ -129,6 +214,10 @@ export default function RegisterPage() {
         section: "register",
         step,
         selectedPlan,
+        selectedOfferKind: selectedOffer.kind,
+        billingCycle,
+        foundersCode: FOUNDERS_PROMO_CODE,
+        associatedReminderEnabled: isAssociatedSchool,
         selectedAddOns: selectableAddOns
           .filter((addon) => addOns[addon.key])
           .map((addon) => addon.key),
@@ -148,12 +237,20 @@ export default function RegisterPage() {
 
       if (result.success) {
         // Store selected plan and add-ons for later billing setup
-        localStorage.setItem("selected_plan", selectedPlan);
+        if (isNexaPlan(selectedPlan)) {
+          localStorage.setItem("selected_plan", selectedPlan);
+        } else {
+          localStorage.removeItem("selected_plan");
+        }
         localStorage.setItem("selected_addons", JSON.stringify(
           selectableAddOns
             .filter((addon) => addOns[addon.key])
             .map((addon) => addon.key)
         ));
+        localStorage.setItem("selected_checkout_product", selectedOffer.kind);
+        localStorage.setItem("selected_billing_cycle", billingCycle);
+        localStorage.setItem("selected_discount_code", FOUNDERS_PROMO_CODE);
+        localStorage.setItem("selected_associated_discount", isAssociatedSchool ? "1" : "0");
         
         toast.success("Registro exitoso. Redirigiendo al panel...");
         navigate("/admin");
@@ -371,40 +468,97 @@ export default function RegisterPage() {
             >
               <p className="text-center text-sm text-muted-foreground">Paso 3 de 3: Elige tu plan</p>
 
+              <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-800">Código promocional FOUNDERS</p>
+                    <p className="text-xs text-emerald-700">
+                      {FOUNDERS_MONTHLY_PROMO_PERCENT}% en el primer mes (mensual) o {FOUNDERS_ANNUAL_PROMO_PERCENT}% en el pago anual.
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" className="gap-2 border-emerald-500 text-emerald-700" onClick={() => void copyFoundersCode()}>
+                    {foundersCodeCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {foundersCodeCopied ? "Copiado" : "Copiar"}
+                  </Button>
+                </div>
+              </div>
+
               <div className="space-y-3">
-                <Label className="text-sm font-semibold">Plan base</Label>
-                {planOrder.map((key) => {
-                  const plan = plans[key];
+                <Label className="text-sm font-semibold">Facturación</Label>
+                <div className="grid grid-cols-2 gap-2 rounded-lg border border-border p-1">
+                  <button
+                    type="button"
+                    onClick={() => setBillingCycle("monthly")}
+                    className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                      billingCycle === "monthly"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Mensual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBillingCycle("annual")}
+                    className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                      billingCycle === "annual"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Anual
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Planes disponibles</Label>
+                {offers.map((offer) => {
+                  const isSelected = selectedPlan === offer.id;
+                  const displayPrice = billingCycle === "annual" ? offer.annualEffectiveMonthlyPriceEur : offer.monthlyPriceEur;
 
                   return (
                   <div
-                    key={key}
+                    key={offer.id}
                     onClick={() => {
-                      setSelectedPlan(key);
+                      setSelectedPlan(offer.id);
                       trackPortalEvent({
                         eventName: "click_pricing_plan",
                         category: "funnel",
                         metadata: {
                           section: "register",
-                          planType: key,
-                          planName: plan.name,
-                          monthlyPriceEur: plan.price,
+                          planType: offer.id,
+                          planName: offer.name,
+                          billingCycle,
+                          monthlyPriceEur: offer.monthlyPriceEur,
                         },
                       });
                     }}
                     className={`p-3 rounded-lg border-2 cursor-pointer transition ${
-                      selectedPlan === key
+                      isSelected
                         ? "border-primary bg-primary/5"
                         : "border-border hover:border-primary/50"
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-foreground">{plan.name}</p>
-                        <p className="text-sm text-muted-foreground">Hasta {plan.students} alumnos</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-foreground">{offer.name}</p>
+                          {offer.highlighted ? (
+                            <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">Recomendado</span>
+                          ) : null}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{offer.studentsLabel}</p>
+                        <p className="text-xs text-muted-foreground">{offer.description}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-foreground">{plan.price}€/mes</p>
+                        <p className="font-bold text-foreground">{displayPrice}€/mes</p>
+                        {billingCycle === "annual" ? (
+                          <p className="text-xs text-muted-foreground">Pago anual: {offer.annualTotalEur}€</p>
+                        ) : null}
+                        {billingCycle === "annual" && offer.annualSavingsLabel ? (
+                          <p className="text-xs font-medium text-emerald-600">{offer.annualSavingsLabel}</p>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -412,31 +566,88 @@ export default function RegisterPage() {
                 })}
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold">Add-ons opcionales</Label>
-                {selectableAddOns.map(({ key, label, monthlyPriceEur, starterOnly }) => (
-                  <label
-                    key={key}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition"
-                  >
-                    <Checkbox
-                      checked={addOns[key] ?? false}
-                      onCheckedChange={(checked) =>
-                        setAddOns({ ...addOns, [key]: checked === true })
-                      }
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{label}</p>
-                      {starterOnly ? <p className="text-xs text-muted-foreground">Disponible en Starter</p> : null}
-                    </div>
-                    <p className="text-sm font-semibold text-primary">+{monthlyPriceEur}€</p>
-                  </label>
-                ))}
+              {selectedNexaPlan ? (
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Add-ons opcionales</Label>
+                  {selectableAddOns.length === 0 ? (
+                    <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                      Este plan ya incluye los add-ons de autoservicio disponibles.
+                    </p>
+                  ) : (
+                    selectableAddOns.map(({ key, label, monthlyPriceEur, starterOnly }) => (
+                      <label
+                        key={key}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition"
+                      >
+                        <Checkbox
+                          checked={addOns[key] ?? false}
+                          onCheckedChange={(checked) =>
+                            setAddOns({ ...addOns, [key]: checked === true })
+                          }
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">{label}</p>
+                          {starterOnly ? <p className="text-xs text-muted-foreground">Disponible en Starter</p> : null}
+                        </div>
+                        <p className="text-sm font-semibold text-primary">+{monthlyPriceEur}€</p>
+                      </label>
+                    ))
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  Los add-ons de Nexa no aplican para {selectedOffer.name}.
+                </div>
+              )}
+
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <Checkbox checked={isAssociatedSchool} onCheckedChange={(checked) => setIsAssociatedSchool(checked === true)} className="mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">Soy escuela asociada</p>
+                    <p className="text-xs text-amber-700">
+                      Recuerda aplicar el código de asociado ({ASSOCIATED_PRO_ANNUAL_DISCOUNT_PERCENT}% no aplicable junto a otros descuentos).
+                    </p>
+                  </div>
+                </label>
               </div>
 
               <div className="rounded-lg bg-primary/10 p-4 border border-primary/20">
-                <p className="text-sm text-muted-foreground mb-2">Precio mensual tras periodo de prueba:</p>
-                <p className="text-3xl font-bold text-foreground">{calculateTotal()}€/mes</p>
+                <p className="text-sm text-muted-foreground mb-2">Resumen final estimado</p>
+                <div className="space-y-1.5 text-sm text-foreground">
+                  <div className="flex items-center justify-between">
+                    <span>Subtotal {billingCycle === "annual" ? "anual" : "mensual"}</span>
+                    <span>{billingCycle === "annual" ? `${annualSubtotal}€` : `${monthlySubtotal}€/mes`}</span>
+                  </div>
+                  {billingCycle === "annual" && annualSavingsAmount > 0 ? (
+                    <div className="flex items-center justify-between text-emerald-700">
+                      <span>Ahorro por facturación anual</span>
+                      <span>-{annualSavingsAmount}€</span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between text-emerald-700">
+                    <span>Descuento FOUNDERS ({foundersPercent}%)</span>
+                    <span>-{foundersDiscountAmount}€</span>
+                  </div>
+                </div>
+                <div className="mt-3 border-t border-primary/20 pt-3">
+                  <p className="text-xs text-muted-foreground">
+                    {billingCycle === "annual"
+                      ? "Total estimado hoy (anual):"
+                      : "Total estimado del primer mes (mensual):"}
+                  </p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {billingCycle === "annual" ? `${totalWithFounders}€` : `${totalWithFounders}€/mes`}
+                  </p>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  En Pro anual pagarías {proAnnualWithFounders}€ con FOUNDERS y ahorrarías {proAnnualSavingsVsMonthly}€ frente a Pro mensual.
+                </p>
+                {isAssociatedSchool ? (
+                  <p className="mt-1 text-xs font-medium text-amber-800">
+                    Escuela asociada: recuerda aplicar también el código de {ASSOCIATED_PRO_ANNUAL_DISCOUNT_PERCENT}% para Pro anual.
+                  </p>
+                ) : null}
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-3">

@@ -94,7 +94,7 @@ function Hero() {
 }
 
 /* ══════════════════════════════════════════════════════════════════ */
-/*  2 ─ QUÉ ES DANCEHUB                                            */
+/*  2 ─ QUÉ ES NEXA CLUB                                           */
 /* ══════════════════════════════════════════════════════════════════ */
 function WhatIs() {
   const points = [
@@ -107,12 +107,12 @@ function WhatIs() {
     <section id="que-es" className="py-20 sm:py-28 bg-muted/30">
       <div className="container max-w-4xl text-center">
         <motion.div initial={fade.initial} whileInView={fade.animate} viewport={{ once: true }}>
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">¿Qué es DanceHub?</p>
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">¿Qué es Nexa Club?</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
             La plataforma que conecta alumnos y escuelas de danza
           </h2>
           <p className="mt-4 text-muted-foreground max-w-lg mx-auto text-lg">
-            DanceHub es mucho más que una app. Es tu identidad dentro del mundo de la danza.
+            Nexa Club es tu espacio para seguir tu progreso y mantenerte conectado con tu escuela.
           </p>
         </motion.div>
 
@@ -377,7 +377,7 @@ function Community() {
 }
 
 /* ══════════════════════════════════════════════════════════════════ */
-/*  9 ─ SI TU ESCUELA USA DANCEHUB                                 */
+/*  9 ─ SI TU ESCUELA USA NEXA                                     */
 /* ══════════════════════════════════════════════════════════════════ */
 function SchoolUses() {
   const perks = [
@@ -390,8 +390,8 @@ function SchoolUses() {
     <section className="py-20 sm:py-28">
       <div className="container max-w-4xl">
         <motion.div initial={fade.initial} whileInView={fade.animate} viewport={{ once: true }} className="text-center">
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Tu escuela y DanceHub</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Si tu escuela ya usa DanceHub</h2>
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Tu escuela y Nexa</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Si tu escuela ya usa Nexa</h2>
           <p className="mt-4 text-muted-foreground max-w-md mx-auto">Disfruta de una experiencia completa, conectada con la gestión de tu escuela.</p>
         </motion.div>
 
@@ -421,14 +421,14 @@ function SchoolFomo() {
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-warning/10">
             <Zap className="h-7 w-7 text-warning" />
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">¿Tu escuela aún no usa DanceHub?</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">¿Tu escuela aún no usa Nexa?</h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-lg mx-auto">
-            Miles de alumnos ya disfrutan de una experiencia moderna. Sugiere DanceHub a tu escuela y desbloquea todas las ventajas.
+            Miles de alumnos ya disfrutan de una experiencia moderna. Sugiere Nexa a tu escuela y desbloquea todas las ventajas.
           </p>
           <div className="mt-8">
             <Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
-              <a href="mailto:hola@dancehub.es?subject=Un%20alumno%20sugiere%20DanceHub&body=Hola%2C%20soy%20alumno%20de%20una%20escuela%20de%20danza%20y%20me%20gustar%C3%ADa%20sugerir%20DanceHub.">
-                Sugerir DanceHub a mi escuela <ChevronRight className="ml-1 h-4 w-4" />
+              <a href="mailto:hola@nexa.es?subject=Un%20alumno%20sugiere%20Nexa&body=Hola%2C%20soy%20alumno%20de%20una%20escuela%20de%20danza%20y%20me%20gustar%C3%ADa%20sugerir%20Nexa.">
+                Sugerir Nexa a mi escuela <ChevronRight className="ml-1 h-4 w-4" />
               </a>
             </Button>
           </div>
@@ -481,9 +481,9 @@ function PortalHeader() {
       <div className="container flex h-14 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-            <span className="text-xs font-bold text-primary-foreground">D</span>
+            <span className="text-xs font-bold text-primary-foreground">N</span>
           </div>
-          <span className="text-sm font-semibold text-foreground">DanceHub <span className="text-muted-foreground font-normal">Portal</span></span>
+          <span className="text-sm font-semibold text-foreground">Nexa <span className="text-muted-foreground font-normal">Club</span></span>
         </Link>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
@@ -508,7 +508,7 @@ function PortalFooter() {
   return (
     <footer className="border-t border-border bg-card py-8">
       <div className="container flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-        <p>© {new Date().getFullYear()} DanceHub. Todos los derechos reservados.</p>
+        <p>© {new Date().getFullYear()} Nexa. Todos los derechos reservados.</p>
         <div className="flex gap-4">
           <Link to="/legal/privacy" className="hover:text-foreground transition-colors">Privacidad</Link>
           <Link to="/legal/terms" className="hover:text-foreground transition-colors">Términos</Link>

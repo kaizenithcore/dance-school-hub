@@ -6,8 +6,8 @@ import { Link } from "react-router-dom";
 const pillars = [
   {
     icon: Smartphone,
-    title: "Portal del alumno",
-    desc: "Tus alumnos consultan horarios, clases, certificaciones y su perfil de bailarín desde una app moderna.",
+    title: "Nexa Club",
+    desc: "Tus alumnos consultan horarios, clases, certificaciones y progreso desde una app moderna.",
   },
   {
     icon: Globe,
@@ -36,7 +36,7 @@ export function DigitalTransformation() {
             Da el salto digital en días, no meses
           </h2>
           <p className="mt-4 text-muted-foreground">
-            La mayoría de escuelas de danza siguen funcionando como hace 15 años. DanceHub te permite modernizar tu escuela sin complicaciones.
+            Ahorra horas cada semana con un flujo claro y control total de tu operación diaria.
           </p>
         </motion.div>
 
@@ -65,9 +65,9 @@ export function DigitalTransformation() {
           viewport={{ once: true }}
           className="mt-10 text-center"
         >
-          <Button size="lg" variant="outline" className="h-11" asChild>
+          <Button size="lg" variant="outline" className="h-11 rounded-xl" asChild>
             <Link to="/auth/register">
-              Empieza tu transformación digital
+              Empezar ahora
               <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>

@@ -57,7 +57,7 @@ export function AssociatedSchools() {
                 </a>
               </Button>
               <Button variant="outline" size="lg" asChild>
-                <a href="mailto:hola@dancehub.es?subject=Consulta%20descuento%20escuela%20asociada">
+                <a href="mailto:hola@nexa.es?subject=Consulta%20descuento%20escuela%20asociada">
                   Consultar
                 </a>
               </Button>

@@ -12,6 +12,7 @@ interface ExamFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   exam?: ExamRecord | null;
+  initialValues?: Partial<Omit<ExamRecord, "id" | "candidateCount">>;
   onSave: (data: Omit<ExamRecord, "id" | "candidateCount">) => void;
 }
 
@@ -21,7 +22,7 @@ const EMPTY_CATEGORY: () => GradingCategory = () => ({
   weight: 0,
 });
 
-export function ExamFormModal({ open, onOpenChange, exam, onSave }: ExamFormModalProps) {
+export function ExamFormModal({ open, onOpenChange, exam, initialValues, onSave }: ExamFormModalProps) {
   const [name, setName] = useState("");
   const [discipline, setDiscipline] = useState("");
   const [level, setLevel] = useState("");
@@ -45,6 +46,27 @@ export function ExamFormModal({ open, onOpenChange, exam, onSave }: ExamFormModa
       setMaxCandidates(exam.maxCandidates?.toString() || "");
       setStatus(exam.status);
       setGradingCategories(exam.gradingCategories.length ? exam.gradingCategories : [EMPTY_CATEGORY()]);
+    } else if (initialValues) {
+      setName(initialValues.name || "");
+      setDiscipline(initialValues.discipline || "");
+      setLevel(initialValues.level || "");
+      setCategory(initialValues.category || "");
+      setExamDate(initialValues.examDate || "");
+      setRegOpenDate(initialValues.registrationOpenDate || "");
+      setRegCloseDate(initialValues.registrationCloseDate || "");
+      setMaxCandidates(
+        typeof initialValues.maxCandidates === "number" ? initialValues.maxCandidates.toString() : ""
+      );
+      setStatus(initialValues.status || "draft");
+      setGradingCategories(
+        initialValues.gradingCategories && initialValues.gradingCategories.length > 0
+          ? initialValues.gradingCategories
+          : [
+              { id: crypto.randomUUID(), name: "Técnica", weight: 40 },
+              { id: crypto.randomUUID(), name: "Musicalidad", weight: 30 },
+              { id: crypto.randomUUID(), name: "Expresión", weight: 30 },
+            ]
+      );
     } else {
       setName("");
       setDiscipline("");
@@ -57,7 +79,7 @@ export function ExamFormModal({ open, onOpenChange, exam, onSave }: ExamFormModa
       setStatus("draft");
       setGradingCategories([EMPTY_CATEGORY()]);
     }
-  }, [exam, open]);
+  }, [exam, initialValues, open]);
 
   const totalWeight = gradingCategories.reduce((s, c) => s + c.weight, 0);
 

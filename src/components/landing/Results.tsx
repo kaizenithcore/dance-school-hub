@@ -20,7 +20,7 @@ export function Results() {
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Resultados</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Escuelas que usan DanceHub reducen hasta un 70% el tiempo administrativo
+            Escuelas que usan Nexa reducen hasta un 70% el tiempo administrativo
           </h2>
           <p className="mt-4 text-muted-foreground">
             Automatizar las tareas repetitivas libera horas que puedes dedicar a hacer crecer tu escuela.

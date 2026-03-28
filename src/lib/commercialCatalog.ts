@@ -59,6 +59,15 @@ interface CommercialCatalog {
     upsellToPro?: boolean;
     enterpriseOnly?: boolean;
   }>;
+  publicWeb?: {
+    label: string;
+    includedInPlans: PlanType[];
+    positioning: string;
+    description: string;
+    includes: string[];
+    limitations: string[];
+    upgradeTo: string;
+  };
   professionalServices: Record<string, unknown>;
   bundles?: Record<string, unknown>;
   studentApp?: Record<string, unknown>;
@@ -67,6 +76,28 @@ interface CommercialCatalog {
     comparison: string;
     focus: string;
     launchDiscountStrategy?: string;
+  };
+  examSuit?: {
+    plans?: {
+      associations?: {
+        name: string;
+        billing: {
+          monthlyPriceEur: number;
+          annualEffectiveMonthlyPriceEur: number;
+          annualTotalEur: number;
+          annualSavingsLabel?: string;
+        };
+      };
+      schools?: {
+        name: string;
+        billing: {
+          monthlyPriceEur: number;
+          annualEffectiveMonthlyPriceEur: number;
+          annualTotalEur: number;
+          annualSavingsLabel?: string;
+        };
+      };
+    };
   };
 }
 
@@ -98,10 +129,6 @@ export function getSelectableSubscriptionAddons(planType: PlanType) {
     .filter(([key, addon]) => {
       // Catalog-only addon shown in pricing docs, not selectable in self-serve checkout yet.
       if (!isSelectableSubscriptionAddonKey(key)) {
-        return false;
-      }
-
-      if (key === "waitlistAutomation" || key === "renewalAutomation") {
         return false;
       }
 

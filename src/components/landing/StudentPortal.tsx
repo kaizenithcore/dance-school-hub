@@ -31,12 +31,12 @@ export function StudentPortal() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Portal del alumno</p>
+              <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Nexa Club</p>
               <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
                 Tus alumnos, siempre conectados
               </h2>
               <p className="mt-4 text-muted-foreground max-w-md">
-                Una experiencia moderna que los alumnos pueden consultar desde el móvil. Menos preguntas para ti, más autonomía para ellos.
+                Accede a Nexa Club para ver progreso, clases y eventos desde cualquier dispositivo.
               </p>
             </motion.div>
 
@@ -72,7 +72,7 @@ export function StudentPortal() {
           >
             <h3 className="text-lg font-semibold text-foreground mb-2">¿Qué gana tu escuela?</h3>
             <p className="text-sm text-muted-foreground mb-6">
-              El portal del alumno no solo mejora la experiencia de los estudiantes — reduce tu carga de trabajo.
+              Nexa Club mejora la experiencia del alumno y reduce tu carga operativa diaria.
             </p>
 
             <ul className="space-y-4">

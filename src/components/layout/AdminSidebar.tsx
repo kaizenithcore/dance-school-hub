@@ -32,7 +32,7 @@ const navItems: Array<{ title: string; url: string; icon: LucideIcon; featureKey
   { title: "Lista de Espera", url: "/admin/waitlist", icon: ListOrdered, featureKey: "waitlistAutomation" },
   { title: "Renovaciones", url: "/admin/renewals", icon: Repeat, featureKey: "renewalAutomation" },
   { title: "Duplicar cursos", url: "/admin/course-clone", icon: Copy, featureKey: "courseClone" },
-  { title: "Exámenes", url: "/admin/exams", icon: Award, featureKey: "examSuite" },
+  { title: "Certifier", url: "/admin/exams", icon: Award, featureKey: "examSuite" },
   { title: "Eventos", url: "/admin/events", icon: CalendarHeart },
   { title: "Portal Escuela", url: "/admin/school/portal", icon: Building2 },
   { title: "Roles y escuelas", url: "/admin/organization-access", icon: Building2, featureKey: "examSuite" },
@@ -94,7 +94,7 @@ export function AdminSidebar() {
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
               <Music className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-base font-semibold text-foreground">DanceHub</span>
+            <span className="text-base font-semibold text-foreground">Nexa</span>
           </div>
           <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             {navItems.map((item) => {
@@ -155,7 +155,7 @@ export function AdminSidebar() {
           <Music className="h-5 w-5 text-primary-foreground" />
         </div>
         {!collapsed && (
-          <span className="text-base font-semibold text-foreground animate-fade-in">DanceHub</span>
+          <span className="text-base font-semibold text-foreground animate-fade-in">Nexa</span>
         )}
       </div>
 

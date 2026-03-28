@@ -38,7 +38,7 @@ const SCENARIOS: Scenario[] = [
     subtitle: "Se muestra el portal base con descubrimiento y onboarding.",
     status: "Sin escuela conectada",
     features: [
-      "Explorar escuelas disponibles en DanceHub",
+      "Explorar escuelas disponibles en Nexa",
       "Ver publicaciones públicas de escuelas",
       "Solicitar matrícula o plaza en lista de espera",
       "Completar perfil personal de bailarín",
@@ -135,7 +135,7 @@ export default function StudentPortalMockupPage() {
         <div className="container flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">Demo visual estática</p>
-            <h1 className="text-2xl font-bold tracking-tight">Mockup portal del alumno</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Mockup Nexa Club</h1>
             <p className="text-sm text-muted-foreground">Ejemplo sin datos reales para validar UX en 3 escenarios de negocio.</p>
           </div>
           <div className="flex gap-2">

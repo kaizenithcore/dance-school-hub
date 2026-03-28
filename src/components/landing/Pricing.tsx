@@ -24,6 +24,11 @@ interface Plan {
 
 const plans: Plan[] = planOrder.map((planType) => {
   const plan = planCatalog[planType];
+  const customDescriptionByPlan: Record<PlanType, string> = {
+    starter: "Empieza a organizar tu escuela",
+    pro: "La forma más eficiente de gestionar y crecer",
+    enterprise: "Control total para escuelas avanzadas",
+  };
 
   return {
     planType,
@@ -31,7 +36,7 @@ const plans: Plan[] = planOrder.map((planType) => {
     annualPrice: formatEuro(plan.billing.annualEffectiveMonthlyPriceEur),
     annualTotal: `${formatEuro(plan.billing.annualTotalEur)}/año`,
     monthlyPrice: `${formatEuro(plan.billing.monthlyPriceEur)}/mes`,
-    desc: plan.limits.marketingLabel,
+    desc: customDescriptionByPlan[planType],
     savings: plan.billing.annualSavingsLabel,
     features: plan.display.features,
     cta: plan.cta.label,
@@ -125,7 +130,7 @@ export function Pricing() {
               className={cn(
                 "rounded-2xl border p-7 flex flex-col relative",
                 plan.highlighted
-                  ? "border-primary bg-card shadow-lg ring-1 ring-primary/20"
+                    ? "border-primary bg-card shadow-xl ring-1 ring-primary/20"
                   : "border-border bg-card"
               )}
             >
@@ -225,10 +230,10 @@ export function Pricing() {
           className="mt-6 rounded-2xl border border-primary/10 bg-card p-6 max-w-5xl mx-auto text-center"
         >
           <p className="text-sm font-medium text-foreground">
-            ¿Ya utilizas ExamSuit? Puedes activar el Plan Pro en un solo paso.
+            ¿Ya usas Certifier? Activa Nexa Pro en un solo paso.
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Empieza con exámenes. Escala a gestión completa.
+            Gestiona certificaciones con Certifier. Incluido en Nexa Pro.
           </p>
         </motion.div>
       </div>

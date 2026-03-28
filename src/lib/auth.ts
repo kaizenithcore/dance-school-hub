@@ -32,7 +32,7 @@ export interface AuthResult {
   context?: AuthContextResponse;
 }
 
-export const REMEMBER_ME_STORAGE_KEY = "dancehub:auth:remember-me";
+export const REMEMBER_ME_STORAGE_KEY = "nexa:auth:remember-me";
 
 const AUTH_CONTEXT_TIMEOUT_MS = 10000;
 

@@ -10,7 +10,7 @@ export default function GuidesLayout() {
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
               <BookOpen className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-semibold">DanceHub - Guias</span>
+            <span className="font-semibold">Nexa - Guias</span>
           </Link>
           <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3 w-3" /> Volver a la landing

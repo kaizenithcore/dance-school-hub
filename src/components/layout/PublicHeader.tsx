@@ -1,10 +1,10 @@
 import { Link, useParams } from "react-router-dom";
 import { Music } from "lucide-react";
-import { activateDemoAdminSession, DEMO_ADMIN_SLUG } from "@/lib/demoAdmin";
+import { activateDemoAdminSession, DEMO_ADMIN_SLUG, isDemoAdminSlug } from "@/lib/demoAdmin";
 
 export function PublicHeader() {
   const { schoolSlug } = useParams();
-  const isDemoSlug = schoolSlug === "escuela-demo-dancehub";
+  const isDemoSlug = isDemoAdminSlug(schoolSlug);
 
   return (
     <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-20">

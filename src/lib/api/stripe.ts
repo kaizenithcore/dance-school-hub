@@ -44,6 +44,22 @@ export interface CreateBillingCheckoutInput {
   cancelUrl?: string;
 }
 
+export interface CreateExamSubscriptionCheckoutInput {
+  plan: "core" | "lite" | "pro";
+  billingCycle: BillingCycle;
+  billingProvider?: "stripe" | "manual";
+  manualNote?: string;
+  successUrl?: string;
+  cancelUrl?: string;
+}
+
+export interface ExamSubscriptionCheckoutResponse {
+  checkoutUrl?: string | null;
+  billingProvider?: "stripe" | "manual";
+  fallbackReason?: string;
+  [key: string]: unknown;
+}
+
 export function isStripeFrontendConfigured() {
   return Boolean(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 }
@@ -91,4 +107,27 @@ export async function createBillingCheckoutSession(input: CreateBillingCheckoutI
 export async function redirectToBillingCheckout(input: CreateBillingCheckoutInput) {
   const session = await createBillingCheckoutSession(input);
   window.location.assign(session.checkoutUrl);
+}
+
+export async function createExamSubscriptionCheckoutSession(input: CreateExamSubscriptionCheckoutInput) {
+  const response = await apiRequest<ExamSubscriptionCheckoutResponse>("/api/admin/exam-subscriptions/checkout-session", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || "No se pudo crear la sesión de checkout para Certifier");
+  }
+
+  return response.data;
+}
+
+export async function redirectToExamSubscriptionCheckout(input: CreateExamSubscriptionCheckoutInput) {
+  const session = await createExamSubscriptionCheckoutSession(input);
+
+  if (session.checkoutUrl) {
+    window.location.assign(session.checkoutUrl);
+  }
+
+  return session;
 }

@@ -27,7 +27,7 @@
         "attendanceSheetsPdf": true,
         "quickIncidents": true,
         "receptionMode": true,
-        "examSuite": false,
+        "certifier": false,
         "waitlistAutomation": false,
         "renewalAutomation": false,
         "courseClone": false,
@@ -83,7 +83,7 @@
         "attendanceSheetsPdf": true,
         "quickIncidents": true,
         "receptionMode": true,
-        "examSuite": true,
+        "certifier": true,
         "waitlistAutomation": true,
         "renewalAutomation": true,
         "courseClone": true,
@@ -121,7 +121,7 @@
       "highlighted": false,
       "cta": {
         "label": "Contactar",
-        "href": "mailto:hola@dancehub.es?subject=Consulta%20plan%20Enterprise%20DanceHub",
+        "href": "mailto:hola@nexa.es?subject=Consulta%20plan%20Enterprise%20Nexa",
         "external": true
       },
       "billing": {
@@ -143,7 +143,7 @@
         "attendanceSheetsPdf": true,
         "quickIncidents": true,
         "receptionMode": true,
-        "examSuite": true,
+        "certifier": true,
         "waitlistAutomation": true,
         "renewalAutomation": true,
         "courseClone": true,
@@ -205,6 +205,27 @@
       "upsellToPro": true
     }
   },
+  "publicWeb": {
+    "label": "Web básica incluida",
+    "includedInPlans": ["starter", "pro", "enterprise"],
+    "positioning": "entry_level_acquisition_layer",
+    "description": "Landing pública automática con matrícula online y horarios básicos.",
+    "includes": [
+      "Landing pública /s/:slug",
+      "Formulario de matrícula online",
+      "Listado de clases y horarios",
+      "Selector de clases",
+      "Datos básicos de la escuela",
+      "Acceso al portal del alumno"
+    ],
+    "limitations": [
+      "Diseño genérico",
+      "Sin personalización avanzada",
+      "Sin enfoque optimizado a conversión",
+      "Sin SEO trabajado"
+    ],
+    "upgradeTo": "integratedWebsite"
+  },
   "professionalServices": {
     "modernizationPack": {
       "label": "Pack de modernización",
@@ -224,21 +245,26 @@
       "positioning": "core_offer"
     },
     "integratedWebsite": {
-      "label": "Web integrada con DanceHub",
+      "label": "Web optimizada con Nexa",
       "serviceType": "one_time",
-      "shortDescription": "Web publica profesional conectada al SaaS para convertir visitas en matriculas.",
-      "positioning": "nodo_operativo_ecosistema",
+      "shortDescription": "Web profesional diseñada para convertir visitas en matrículas, conectada con Nexa.",
+      "positioning": "conversion_upgrade",
+      "upgradeFrom": "publicWeb",
       "includes": [
-        "Pagina publica profesional",
-        "Clases",
-        "Horario",
-        "Matriculas online",
-        "Eventos",
-        "Acceso al portal del alumno",
-        "Formularios de captacion",
-        "Conexion con el sistema"
+        "Diseño personalizado (no plantilla genérica)",
+        "Estructura optimizada para captación",
+        "Landing + páginas clave (clases, eventos, contacto)",
+        "Copywriting orientado a conversión",
+        "Integración completa con matrícula",
+        "Optimización móvil",
+        "Base SEO inicial",
+        "Adaptación a identidad visual"
       ],
-      "differentiator": "Integrada con DanceHub (no es una web corporativa aislada)",
+      "notIncluded": [
+        "Rebranding completo (ver Weydi)",
+        "SEO avanzado continuo"
+      ],
+      "differentiator": "Convierte más alumnos con la misma base de Nexa",
       "pricingByPlanEur": {
         "starter": 1490,
         "pro": 1790,
@@ -262,7 +288,11 @@
       "label": "Web independiente",
       "serviceType": "one_time",
       "shortDescription": "Web profesional sin conexion al sistema de gestion, ideal para presencia digital y captacion.",
-      "positioning": "producto_web_independiente",
+      "positioning": "external_product",
+      "target": "Escuelas que no usan Nexa",
+      "warning": "No incluye sistema de gestión ni automatización",
+      "strategicRole": "lead_generation_outside_saas",
+      "upsellPath": "Migración futura a Nexa con web integrada",
       "includes": [
         "Web corporativa profesional",
         "Enfoque captacion y presencia digital",
@@ -301,7 +331,7 @@
       ],
       "pricing": {
         "oneTimeEur": 0,
-        "note": "No es un plan mensual independiente: es un pack del primer año completo"
+        "note": "La web optimizada y la implementación están incluidas sin coste inicial en el primer año"
       },
       "firstYearBaseEur": 6100,
       "firstYearTotalEur": 5490,
@@ -354,12 +384,12 @@
     "focus": "ahorro de tiempo y eficiencia operativa"
   },
   "examSuit": {
-    "label": "ExamSuit",
+    "label": "Certifier",
     "tagline": "Para asociaciones y entidades certificadoras",
     "description": "Sistema completo para gestionar convocatorias, matrículas, evaluaciones y certificados.",
     "plans": {
       "associations": {
-        "name": "ExamSuit (Asociaciones)",
+        "name": "Certifier (Asociaciones)",
         "billing": {
           "monthlyPriceEur": 299,
           "annualEffectiveMonthlyPriceEur": 249,
@@ -378,12 +408,12 @@
         ],
         "cta": {
           "label": "Solicitar acceso",
-          "href": "mailto:hola@dancehub.es?subject=Consulta%20ExamSuit%20Asociaciones",
+          "href": "mailto:hola@nexa.es?subject=Consulta%20ExamSuit%20Asociaciones",
           "external": true
         }
       },
       "schools": {
-        "name": "ExamSuit Lite (Escuelas)",
+        "name": "Certifier Lite (Escuelas)",
         "billing": {
           "monthlyPriceEur": 129,
           "annualEffectiveMonthlyPriceEur": 99,
@@ -398,14 +428,14 @@
         "note": "Sin gestión completa de escuela (clases, pagos, etc.)",
         "cta": {
           "label": "Solicitar acceso",
-          "href": "mailto:hola@dancehub.es?subject=Consulta%20ExamSuit%20Lite",
+          "href": "mailto:hola@nexa.es?subject=Consulta%20Certifier%20Lite",
           "external": true
         }
       }
     },
     "associatedSchoolsBenefits": {
-      "title": "Si tu asociación usa ExamSuit, tú tienes ventaja",
-      "subtitle": "Las escuelas dentro de asociaciones que usan ExamSuit obtienen acceso directo al ecosistema DanceHub.",
+      "title": "Si tu asociación usa Certifier, tú tienes ventaja",
+      "subtitle": "Las escuelas dentro de asociaciones que usan Certifier obtienen acceso directo al ecosistema Nexa.",
       "benefits": [
         "10% de descuento en Plan Pro anual",
         "Activación inmediata sin configuración",

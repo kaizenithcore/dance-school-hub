@@ -275,7 +275,7 @@ export default function PaymentsPage() {
       await redirectToStripeCheckout({
         amount: data.amount,
         currency: "eur",
-        description: String(data.metadata.concept || "Pago DanceHub"),
+        description: String(data.metadata.concept || "Pago Nexa"),
         metadata: {
           studentId: data.studentId,
           studentName: String(data.metadata.student_name || ""),

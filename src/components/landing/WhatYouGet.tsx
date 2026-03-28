@@ -6,9 +6,9 @@ const items = [
   { icon: BookOpen, label: "Gestión de clases y profesores" },
   { icon: LayoutGrid, label: "Editor visual de horarios" },
   { icon: FileEdit, label: "Sistema de matrículas online" },
-  { icon: Smartphone, label: "App / portal del alumno" },
+  { icon: Smartphone, label: "Nexa Club para alumnos" },
   { icon: Megaphone, label: "Comunicación automatizada" },
-  { icon: Award, label: "Gestión de exámenes y certificados" },
+  { icon: Award, label: "Certifier: certificaciones y resultados" },
   { icon: Globe, label: "Posibilidad de web profesional" },
 ];
 
@@ -24,10 +24,10 @@ export function WhatYouGet() {
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Todo incluido</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Qué incluye realmente DanceHub
+            Qué incluye realmente Nexa
           </h2>
           <p className="mt-4 text-muted-foreground">
-            No es una herramienta más. Es todo lo que tu escuela necesita para funcionar de forma moderna y eficiente.
+            Menos gestión, más enseñanza. Todo listo para operar con control total.
           </p>
         </motion.div>
 

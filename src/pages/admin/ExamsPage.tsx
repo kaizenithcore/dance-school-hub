@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ExamCard } from "@/components/exams/ExamCard";
 import { ExamFormModal } from "@/components/exams/ExamFormModal";
+import { ExamOnboardingChecklist } from "@/components/exams/ExamOnboardingChecklist";
 import { CandidatesTable } from "@/components/exams/CandidatesTable";
 import { GradingInterface } from "@/components/exams/GradingInterface";
 import { CertificatePreview } from "@/components/exams/CertificatePreview";
@@ -19,6 +20,13 @@ import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 
 type View = "list" | "candidates" | "grading";
+const EXAMS_ONBOARDING_DISMISSED_KEY = "nexa:certifier:onboarding-dismissed";
+
+function toIsoDayWithOffset(offsetDays: number): string {
+  const target = new Date();
+  target.setDate(target.getDate() + offsetDays);
+  return target.toISOString().slice(0, 10);
+}
 
 export default function ExamsPage() {
   const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
@@ -37,8 +45,15 @@ export default function ExamsPage() {
   const [certCandidate, setCertCandidate] = useState<ExamCandidate | null>(null);
   const [certOpen, setCertOpen] = useState(false);
   const [lockOpen, setLockOpen] = useState(false);
+  const [guidedInitialValues, setGuidedInitialValues] = useState<Partial<Omit<ExamRecord, "id" | "candidateCount">> | undefined>(undefined);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   const examsLocked = !billingLoading && !billing.features.examSuite;
+
+  useEffect(() => {
+    const dismissed = window.localStorage.getItem(EXAMS_ONBOARDING_DISMISSED_KEY);
+    setOnboardingDismissed(dismissed === "1");
+  }, []);
 
   const filteredExams = exams.filter((e) => {
     const matchSearch = !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.discipline.toLowerCase().includes(search.toLowerCase());
@@ -53,7 +68,35 @@ export default function ExamsPage() {
     }
 
     setEditingExam(null);
+    setGuidedInitialValues(undefined);
     setFormOpen(true);
+  };
+
+  const handleCreateGuidedExam = () => {
+    if (examsLocked) {
+      setLockOpen(true);
+      return;
+    }
+
+    setEditingExam(null);
+    setGuidedInitialValues({
+      name: "Examen Inicial",
+      discipline: "Danza",
+      level: "Nivel 1",
+      category: "Certificación interna",
+      examDate: toIsoDayWithOffset(21),
+      registrationOpenDate: toIsoDayWithOffset(0),
+      registrationCloseDate: toIsoDayWithOffset(14),
+      status: "registration_open",
+      maxCandidates: 30,
+      gradingCategories: [
+        { id: crypto.randomUUID(), name: "Técnica", weight: 40 },
+        { id: crypto.randomUUID(), name: "Musicalidad", weight: 30 },
+        { id: crypto.randomUUID(), name: "Expresión", weight: 30 },
+      ],
+    });
+    setFormOpen(true);
+    toast.info("Plantilla cargada. Solo revisa y publica tu primer examen.");
   };
 
   const handleEditExam = (exam: ExamRecord) => {
@@ -77,7 +120,54 @@ export default function ExamsPage() {
       setExams((prev) => [...prev, newExam]);
       toast.success("Examen creado");
     }
+
+    setGuidedInitialValues(undefined);
   };
+
+  const handleDismissOnboarding = () => {
+    window.localStorage.setItem(EXAMS_ONBOARDING_DISMISSED_KEY, "1");
+    setOnboardingDismissed(true);
+  };
+
+  const handleOpenCandidatesFromOnboarding = () => {
+    const firstExam = exams[0] || null;
+    if (!firstExam) {
+      toast.info("Primero crea tu examen guiado para continuar.");
+      return;
+    }
+
+    setSelectedExam(firstExam);
+    setView("candidates");
+  };
+
+  const onboardingSteps = [
+    {
+      id: "create_exam",
+      title: "Crea tu primera convocatoria",
+      description: "Define disciplina, fechas y criterios con una plantilla guiada.",
+      completed: exams.length > 0,
+    },
+    {
+      id: "open_enrollment",
+      title: "Abre inscripción",
+      description: "Publica la convocatoria con estado Registro abierto.",
+      completed: exams.some((exam) => exam.status === "registration_open" || exam.status === "closed" || exam.status === "grading" || exam.status === "finished"),
+    },
+    {
+      id: "register_candidates",
+      title: "Registra candidatos",
+      description: "Carga aspirantes y valida su estado para evaluación.",
+      completed: candidates.length > 0,
+    },
+    {
+      id: "grade_and_certificate",
+      title: "Califica y genera certificados",
+      description: "Completa notas finales y emite certificados en un clic.",
+      completed: candidates.some((candidate) => candidate.status === "graded" || candidate.status === "certified"),
+    },
+  ];
+
+  const onboardingVisible = !examsLocked && !onboardingDismissed;
 
   const handleViewCandidates = (exam: ExamRecord) => {
     setSelectedExam(exam);
@@ -174,6 +264,17 @@ export default function ExamsPage() {
         />
       ) : null}
 
+      {onboardingVisible ? (
+        <div className="mb-6">
+          <ExamOnboardingChecklist
+            steps={onboardingSteps}
+            onStartGuidedCreate={handleCreateGuidedExam}
+            onOpenCandidates={handleOpenCandidatesFromOnboarding}
+            onDismiss={handleDismissOnboarding}
+          />
+        </div>
+      ) : null}
+
       <div className={examsLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
         <div className="relative flex-1 max-w-xs">
@@ -231,6 +332,7 @@ export default function ExamsPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         exam={editingExam}
+        initialValues={editingExam ? undefined : guidedInitialValues}
         onSave={handleSaveExam}
       />
       </div>

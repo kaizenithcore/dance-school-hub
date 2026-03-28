@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getEnrollmentFormConfig, saveEnrollmentFormConfig } from "@/lib/api/enrollmentFormConfig";
 
 type Mode = "edit" | "preview";
-const FORM_BUILDER_UNSAVED_KEY = "dancehub:form-builder:unsaved";
+const FORM_BUILDER_UNSAVED_KEY = "nexa:form-builder:unsaved";
 
 export function FormBuilder() {
   const [config, setConfig] = useState<EnrollmentFormConfig>(getDefaultEnrollmentConfig);

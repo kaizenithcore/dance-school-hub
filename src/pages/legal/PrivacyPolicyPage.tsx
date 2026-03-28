@@ -14,7 +14,7 @@ export default function PrivacyPolicyPage() {
           <br />
           Email: <strong>legal@kaizenith.es</strong>
         </p>
-        <p><strong>En el uso de DanceHub:</strong></p>
+        <p><strong>En el uso de Nexa:</strong></p>
         <ul className="list-disc space-y-1 pl-6">
           <li>Las escuelas son responsables del tratamiento de los datos de sus alumnos.</li>
           <li>Kaizenith actúa como encargado del tratamiento, prestando soporte técnico y operativo.</li>

@@ -37,7 +37,7 @@ export const landingTestimonials: LandingTestimonial[] = [
     personName: "Tú",
     personRole: "Director/a",
     quote:
-      "¿Quieres ser el próximo caso de éxito? Contáctanos para publicar tu experiencia con DanceHub y ayudar a otras escuelas a dar el salto digital.",
+      "¿Quieres ser el próximo caso de éxito? Contáctanos para publicar tu experiencia con Nexa y ayudar a otras escuelas a dar el salto digital.",
     metricLabel: "Tu caso aquí",
     metricValue: "Contáctanos",
     logoPlaceholderText: "SN",

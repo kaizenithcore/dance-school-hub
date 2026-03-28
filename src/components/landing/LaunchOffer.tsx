@@ -47,13 +47,13 @@ export function LaunchOffer() {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
                 <Link to="/auth/register">
-                  Reservar mi plaza
+                  Empezar ahora
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
               <SharedDemoCta
                 section="launch_offer"
-                subject="Consulta oferta lanzamiento DanceHub"
+                subject="Consulta oferta lanzamiento Nexa"
                 className="h-12 px-8 text-base"
               />
             </div>

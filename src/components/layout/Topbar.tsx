@@ -76,7 +76,7 @@ interface PlanCapacitySummary {
 }
 
 const NOTIFICATION_READ_STORAGE_KEY = "dance-school-hub.notifications.read";
-const FORM_BUILDER_UNSAVED_KEY = "dancehub:form-builder:unsaved";
+const FORM_BUILDER_UNSAVED_KEY = "nexa:form-builder:unsaved";
 
 const NAV_ITEMS: SearchItem[] = [
   { id: "nav-panel", label: "Panel", target: "/admin", group: "Navegación" },

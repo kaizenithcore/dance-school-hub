@@ -9,9 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { isRememberMeEnabled, login } from "@/lib/auth";
 
-const LOGIN_WELCOME_KEY = "dancehub:welcome-overlay-until";
+const LOGIN_WELCOME_KEY = "nexa:welcome-overlay-until";
 const LOGIN_WELCOME_DURATION_MS = 2000;
-const FIRST_LOGIN_GUIDE_PENDING_KEY = "dancehub:first-login-guide-pending";
+const FIRST_LOGIN_GUIDE_PENDING_KEY = "nexa:first-login-guide-pending";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -33,10 +33,8 @@ export default function LoginPage() {
       const result = await login({ email, password, rememberMe });
 
       if (result.success) {
-        window.sessionStorage.setItem(
-          LOGIN_WELCOME_KEY,
-          String(Date.now() + LOGIN_WELCOME_DURATION_MS)
-        );
+        const welcomeUntil = String(Date.now() + LOGIN_WELCOME_DURATION_MS);
+        window.sessionStorage.setItem(LOGIN_WELCOME_KEY, welcomeUntil);
         window.sessionStorage.setItem(FIRST_LOGIN_GUIDE_PENDING_KEY, "1");
         toast.success("Inicio de sesión exitoso. Bienvenido!");
         navigate("/admin");
@@ -63,7 +61,7 @@ export default function LoginPage() {
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
             <Music className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Bienvenido a DanceHub</h1>
+          <h1 className="text-2xl font-bold text-foreground">Bienvenido a Nexa</h1>
           <p className="text-sm text-muted-foreground">Inicia sesión para gestionar tu escuela</p>
         </div>
 

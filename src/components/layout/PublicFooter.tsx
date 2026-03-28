@@ -10,7 +10,7 @@ export function PublicFooter() {
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
               <Music className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="text-sm font-medium text-foreground">DanceHub</span>
+            <span className="text-sm font-medium text-foreground">Nexa</span>
           </div>
           <nav className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <Link to="/legal/privacy" className="hover:text-foreground hover:underline">Privacidad</Link>

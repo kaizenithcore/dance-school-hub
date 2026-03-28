@@ -58,7 +58,7 @@ export default function CookiePolicyPage() {
 
       <LegalSection title="5. Cookies de terceros">
         <p>
-          DanceHub puede utilizar servicios de terceros, como herramientas de analítica e infraestructura tecnológica. Estos
+          Nexa puede utilizar servicios de terceros, como herramientas de analítica e infraestructura tecnológica. Estos
           proveedores pueden instalar cookies propias, sujetas a sus políticas.
         </p>
       </LegalSection>

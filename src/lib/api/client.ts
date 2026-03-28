@@ -2,7 +2,22 @@ import { supabase } from "@/lib/supabase";
 import { getDemoAdminTenantSlug } from "@/lib/demoAdmin";
 import { getSelectedAdminOrganizationId, getSelectedAdminTenantId } from "@/lib/adminContextSelection";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+function buildApiBaseCandidates(): string[] {
+  const candidates = new Set<string>();
+
+  if (typeof API_BASE_URL === "string" && API_BASE_URL.trim().length > 0) {
+    candidates.add(API_BASE_URL.trim().replace(/\/$/, ""));
+  }
+
+  if (typeof window !== "undefined" && window.location?.origin) {
+    candidates.add(window.location.origin.replace(/\/$/, ""));
+  }
+
+  candidates.add("http://localhost:3000");
+  return Array.from(candidates);
+}
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -73,28 +88,26 @@ export async function apiRequest<T>(
   const selectedTenantId = getSelectedAdminTenantId();
   const selectedOrganizationId = getSelectedAdminOrganizationId();
   const shouldAttachContext = endpoint.startsWith("/api/admin") || endpoint.startsWith("/api/auth/me");
-
-  const requestUrl = (() => {
-    if (demoTenantSlug) {
-      return `${API_BASE_URL}${endpoint}${endpoint.includes("?") ? "&" : "?"}demo=${encodeURIComponent(demoTenantSlug)}`;
-    }
-
-    if (!shouldAttachContext) {
-      return `${API_BASE_URL}${endpoint}`;
-    }
-
+  const buildRequestUrl = (baseUrl: string) => {
     const [basePath, rawQuery = ""] = endpoint.split("?");
     const params = new URLSearchParams(rawQuery);
-    if (selectedTenantId) {
-      params.set("tenantId", selectedTenantId);
+
+    if (demoTenantSlug) {
+      params.set("demo", demoTenantSlug);
     }
-    if (selectedOrganizationId) {
-      params.set("organizationId", selectedOrganizationId);
+
+    if (shouldAttachContext) {
+      if (selectedTenantId) {
+        params.set("tenantId", selectedTenantId);
+      }
+      if (selectedOrganizationId) {
+        params.set("organizationId", selectedOrganizationId);
+      }
     }
 
     const query = params.toString();
-    return query ? `${API_BASE_URL}${basePath}?${query}` : `${API_BASE_URL}${basePath}`;
-  })();
+    return query ? `${baseUrl}${basePath}?${query}` : `${baseUrl}${basePath}`;
+  };
 
   const headers = new Headers(options.headers || undefined);
 
@@ -118,24 +131,45 @@ export async function apiRequest<T>(
   }
 
   try {
-    const response = await fetch(requestUrl, {
-      ...options,
-      headers,
-    });
+    let lastError: Error | null = null;
 
-    const data = await response.json();
+    for (const baseUrl of buildApiBaseCandidates()) {
+      const requestUrl = buildRequestUrl(baseUrl);
 
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error || {
-          code: "unknown_error",
-          message: "An unexpected error occurred",
-        },
-      };
+      try {
+        const response = await fetch(requestUrl, {
+          ...options,
+          headers,
+        });
+
+        const contentType = response.headers.get("content-type") || "";
+        const isJson = contentType.toLowerCase().includes("application/json");
+
+        if (!isJson) {
+          // In dev, wrong origins can return HTML. Try the next candidate.
+          continue;
+        }
+
+        const data = (await response.json()) as ApiResponse<T>;
+
+        if (!response.ok) {
+          // Return first explicit API error response.
+          return {
+            success: false,
+            error: data.error || {
+              code: "unknown_error",
+              message: "An unexpected error occurred",
+            },
+          };
+        }
+
+        return data;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error("Network request failed");
+      }
     }
 
-    return data;
+    throw lastError || new Error("Network request failed");
   } catch (error) {
     return {
       success: false,

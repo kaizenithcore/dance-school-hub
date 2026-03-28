@@ -26,7 +26,7 @@ export default function LegalNoticePage() {
         </p>
         <ul className="list-disc space-y-1 pl-6">
           <li>Informar sobre los servicios de Kaizenith.</li>
-          <li>Permitir el acceso a la plataforma DanceHub.</li>
+          <li>Permitir el acceso a la plataforma Nexa.</li>
           <li>Facilitar la contratación de servicios SaaS y servicios digitales asociados (webs, modernización, etc.).</li>
         </ul>
       </LegalSection>
@@ -48,7 +48,7 @@ export default function LegalNoticePage() {
       </LegalSection>
 
       <LegalSection title="4. Uso de la plataforma">
-        <p>DanceHub es una herramienta profesional dirigida a:</p>
+        <p>Nexa es una herramienta profesional dirigida a:</p>
         <ul className="list-disc space-y-1 pl-6">
           <li>Escuelas de danza.</li>
           <li>Profesores.</li>

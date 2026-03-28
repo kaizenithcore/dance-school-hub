@@ -94,7 +94,7 @@ export function WeydiCreativeServices() {
             Estos servicios se pueden añadir a cualquier proyecto de web o modernización.
           </p>
           <Button variant="outline" size="lg" className="h-11" asChild>
-            <a href="mailto:hola@dancehub.es?subject=Consulta%20servicios%20creativos%20Weydi">
+            <a href="mailto:hola@nexa.es?subject=Consulta%20servicios%20creativos%20Weydi">
               Consultar servicios creativos
               <ArrowRight className="ml-1 h-4 w-4" />
             </a>

@@ -8,7 +8,7 @@ export function DemoBanner() {
       <FlaskConical className="h-4 w-4 shrink-0" />
       <span>
         Estás explorando el{" "}
-        <strong>demo de DanceHub</strong>. Todos los datos son ficticios.
+        <strong>demo de Nexa</strong>. Todos los datos son ficticios.
       </span>
       <Button
         size="sm"
