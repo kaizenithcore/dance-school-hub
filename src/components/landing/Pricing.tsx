@@ -83,10 +83,10 @@ export function Pricing() {
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Precios</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Inviertes en tu escuela, no en una suscripción más
+            Inviertes en gestión + captación, no en una suscripción más
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Elige el plan que se adapta al tamaño de tu escuela. El precio escala solo por alumnos activos.
+            Elige el plan que se adapta al tamaño de tu escuela. Todos incluyen web básica con matrícula online.
           </p>
         </motion.div>
 
