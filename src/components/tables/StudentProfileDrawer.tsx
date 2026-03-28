@@ -61,9 +61,6 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
             <div className="space-y-2.5">
               <InfoRow icon={Mail} label="Email" value={student.email} />
               <InfoRow icon={Phone} label="Teléfono" value={student.phone} />
-                    <InfoRow icon={Calendar} label="Localidad" value={student.locality || "-"} />
-                    <InfoRow icon={Calendar} label="Domicilio" value={student.address || "-"} />
-                    <InfoRow icon={Calendar} label="Documento" value={student.identityDocumentType && student.identityDocumentNumber ? `${student.identityDocumentType === "dni" ? "DNI" : "Pasaporte"}: ${student.identityDocumentNumber}` : "-"} />
               <InfoRow icon={Calendar} label="Nacimiento" value={student.birthdate ? `${format(new Date(student.birthdate), "d MMM yyyy", { locale: es })} (${age} años)` : "N/A"} />
               <InfoRow icon={Calendar} label="Inscripción" value={student.joinDate ? format(new Date(student.joinDate), "d MMM yyyy", { locale: es }) : "N/A"} />
               <InfoRow icon={DollarSign} label="Tipo de pago" value={PAYMENT_LABELS[student.paymentType]} />

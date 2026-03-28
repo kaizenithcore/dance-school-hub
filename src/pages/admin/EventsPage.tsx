@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { EventsListView } from "@/components/events/EventsListView";
 import { EventFormModal } from "@/components/events/EventFormModal";
@@ -27,7 +26,6 @@ export default function EventsPage() {
     recalculateSchedule,
   } = useEvents();
   const [view, setView] = useState<View>({ mode: "list" });
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const activeEventId = view.mode === "detail" || view.mode === "edit" ? view.eventId : undefined;
   const { event, addSession: addEventSession, updateSession: updateEventSession, deleteSession: deleteEventSession } = useEvent(
@@ -49,32 +47,6 @@ export default function EventsPage() {
       setView({ mode: "detail", eventId: activeEventId });
     }
   };
-
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    const targetId = searchParams.get("id");
-    const action = searchParams.get("action");
-
-    if (!targetId || !action) {
-      return;
-    }
-
-    const targetEvent = events.find((event) => event.id === targetId);
-    if (!targetEvent) {
-      return;
-    }
-
-    if (action === "preview") {
-      setView({ mode: "detail", eventId: targetEvent.id });
-    } else if (action === "edit") {
-      setView({ mode: "edit", eventId: targetEvent.id });
-    }
-
-    setSearchParams({}, { replace: true });
-  }, [events, isLoading, searchParams, setSearchParams]);
 
   if (isLoading && view.mode === "list") {
     return (

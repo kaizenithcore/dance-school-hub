@@ -40,75 +40,6 @@ async function replaceGuardian(tenantId: string, studentId: string, guardian?: G
   }
 }
 
-async function syncActiveEnrollmentSnapshotsForStudent(tenantId: string, studentId: string) {
-  const { data: student, error: studentError } = await supabaseAdmin
-    .from("students")
-    .select("id, name, email, phone, preferred_payment_method")
-    .eq("tenant_id", tenantId)
-    .eq("id", studentId)
-    .single();
-
-  if (studentError || !student) {
-    throw new Error("Student not found while syncing enrollments");
-  }
-
-  const { data: guardian } = await supabaseAdmin
-    .from("guardians")
-    .select("name, email, phone")
-    .eq("tenant_id", tenantId)
-    .eq("student_id", studentId)
-    .eq("is_primary", true)
-    .maybeSingle();
-
-  const { data: activeEnrollments, error: enrollmentsError } = await supabaseAdmin
-    .from("enrollments")
-    .select("id, student_snapshot")
-    .eq("tenant_id", tenantId)
-    .eq("student_id", studentId)
-    .in("status", ["pending", "confirmed"]);
-
-  if (enrollmentsError) {
-    throw new Error(`Failed to load active enrollments for sync: ${enrollmentsError.message}`);
-  }
-
-  for (const enrollment of activeEnrollments || []) {
-    const existingSnapshot = enrollment.student_snapshot && typeof enrollment.student_snapshot === "object"
-      ? (enrollment.student_snapshot as Record<string, unknown>)
-      : {};
-
-    const selectedScheduleIdsRaw = existingSnapshot.selected_schedule_ids;
-    const selectedScheduleIds = Array.isArray(selectedScheduleIdsRaw)
-      ? selectedScheduleIdsRaw.filter((value): value is string => typeof value === "string")
-      : [];
-
-    const nextSnapshot = {
-      ...existingSnapshot,
-      first_name: String(student.name || "").split(" ")[0] || null,
-      last_name: String(student.name || "").split(" ").slice(1).join(" ") || null,
-      email: student.email,
-      phone: student.phone,
-      guardian_name: guardian?.name || null,
-      guardian_email: guardian?.email || null,
-      guardian_phone: guardian?.phone || null,
-      selected_schedule_ids: selectedScheduleIds,
-      updated_from_admin: true,
-    };
-
-    const { error: updateEnrollmentError } = await supabaseAdmin
-      .from("enrollments")
-      .update({
-        payment_method: student.preferred_payment_method || "cash",
-        student_snapshot: nextSnapshot,
-      })
-      .eq("tenant_id", tenantId)
-      .eq("id", enrollment.id);
-
-    if (updateEnrollmentError) {
-      throw new Error(`Failed to sync enrollment snapshot: ${updateEnrollmentError.message}`);
-    }
-  }
-}
-
 export const studentService = {
   async listStudents(tenantId: string) {
     const { data, error } = await supabaseAdmin
@@ -119,10 +50,6 @@ export const studentService = {
         name,
         email,
         phone,
-        address,
-        locality,
-        identity_document_type,
-        identity_document_number,
         date_of_birth,
         status,
         payment_type,
@@ -267,10 +194,6 @@ export const studentService = {
         name: student.name,
         email: student.email,
         phone: student.phone,
-        address: student.address,
-        locality: student.locality,
-        identityDocumentType: student.identity_document_type,
-        identityDocumentNumber: student.identity_document_number,
         birthdate: student.date_of_birth,
         status: student.status,
         joinDate: student.join_date,
@@ -313,10 +236,6 @@ export const studentService = {
         name: input.name,
         email: input.email,
         phone: input.phone,
-        address: input.address ?? null,
-        locality: input.locality ?? null,
-        identity_document_type: input.identityDocumentType ?? null,
-        identity_document_number: input.identityDocumentNumber ?? null,
         date_of_birth: input.birthdate ?? null,
         status: input.status,
         payment_type: input.paymentType,
@@ -380,10 +299,6 @@ export const studentService = {
     if (input.name !== undefined) payload.name = input.name;
     if (input.email !== undefined) payload.email = input.email;
     if (input.phone !== undefined) payload.phone = input.phone;
-    if (input.address !== undefined) payload.address = input.address ?? null;
-    if (input.locality !== undefined) payload.locality = input.locality ?? null;
-    if (input.identityDocumentType !== undefined) payload.identity_document_type = input.identityDocumentType ?? null;
-    if (input.identityDocumentNumber !== undefined) payload.identity_document_number = input.identityDocumentNumber ?? null;
     if (input.birthdate !== undefined) payload.date_of_birth = input.birthdate ?? null;
     if (input.status !== undefined) payload.status = input.status;
     if (input.paymentType !== undefined) payload.payment_type = input.paymentType;
@@ -430,8 +345,6 @@ export const studentService = {
         jointEnrollmentGroupId: input.jointEnrollmentGroupId ?? undefined,
       });
     }
-
-    await syncActiveEnrollmentSnapshotsForStudent(tenantId, studentId);
   },
 
   async updateStudentClasses(tenantId: string, studentId: string, input: StudentClassUpdateInput) {
@@ -445,7 +358,7 @@ export const studentService = {
 
     const { data: student, error: studentError } = await supabaseAdmin
       .from("students")
-      .select("id, name, email, phone, preferred_payment_method")
+      .select("id, name, email, phone")
       .eq("tenant_id", tenantId)
       .eq("id", studentId)
       .single();
@@ -534,7 +447,6 @@ export const studentService = {
         student_id: studentId,
         class_id: classId,
         status: "confirmed",
-        payment_method: student.preferred_payment_method || "cash",
         joint_enrollment_group_id: jointEnrollmentGroupId,
         student_snapshot: {
           first_name: String(student.name || "").split(" ")[0] || null,
@@ -568,7 +480,6 @@ export const studentService = {
         const { error: updateEnrollmentError } = await supabaseAdmin
           .from("enrollments")
           .update({
-            payment_method: student.preferred_payment_method || "cash",
             joint_enrollment_group_id: resolvedGroupId,
             student_snapshot: {
               first_name: String(student.name || "").split(" ")[0] || null,
@@ -631,8 +542,6 @@ export const studentService = {
         });
       }
     }
-
-    await syncActiveEnrollmentSnapshotsForStudent(tenantId, studentId);
 
     return { updated: true };
   },

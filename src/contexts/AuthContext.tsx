@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { getCurrentAuthContext, logout as authLogout } from "@/lib/auth";
-import { isRememberMeEnabled } from "@/lib/auth";
 import type { AuthContextResponse } from "@/lib/api/auth";
 import { getAuthContext } from "@/lib/api/auth";
 import {
@@ -30,7 +29,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [authContext, setAuthContext] = useState<AuthContextResponse | null>(null);
-  const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState(480);
+  const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState(120);
   const [loginAlertsEnabled, setLoginAlertsEnabled] = useState(true);
   const lastActivityRef = useRef<number>(Date.now());
 
@@ -38,10 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const settings = await getSchoolSettings();
       const security = (settings?.security || {}) as Record<string, unknown>;
-      setSessionTimeoutMinutes(parseSessionTimeoutMinutes(security.sessionTimeoutMinutes, 480));
+      setSessionTimeoutMinutes(parseSessionTimeoutMinutes(security.sessionTimeoutMinutes, 120));
       setLoginAlertsEnabled(security.loginAlerts !== false);
     } catch {
-      setSessionTimeoutMinutes(480);
+      setSessionTimeoutMinutes(120);
       setLoginAlertsEnabled(true);
     }
   }, []);
@@ -138,10 +137,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     events.forEach((eventName) => window.addEventListener(eventName, markActivity, { passive: true }));
 
     const interval = window.setInterval(() => {
-      if (isRememberMeEnabled()) {
-        return;
-      }
-
       const timeoutMs = sessionTimeoutMinutes * 60 * 1000;
       const inactiveMs = Date.now() - lastActivityRef.current;
       if (inactiveMs <= timeoutMs) {

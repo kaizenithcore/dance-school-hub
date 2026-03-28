@@ -71,60 +71,6 @@ interface AvailableScheduleClass {
   roomName?: string;
 }
 
-export interface SchedulePreset {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  blocks: Array<{
-    classId: string;
-    day: string;
-    startHour: number;
-    duration: number;
-    roomId: string;
-    isLocked?: boolean;
-  }>;
-}
-
-const SCHEDULE_PRESETS_STORAGE_KEY = "schedule-editor-presets-v1";
-
-function readPresetsFromStorage(): SchedulePreset[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const raw = window.localStorage.getItem(SCHEDULE_PRESETS_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.filter((preset): preset is SchedulePreset => {
-      return Boolean(
-        preset
-        && typeof preset.id === "string"
-        && typeof preset.name === "string"
-        && Array.isArray(preset.blocks)
-      );
-    });
-  } catch {
-    return [];
-  }
-}
-
-function writePresetsToStorage(presets: SchedulePreset[]) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(SCHEDULE_PRESETS_STORAGE_KEY, JSON.stringify(presets));
-}
-
 function toTime(decimalHour: number): string {
   const h = Math.floor(decimalHour);
   let m = Math.round((decimalHour - h) * 60);
@@ -147,7 +93,6 @@ export function useScheduleEditor() {
   const [selectedRoom, setSelectedRoom] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [deletedPersistedIds, setDeletedPersistedIds] = useState<string[]>([]);
-  const [presets, setPresets] = useState<SchedulePreset[]>([]);
 
   const originalByIdRef = useRef<Record<string, string>>({});
   const effectiveFromByIdRef = useRef<Record<string, string>>({});
@@ -235,10 +180,6 @@ export function useScheduleEditor() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
-
-  useEffect(() => {
-    setPresets(readPresetsFromStorage());
-  }, []);
 
   const filteredBlocks = selectedRoom === "all"
     ? blocks
@@ -370,82 +311,6 @@ export function useScheduleEditor() {
     };
   }, [blocks, deletedPersistedIds, loadAll]);
 
-  const saveCurrentAsPreset = useCallback((name: string) => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      return null;
-    }
-
-    const now = new Date().toISOString();
-    const presetId = `preset-${Date.now()}`;
-    const preset: SchedulePreset = {
-      id: presetId,
-      name: trimmedName,
-      createdAt: now,
-      updatedAt: now,
-      blocks: blocks.map((block) => ({
-        classId: block.classId,
-        day: block.day,
-        startHour: block.startHour,
-        duration: block.duration,
-        roomId: block.roomId,
-        isLocked: block.isLocked ?? false,
-      })),
-    };
-
-    const nextPresets = [preset, ...presets];
-    setPresets(nextPresets);
-    writePresetsToStorage(nextPresets);
-    return preset;
-  }, [blocks, presets]);
-
-  const applyPreset = useCallback((presetId: string) => {
-    const preset = presets.find((item) => item.id === presetId);
-    if (!preset) {
-      return false;
-    }
-
-    const classById = new Map(classCatalog.map((klass) => [klass.id, klass]));
-    const roomById = new Map(rooms.map((room) => [room.id, room]));
-
-    const nextBlocks: ScheduleBlock[] = preset.blocks
-      .map((item) => {
-        const classInfo = classById.get(item.classId);
-        const room = roomById.get(item.roomId);
-
-        if (!classInfo) {
-          return null;
-        }
-
-        return {
-          id: `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          classId: item.classId,
-          name: classInfo.name,
-          teacher: classInfo.teacher,
-          day: item.day,
-          startHour: item.startHour,
-          duration: item.duration,
-          roomId: item.roomId,
-          room: room?.name || classInfo.roomName || "Sin aula",
-          color: nextColor(),
-          isPersisted: false,
-          isLocked: item.isLocked ?? false,
-        };
-      })
-      .filter((item): item is ScheduleBlock => Boolean(item));
-
-    const persistedIds = blocks.filter((block) => block.isPersisted).map((block) => block.id);
-    setDeletedPersistedIds((prev) => Array.from(new Set([...prev, ...persistedIds])));
-    setBlocks(nextBlocks);
-    return true;
-  }, [blocks, classCatalog, presets, rooms]);
-
-  const deletePreset = useCallback((presetId: string) => {
-    const nextPresets = presets.filter((preset) => preset.id !== presetId);
-    setPresets(nextPresets);
-    writePresetsToStorage(nextPresets);
-  }, [presets]);
-
   return {
     blocks,
     filteredBlocks,
@@ -462,9 +327,5 @@ export function useScheduleEditor() {
     toggleLock,
     hasConflict,
     saveChanges,
-    presets,
-    saveCurrentAsPreset,
-    applyPreset,
-    deletePreset,
   };
 }

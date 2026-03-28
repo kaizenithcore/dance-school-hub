@@ -339,10 +339,6 @@ export default function RegisterPage() {
                   <Link to="/legal/privacy" className="text-primary hover:underline" target="_blank">
                     política de privacidad
                   </Link>
-                  {" "}y el{" "}
-                  <Link to="/legal/dpa" className="text-primary hover:underline" target="_blank">
-                    DPA
-                  </Link>
                 </Label>
               </div>
               {errors.acceptTerms && (

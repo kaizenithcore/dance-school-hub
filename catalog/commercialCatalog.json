@@ -178,11 +178,6 @@
       "label": "Dominio personalizado",
       "monthlyPriceEur": 29
     },
-    "branding": {
-      "label": "Branding visual",
-      "monthlyPriceEur": 39,
-      "description": "Bloque mensual para mejoras de imagen y activos visuales"
-    },
     "prioritySupport": {
       "label": "Soporte prioritario",
       "monthlyPriceEur": 79
@@ -226,19 +221,7 @@
     "integratedWebsite": {
       "label": "Web integrada con DanceHub",
       "serviceType": "one_time",
-      "shortDescription": "Web publica profesional conectada al SaaS para convertir visitas en matriculas.",
-      "positioning": "nodo_operativo_ecosistema",
-      "includes": [
-        "Pagina publica profesional",
-        "Clases",
-        "Horario",
-        "Matriculas online",
-        "Eventos",
-        "Acceso al portal del alumno",
-        "Formularios de captacion",
-        "Conexion con el sistema"
-      ],
-      "differentiator": "Integrada con DanceHub (no es una web corporativa aislada)",
+      "shortDescription": "Web conectada al sistema para captar y matricular alumnos.",
       "pricingByPlanEur": {
         "starter": 1490,
         "pro": 1790,
@@ -261,26 +244,11 @@
     "standaloneWebsite": {
       "label": "Web independiente",
       "serviceType": "one_time",
-      "shortDescription": "Web profesional sin conexion al sistema de gestion, ideal para presencia digital y captacion.",
-      "positioning": "producto_web_independiente",
-      "includes": [
-        "Web corporativa profesional",
-        "Enfoque captacion y presencia digital",
-        "Sin dependencia del SaaS"
-      ],
-      "notIncluded": [
-        "Sincronizacion con matrículas del sistema",
-        "Sincronizacion de clases o eventos",
-        "Portal del alumno integrado"
-      ],
+      "shortDescription": "Web profesional para escuelas que no necesitan el SaaS.",
       "tierPricingEur": {
-        "basic": 890,
-        "standard": 1290,
-        "complete": 2490
-      },
-      "installments": {
-        "months": [3, 6],
-        "interestFree": true
+        "basic": 1390,
+        "standard": 1590,
+        "advanced": 2990
       },
       "maintenance": {
         "monthlyPriceEur": 29
@@ -291,8 +259,7 @@
   "bundles": {
     "modernizationProBundle": {
       "label": "Pack Modernización Pro",
-      "description": "Pack comercial estrella para digitalizar, captar y modernizar tu escuela en un solo movimiento.",
-      "packType": "recommended_commercial_pack",
+      "description": "La forma más rápida de digitalizar tu escuela con todo incluido.",
       "includes": [
         "proPlan",
         "modernizationPack",
@@ -300,19 +267,11 @@
         "weydiIdentityReview"
       ],
       "pricing": {
-        "oneTimeEur": 0,
-        "note": "No es un plan mensual independiente: es un pack del primer año completo"
+        "oneTimeEur": 1490,
+        "note": "Ahorra más de 1.000€ frente a contratar servicios por separado"
       },
-      "firstYearBaseEur": 6100,
-      "firstYearTotalEur": 5490,
-      "firstYearNote": "Incluye Pro anual + web integrada + modernizacion + revision visual inicial",
-      "renewalPolicy": "Renovacion normal: Pro anual + mantenimiento web si aplica",
-      "launchOffer": {
-        "label": "Lanzamiento escuelas fundadoras",
-        "discountPercent": 10,
-        "appliesTo": "pack_first_year",
-        "note": "El descuento de lanzamiento se aplica al pago anual del pack, no al mensual"
-      },
+      "firstYearTotalEur": 7980,
+      "firstYearNote": "Plan Pro anual + Pack + Web + Revisión de identidad",
       "commercialPositioning": {
         "highlighted": true,
         "recommended": true,
@@ -322,20 +281,19 @@
   },
   "creativeServices": {
     "provider": "Weydi",
-    "providerDescription": "Bloque creativo premium con mas de una decada de experiencia en diseno grafico e identidad visual.",
+    "providerDescription": "Estudio creativo con más de una década de experiencia en diseño e identidad visual.",
     "providerUrl": "https://weydi.com",
-    "positioning": "creative_premium_block",
     "services": {
       "identityReview": {
-        "label": "Revision de identidad actual",
-        "description": "Auditoria visual de logo, tipografia, paleta, coherencia de marca y guia breve de direccion visual.",
+        "label": "Revisión de identidad visual",
+        "description": "Análisis y mejora de tu identidad visual actual: logo, tipografía, paleta de colores y coherencia de marca.",
         "pricingEur": 390,
         "includedInBundle": true
       },
       "rebranding": {
-        "label": "Rebranding",
-        "description": "Actualizacion visual profunda: refinado de logo, sistema de color, tipografia, mini brand guide y adaptacion a la web.",
-        "pricingEur": 990,
+        "label": "Rebranding completo",
+        "description": "Rediseño integral de la identidad de tu escuela: nuevo logo, manual de marca, papelería y activos digitales.",
+        "pricingEur": 1490,
         "includedInBundle": false
       }
     }
@@ -350,7 +308,6 @@
   "pricingNarrative": {
     "anchor": "Con 5–15 alumnos cubres el coste completo del sistema",
     "comparison": "Más barato que contratar a un administrativo",
-
     "focus": "ahorro de tiempo y eficiencia operativa"
   },
   "examSuit": {

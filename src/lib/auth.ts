@@ -23,7 +23,6 @@ export interface RegisterSchoolData {
 export interface LoginCredentials {
   email: string;
   password: string;
-  rememberMe?: boolean;
 }
 
 export interface AuthResult {
@@ -31,8 +30,6 @@ export interface AuthResult {
   error?: string;
   context?: AuthContextResponse;
 }
-
-export const REMEMBER_ME_STORAGE_KEY = "dancehub:auth:remember-me";
 
 const AUTH_CONTEXT_TIMEOUT_MS = 10000;
 
@@ -111,9 +108,6 @@ export async function login(credentials: LoginCredentials): Promise<AuthResult> 
     clearDemoAdminSession();
     clearSelectedAdminContext();
 
-    const shouldRemember = credentials.rememberMe === true;
-    window.localStorage.setItem(REMEMBER_ME_STORAGE_KEY, shouldRemember ? "1" : "0");
-
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: credentials.email,
       password: credentials.password,
@@ -156,12 +150,7 @@ export async function login(credentials: LoginCredentials): Promise<AuthResult> 
 export async function logout(): Promise<void> {
   clearDemoAdminSession();
   clearSelectedAdminContext();
-  window.localStorage.removeItem(REMEMBER_ME_STORAGE_KEY);
   await supabase.auth.signOut();
-}
-
-export function isRememberMeEnabled(): boolean {
-  return window.localStorage.getItem(REMEMBER_ME_STORAGE_KEY) === "1";
 }
 
 /**

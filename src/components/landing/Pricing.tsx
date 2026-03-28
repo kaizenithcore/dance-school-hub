@@ -48,7 +48,6 @@ const addonsStarter = [
 
 const addons = [
   `${subscriptionAddonCatalog.customDomain.label}: ${formatEuro(subscriptionAddonCatalog.customDomain.monthlyPriceEur)}/mes`,
-  `${subscriptionAddonCatalog.branding.label}: ${formatEuro(subscriptionAddonCatalog.branding.monthlyPriceEur)}/mes`,
   `${subscriptionAddonCatalog.prioritySupport.label}: ${formatEuro(subscriptionAddonCatalog.prioritySupport.monthlyPriceEur)}/mes`,
   `Bloques extra de alumnos desde ${formatEuro(getMinimumExtraStudentBlockPriceEur())}/mes (según el plan)`,
   `${subscriptionAddonCatalog.extraRoles.label}: ${formatEuro(subscriptionAddonCatalog.extraRoles.monthlyPriceEur)}/mes`,
@@ -84,10 +83,10 @@ export function Pricing() {
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Precios</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Inviertes en tu escuela, no en una suscripción más
+            Inviertes en gestión + captación, no en una suscripción más
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Elige el plan que se adapta al tamaño de tu escuela. El precio escala solo por alumnos activos.
+            Elige el plan que se adapta al tamaño de tu escuela. Todos incluyen web básica con matrícula online.
           </p>
         </motion.div>
 
@@ -184,14 +183,11 @@ export function Pricing() {
           className="mt-8 rounded-2xl border border-primary/20 bg-card p-6 max-w-5xl mx-auto text-center"
         >
           <p className="text-lg font-semibold text-foreground">
-            Con solo 5–15 alumnos al mes cubres el coste completo del sistema
+            Con solo 5–15 alumnos al mes cubres el coste completo del sistema de gestión + captación
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {commercialCatalog.pricingNarrative?.comparison || "Más barato que contratar a un administrativo"}. El retorno de inversión es inmediato: menos gestión, más tiempo para captar y retener alumnos.
+            {commercialCatalog.pricingNarrative?.comparison || "Más barato que contratar a un administrativo"}. Menos gestión, más tiempo para captar y retener alumnos.
           </p>
-          {commercialCatalog.pricingNarrative?.launchDiscountStrategy && (
-            <p className="mt-2 text-xs font-medium text-primary">{commercialCatalog.pricingNarrative.launchDiscountStrategy}</p>
-          )}
         </motion.div>
 
         <div className="mt-6 rounded-2xl border border-border bg-card p-6 max-w-5xl mx-auto">

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { isRememberMeEnabled, login } from "@/lib/auth";
+import { login } from "@/lib/auth";
 
 const LOGIN_WELCOME_KEY = "dancehub:welcome-overlay-until";
 const LOGIN_WELCOME_DURATION_MS = 2000;
@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(() => isRememberMeEnabled());
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,7 +30,7 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-      const result = await login({ email, password, rememberMe });
+      const result = await login({ email, password });
 
       if (result.success) {
         window.sessionStorage.setItem(
@@ -139,8 +139,6 @@ export default function LoginPage() {
           <Link to="/legal/terms" className="hover:text-foreground hover:underline">Términos</Link>
           <span>·</span>
           <Link to="/legal/cookies" className="hover:text-foreground hover:underline">Cookies</Link>
-          <span>·</span>
-          <Link to="/legal/dpa" className="hover:text-foreground hover:underline">DPA</Link>
         </div>
       </motion.div>
     </div>

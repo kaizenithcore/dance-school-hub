@@ -2,7 +2,7 @@ import commercialCatalogJson from "../../catalog/commercialCatalog.json";
 
 type PlanType = "starter" | "pro" | "enterprise";
 type SubscriptionAddonKey = "customDomain" | "prioritySupport" | "waitlistAutomation" | "renewalAutomation";
-type SubscriptionAddonCatalogKey = SubscriptionAddonKey | "extraRoles" | "branding";
+type SubscriptionAddonCatalogKey = SubscriptionAddonKey | "extraRoles";
 
 interface FeatureFlags {
   smartEnrollmentLink: boolean;

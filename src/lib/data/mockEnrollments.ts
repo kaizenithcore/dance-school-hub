@@ -7,13 +7,6 @@ export interface EnrollmentRecord {
   studentName: string;
   studentEmail: string;
   studentPhone: string;
-  studentBirthDate?: string;
-  studentIban?: string;
-  guardians?: {
-    name: string;
-    phone?: string;
-    email?: string;
-  }[];
   classes: { id: string; name: string; day: string; time: string; price: number }[];
   status: EnrollmentStatus;
   totalPrice: number;

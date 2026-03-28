@@ -35,7 +35,7 @@ const EMPTY: Omit<ClassRecord, "id" | "enrolled"> = {
   price: 0,
   capacity: 15,
   weeklyFrequency: 1,
-  room: "",
+  room: "Aula A",
   status: "draft",
 };
 

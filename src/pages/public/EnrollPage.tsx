@@ -927,9 +927,26 @@ export default function EnrollPage() {
   return (
     <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-4xl mx-auto">
+        {/* Stepper */}
+        <div className="mb-10">
+          <div className="flex items-center justify-center gap-0 max-w-md mx-auto">
+            {["Datos", "Clases", "Confirmación"].map((step, i) => (
+              <div key={step} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${i === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                    {i + 1}
+                  </div>
+                  <span className="mt-1 text-[10px] text-muted-foreground">{step}</span>
+                </div>
+                {i < 2 && <div className="w-12 h-px bg-border mx-2 mb-4" />}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-2">{formConfig.tenantName}</h1>
-          <p className="text-muted-foreground text-lg">Formulario de Matrícula</p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">{formConfig.tenantName}</h1>
+          <p className="text-muted-foreground">Inscripción en 2 minutos · Sin compromiso de pago inmediato</p>
         </div>
 
         {visibleBranches.length > 0 ? (

@@ -77,10 +77,6 @@ export default function StudentsPage() {
     name: data.name,
     email: data.email,
     phone: data.phone,
-    address: data.address,
-    locality: data.locality,
-    identityDocumentType: data.identityDocumentType,
-    identityDocumentNumber: data.identityDocumentNumber,
     birthdate: data.birthdate,
     status: data.status,
     joinDate: data.joinDate,
@@ -309,8 +305,7 @@ export default function StudentsPage() {
       </section>
 
       <StudentsTable
-        students={students}
-        isLoading={loading}
+        students={loading ? [] : students}
         onViewProfile={handleViewProfile}
         onEdit={handleEdit}
         onManageClasses={handleManageClasses}

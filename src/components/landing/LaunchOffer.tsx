@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { Zap, ArrowRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { SharedDemoCta } from "@/components/landing/SharedDemoCta";
 
 export function LaunchOffer() {
   return (
@@ -51,11 +50,11 @@ export function LaunchOffer() {
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
-              <SharedDemoCta
-                section="launch_offer"
-                subject="Consulta oferta lanzamiento DanceHub"
-                className="h-12 px-8 text-base"
-              />
+              <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
+                <a href="mailto:hola@dancehub.es?subject=Consulta%20oferta%20lanzamiento%20DanceHub">
+                  Solicitar demo
+                </a>
+              </Button>
             </div>
           </div>
         </motion.div>

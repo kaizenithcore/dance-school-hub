@@ -78,7 +78,6 @@ const PrivacyPolicyPage = lazy(() => import("@/pages/legal/PrivacyPolicyPage"));
 const CookiePolicyPage = lazy(() => import("@/pages/legal/CookiePolicyPage"));
 const TermsOfServicePage = lazy(() => import("@/pages/legal/TermsOfServicePage"));
 const LegalNoticePage = lazy(() => import("@/pages/legal/LegalNoticePage"));
-const DpaPage = lazy(() => import("@/pages/legal/DpaPage"));
 
 const GuidesLayout = lazy(() => import("@/pages/guides/GuidesLayout"));
 const GuidesIndexPage = lazy(() => import("@/pages/guides/GuidesIndexPage"));
@@ -129,7 +128,6 @@ const App = () => (
             <Route path="cookies" element={withSuspense(<CookiePolicyPage />)} />
             <Route path="terms" element={withSuspense(<TermsOfServicePage />)} />
             <Route path="notice" element={withSuspense(<LegalNoticePage />)} />
-            <Route path="dpa" element={withSuspense(<DpaPage />)} />
           </Route>
           <Route path="/guides" element={withSuspense(<GuidesLayout />)}>
             <Route index element={withSuspense(<GuidesIndexPage />)} />

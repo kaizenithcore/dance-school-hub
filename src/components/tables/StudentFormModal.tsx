@@ -17,7 +17,6 @@ interface StudentFormModalProps {
 
 const EMPTY: Omit<StudentRecord, "id"> = {
   name: "", email: "", phone: "", birthdate: "",
-  address: "", locality: "", identityDocumentType: undefined, identityDocumentNumber: "",
   enrolledClasses: [], status: "active", joinDate: new Date().toISOString().slice(0, 10),
   paymentType: "monthly", notes: "",
   payerType: "student",
@@ -27,18 +26,6 @@ const EMPTY: Omit<StudentRecord, "id"> = {
   preferredPaymentMethod: "cash",
   accountNumber: "",
 };
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function hasMinDigits(value: string, min: number): boolean {
-  const digits = value.replace(/\D/g, "");
-  return digits.length >= min;
-}
-
-function isValidDate(value: string): boolean {
-  const date = new Date(value);
-  return !Number.isNaN(date.getTime());
-}
 
 export function StudentFormModal({ open, onOpenChange, student, onSave }: StudentFormModalProps) {
   const isEdit = !!student;
@@ -73,12 +60,6 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
     setErrors({});
   }, [student, open]);
 
-  useEffect(() => {
-    if (form.payerType === "guardian" && !hasGuardian) {
-      setHasGuardian(true);
-    }
-  }, [form.payerType, hasGuardian]);
-
   const set = (key: string, value: any) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
@@ -94,57 +75,13 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = "Obligatorio";
-    else if (form.name.trim().length > 120) e.name = "Máximo 120 caracteres";
-
     if (!form.email.trim()) e.email = "Obligatorio";
-    else if (!EMAIL_REGEX.test(form.email.trim())) e.email = "Email inválido";
-
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email inválido";
     if (!form.phone.trim()) e.phone = "Obligatorio";
-    else if (!hasMinDigits(form.phone, 6)) e.phone = "Teléfono inválido";
-
-    if (form.identityDocumentNumber?.trim() && !form.identityDocumentType) {
-      e.identityDocumentType = "Obligatorio";
-    }
-    if (form.identityDocumentType && !form.identityDocumentNumber?.trim()) {
-      e.identityDocumentNumber = "Obligatorio";
-    } else if (form.identityDocumentType && form.identityDocumentNumber?.trim()) {
-      const normalizedDoc = form.identityDocumentNumber.trim();
-      if (form.identityDocumentType === "dni" && !/^\d{7,8}[A-Za-z]?$/.test(normalizedDoc)) {
-        e.identityDocumentNumber = "DNI inválido";
-      }
-      if (form.identityDocumentType === "passport" && !/^[A-Za-z0-9]{5,20}$/.test(normalizedDoc)) {
-        e.identityDocumentNumber = "Pasaporte inválido";
-      }
-    }
-
     if (!form.birthdate) e.birthdate = "Obligatorio";
-    else if (!isValidDate(form.birthdate)) e.birthdate = "Fecha inválida";
-    else if (new Date(form.birthdate) > new Date()) e.birthdate = "No puede ser futura";
-
-    if (form.joinDate && !isValidDate(form.joinDate)) {
-      e.joinDate = "Fecha inválida";
-    }
-
-    if (form.address && form.address.trim().length > 180) {
-      e.address = "Máximo 180 caracteres";
-    }
-
-    if (form.locality && form.locality.trim().length > 120) {
-      e.locality = "Máximo 120 caracteres";
-    }
-
-    if (form.notes && form.notes.length > 2000) {
-      e.notes = "Máximo 2000 caracteres";
-    }
-
-    const requiresGuardianData = hasGuardian || isMinor || form.payerType === "guardian";
-    if (requiresGuardianData) {
+    if (hasGuardian || isMinor) {
       if (!form.guardian?.name?.trim()) e.guardian_name = "Obligatorio";
       if (!form.guardian?.phone?.trim()) e.guardian_phone = "Obligatorio";
-      else if (!hasMinDigits(form.guardian.phone, 6)) e.guardian_phone = "Teléfono inválido";
-      if (form.guardian?.email?.trim() && !EMAIL_REGEX.test(form.guardian.email.trim())) {
-        e.guardian_email = "Email inválido";
-      }
     }
 
     if (!form.payerType) {
@@ -158,18 +95,15 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
     if (form.payerType === "other") {
       if (!form.payerName?.trim()) e.payerName = "Obligatorio";
       if (!form.payerPhone?.trim()) e.payerPhone = "Obligatorio";
-      else if (!hasMinDigits(form.payerPhone, 6)) e.payerPhone = "Teléfono inválido";
       if (!form.payerEmail?.trim()) {
         e.payerEmail = "Obligatorio";
-      } else if (!EMAIL_REGEX.test(form.payerEmail.trim())) {
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.payerEmail.trim())) {
         e.payerEmail = "Email inválido";
       }
     }
 
     if (form.preferredPaymentMethod === "transfer" && form.accountNumber?.trim() === "") {
       e.accountNumber = "Obligatorio";
-    } else if (form.preferredPaymentMethod === "transfer" && form.accountNumber && form.accountNumber.trim().length < 8) {
-      e.accountNumber = "Cuenta inválida";
     }
 
     setErrors(e);
@@ -238,63 +172,6 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-sm">Domicilio</Label>
-              <Input
-                value={form.address || ""}
-                onChange={(e) => set("address", e.target.value)}
-                placeholder="Calle, número, piso..."
-                disabled={isLoading}
-                className={errors.address ? "border-destructive" : ""}
-              />
-              {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">Localidad</Label>
-              <Input
-                value={form.locality || ""}
-                onChange={(e) => set("locality", e.target.value)}
-                placeholder="Ej: Madrid"
-                disabled={isLoading}
-                className={errors.locality ? "border-destructive" : ""}
-              />
-              {errors.locality && <p className="text-xs text-destructive">{errors.locality}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-sm">Tipo de documento</Label>
-              <Select
-                value={form.identityDocumentType || "none"}
-                onValueChange={(v) => set("identityDocumentType", v === "none" ? undefined : v)}
-                disabled={isLoading}
-              >
-                <SelectTrigger className={errors.identityDocumentType ? "border-destructive" : ""}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin documento</SelectItem>
-                  <SelectItem value="dni">DNI</SelectItem>
-                  <SelectItem value="passport">Pasaporte</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.identityDocumentType && <p className="text-xs text-destructive">{errors.identityDocumentType}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">Nº DNI/Pasaporte</Label>
-              <Input
-                value={form.identityDocumentNumber || ""}
-                onChange={(e) => set("identityDocumentNumber", e.target.value)}
-                placeholder="Documento identificativo"
-                disabled={isLoading}
-                className={errors.identityDocumentNumber ? "border-destructive" : ""}
-              />
-              {errors.identityDocumentNumber && <p className="text-xs text-destructive">{errors.identityDocumentNumber}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
               <Label className="text-sm">Fecha de nacimiento *</Label>
               <Input type="date" value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} disabled={isLoading} className={errors.birthdate ? "border-destructive" : ""} />
               {errors.birthdate && <p className="text-xs text-destructive">{errors.birthdate}</p>}
@@ -325,8 +202,7 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Fecha de ingreso</Label>
-              <Input type="date" value={form.joinDate} onChange={(e) => set("joinDate", e.target.value)} disabled={isLoading} className={errors.joinDate ? "border-destructive" : ""} />
-              {errors.joinDate && <p className="text-xs text-destructive">{errors.joinDate}</p>}
+              <Input type="date" value={form.joinDate} onChange={(e) => set("joinDate", e.target.value)} disabled={isLoading} />
             </div>
           </div>
 
@@ -437,17 +313,17 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
             <input
               type="checkbox"
               id="has-guardian"
-              checked={hasGuardian || isMinor || form.payerType === "guardian"}
+              checked={hasGuardian || isMinor}
               onChange={(e) => setHasGuardian(e.target.checked)}
-              disabled={isLoading || isMinor || form.payerType === "guardian"}
+              disabled={isLoading || isMinor}
               className="rounded border-border"
             />
             <Label htmlFor="has-guardian" className="text-sm font-normal cursor-pointer">
-              Tiene tutor / responsable {isMinor ? "(obligatorio por menor de edad)" : form.payerType === "guardian" ? "(obligatorio si paga el tutor)" : ""}
+              Tiene tutor / responsable {isMinor ? "(obligatorio por menor de edad)" : ""}
             </Label>
           </div>
 
-          {(hasGuardian || isMinor || form.payerType === "guardian") && (
+          {(hasGuardian || isMinor) && (
             <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Datos del Tutor</p>
               <div className="space-y-1.5">
@@ -463,8 +339,7 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-sm">Email</Label>
-                  <Input type="email" value={form.guardian?.email || ""} onChange={(e) => setGuardian("email", e.target.value)} disabled={isLoading} className={errors.guardian_email ? "border-destructive" : ""} />
-                  {errors.guardian_email && <p className="text-xs text-destructive">{errors.guardian_email}</p>}
+                  <Input type="email" value={form.guardian?.email || ""} onChange={(e) => setGuardian("email", e.target.value)} disabled={isLoading} />
                 </div>
               </div>
             </div>
@@ -472,8 +347,7 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
 
           <div className="space-y-1.5">
             <Label className="text-sm">Notas</Label>
-            <Textarea value={form.notes || ""} onChange={(e) => set("notes", e.target.value)} placeholder="Observaciones sobre el alumno..." rows={2} disabled={isLoading} className={errors.notes ? "resize-none border-destructive" : "resize-none"} />
-            {errors.notes && <p className="text-xs text-destructive">{errors.notes}</p>}
+            <Textarea value={form.notes || ""} onChange={(e) => set("notes", e.target.value)} placeholder="Observaciones sobre el alumno..." rows={2} disabled={isLoading} className="resize-none" />
           </div>
         </div>
 

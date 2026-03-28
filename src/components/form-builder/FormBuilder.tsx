@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { EnrollmentFormConfig, createDefaultSection, getDefaultEnrollmentConfig } from "@/lib/types/formBuilder";
 import { SectionCard } from "./SectionCard";
 import { JointEnrollmentSettings } from "./JointEnrollmentSettings";
@@ -14,18 +14,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { getEnrollmentFormConfig, saveEnrollmentFormConfig } from "@/lib/api/enrollmentFormConfig";
 
 type Mode = "edit" | "preview";
-const FORM_BUILDER_UNSAVED_KEY = "dancehub:form-builder:unsaved";
 
 export function FormBuilder() {
   const [config, setConfig] = useState<EnrollmentFormConfig>(getDefaultEnrollmentConfig);
   const [mode, setMode] = useState<Mode>("edit");
   const [saving, setSaving] = useState(false);
-  const [lastSavedSnapshot, setLastSavedSnapshot] = useState(() => JSON.stringify(getDefaultEnrollmentConfig()));
-
-  const hasUnsavedChanges = useMemo(
-    () => JSON.stringify(config) !== lastSavedSnapshot,
-    [config, lastSavedSnapshot]
-  );
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -37,36 +30,10 @@ export function FormBuilder() {
       }
 
       setConfig(response.data.config);
-      setLastSavedSnapshot(JSON.stringify(response.data.config));
     };
 
     void loadConfig();
   }, []);
-
-  useEffect(() => {
-    if (hasUnsavedChanges) {
-      window.localStorage.setItem(FORM_BUILDER_UNSAVED_KEY, "1");
-    } else {
-      window.localStorage.removeItem(FORM_BUILDER_UNSAVED_KEY);
-    }
-  }, [hasUnsavedChanges]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!hasUnsavedChanges) {
-        return;
-      }
-
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.localStorage.removeItem(FORM_BUILDER_UNSAVED_KEY);
-    };
-  }, [hasUnsavedChanges]);
 
   const updateSection = (index: number, section: FormBuilderSection) => {
     const sections = [...config.sections];
@@ -101,7 +68,6 @@ export function FormBuilder() {
       return;
     }
 
-    setLastSavedSnapshot(JSON.stringify(config));
     toast.success("Formulario guardado correctamente");
   };
 
@@ -138,9 +104,6 @@ export function FormBuilder() {
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          {hasUnsavedChanges ? (
-            <span className="text-xs font-medium text-warning">Cambios sin guardar</span>
-          ) : null}
           <Button variant="outline" size="sm" onClick={handleReset}>
             <RotateCcw className="h-3.5 w-3.5 mr-1" />
             Restaurar

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Class, TeacherRecord } from "@/lib/data/mockTeachers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, Book, DollarSign, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, Book, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,13 +18,9 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
 };
 
 const PAGE_SIZE = 8;
-const PAGE_PREFS_KEY = "teachers-table-page";
-
-type TeacherSortKey = "name" | "email" | "phone" | "classes" | "salary" | "status";
 
 interface TeachersTableProps {
   teachers: TeacherRecord[];
-  isLoading?: boolean;
   onViewProfile: (teacher: TeacherRecord) => void;
   onEdit: (teacher: TeacherRecord) => void;
   onEditClasses: (teacher: TeacherRecord) => void;
@@ -33,7 +29,6 @@ interface TeachersTableProps {
 
 export function TeachersTable({
   teachers,
-  isLoading = false,
   onViewProfile,
   onEdit,
   onEditClasses,
@@ -41,14 +36,7 @@ export function TeachersTable({
 }: TeachersTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sortKey, setSortKey] = useState<TeacherSortKey>("name");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    const raw = window.localStorage.getItem(PAGE_PREFS_KEY);
-    const parsed = Number(raw);
-    return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
-  });
+  const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
     return teachers.filter((t) => {
@@ -61,91 +49,8 @@ export function TeachersTable({
     });
   }, [teachers, search, statusFilter]);
 
-  const sorted = useMemo(() => {
-    const direction = sortDirection === "asc" ? 1 : -1;
-    const rows = [...filtered];
-
-    rows.sort((a, b) => {
-      const getValue = (teacher: TeacherRecord) => {
-        switch (sortKey) {
-          case "name":
-            return teacher.name.toLowerCase();
-          case "email":
-            return (teacher.email || "").toLowerCase();
-          case "phone":
-            return (teacher.phone || "").toLowerCase();
-          case "classes":
-            return teacher.assignedClasses.length;
-          case "salary":
-            return teacher.aulary;
-          case "status":
-            return STATUS_MAP[teacher.status]?.label || teacher.status;
-          default:
-            return "";
-        }
-      };
-
-      const aValue = getValue(a);
-      const bValue = getValue(b);
-
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return (aValue - bValue) * direction;
-      }
-
-      return String(aValue).localeCompare(String(bValue), "es", { sensitivity: "base" }) * direction;
-    });
-
-    return rows;
-  }, [filtered, sortKey, sortDirection]);
-
-  const totalSalary = useMemo(() => {
-    return filtered.reduce((sum, teacher) => sum + (teacher.aulary || 0), 0);
-  }, [filtered]);
-
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  useEffect(() => {
-    window.localStorage.setItem(PAGE_PREFS_KEY, String(page));
-  }, [page]);
-
-  useEffect(() => {
-    if (totalPages === 0) {
-      if (page !== 0) setPage(0);
-      return;
-    }
-
-    if (page > totalPages - 1) {
-      setPage(totalPages - 1);
-    }
-  }, [page, totalPages]);
-
-  const toggleSort = (key: TeacherSortKey) => {
-    setPage(0);
-    if (sortKey === key) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-      return;
-    }
-
-    setSortKey(key);
-    setSortDirection("asc");
-  };
-
-  const renderSortableHead = (label: string, key: TeacherSortKey, className?: string, align: "left" | "center" | "right" = "left") => (
-    <TableHead className={cn("text-xs", className)}>
-      <button
-        type="button"
-        onClick={() => toggleSort(key)}
-        className={cn(
-          "inline-flex w-full items-center gap-1 hover:text-foreground",
-          align === "center" ? "justify-center" : align === "right" ? "justify-end" : "justify-start"
-        )}
-      >
-        <span>{label}</span>
-        {sortKey !== key ? <ArrowUpDown className="h-3 w-3 text-muted-foreground" /> : sortDirection === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-      </button>
-    </TableHead>
-  );
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <div className="space-y-4">
@@ -169,38 +74,23 @@ export function TeachersTable({
             <SelectItem value="inactive">Inactivos</SelectItem>
           </SelectContent>
         </Select>
-        <div className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3">
-          <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Total salarios:</span>
-          <span className="text-sm font-semibold text-foreground">${totalSalary}</span>
-          <span className="text-[10px] text-muted-foreground">/mes</span>
-        </div>
       </div>
 
       <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
         <Table className="min-w-[640px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              {renderSortableHead("Nombre", "name")}
-              {renderSortableHead("Email", "email", "hidden md:table-cell")}
-              {renderSortableHead("Teléfono", "phone", "hidden lg:table-cell")}
-              {renderSortableHead("Clases", "classes", undefined, "center")}
-              {renderSortableHead("Salario", "salary", undefined, "right")}
-              {renderSortableHead("Estado", "status", undefined, "center")}
+              <TableHead className="text-xs">Nombre</TableHead>
+              <TableHead className="text-xs hidden md:table-cell">Email</TableHead>
+              <TableHead className="text-xs hidden lg:table-cell">Teléfono</TableHead>
+              <TableHead className="text-xs text-center">Clases</TableHead>
+              <TableHead className="text-xs text-right">Salario</TableHead>
+              <TableHead className="text-xs text-center">Estado</TableHead>
               <TableHead className="text-xs text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7}>
-                  <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Cargando profesores...
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : paginated.length === 0 ? (
+            {paginated.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7}>
                   <EmptyState type={search || statusFilter !== "all" ? "search" : "teachers"} />
@@ -285,7 +175,7 @@ export function TeachersTable({
         </Table>
       </div>
 
-      {!isLoading && totalPages > 1 && (
+      {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
             Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}

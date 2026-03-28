@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const session = await stripeService.createCheckoutSession({
       amountCents: Math.round(Number(amount) * 100),
       currency: (body.currency || "eur").toLowerCase(),
-      description: body.description || "Pago Nexa",
+      description: body.description || "Pago DanceHub",
       successUrl,
       cancelUrl,
       metadata: normalizeMetadata(body.metadata),

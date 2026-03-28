@@ -1,18 +1,17 @@
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Play, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 import { formatEuro, planCatalog } from "@/lib/commercialCatalog";
-import { SharedDemoCta } from "@/components/landing/SharedDemoCta";
 
 const proPlan = planCatalog.pro;
 
 const benefits = [
-  "Software de gestión completo",
+  "Sistema de gestión completo",
+  "Web incluida desde el día 1",
   "Portal del alumno (app)",
-  "Web profesional integrada",
-  "Pack de modernización incluido",
+  "Captación de alumnos integrada",
 ];
 
 export function Hero() {
@@ -46,13 +45,13 @@ export function Hero() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight text-foreground leading-[1.1]">
-              Deja de gestionar con Excel.{" "}
-              <span className="text-primary">Moderniza tu escuela.</span>
+              Gestiona tu escuela.{" "}
+              <span className="text-primary">Capta más alumnos.</span>
             </h1>
 
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-lg">
-              Software de gestión + portal del alumno + web profesional + identidad visual.
-              Todo en un solo paso. Desde {formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}/mes con el plan anual.
+              Sistema de gestión + captación de alumnos + web incluida + portal del alumno.
+              Todo desde el primer día. Desde {formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}/mes con el plan anual.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -62,10 +61,12 @@ export function Hero() {
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
-              <SharedDemoCta
-                section="hero"
-                className="h-12 px-7 text-base"
-              />
+              <Button size="lg" variant="outline" className="h-12 px-7 text-base" asChild>
+                <a href="#modernization-bundle">
+                  Ver Pack Modernización
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </a>
+              </Button>
             </div>
 
             <div className="mt-5 flex items-center gap-4 text-xs text-muted-foreground">

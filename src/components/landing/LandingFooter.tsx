@@ -20,8 +20,6 @@ export function LandingFooter() {
             <Link to="/legal/terms" className="hover:text-foreground">Términos</Link>
             <span>·</span>
             <Link to="/legal/cookies" className="hover:text-foreground">Cookies</Link>
-            <span>·</span>
-            <Link to="/legal/dpa" className="hover:text-foreground">DPA</Link>
           </nav>
         </div>
         <p className="mt-4 text-center sm:text-left text-xs text-muted-foreground">

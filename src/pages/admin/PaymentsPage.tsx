@@ -485,7 +485,6 @@ export default function PaymentsPage() {
 
           <PaymentsTable
             payments={payments}
-            isLoading={loading}
             onViewDetail={handleViewDetail}
             onAddPayment={() => setPaymentModalOpen(true)}
             onGenerateReceipt={handleGenerateReceipt}

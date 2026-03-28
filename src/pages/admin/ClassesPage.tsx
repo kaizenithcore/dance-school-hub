@@ -6,7 +6,6 @@ import { DeleteClassModal } from "@/components/tables/DeleteClassModal";
 import { ClassPreviewDrawer } from "@/components/tables/ClassPreviewDrawer";
 import { ClassRecord } from "@/lib/data/mockClassRecords";
 import { createClass, deleteClass, getClasses, updateClass } from "@/lib/api/classes";
-import { getTeachers } from "@/lib/api/teachers";
 import { getDisciplines } from "@/lib/api/disciplines";
 import { getCategories } from "@/lib/api/categories";
 import { getRooms } from "@/lib/api/rooms";
@@ -33,20 +32,18 @@ export default function ClassesPage() {
     const loadClasses = async () => {
       setLoading(true);
       try {
-        const [classesData, disciplinesData, categoriesData, roomsData, schedulesData, teachersData] = await Promise.all([
+        const [classesData, disciplinesData, categoriesData, roomsData, schedulesData] = await Promise.all([
           getClasses(),
           getDisciplines(),
           getCategories(),
           getRooms(),
           getSchedules(),
-          getTeachers(),
         ]);
 
         // Create lookup maps
         const disciplineMap = new Map(disciplinesData.map((d) => [d.id, d.name]));
         const categoryMap = new Map(categoriesData.map((c) => [c.id, c.name]));
         const roomMap = new Map(roomsData.map((r) => [r.id, r.name]));
-        const teacherMap = new Map(teachersData.map((teacher) => [teacher.id, teacher.name]));
 
         const scheduledByClass = new Map<string, number>();
         (schedulesData || []).forEach((schedule) => {
@@ -57,19 +54,15 @@ export default function ClassesPage() {
         });
 
         const mappedClasses: ClassRecord[] = (classesData || []).map((cls) => {
-          const embeddedTeacherNames = (cls.teachers || []).map((teacher) => teacher.name).filter(Boolean);
-          const teacherIds = Array.from(new Set([...(cls.teacherIds || []), ...(cls.teacherId ? [cls.teacherId] : [])]));
-          const teacherNamesFromIds = teacherIds
-            .map((teacherId) => teacherMap.get(teacherId))
-            .filter((name): name is string => Boolean(name && name.trim().length > 0));
-          const resolvedTeacherNames = embeddedTeacherNames.length > 0 ? embeddedTeacherNames : teacherNamesFromIds;
+          const teacherNames = (cls.teachers || []).map((teacher) => teacher.name).filter(Boolean);
+          const teacherIds = cls.teacherIds || [];
 
           return {
             id: cls.id,
             name: cls.name,
             discipline: cls.discipline ? (disciplineMap.get(cls.discipline) || cls.discipline) : "General",
             disciplineId: cls.disciplineId || undefined,
-            teacher: resolvedTeacherNames.length > 0 ? resolvedTeacherNames.join(", ") : "Sin asignar",
+            teacher: teacherNames.length > 0 ? teacherNames.join(", ") : "Sin asignar",
             teacherId: teacherIds[0] || cls.teacher?.id || cls.teacherId || undefined,
             teacherIds,
             category: cls.category ? (categoryMap.get(cls.category) || cls.category) : "General",
@@ -81,7 +74,7 @@ export default function ClassesPage() {
             room: cls.roomId ? roomMap.get(cls.roomId) || "Sin aula" : "Sin aula",
             roomId: cls.roomId || undefined,
             status: cls.status,
-            enrolled: cls.enrolledCount || 0,
+            enrolled: 0,
           };
         });
         setClasses(mappedClasses);
@@ -254,7 +247,6 @@ export default function ClassesPage() {
     >
       <ClassesTable
         classes={classes}
-        isLoading={loading}
         onPreview={handlePreview}
         onEdit={handleEdit}
         onDelete={handleDelete}

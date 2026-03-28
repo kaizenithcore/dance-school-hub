@@ -3,23 +3,22 @@ import { Check, Sparkles, ArrowRight, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { commercialCatalog, formatEuro } from "@/lib/commercialCatalog";
-import { SharedDemoCta } from "@/components/landing/SharedDemoCta";
 
 const bundleCatalog = (commercialCatalog as any).bundles?.modernizationProBundle;
 const creativeServices = (commercialCatalog as any).creativeServices;
 
 const bundleIncludes = [
-  { label: "Plan Pro anual", desc: "Gestión completa, automatizaciones, portal del alumno" },
-  { label: "Pack de modernización", desc: "Implementación, migración de datos y puesta en marcha" },
-  { label: "Web integrada con DanceHub", desc: "Página pública conectada a matrículas y horarios" },
-  { label: "Revisión de identidad visual", desc: `Por ${creativeServices?.provider || "Weydi"}: análisis y mejora de tu imagen de marca` },
+  { label: "Nexa Pro anual", desc: "Sistema de gestión + captación completo, automatizaciones, portal del alumno" },
+  { label: "Implementación completa", desc: "Migración de datos, configuración y puesta en marcha" },
+  { label: "Web optimizada (sin coste inicial)", desc: "Página pública diseñada para convertir visitas en matrículas" },
+  { label: "Revisión de identidad con Weydi", desc: `Por ${creativeServices?.provider || "Weydi"} — análisis y mejora de tu imagen de marca` },
 ];
 
 const advantages = [
-  "Todo listo en semanas, no meses",
-  "Incluye software anual + web integrada + modernización",
+  "Empiezas con sistema + captación desde el primer mes",
+  "Ahorra más de 1.000€ frente a contratar por separado",
   "Un solo interlocutor para todo el proceso",
-  "Descuento de lanzamiento aplicado al pack anual",
+  "Soporte dedicado durante la implementación",
 ];
 
 export function ModernizationPack() {
@@ -47,11 +46,11 @@ export function ModernizationPack() {
               <div className="inline-flex items-center gap-2 mb-4">
                 <Package className="h-6 w-6 text-primary" />
                 <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-                  {bundleCatalog?.label || "Pack Modernización Pro"}
+                  Todo tu sistema + tu web optimizada desde el inicio
                 </h2>
               </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {bundleCatalog?.description || "La forma más rápida de digitalizar tu escuela con todo incluido."}
+                {bundleCatalog?.description || "Empiezas con sistema + captación funcionando desde el primer mes."}
               </p>
             </div>
 
@@ -79,23 +78,21 @@ export function ModernizationPack() {
               {/* Pricing & CTA */}
               <div className="flex flex-col justify-center">
                 <div className="rounded-2xl border border-primary/20 bg-background p-6 text-center">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Pack estrella primer año</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Pago único del pack</p>
+                  <p className="text-4xl font-bold text-foreground">
+                    {formatEuro(bundleCatalog?.pricing?.oneTimeEur || 1490)}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    + Plan Pro anual: {formatEuro(commercialCatalog.plans.pro.billing.annualTotalEur)}/año
+                  </p>
                   {bundleCatalog?.firstYearTotalEur && (
-                    <div className="rounded-lg bg-accent/50 px-3 py-3">
-                      <p className="text-xs text-muted-foreground">Precio final de lanzamiento</p>
+                    <div className="mt-3 rounded-lg bg-accent/50 px-3 py-2">
+                      <p className="text-xs text-muted-foreground">Primer año completo</p>
                       <p className="text-lg font-bold text-foreground">{formatEuro(bundleCatalog.firstYearTotalEur)}</p>
                     </div>
                   )}
-                  {bundleCatalog?.firstYearBaseEur && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Base sin descuento: {formatEuro(bundleCatalog.firstYearBaseEur)}
-                    </p>
-                  )}
-                  {bundleCatalog?.renewalPolicy && (
-                    <p className="mt-2 text-xs text-muted-foreground">{bundleCatalog.renewalPolicy}</p>
-                  )}
                   <p className="mt-3 text-xs text-success font-medium">
-                    {bundleCatalog?.launchOffer?.note || bundleCatalog?.pricing?.note || "Pack comercial recomendado"}
+                    {bundleCatalog?.pricing?.note || "Ahorra más de 1.000€"}
                   </p>
                 </div>
 
@@ -115,11 +112,11 @@ export function ModernizationPack() {
                       <ArrowRight className="ml-1 h-4 w-4" />
                     </Link>
                   </Button>
-                  <SharedDemoCta
-                    section="modernization_pack"
-                    subject="Consulta Pack Modernizacion Pro"
-                    className="h-10"
-                  />
+                  <Button size="lg" variant="outline" asChild>
+                    <a href="mailto:hola@dancehub.es?subject=Consulta%20Pack%20Modernización%20Pro">
+                      Solicitar demo
+                    </a>
+                  </Button>
                 </div>
               </div>
             </div>

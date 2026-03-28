@@ -46,52 +46,6 @@ interface OrganizationMembershipRow {
     | null;
 }
 
-const FREE_TRIAL_DAYS = 14;
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-function isTrialLockedForMembership(membership: TenantMembership | null | undefined, trialPaymentCompleted: boolean): boolean {
-  if (!membership?.tenantCreatedAt || trialPaymentCompleted) {
-    return false;
-  }
-
-  const createdAtMs = Date.parse(membership.tenantCreatedAt);
-  if (!Number.isFinite(createdAtMs)) {
-    return false;
-  }
-
-  const trialEndsAt = createdAtMs + FREE_TRIAL_DAYS * DAY_IN_MS;
-  return Date.now() >= trialEndsAt;
-}
-
-function shouldBypassTrialLock(pathname: string): boolean {
-  if (!pathname.startsWith("/api/admin")) {
-    return true;
-  }
-
-  return pathname === "/api/admin/settings" || pathname === "/api/admin/billing/checkout-session";
-}
-
-async function isTrialPaymentCompletedForTenant(tenantId: string): Promise<boolean> {
-  const { data, error } = await supabaseAdmin
-    .from("school_settings")
-    .select("payment_config")
-    .eq("tenant_id", tenantId)
-    .maybeSingle();
-
-  if (error || !data) {
-    return false;
-  }
-
-  const paymentConfig = data.payment_config && typeof data.payment_config === "object"
-    ? (data.payment_config as Record<string, unknown>)
-    : {};
-  const billing = paymentConfig.billing && typeof paymentConfig.billing === "object"
-    ? (paymentConfig.billing as Record<string, unknown>)
-    : {};
-
-  return billing.trialPaymentCompleted === true;
-}
-
 export interface AuthResult {
   authorized: boolean;
   user?: AuthenticatedUser;
@@ -449,7 +403,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
       authorized: true,
       user: {
         id: "demo-user",
-        email: "demo@nexa.es",
+        email: "demo@dancehub.es",
       },
       memberships: [membership],
       organizations: [
@@ -600,22 +554,6 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
   const activeOrganization = selectedOrganizationId
     ? organizations.find((organization) => organization.organizationId === selectedOrganizationId) ?? null
     : resolveActiveOrganization(enrichedSelectedMembership, organizations);
-
-  if (!isDemoTenantSlug(enrichedSelectedMembership.tenantSlug) && !shouldBypassTrialLock(request.nextUrl.pathname)) {
-    const trialPaymentCompleted = await isTrialPaymentCompletedForTenant(enrichedSelectedMembership.tenantId);
-    if (isTrialLockedForMembership(enrichedSelectedMembership, trialPaymentCompleted)) {
-      return {
-        authorized: false,
-        response: fail(
-          {
-            code: "trial_payment_required",
-            message: "Free trial ended. Complete billing checkout to continue using the admin API.",
-          },
-          402
-        ),
-      };
-    }
-  }
 
   return {
     authorized: true,

@@ -17,7 +17,6 @@ export interface Class {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  enrolled_count?: number;
   teachers?: { id: string; name: string } | Array<{ id: string; name: string }> | null;
   class_teachers?: Array<{
     teacher_id: string;
@@ -153,32 +152,10 @@ export const classService = {
       throw new Error(`Failed to fetch classes: ${error.message}`);
     }
 
-    const classIds = (data ?? []).map((item) => item.id);
-    const enrolledCountByClass = new Map<string, number>();
-
-    if (classIds.length > 0) {
-      const { data: confirmedEnrollments, error: enrollmentsError } = await supabaseAdmin
-        .from("enrollments")
-        .select("class_id")
-        .eq("tenant_id", tenantId)
-        .eq("status", "confirmed")
-        .in("class_id", classIds);
-
-      if (enrollmentsError) {
-        throw new Error(`Failed to fetch class occupancy: ${enrollmentsError.message}`);
-      }
-
-      for (const enrollment of confirmedEnrollments || []) {
-        const classId = enrollment.class_id;
-        enrolledCountByClass.set(classId, (enrolledCountByClass.get(classId) || 0) + 1);
-      }
-    }
-
     return (data ?? []).map((item) => {
       const teacherRows = mapTeacherRows(item as Class);
       return {
         ...(item as Class),
-        enrolled_count: enrolledCountByClass.get(item.id) || 0,
         teachers: teacherRows,
       };
     });
