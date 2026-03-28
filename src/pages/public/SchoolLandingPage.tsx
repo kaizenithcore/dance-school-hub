@@ -267,12 +267,12 @@ export default function SchoolLandingPage() {
         </div>
       </section>
 
-      <section id="schedule" className="container py-12 sm:py-16">
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <section id="schedule" className="container py-14 sm:py-20">
+        <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold text-foreground">Clases Disponibles</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {previewClassesCount} clase{previewClassesCount === 1 ? "" : "s"} activa{previewClassesCount === 1 ? "" : "s"} · {scheduleStats.weeklyHours.toFixed(1)}h semanales publicadas.
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Nuestras clases</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {previewClassesCount} clase{previewClassesCount === 1 ? "" : "s"} disponible{previewClassesCount === 1 ? "" : "s"}. Elige la tuya y empieza hoy.
             </p>
           </div>
           <div className="flex gap-2">
@@ -299,6 +299,19 @@ export default function SchoolLandingPage() {
           scheduleConfig={effectivePublicScheduleConfig}
         />
       </section>
+
+      {/* Sticky CTA mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/95 backdrop-blur-sm p-3 sm:hidden">
+        <Button asChild className="w-full h-12 text-base font-semibold">
+          <Link to={enrollPath} onClick={handleEnrollClick}>
+            Inscribirme ahora
+            <ArrowRight className="ml-1 h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+
+      {/* Bottom padding for sticky CTA on mobile */}
+      <div className="h-20 sm:hidden" />
     </div>
   );
 }
