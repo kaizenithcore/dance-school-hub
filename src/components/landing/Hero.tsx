@@ -8,10 +8,10 @@ import { formatEuro, planCatalog } from "@/lib/commercialCatalog";
 const proPlan = planCatalog.pro;
 
 const benefits = [
-  "Software de gestión completo",
+  "Sistema de gestión completo",
+  "Web incluida desde el día 1",
   "Portal del alumno (app)",
-  "Web profesional integrada",
-  "Pack de modernización incluido",
+  "Captación de alumnos integrada",
 ];
 
 export function Hero() {
