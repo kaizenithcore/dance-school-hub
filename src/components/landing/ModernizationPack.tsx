@@ -8,14 +8,14 @@ const bundleCatalog = (commercialCatalog as any).bundles?.modernizationProBundle
 const creativeServices = (commercialCatalog as any).creativeServices;
 
 const bundleIncludes = [
-  { label: "Plan Pro anual", desc: "Gestión completa, automatizaciones, portal del alumno" },
-  { label: "Pack de modernización", desc: "Implementación, migración de datos y puesta en marcha" },
-  { label: "Web integrada con DanceHub", desc: "Página pública conectada a matrículas y horarios" },
-  { label: "Revisión de identidad visual", desc: `Por ${creativeServices?.provider || "Weydi"} — análisis y mejora de tu imagen de marca` },
+  { label: "Nexa Pro anual", desc: "Sistema de gestión + captación completo, automatizaciones, portal del alumno" },
+  { label: "Implementación completa", desc: "Migración de datos, configuración y puesta en marcha" },
+  { label: "Web optimizada (sin coste inicial)", desc: "Página pública diseñada para convertir visitas en matrículas" },
+  { label: "Revisión de identidad con Weydi", desc: `Por ${creativeServices?.provider || "Weydi"} — análisis y mejora de tu imagen de marca` },
 ];
 
 const advantages = [
-  "Todo listo en semanas, no meses",
+  "Empiezas con sistema + captación desde el primer mes",
   "Ahorra más de 1.000€ frente a contratar por separado",
   "Un solo interlocutor para todo el proceso",
   "Soporte dedicado durante la implementación",
