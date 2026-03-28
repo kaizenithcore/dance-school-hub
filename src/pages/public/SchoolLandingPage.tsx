@@ -183,27 +183,23 @@ export default function SchoolLandingPage() {
 
       <section className="relative overflow-hidden border-b border-border">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/30" />
-        <div className="container relative py-16 sm:py-24">
+        <div className="container relative py-20 sm:py-28">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground mb-4">
-              <Sparkles className="h-3 w-3" />
-              Inscripciones abiertas
-            </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight capitalize">
+            <h1 className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight capitalize leading-[1.1]">
               {schoolName}
             </h1>
-            <p className="mt-4 text-lg text-muted-foreground leading-relaxed max-w-lg">
-              {formData?.publicProfile?.description || formData?.publicProfile?.tagline || "Consulta el horario real de clases y comienza tu matrícula en línea."}
+            <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-lg">
+              {formData?.publicProfile?.description || formData?.publicProfile?.tagline || "Descubre nuestras clases, elige tu horario y reserva tu plaza en menos de 2 minutos."}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg">
+              <Button asChild size="lg" className="h-12 px-7 text-base font-semibold">
                 <Link to={enrollPath} onClick={handleEnrollClick}>
-                  Comenzar Inscripción
+                  Inscribirme
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" asChild>
-                <a href="#schedule">Ver Clases</a>
+              <Button variant="outline" size="lg" className="h-12 px-7 text-base" asChild>
+                <a href="#schedule">Ver clases</a>
               </Button>
               {isDemo && (
                 <Button variant="secondary" size="lg" asChild>
@@ -216,12 +212,49 @@ export default function SchoolLandingPage() {
                 </Button>
               )}
             </div>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Reserva tu plaza en menos de 2 minutos
+            </p>
           </div>
         </div>
       </section>
 
+      {/* Trust block */}
       <section className="border-b border-border bg-card">
-        <div className="container py-4 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+        <div className="container py-5 flex flex-wrap items-center gap-8">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <GraduationCap className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">{previewClassesCount}</p>
+              <p className="text-[11px] text-muted-foreground">Clases activas</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Clock3 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">{scheduleStats.weeklyHours.toFixed(0)}h</p>
+              <p className="text-[11px] text-muted-foreground">Horas semanales</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10">
+              <Sparkles className="h-4 w-4 text-success" />
+            </div>
+            <div>
+              <p className="font-semibold text-success">Abierta</p>
+              <p className="text-[11px] text-muted-foreground">Inscripción</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact info */}
+      <section className="border-b border-border bg-muted/30">
+        <div className="container py-3 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5" /> {formData?.publicProfile?.address || "Dirección pendiente de definir"}
           </span>
@@ -230,9 +263,6 @@ export default function SchoolLandingPage() {
           </span>
           <span className="flex items-center gap-1.5">
             <Mail className="h-3.5 w-3.5" /> {formData?.publicProfile?.email || `contacto@${schoolSlug}.com`}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Clock3 className="h-3.5 w-3.5" /> {scheduleStats.days}{scheduleStats.range ? ` · ${scheduleStats.range}` : ""}
           </span>
         </div>
       </section>
