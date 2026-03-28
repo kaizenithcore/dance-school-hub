@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PublicScheduleSelector } from "@/components/schedule/PublicScheduleSelector";
-import { ArrowRight, MapPin, Phone, Mail, Sparkles, Loader2, Clock3 } from "lucide-react";
+import { ArrowRight, MapPin, Phone, Mail, Sparkles, Loader2, Clock3, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getPublicFormData, type PublicFormData } from "@/lib/api/publicEnrollment";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
