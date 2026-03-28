@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import { examSuiteService } from "@/lib/services/examSuiteService";
+import { examCertificateService } from "@/lib/services/examCertificateService";
 import {
   createPortalNotification,
   PORTAL_NOTIFICATION_TYPES,
@@ -681,7 +682,11 @@ export const studentPortalService = {
       .getStudentCertificationHistory(context.tenantId, context.studentId)
       .catch(() => []);
 
-    return history.map((item) => ({
+    const examSuitItems = await examCertificateService
+      .listStudentExams(context.tenantId, context.studentId)
+      .catch(() => []);
+
+    const legacyItems = history.map((item) => ({
       candidateId: item.candidate_id,
       examId: item.exam_id,
       examName: item.exam_name,
@@ -698,6 +703,56 @@ export const studentPortalService = {
             ? "passed"
             : "failed"
           : "pending",
+    }));
+
+    const mappedExamSuitItems = examSuitItems.map((item) => ({
+      candidateId: item.enrollment_id,
+      examId: item.session_id,
+      examName: item.session_title,
+      discipline: null,
+      level: null,
+      examDate: item.session_end_date,
+      finalGrade: item.final_score,
+      comments: null,
+      certificateUrl: item.certificate_download_url || item.certificate_generated_pdf_url,
+      certificateGeneratedAt: item.certificate_created_at,
+      status:
+        item.result_status === "pass"
+          ? "passed"
+          : item.result_status === "fail"
+            ? "failed"
+            : "pending",
+    }));
+
+    const uniqueByKey = new Map<string, (typeof legacyItems)[number]>();
+    for (const item of [...legacyItems, ...mappedExamSuitItems]) {
+      uniqueByKey.set(`${item.examId}:${item.candidateId}`, item);
+    }
+
+    return Array.from(uniqueByKey.values()).sort((a, b) => String(b.certificateGeneratedAt || "").localeCompare(String(a.certificateGeneratedAt || "")));
+  },
+
+  async getStudentExams(userId: string) {
+    const context = await resolveStudentContext(userId);
+    const items = await examCertificateService.listStudentExams(context.tenantId, context.studentId);
+
+    return items.map((item) => ({
+      enrollmentId: item.enrollment_id,
+      sessionId: item.session_id,
+      sessionTitle: item.session_title,
+      sessionStartDate: item.session_start_date,
+      sessionEndDate: item.session_end_date,
+      enrollmentStatus: item.enrollment_status,
+      studentId: item.student_id,
+      studentName: item.student_name,
+      studentEmail: item.student_email,
+      finalScore: item.final_score,
+      resultStatus: item.result_status,
+      resultCreatedAt: item.result_created_at,
+      certificateId: item.certificate_id,
+      certificateUrl: item.certificate_download_url || item.certificate_generated_pdf_url,
+      certificateCreatedAt: item.certificate_created_at,
+      createdAt: item.created_at,
     }));
   },
 

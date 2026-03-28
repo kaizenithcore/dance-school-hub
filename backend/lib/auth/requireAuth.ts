@@ -449,7 +449,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
       authorized: true,
       user: {
         id: "demo-user",
-        email: "demo@dancehub.es",
+        email: "demo@nexa.es",
       },
       memberships: [membership],
       organizations: [

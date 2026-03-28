@@ -16,7 +16,7 @@ export interface EmailResult {
 }
 
 function resolveSender() {
-  return process.env.RESEND_FROM_EMAIL || "DanceHub <no-reply@dancehub.local>";
+  return process.env.RESEND_FROM_EMAIL || "Nexa <no-reply@nexa.local>";
 }
 
 export const emailService = {

@@ -7,8 +7,8 @@ begin;
 insert into tenants (id, name, slug, is_active, created_at, updated_at)
 values (
   '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d',
-  'Escuela Demo DanceHub',
-  'escuela-demo-dancehub',
+  'Escuela Demo Nexa',
+  'escuela-demo-nexa',
   true,
   now(),
   now()
@@ -32,18 +32,18 @@ insert into school_settings (
 values (
   '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d',
   jsonb_build_object(
-    'schoolName', 'Escuela Demo DanceHub',
+    'schoolName', 'Escuela Demo Nexa',
     'primaryColor', '#0f766e',
     'accentColor', '#f59e0b'
   ),
   jsonb_build_object(
     'public_profile', jsonb_build_object(
       'tagline', 'La forma mas facil de gestionar tu escuela de danza',
-      'description', 'Demo publica con datos ficticios para explorar el valor de DanceHub en menos de 3 minutos.',
+      'description', 'Demo publica con datos ficticios para explorar el valor de Nexa en menos de 3 minutos.',
       'address', 'Calle Coreografia 12, Madrid',
       'phone', '+34 910 000 321',
-      'email', 'demo@dancehub.es',
-      'website', 'https://dancehub.es'
+      'email', 'demo@nexa.es',
+      'website', 'https://nexa.es'
     ),
     'demo_mode', true
   ),
@@ -113,15 +113,15 @@ begin
   ) then
     insert into teachers (id, tenant_id, name, email, phone, bio, status, aulary, created_at, updated_at)
     values
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb001', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Clara Mendez', 'clara@demo.dancehub.es', '+34 611 100 001', 'Especialista en ballet y tecnica de puntas.', 'active', 0, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb002', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Diego Luna', 'diego@demo.dancehub.es', '+34 611 100 002', 'Coreografo de danza urbana y competencias.', 'active', 0, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb003', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Irene Soto', 'irene@demo.dancehub.es', '+34 611 100 003', 'Contemporaneo y preparacion fisica.', 'active', 0, now(), now());
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb001', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Clara Mendez', 'clara@demo.nexa.es', '+34 611 100 001', 'Especialista en ballet y tecnica de puntas.', 'active', 0, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb002', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Diego Luna', 'diego@demo.nexa.es', '+34 611 100 002', 'Coreografo de danza urbana y competencias.', 'active', 0, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb003', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Irene Soto', 'irene@demo.nexa.es', '+34 611 100 003', 'Contemporaneo y preparacion fisica.', 'active', 0, now(), now());
   else
     insert into teachers (id, tenant_id, name, email, phone, bio, status, created_at, updated_at)
     values
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb001', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Clara Mendez', 'clara@demo.dancehub.es', '+34 611 100 001', 'Especialista en ballet y tecnica de puntas.', 'active', now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb002', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Diego Luna', 'diego@demo.dancehub.es', '+34 611 100 002', 'Coreografo de danza urbana y competencias.', 'active', now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb003', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Irene Soto', 'irene@demo.dancehub.es', '+34 611 100 003', 'Contemporaneo y preparacion fisica.', 'active', now(), now());
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb001', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Clara Mendez', 'clara@demo.nexa.es', '+34 611 100 001', 'Especialista en ballet y tecnica de puntas.', 'active', now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb002', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Diego Luna', 'diego@demo.nexa.es', '+34 611 100 002', 'Coreografo de danza urbana y competencias.', 'active', now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb003', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Irene Soto', 'irene@demo.nexa.es', '+34 611 100 003', 'Contemporaneo y preparacion fisica.', 'active', now(), now());
   end if;
 end $$;
 
@@ -246,6 +246,6 @@ values
 commit;
 
 -- Verification queries
--- select id, name, slug from tenants where slug = 'escuela-demo-dancehub';
+-- select id, name, slug from tenants where slug = 'escuela-demo-nexa';
 -- select id, name, status from classes where tenant_id = '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d';
 -- select class_id, count(*) from enrollments where tenant_id = '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d' and status = 'confirmed' group by class_id;

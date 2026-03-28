@@ -1,4 +1,4 @@
-export const DEMO_TENANT_SLUG = "escuela-demo-dancehub";
+export const DEMO_TENANT_SLUG = "escuela-demo-nexa";
 
 export const DEMO_TENANT_CONFIG = {
   slug: DEMO_TENANT_SLUG,
