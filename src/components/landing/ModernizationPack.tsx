@@ -46,11 +46,11 @@ export function ModernizationPack() {
               <div className="inline-flex items-center gap-2 mb-4">
                 <Package className="h-6 w-6 text-primary" />
                 <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-                  {bundleCatalog?.label || "Pack Modernización Pro"}
+                  Todo tu sistema + tu web optimizada desde el inicio
                 </h2>
               </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {bundleCatalog?.description || "La forma más rápida de digitalizar tu escuela con todo incluido."}
+                {bundleCatalog?.description || "Empiezas con sistema + captación funcionando desde el primer mes."}
               </p>
             </div>
 

@@ -1,7 +1,9 @@
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { Hero } from "@/components/landing/Hero";
+import { WebIncluded } from "@/components/landing/WebIncluded";
 import { Problems } from "@/components/landing/Problems";
 import { Solution } from "@/components/landing/Solution";
+import { WebComparison } from "@/components/landing/WebComparison";
 import { ModernizationPack } from "@/components/landing/ModernizationPack";
 import { DigitalTransformation } from "@/components/landing/DigitalTransformation";
 import { StudentPortal } from "@/components/landing/StudentPortal";
@@ -26,10 +28,12 @@ const Index = () => (
   <div className="min-h-screen bg-background text-foreground">
     <LandingHeader />
     <Hero />
+    <WebIncluded />
     <Problems />
     <div id="solution">
       <Solution />
     </div>
+    <WebComparison />
     <div id="modernization">
       <ModernizationPack />
     </div>

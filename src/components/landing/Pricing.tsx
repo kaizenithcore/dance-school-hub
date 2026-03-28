@@ -183,10 +183,10 @@ export function Pricing() {
           className="mt-8 rounded-2xl border border-primary/20 bg-card p-6 max-w-5xl mx-auto text-center"
         >
           <p className="text-lg font-semibold text-foreground">
-            Con solo 5–15 alumnos al mes cubres el coste completo del sistema
+            Con solo 5–15 alumnos al mes cubres el coste completo del sistema de gestión + captación
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {commercialCatalog.pricingNarrative?.comparison || "Más barato que contratar a un administrativo"}. El retorno de inversión es inmediato: menos gestión, más tiempo para captar y retener alumnos.
+            {commercialCatalog.pricingNarrative?.comparison || "Más barato que contratar a un administrativo"}. Menos gestión, más tiempo para captar y retener alumnos.
           </p>
         </motion.div>
 
