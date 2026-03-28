@@ -22,10 +22,15 @@ export function PublicFooter() {
             <Link to="/legal/notice" className="hover:text-foreground hover:underline">Aviso Legal</Link>
           </nav>
         </div>
-        <p className="mt-4 text-center text-xs text-muted-foreground sm:text-left">
-          © {new Date().getFullYear()} Desarrollado por{" "}
-          <a href="https://kaizenith.es" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Kaizenith</a>. Todos los derechos reservados.
-        </p>
+        <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Desarrollado por{" "}
+            <a href="https://kaizenith.es" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Kaizenith</a>. Todos los derechos reservados.
+          </p>
+          <p className="text-[10px] text-muted-foreground/60">
+            Funciona con <span className="font-medium text-muted-foreground">Nexa</span> · Sistema inteligente para escuelas
+          </p>
+        </div>
       </div>
     </footer>
   );

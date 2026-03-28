@@ -35,9 +35,10 @@ export function PublicHeader() {
           )}
           <Link
             to={`/s/${schoolSlug}/enroll`}
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            Inscribirse
+            Inscribirme
+          </Link>
           </Link>
         </nav>
       </div>
