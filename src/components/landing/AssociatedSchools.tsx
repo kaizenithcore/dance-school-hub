@@ -2,8 +2,10 @@ import { motion } from "framer-motion";
 import { Check, ArrowRight, Percent, Zap, Upload, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { commercialCatalog } from "@/lib/commercialCatalog";
+import { Link } from "react-router-dom";
 
 const benefits = (commercialCatalog as any).examSuit?.associatedSchoolsBenefits;
+const ASSOCIATED_PRO_CTA_HREF = "/auth/register?plan=pro&billing=annual&product=certifier&discount=associated&trial=14d&source=associated_schools";
 
 const icons = [Percent, Zap, Upload, History];
 
@@ -51,17 +53,16 @@ export function AssociatedSchools() {
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <Button size="lg" asChild>
-                <a href="/auth/register">
+                <Link to={ASSOCIATED_PRO_CTA_HREF}>
                   Activar Plan Pro con descuento
                   <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
+                </Link>
               </Button>
               <Button variant="outline" size="lg" asChild>
-                <a href="mailto:hola@nexa.es?subject=Consulta%20descuento%20escuela%20asociada">
-                  Consultar
-                </a>
+                <Link to={ASSOCIATED_PRO_CTA_HREF}>Crear cuenta gratis</Link>
               </Button>
             </div>
+            <p className="mt-3 text-center text-xs text-muted-foreground">Prueba gratis 14 días para empezar sin fricción.</p>
           </div>
         </motion.div>
       </div>

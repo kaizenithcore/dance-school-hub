@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { ModuleHelpShortcut } from "@/components/layout/ModuleHelpShortcut";
 import { ExamCard } from "@/components/exams/ExamCard";
 import { ExamFormModal } from "@/components/exams/ExamFormModal";
 import { ExamOnboardingChecklist } from "@/components/exams/ExamOnboardingChecklist";
@@ -21,6 +22,24 @@ import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 
 type View = "list" | "candidates" | "grading";
 const EXAMS_ONBOARDING_DISMISSED_KEY = "nexa:certifier:onboarding-dismissed";
+const EXAMS_STORAGE_KEY = "nexa:certifier:exams";
+const CANDIDATES_STORAGE_KEY = "nexa:certifier:candidates";
+const EXAMS_SEARCH_KEY = "nexa:certifier:search";
+const EXAMS_STATUS_FILTER_KEY = "nexa:certifier:status-filter";
+const EXAMS_SELECTED_EXAM_KEY = "nexa:certifier:selected-exam";
+
+function readStoredArray<T>(storageKey: string, fallback: T[]): T[] {
+  if (typeof window === "undefined") return fallback;
+
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed as T[] : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function toIsoDayWithOffset(offsetDays: number): string {
   const target = new Date();
@@ -28,13 +47,26 @@ function toIsoDayWithOffset(offsetDays: number): string {
   return target.toISOString().slice(0, 10);
 }
 
+function readStoredString(storageKey: string): string {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(storageKey) || "";
+}
+
+function persistArray<T>(storageKey: string, value: T[]): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(storageKey, JSON.stringify(value));
+}
+
 export default function ExamsPage() {
   const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
-  const [exams, setExams] = useState<ExamRecord[]>(MOCK_EXAMS);
-  const [candidates, setCandidates] = useState<ExamCandidate[]>(MOCK_CANDIDATES);
+  const [exams, setExams] = useState<ExamRecord[]>(() => readStoredArray(EXAMS_STORAGE_KEY, MOCK_EXAMS));
+  const [candidates, setCandidates] = useState<ExamCandidate[]>(() => readStoredArray(CANDIDATES_STORAGE_KEY, MOCK_CANDIDATES));
   const [view, setView] = useState<View>("list");
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState(() => readStoredString(EXAMS_SEARCH_KEY));
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const stored = readStoredString(EXAMS_STATUS_FILTER_KEY);
+    return stored || "all";
+  });
 
   // Modals
   const [formOpen, setFormOpen] = useState(false);
@@ -45,15 +77,76 @@ export default function ExamsPage() {
   const [certCandidate, setCertCandidate] = useState<ExamCandidate | null>(null);
   const [certOpen, setCertOpen] = useState(false);
   const [lockOpen, setLockOpen] = useState(false);
+  const [formModalKey, setFormModalKey] = useState(0);
   const [guidedInitialValues, setGuidedInitialValues] = useState<Partial<Omit<ExamRecord, "id" | "candidateCount">> | undefined>(undefined);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   const examsLocked = !billingLoading && !billing.features.examSuite;
 
+  const setExamsPersisted = (updater: (previous: ExamRecord[]) => ExamRecord[]) => {
+    setExams((previous) => {
+      const next = updater(previous);
+      persistArray(EXAMS_STORAGE_KEY, next);
+      return next;
+    });
+  };
+
+  const setCandidatesPersisted = (updater: (previous: ExamCandidate[]) => ExamCandidate[]) => {
+    setCandidates((previous) => {
+      const next = updater(previous);
+      persistArray(CANDIDATES_STORAGE_KEY, next);
+      return next;
+    });
+  };
+
+  const openExamForm = () => {
+    // Close then reopen in the next frame so guided/default templates always rehydrate.
+    setFormOpen(false);
+    setFormModalKey((previous) => previous + 1);
+    window.requestAnimationFrame(() => {
+      setFormOpen(true);
+    });
+  };
+
   useEffect(() => {
     const dismissed = window.localStorage.getItem(EXAMS_ONBOARDING_DISMISSED_KEY);
     setOnboardingDismissed(dismissed === "1");
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(EXAMS_STORAGE_KEY, JSON.stringify(exams));
+  }, [exams]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(EXAMS_SEARCH_KEY, search);
+  }, [search]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(EXAMS_STATUS_FILTER_KEY, statusFilter);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(CANDIDATES_STORAGE_KEY, JSON.stringify(candidates));
+  }, [candidates]);
+
+  useEffect(() => {
+    const storedSelectedExam = readStoredString(EXAMS_SELECTED_EXAM_KEY);
+    if (!storedSelectedExam || exams.length === 0) {
+      return;
+    }
+
+    const exam = exams.find((item) => item.id === storedSelectedExam);
+    if (!exam) {
+      return;
+    }
+
+    setSelectedExam(exam);
+    setView("candidates");
+  }, [exams]);
 
   const filteredExams = exams.filter((e) => {
     const matchSearch = !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.discipline.toLowerCase().includes(search.toLowerCase());
@@ -69,7 +162,7 @@ export default function ExamsPage() {
 
     setEditingExam(null);
     setGuidedInitialValues(undefined);
-    setFormOpen(true);
+    openExamForm();
   };
 
   const handleCreateGuidedExam = () => {
@@ -95,7 +188,7 @@ export default function ExamsPage() {
         { id: crypto.randomUUID(), name: "Expresión", weight: 30 },
       ],
     });
-    setFormOpen(true);
+    openExamForm();
     toast.info("Plantilla cargada. Solo revisa y publica tu primer examen.");
   };
 
@@ -106,18 +199,18 @@ export default function ExamsPage() {
     }
 
     setEditingExam(exam);
-    setFormOpen(true);
+    openExamForm();
   };
 
   const handleSaveExam = (data: Omit<ExamRecord, "id" | "candidateCount">) => {
     if (editingExam) {
-      setExams((prev) =>
+      setExamsPersisted((prev) =>
         prev.map((e) => (e.id === editingExam.id ? { ...e, ...data } : e))
       );
       toast.success("Examen actualizado");
     } else {
       const newExam: ExamRecord = { ...data, id: crypto.randomUUID(), candidateCount: 0 };
-      setExams((prev) => [...prev, newExam]);
+      setExamsPersisted((prev) => [...prev, newExam]);
       toast.success("Examen creado");
     }
 
@@ -172,11 +265,17 @@ export default function ExamsPage() {
   const handleViewCandidates = (exam: ExamRecord) => {
     setSelectedExam(exam);
     setView("candidates");
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(EXAMS_SELECTED_EXAM_KEY, exam.id);
+    }
   };
 
   const handleOpenGradingExam = (exam: ExamRecord) => {
     setSelectedExam(exam);
     setView("candidates");
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(EXAMS_SELECTED_EXAM_KEY, exam.id);
+    }
   };
 
   const handleOpenGradingCandidate = (candidate: ExamCandidate) => {
@@ -185,7 +284,7 @@ export default function ExamsPage() {
   };
 
   const handleSaveGrade = (candidateId: string, grades: Record<string, number>, finalGrade: number) => {
-    setCandidates((prev) =>
+    setCandidatesPersisted((prev) =>
       prev.map((c) =>
         c.id === candidateId ? { ...c, grades, finalGrade, status: "graded" as const } : c
       )
@@ -202,7 +301,7 @@ export default function ExamsPage() {
   const handleGenerateAllCertificates = () => {
     if (!selectedExam) return;
     const examCandidates = candidates.filter((c) => c.examId === selectedExam.id && c.status === "graded");
-    setCandidates((prev) =>
+    setCandidatesPersisted((prev) =>
       prev.map((c) =>
         c.examId === selectedExam.id && c.status === "graded"
           ? { ...c, status: "certified" as const, certificateGenerated: true }
@@ -215,6 +314,9 @@ export default function ExamsPage() {
   const handleOpenCertificates = (exam: ExamRecord) => {
     setSelectedExam(exam);
     setView("candidates");
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(EXAMS_SELECTED_EXAM_KEY, exam.id);
+    }
   };
 
   const examCandidates = selectedExam
@@ -230,6 +332,9 @@ export default function ExamsPage() {
           onBack={() => {
             setView("list");
             setSelectedExam(null);
+            if (typeof window !== "undefined") {
+              window.localStorage.removeItem(EXAMS_SELECTED_EXAM_KEY);
+            }
           }}
           onOpenGrading={handleOpenGradingCandidate}
           onGenerateCertificate={handleGenerateCertificate}
@@ -255,7 +360,11 @@ export default function ExamsPage() {
   }
 
   return (
-    <PageContainer title="Exámenes" description="Gestión de exámenes, candidatos y certificados">
+    <PageContainer
+      title="Exámenes"
+      description="Gestión de exámenes, candidatos y certificados"
+      actions={<ModuleHelpShortcut module="exams" />}
+    >
       {examsLocked ? (
         <UpgradeFeatureAlert
           title="ExamSuite no está activo en tu plan"
@@ -308,10 +417,19 @@ export default function ExamsPage() {
       {filteredExams.length === 0 ? (
         <EmptyState
           icon={GraduationCap}
-          title="Sin exámenes"
-          description="Crea tu primer examen para empezar a gestionar candidatos y certificados."
-          actionLabel="Crear examen"
-          onAction={handleCreateExam}
+          title={exams.length === 0 ? "Sin exámenes" : "No hay resultados con los filtros actuales"}
+          description={
+            exams.length === 0
+              ? "Crea tu primer examen para empezar a gestionar candidatos y certificados."
+              : "Ajusta búsqueda o estado para recuperar resultados rápidamente."
+          }
+          actionLabel={exams.length === 0 ? "Crear examen guiado" : "Limpiar filtros"}
+          onAction={exams.length === 0 ? handleCreateGuidedExam : () => {
+            setSearch("");
+            setStatusFilter("all");
+          }}
+          secondaryActionLabel={exams.length === 0 ? "Crear examen" : undefined}
+          onSecondaryAction={exams.length === 0 ? handleCreateExam : undefined}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -329,6 +447,7 @@ export default function ExamsPage() {
       )}
 
       <ExamFormModal
+        key={formModalKey}
         open={formOpen}
         onOpenChange={setFormOpen}
         exam={editingExam}

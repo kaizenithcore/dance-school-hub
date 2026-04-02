@@ -32,7 +32,7 @@ export function Solution() {
             Una plataforma completa para tu escuela
           </h2>
           <p className="mt-4 text-muted-foreground">
-            No es solo software de gestión. Es la plataforma que moderniza tu escuela de danza.
+            No es solo gestión. Es un sistema de gestión + captación de alumnos para modernizar tu escuela.
           </p>
         </motion.div>
 

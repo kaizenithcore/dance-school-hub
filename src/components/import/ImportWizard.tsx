@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -23,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { detectImportMapping, runStudentImport } from "@/lib/api/imports";
 import type { ImportJobResult, ImportMapping } from "@/lib/api/imports";
+import { getStudentFields, type SchoolStudentField } from "@/lib/api/studentFields";
 import { toast } from "sonner";
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -38,15 +40,33 @@ interface ParsedFile {
   totalRows: number;
 }
 
-const FIELD_LABELS: Record<keyof ImportMapping, string> = {
+const FIELD_LABELS: Record<CoreImportField, string> = {
   name: "Nombre completo",
   firstName: "Nombre",
   lastName: "Apellido(s)",
   email: "Email",
   phone: "Teléfono",
+  locality: "Localidad",
+  identityDocumentNumber: "DNI",
   birthdate: "Fecha de nacimiento",
   notes: "Notas",
 };
+
+type CoreImportField = "name" | "firstName" | "lastName" | "email" | "phone" | "locality" | "identityDocumentNumber" | "birthdate" | "notes";
+
+const CORE_FIELDS: CoreImportField[] = ["name", "firstName", "lastName", "email", "phone", "locality", "identityDocumentNumber", "birthdate", "notes"];
+
+const CORE_TARGET_OPTIONS: Array<{ key: CoreImportField; label: string }> = [
+  { key: "name", label: "Core - Nombre completo" },
+  { key: "firstName", label: "Core - Nombre" },
+  { key: "lastName", label: "Core - Apellido(s)" },
+  { key: "email", label: "Core - Email" },
+  { key: "phone", label: "Core - Telefono" },
+  { key: "locality", label: "Core - Localidad" },
+  { key: "identityDocumentNumber", label: "Core - DNI" },
+  { key: "birthdate", label: "Core - Fecha de nacimiento" },
+  { key: "notes", label: "Core - Notas" },
+];
 
 const STEP_LABELS: Record<WizardStep, string> = {
   upload: "Subir archivo",
@@ -105,6 +125,109 @@ function parseFile(file: File): Promise<ParsedFile> {
     reader.onerror = () => reject(new Error("Error al leer el archivo"));
     reader.readAsArrayBuffer(file);
   });
+}
+
+function toSnakeCase(value: string): string {
+  return value
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+}
+
+function parseCoreTarget(value: string): CoreImportField | null {
+  if (!value.startsWith("core:")) return null;
+  const field = value.slice(5) as CoreImportField;
+  return CORE_FIELDS.includes(field) ? field : null;
+}
+
+function buildSelectionFromMapping(
+  headers: string[],
+  mapping: ImportMapping
+): { selection: Record<string, string>; customDrafts: Record<string, string> } {
+  const selection: Record<string, string> = Object.fromEntries(headers.map((h) => [h, "__ignore__"]));
+  const customDrafts: Record<string, string> = {};
+
+  for (const field of CORE_FIELDS) {
+    const col = mapping[field];
+    if (typeof col === "string" && col.trim().length > 0 && selection[col] === "__ignore__") {
+      selection[col] = `core:${field}`;
+    }
+  }
+
+  if (mapping.custom) {
+    for (const [customKey, col] of Object.entries(mapping.custom)) {
+      if (typeof col !== "string" || col.trim().length === 0) continue;
+      if (!(col in selection)) continue;
+      selection[col] = `extra:${toSnakeCase(customKey)}`;
+    }
+  }
+
+  if (mapping.columnTargets) {
+    for (const [columnName, target] of Object.entries(mapping.columnTargets)) {
+      if (typeof target !== "string" || target.trim().length === 0) continue;
+      if (!(columnName in selection)) continue;
+      const normalized = target.trim();
+      if (CORE_FIELDS.includes(normalized as CoreImportField)) {
+        selection[columnName] = `core:${normalized}`;
+      } else if (normalized.startsWith("extra:")) {
+        selection[columnName] = `extra:${toSnakeCase(normalized.slice(6))}`;
+      } else {
+        selection[columnName] = `extra:${toSnakeCase(normalized)}`;
+      }
+    }
+  }
+
+  return { selection, customDrafts };
+}
+
+function buildMappingFromSelection(
+  headers: string[],
+  selection: Record<string, string>,
+  customDrafts: Record<string, string>
+): ImportMapping {
+  const nextMapping: ImportMapping = {};
+  const custom: Record<string, string> = {};
+  const columnTargets: Record<string, string> = {};
+
+  for (const header of headers) {
+    const selectedTarget = selection[header] ?? "__ignore__";
+    if (!selectedTarget || selectedTarget === "__ignore__") {
+      continue;
+    }
+
+    const coreTarget = parseCoreTarget(selectedTarget);
+    if (coreTarget) {
+      nextMapping[coreTarget] = header;
+      columnTargets[header] = coreTarget;
+      continue;
+    }
+
+    let customKey = "";
+    if (selectedTarget === "__extra_new__") {
+      customKey = toSnakeCase(customDrafts[header] || header);
+    } else if (selectedTarget.startsWith("extra:")) {
+      customKey = toSnakeCase(selectedTarget.slice(6));
+    }
+
+    if (!customKey) {
+      continue;
+    }
+
+    custom[customKey] = header;
+    columnTargets[header] = `extra:${customKey}`;
+  }
+
+  if (Object.keys(custom).length > 0) {
+    nextMapping.custom = custom;
+  }
+
+  if (Object.keys(columnTargets).length > 0) {
+    nextMapping.columnTargets = columnTargets;
+  }
+
+  return nextMapping;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -260,26 +383,94 @@ function UploadStep({ onParsed }: { onParsed: (file: ParsedFile) => void }) {
 function MappingStep({
   parsedFile,
   mapping,
+  customFields,
   onChange,
   onNext,
 }: {
   parsedFile: ParsedFile;
   mapping: ImportMapping;
+  customFields: SchoolStudentField[];
   onChange: (m: ImportMapping) => void;
   onNext: () => void;
 }) {
-  const NONE = "__none__";
+  const [selection, setSelection] = useState<Record<string, string>>({});
+  const [customDrafts, setCustomDrafts] = useState<Record<string, string>>({});
 
-  const setField = (field: keyof ImportMapping, col: string) => {
-    onChange({ ...mapping, [field]: col === NONE ? null : col });
+  useEffect(() => {
+    const built = buildSelectionFromMapping(parsedFile.headers, mapping);
+    setSelection(built.selection);
+    setCustomDrafts(built.customDrafts);
+  }, [parsedFile.headers, mapping]);
+
+  const nextMapping = useMemo(
+    () => buildMappingFromSelection(parsedFile.headers, selection, customDrafts),
+    [parsedFile.headers, selection, customDrafts]
+  );
+
+  const assignedCount = Object.keys(nextMapping.columnTargets ?? {}).length;
+  const isNameMapped =
+    typeof nextMapping.name === "string" ||
+    (typeof nextMapping.firstName === "string" && typeof nextMapping.lastName === "string");
+  const canProceed = Boolean(isNameMapped);
+
+  const updateSelection = (column: string, value: string) => {
+    setSelection((prev) => {
+      const updated: Record<string, string> = { ...prev, [column]: value };
+
+      const selectedCore = parseCoreTarget(value);
+      if (selectedCore) {
+        for (const header of parsedFile.headers) {
+          if (header === column) continue;
+          if (updated[header] === `core:${selectedCore}`) {
+            updated[header] = "__ignore__";
+          }
+        }
+      }
+
+      const emitted = buildMappingFromSelection(parsedFile.headers, updated, customDrafts);
+      onChange(emitted);
+      return updated;
+    });
+
+    if (value === "__extra_new__") {
+      setCustomDrafts((prev) => {
+        if ((prev[column] ?? "").trim().length > 0) return prev;
+        const updated = { ...prev, [column]: toSnakeCase(column) };
+        const emitted = buildMappingFromSelection(parsedFile.headers, selection, updated);
+        onChange(emitted);
+        return updated;
+      });
+    }
   };
 
-  const isNameMapped =
-    (mapping.name && mapping.name !== null) ||
-    ((mapping.firstName || mapping.lastName) &&
-      (mapping.firstName !== null || mapping.lastName !== null));
+  const updateCustomDraft = (column: string, rawValue: string) => {
+    const normalized = toSnakeCase(rawValue);
+    setCustomDrafts((prev) => {
+      const updated = { ...prev, [column]: normalized };
+      const emitted = buildMappingFromSelection(parsedFile.headers, selection, updated);
+      onChange(emitted);
+      return updated;
+    });
+  };
 
-  const canProceed = Boolean(isNameMapped);
+  const getSample = (header: string): string => {
+    const firstWithValue = parsedFile.rows.find((row) => String(row[header] ?? "").trim().length > 0);
+    return String(firstWithValue?.[header] ?? "").trim();
+  };
+
+  const getTargetBadgeLabel = (target: string): string => {
+    const core = parseCoreTarget(target);
+    if (core) {
+      return FIELD_LABELS[core];
+    }
+    if (target.startsWith("extra:")) {
+      return `Custom (${target.slice(6)})`;
+    }
+    if (target === "__extra_new__") {
+      return "Custom nuevo";
+    }
+    return "Ignorar";
+  };
 
   return (
     <div className="space-y-4">
@@ -289,34 +480,75 @@ function MappingStep({
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Asigna cada columna del archivo al campo correspondiente del alumno. Las columnas no
-        asignadas se ignorarán.
+        Asigna cada columna a un destino explicito. Puedes mapear a campos core o a campos
+        personalizados (existentes o nuevos).
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {(Object.keys(FIELD_LABELS) as Array<keyof ImportMapping>).map((field) => (
-          <div key={field} className="flex items-center gap-2">
-            <span className="text-sm w-36 shrink-0 text-right text-muted-foreground">
-              {FIELD_LABELS[field]}
-            </span>
-            <Select
-              value={mapping[field] ?? NONE}
-              onValueChange={(v) => setField(field, v)}
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="— sin asignar —" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>— sin asignar —</SelectItem>
-                {parsedFile.headers.map((h) => (
-                  <SelectItem key={h} value={h}>
-                    {h}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ))}
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <Badge variant="outline">Columnas: {parsedFile.headers.length}</Badge>
+        <Badge variant="outline">Asignadas: {assignedCount}</Badge>
+      </div>
+
+      <div className="rounded-lg border overflow-hidden">
+        <table className="w-full text-xs">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="px-3 py-2 text-left font-medium">Columna</th>
+              <th className="px-3 py-2 text-left font-medium">Ejemplo</th>
+              <th className="px-3 py-2 text-left font-medium">Destino</th>
+            </tr>
+          </thead>
+          <tbody>
+            {parsedFile.headers.map((header) => {
+              const selected = selection[header] ?? "__ignore__";
+              const sample = getSample(header);
+              return (
+                <tr key={header} className="border-t align-top">
+                  <td className="px-3 py-2">
+                    <div className="font-medium">{header}</div>
+                    <div className="mt-1 text-[11px] text-muted-foreground">{getTargetBadgeLabel(selected)}</div>
+                  </td>
+                  <td className="px-3 py-2 max-w-[260px] truncate text-muted-foreground">
+                    {sample || "-"}
+                  </td>
+                  <td className="px-3 py-2 space-y-2">
+                    <Select
+                      value={selected}
+                      onValueChange={(value) => updateSelection(header, value)}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Elegir destino" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__ignore__">Ignorar columna</SelectItem>
+                        {CORE_TARGET_OPTIONS.map((option) => (
+                          <SelectItem key={option.key} value={`core:${option.key}`}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                        {customFields.map((field) => (
+                          <SelectItem key={field.id} value={`extra:${field.key}`}>
+                            Custom - {field.label} ({field.key})
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__extra_new__">Custom nuevo...</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {selected === "__extra_new__" && (
+                      <Input
+                        value={customDrafts[header] ?? ""}
+                        onChange={(event) => updateCustomDraft(header, event.target.value)}
+                        placeholder="clave_custom (snake_case)"
+                        className="h-8"
+                      />
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {!canProceed && (
@@ -340,7 +572,7 @@ function MappingStep({
 function resolvePreviewValue(
   row: Record<string, string>,
   mapping: ImportMapping,
-  field: keyof ImportMapping
+  field: CoreImportField
 ): string {
   const col = mapping[field];
   return col ? (row[col] ?? "") : "";
@@ -368,10 +600,30 @@ function PreviewStep({
   loading: boolean;
 }) {
   const preview = parsedFile.rows.slice(0, 8);
+  const mappedColumns: Array<{ header: string; label: string }> = [];
 
-  const mappedFields = (Object.keys(FIELD_LABELS) as Array<keyof ImportMapping>).filter(
-    (f) => mapping[f]
-  );
+  if (mapping.columnTargets) {
+    for (const header of parsedFile.headers) {
+      const target = mapping.columnTargets[header];
+      if (!target) continue;
+      if (CORE_FIELDS.includes(target as CoreImportField)) {
+        mappedColumns.push({ header, label: FIELD_LABELS[target as CoreImportField] });
+      } else if (target.startsWith("extra:")) {
+        mappedColumns.push({ header, label: `Custom (${target.slice(6)})` });
+      } else {
+        mappedColumns.push({ header, label: `Custom (${target})` });
+      }
+    }
+  }
+
+  if (mappedColumns.length === 0) {
+    for (const field of CORE_FIELDS) {
+      const header = mapping[field];
+      if (typeof header === "string" && header.trim().length > 0) {
+        mappedColumns.push({ header, label: FIELD_LABELS[field] });
+      }
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -385,9 +637,9 @@ function PreviewStep({
           <thead className="bg-muted/60">
             <tr>
               <th className="px-3 py-2 text-left font-medium">#</th>
-              {mappedFields.map((f) => (
-                <th key={f} className="px-3 py-2 text-left font-medium">
-                  {FIELD_LABELS[f]}
+              {mappedColumns.map((mapped) => (
+                <th key={mapped.header} className="px-3 py-2 text-left font-medium">
+                  {mapped.label}
                 </th>
               ))}
             </tr>
@@ -402,11 +654,10 @@ function PreviewStep({
                     {i + 1}
                     {!hasName && <AlertCircle className="inline h-3 w-3 text-amber-500 ml-1" />}
                   </td>
-                  {mappedFields.map((f) => {
-                    const value =
-                      f === "name" ? name : resolvePreviewValue(row, mapping, f);
+                  {mappedColumns.map((mapped) => {
+                    const value = row[mapped.header] ?? "";
                     return (
-                      <td key={f} className="px-3 py-1.5 truncate max-w-[180px]">
+                      <td key={mapped.header} className="px-3 py-1.5 truncate max-w-[180px]">
                         {value || <span className="text-muted-foreground italic">—</span>}
                       </td>
                     );
@@ -558,6 +809,27 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
   const [mapping, setMapping] = useState<ImportMapping>({});
   const [result, setResult] = useState<ImportJobResult | null>(null);
   const [importing, setImporting] = useState(false);
+  const [customFields, setCustomFields] = useState<SchoolStudentField[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    void (async () => {
+      try {
+        const fields = await getStudentFields();
+        if (mounted) {
+          setCustomFields(fields);
+        }
+      } catch {
+        if (mounted) {
+          setCustomFields([]);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleParsed = async (file: ParsedFile) => {
     setParsedFile(file);
@@ -612,6 +884,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
         <MappingStep
           parsedFile={parsedFile}
           mapping={mapping}
+          customFields={customFields}
           onChange={setMapping}
           onNext={() => setStep("preview")}
         />

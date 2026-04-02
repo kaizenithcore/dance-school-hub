@@ -106,7 +106,7 @@ export default function TeachersPage() {
           assignedClasses,
           status: teacher.status,
           hireDate: new Date(teacher.created_at || Date.now()).toISOString().split("T")[0],
-          aulary: teacher.aulary || 0,
+          salay: Number((teacher as { salay?: number; aulary?: number }).salay ?? (teacher as { salay?: number; aulary?: number }).aulary ?? 0) || 0,
         };
       });
     },
@@ -238,7 +238,7 @@ export default function TeachersPage() {
           phone: data.phone?.trim() ? data.phone.trim() : undefined,
           bio: data.bio?.trim() ? data.bio.trim() : undefined,
           status: data.status,
-          aulary: data.aulary,
+          salay: data.salay,
         });
         if (result) {
           setTeachers((prev) =>
@@ -256,7 +256,7 @@ export default function TeachersPage() {
           phone: data.phone?.trim() ? data.phone.trim() : undefined,
           bio: data.bio?.trim() ? data.bio.trim() : undefined,
           status: data.status,
-          aulary: data.aulary,
+          salay: data.salay,
         });
         if (result) {
           const newTeacher: TeacherRecord = { 
@@ -265,7 +265,7 @@ export default function TeachersPage() {
             specialties: [],
             assignedClasses: [],
             hireDate: data.hireDate || new Date().toISOString().split("T")[0],
-            aulary: data.aulary || 0,
+            salay: data.salay || 0,
           };
           setTeachers((prev) => [newTeacher, ...prev]);
           toast.success("Profesor creado exitosamente");

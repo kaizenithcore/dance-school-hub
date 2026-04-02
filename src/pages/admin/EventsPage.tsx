@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Loader2, RefreshCw } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { ModuleHelpShortcut } from "@/components/layout/ModuleHelpShortcut";
 import { EventsListView } from "@/components/events/EventsListView";
 import { EventFormModal } from "@/components/events/EventFormModal";
 import { EventDetailView } from "@/components/events/EventDetailView";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useEvents, useEvent } from "@/hooks/useEvents";
 import type { DanceEvent } from "@/lib/types/events";
 
@@ -13,6 +17,8 @@ export default function EventsPage() {
   const {
     events,
     isLoading,
+    error,
+    refreshEvents,
     createEvent,
     updateEvent,
     deleteEvent,
@@ -76,13 +82,59 @@ export default function EventsPage() {
     setSearchParams({}, { replace: true });
   }, [events, isLoading, searchParams, setSearchParams]);
 
-  if (isLoading && view.mode === "list") {
+  if (isLoading && view.mode === "list" && events.length === 0) {
     return (
       <PageContainer
         title="Eventos"
-        description="Cargando eventos..."
+        description="Preparando tu agenda de eventos"
       >
-        <div className="text-sm text-muted-foreground">Cargando eventos...</div>
+        <div className="rounded-xl border bg-card p-6 text-center shadow-soft">
+          <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
+          <p className="mt-3 text-sm font-medium text-foreground">Cargando eventos</p>
+          <p className="text-xs text-muted-foreground">Esto puede tardar unos segundos según el volumen de datos.</p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (error && view.mode === "list" && events.length === 0) {
+    return (
+      <PageContainer
+        title="Eventos"
+        description="Crea y gestiona festivales, exhibiciones y eventos de tu escuela"
+        actions={<ModuleHelpShortcut module="events" />}
+      >
+        <EmptyState
+          type="error"
+          title="No se pudo cargar Eventos"
+          description={error}
+          actionLabel="Reintentar"
+          onAction={() => void refreshEvents()}
+        />
+      </PageContainer>
+    );
+  }
+
+  if (!isLoading && view.mode === "list" && events.length === 0) {
+    return (
+      <PageContainer
+        title="Eventos"
+        description="Crea y gestiona festivales, exhibiciones y eventos de tu escuela"
+        actions={<ModuleHelpShortcut module="events" />}
+      >
+        <EmptyState
+          title="Aún no hay eventos"
+          description="Crea el primer evento para organizar sesiones, horarios y participantes en un solo flujo."
+          actionLabel="Crear evento"
+          onAction={() => setView({ mode: "create" })}
+        />
+
+        <EventFormModal
+          open={view.mode === "create" || view.mode === "edit"}
+          onOpenChange={(open) => { if (!open) setView({ mode: "list" }); }}
+          event={view.mode === "edit" ? events.find((e) => e.id === view.eventId) : undefined}
+          onSubmit={(data) => { void (view.mode === "edit" ? handleUpdate(data) : handleCreate(data)); }}
+        />
       </PageContainer>
     );
   }
@@ -111,6 +163,15 @@ export default function EventsPage() {
     <PageContainer
       title="Eventos"
       description="Crea y gestiona festivales, exhibiciones y eventos de tu escuela"
+      actions={
+        <>
+          <ModuleHelpShortcut module="events" />
+          <Button variant="outline" onClick={() => void refreshEvents()} disabled={isLoading}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <span className="ml-2">Recargar</span>
+          </Button>
+        </>
+      }
     >
       <EventsListView
         events={events}

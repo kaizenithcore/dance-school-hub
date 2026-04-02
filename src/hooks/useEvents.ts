@@ -20,22 +20,44 @@ import {
   type SessionInput,
 } from "@/lib/api/events";
 
+const EVENTS_CACHE_KEY = "nexa:events:cache";
+
+function readEventsCache(): DanceEvent[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.localStorage.getItem(EVENTS_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as DanceEvent[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 export function useEvents() {
-  const [events, setEvents] = useState<DanceEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [events, setEvents] = useState<DanceEvent[]>(() => readEventsCache());
+  const [isLoading, setIsLoading] = useState(() => readEventsCache().length === 0);
   const [error, setError] = useState<string | null>(null);
+  const hasBootCacheRef = useRef(readEventsCache().length > 0);
 
-  const refreshEvents = useCallback(async () => {
-    setIsLoading(true);
+  const refreshEvents = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setIsLoading(true);
+    }
     setError(null);
 
     try {
       const data = await getEvents();
       setEvents(data);
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(data));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudieron cargar los eventos");
     } finally {
@@ -44,8 +66,13 @@ export function useEvents() {
   }, []);
 
   useEffect(() => {
-    void refreshEvents();
+    void refreshEvents({ silent: hasBootCacheRef.current });
   }, [refreshEvents]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(events));
+  }, [events]);
 
   const upsertEvent = useCallback((event: DanceEvent) => {
     setEvents((prev) => {

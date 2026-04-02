@@ -13,6 +13,7 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -65,7 +66,12 @@ export function StudentClassesModal({
   const [loadingData, setLoadingData] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pricingPreview, setPricingPreview] = useState<PricingCalculation | null>(null);
+  const [currentPricing, setCurrentPricing] = useState<PricingCalculation | null>(null);
   const [pricingLoading, setPricingLoading] = useState(false);
+  const [initialClassIds, setInitialClassIds] = useState<string[]>([]);
+  const [initialScheduleIdsByClass, setInitialScheduleIdsByClass] = useState<Record<string, string[]>>({});
+  const [initialJointEnabled, setInitialJointEnabled] = useState(false);
+  const [initialMemberCount, setInitialMemberCount] = useState(1);
 
   const groupId = workingGroupId;
 
@@ -85,6 +91,7 @@ export function StudentClassesModal({
 
         const initialClassIds = student.enrolledClasses.map((c) => c.id);
         setSelectedClassIds(initialClassIds);
+        setInitialClassIds(initialClassIds);
 
         const groupedSchedules: Record<string, ScheduleOption[]> = {};
         for (const schedule of schedules) {
@@ -108,19 +115,24 @@ export function StudentClassesModal({
             : (groupedSchedules[classId] || []).map((s) => s.id);
         }
         setSelectedScheduleIdsByClass(initialSchedules);
+        setInitialScheduleIdsByClass(initialSchedules);
 
         const initialGroupId = student.jointEnrollmentGroupId || null;
         setJointEnabled(Boolean(initialGroupId));
+        setInitialJointEnabled(Boolean(initialGroupId));
         setWorkingGroupId(initialGroupId);
 
         if (initialGroupId) {
           const groupMembers = await getJointGroupMembers(initialGroupId);
           if (!cancelled) {
             setMembers(groupMembers);
+            const uniqueIds = new Set<string>([student.id, ...groupMembers.map((member) => member.id)]);
+            setInitialMemberCount(Math.max(1, uniqueIds.size));
           }
         } else {
           setMembers([]);
           setMemberSearch("");
+          setInitialMemberCount(1);
         }
       } finally {
         if (!cancelled) {
@@ -171,11 +183,38 @@ export function StudentClassesModal({
     });
   }, [memberSearch, members, student, students]);
 
+  const enrolledCountByClass = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const candidate of students) {
+      for (const enrolledClass of candidate.enrolledClasses || []) {
+        counts.set(enrolledClass.id, (counts.get(enrolledClass.id) || 0) + 1);
+      }
+    }
+
+    return counts;
+  }, [students]);
+
   const toggleClass = (classId: string, checked: boolean) => {
     setSelectedClassIds((prev) => {
       if (checked) {
+        const classSchedules = classSchedulesByClass[classId] || [];
+        setSelectedScheduleIdsByClass((prevSchedules) => ({
+          ...prevSchedules,
+          [classId]: classSchedules.map((schedule) => schedule.id),
+        }));
         return prev.includes(classId) ? prev : [...prev, classId];
       }
+
+      setSelectedScheduleIdsByClass((prevSchedules) => {
+        if (!(classId in prevSchedules)) {
+          return prevSchedules;
+        }
+        const next = { ...prevSchedules };
+        delete next[classId];
+        return next;
+      });
+
       return prev.filter((id) => id !== classId);
     });
   };
@@ -209,49 +248,154 @@ export function StudentClassesModal({
     return selectedClassIds.reduce((sum, classId) => sum + (byId.get(classId)?.price || 0), 0);
   }, [availableClasses, selectedClassIds]);
 
+  const currentMonthlyTotal = useMemo(() => {
+    if (!student) return 0;
+    if (typeof student.monthlyTotalOverride === "number") {
+      return student.monthlyTotalOverride;
+    }
+    return student.enrolledClasses.reduce((sum, klass) => sum + (klass.monthlyPrice || 0), 0);
+  }, [student]);
+
+  const bonusApplied = Boolean(pricingPreview && pricingPreview.applied_rules.length > 0);
+
+  const currentBonusApplied = Boolean(currentPricing && currentPricing.applied_rules.length > 0);
+
+  const pricingRuleNamesCurrent = useMemo(
+    () => new Set((currentPricing?.applied_rules || []).map((rule) => rule.rule_name)),
+    [currentPricing]
+  );
+
+  const pricingRuleNamesProposed = useMemo(
+    () => new Set((pricingPreview?.applied_rules || []).map((rule) => rule.rule_name)),
+    [pricingPreview]
+  );
+
+  const removedRuleNames = useMemo(
+    () => Array.from(pricingRuleNamesCurrent).filter((ruleName) => !pricingRuleNamesProposed.has(ruleName)),
+    [pricingRuleNamesCurrent, pricingRuleNamesProposed]
+  );
+
+  const finalGroupTotal = useMemo(() => {
+    if (!jointEnabled) {
+      return pricingPreview?.total ?? selectedMonthlyTotal;
+    }
+    return pricingPreview?.total ?? (selectedMonthlyTotal * Math.max(1, effectiveMemberCount));
+  }, [effectiveMemberCount, jointEnabled, pricingPreview, selectedMonthlyTotal]);
+
+  const finalPerStudentTotal = useMemo(() => {
+    if (!jointEnabled) {
+      return pricingPreview?.total ?? selectedMonthlyTotal;
+    }
+
+    const membersCount = Math.max(1, effectiveMemberCount);
+    return finalGroupTotal / membersCount;
+  }, [effectiveMemberCount, finalGroupTotal, jointEnabled, pricingPreview, selectedMonthlyTotal]);
+
+  const calculateWeeklyHours = useMemo(() => {
+    const toDecimalHours = (timeValue: string) => {
+      const [hourRaw = "0", minuteRaw = "0"] = String(timeValue || "").split(":");
+      const hour = Number(hourRaw);
+      const minute = Number(minuteRaw);
+      return (Number.isFinite(hour) ? hour : 0) + (Number.isFinite(minute) ? minute : 0) / 60;
+    };
+
+    return (classIds: string[], scheduleByClass: Record<string, string[]>) => {
+      return classIds.reduce((sum, classId) => {
+        const classSchedules = classSchedulesByClass[classId] || [];
+        if (classSchedules.length === 0) {
+          return sum;
+        }
+
+        const selectedIds = scheduleByClass[classId] || [];
+        const selectedSchedules = selectedIds.length > 0
+          ? classSchedules.filter((schedule) => selectedIds.includes(schedule.id))
+          : classSchedules;
+
+        const classHours = selectedSchedules.reduce((classSum, schedule) => {
+          const start = toDecimalHours(schedule.start_time);
+          const end = toDecimalHours(schedule.end_time);
+          return classSum + Math.max(0, end - start);
+        }, 0);
+
+        return sum + classHours;
+      }, 0);
+    };
+  }, [classSchedulesByClass]);
+
+  const currentSelectedHours = useMemo(
+    () => calculateWeeklyHours(initialClassIds, initialScheduleIdsByClass),
+    [calculateWeeklyHours, initialClassIds, initialScheduleIdsByClass]
+  );
+
+  const proposedSelectedHours = useMemo(
+    () => calculateWeeklyHours(selectedClassIds, selectedScheduleIdsByClass),
+    [calculateWeeklyHours, selectedClassIds, selectedScheduleIdsByClass]
+  );
+
   useEffect(() => {
     let cancelled = false;
 
     const runPricingPreview = async () => {
-      if (!open || !student || selectedClassIds.length === 0) {
+      if (!open || !student) {
         setPricingPreview(null);
+        setCurrentPricing(null);
         return;
       }
 
       const tenantId = availableClasses[0]?.tenantId;
       if (!tenantId) {
         setPricingPreview(null);
+        setCurrentPricing(null);
         return;
       }
 
-      const selections = Array.from({ length: effectiveMemberCount }).flatMap(() =>
-        selectedClassIds.flatMap((classId) => {
-          const classSchedules = classSchedulesByClass[classId] || [];
-          const selectedSchedules = selectedScheduleIdsByClass[classId] || [];
+      const buildSelections = (classIds: string[], schedulesByClass: Record<string, string[]>, memberCount: number) =>
+        Array.from({ length: Math.max(1, memberCount) }).flatMap(() =>
+          classIds.flatMap((classId) => {
+            const classSchedules = classSchedulesByClass[classId] || [];
+            const selectedSchedules = schedulesByClass[classId] || [];
 
-          if (classSchedules.length === 0) {
+            if (classSchedules.length === 0) {
+              return [{ class_id: classId }];
+            }
+
+            if (selectedSchedules.length > 0) {
+              return selectedSchedules.map((scheduleId) => ({
+                class_id: classId,
+                schedule_id: scheduleId,
+              }));
+            }
+
             return [{ class_id: classId }];
-          }
-
-          if (selectedSchedules.length > 0) {
-            return selectedSchedules.map((scheduleId) => ({
-              class_id: classId,
-              schedule_id: scheduleId,
-            }));
-          }
-
-          return [{ class_id: classId }];
-        })
-      );
+          })
+        );
 
       setPricingLoading(true);
       try {
-        const pricing = await calculatePricing(tenantId, selectedClassIds, selections);
+        const [currentPricingValue, proposedPricingValue] = await Promise.all([
+          initialClassIds.length > 0
+            ? calculatePricing(
+                tenantId,
+                initialClassIds,
+                buildSelections(initialClassIds, initialScheduleIdsByClass, initialJointEnabled ? initialMemberCount : 1)
+              )
+            : Promise.resolve(null),
+          selectedClassIds.length > 0
+            ? calculatePricing(
+                tenantId,
+                selectedClassIds,
+                buildSelections(selectedClassIds, selectedScheduleIdsByClass, effectiveMemberCount)
+              )
+            : Promise.resolve(null),
+        ]);
+
         if (!cancelled) {
-          setPricingPreview(pricing);
+          setCurrentPricing(currentPricingValue);
+          setPricingPreview(proposedPricingValue);
         }
       } catch {
         if (!cancelled) {
+          setCurrentPricing(null);
           setPricingPreview(null);
         }
       } finally {
@@ -270,6 +414,10 @@ export function StudentClassesModal({
     availableClasses,
     classSchedulesByClass,
     effectiveMemberCount,
+    initialClassIds,
+    initialJointEnabled,
+    initialMemberCount,
+    initialScheduleIdsByClass,
     open,
     selectedClassIds,
     selectedScheduleIdsByClass,
@@ -417,6 +565,11 @@ export function StudentClassesModal({
                   {availableClasses.map((item) => {
                     const checked = selectedClassIds.includes(item.id);
                     const classSchedules = classSchedulesByClass[item.id] || [];
+                    const enrolled = enrolledCountByClass.get(item.id) || item.enrolledCount || 0;
+                    const capacity = Math.max(0, item.capacity || 0);
+                    const isFull = capacity > 0 && enrolled >= capacity;
+                    const canSelectClass = checked || !isFull;
+                    const occupancyPercent = capacity > 0 ? Math.min(100, (enrolled / capacity) * 100) : 0;
 
                     return (
                       <div key={item.id} className="rounded-md border border-border px-3 py-2">
@@ -425,14 +578,33 @@ export function StudentClassesModal({
                             <Checkbox
                               checked={checked}
                               onCheckedChange={(value) => toggleClass(item.id, Boolean(value))}
-                              disabled={saving}
+                              disabled={saving || !canSelectClass}
                             />
                             <div>
                               <p className="text-sm font-medium">{item.name}</p>
                               <p className="text-xs text-muted-foreground">€{item.price}/mes</p>
                             </div>
                           </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge variant={isFull ? "destructive" : occupancyPercent >= 80 ? "secondary" : "outline"}>
+                              {enrolled}/{capacity || "-"} plazas
+                            </Badge>
+                            {isFull ? <span className="text-[10px] text-destructive">Clase completa</span> : null}
+                          </div>
                         </label>
+
+                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={isFull ? "h-full bg-destructive" : occupancyPercent >= 80 ? "h-full bg-warning" : "h-full bg-primary"}
+                            style={{ width: `${occupancyPercent}%` }}
+                          />
+                        </div>
+
+                        {!checked && isFull ? (
+                          <p className="mt-2 text-xs text-destructive">
+                            No se puede anadir esta clase porque ya alcanzo su capacidad maxima.
+                          </p>
+                        ) : null}
 
                         {checked && classSchedules.length > 0 ? (
                           <div className="mt-3 pl-6 space-y-1.5">
@@ -470,6 +642,74 @@ export function StudentClassesModal({
                     );
                   })}
                 </div>
+              )}
+            </section>
+
+            <section className="space-y-2 rounded-md border border-border bg-muted/20 px-3 py-3">
+              <p className="text-xs font-medium text-foreground">Precio final tras los cambios</p>
+
+              {pricingLoading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Calculando bonos y total final...
+                </div>
+              ) : selectedClassIds.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Selecciona al menos una clase para calcular el precio final.</p>
+              ) : (
+                <>
+                  <div className="rounded border border-border bg-background px-3 py-2 space-y-1">
+                    <p className="text-[11px] font-medium text-foreground">Bonos actuales</p>
+                    <p className="text-xs text-muted-foreground">
+                      Seleccion actual: {initialClassIds.length} clase(s), {currentSelectedHours.toFixed(2)} h/semana.
+                    </p>
+                    {currentBonusApplied ? (
+                      <p className="text-xs text-success">
+                        Bono activo: {currentPricing?.applied_rules.map((rule) => rule.rule_name).join(", ")}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Actualmente no hay bono aplicado.</p>
+                    )}
+                  </div>
+
+                  <div className="rounded border border-border bg-background px-3 py-2 space-y-1">
+                    <p className="text-[11px] font-medium text-foreground">Estado de la seleccion propuesta</p>
+                    <p className="text-xs text-muted-foreground">
+                      Nueva seleccion: {selectedClassIds.length} clase(s), {proposedSelectedHours.toFixed(2)} h/semana.
+                    </p>
+                    {bonusApplied ? (
+                      <p className="text-xs text-success">
+                        Bono aplicado automaticamente: {pricingPreview?.applied_rules.map((rule) => rule.rule_name).join(", ")}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        No aplica bono para esta combinacion. Si una regla aplica, se aplicara automaticamente.
+                      </p>
+                    )}
+                    {removedRuleNames.length > 0 ? (
+                      <p className="text-xs text-warning">
+                        Atencion: al cambiar la seleccion se perderia(n) este(os) bono(s): {removedRuleNames.join(", ")}.
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {!jointEnabled ? (
+                    <p className="text-xs text-muted-foreground">
+                      {student.name}: €{currentMonthlyTotal.toFixed(2)} -&gt; <span className="font-semibold text-foreground">€{finalPerStudentTotal.toFixed(2)}</span>
+                    </p>
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        Total conjunto: <span className="font-semibold text-foreground">€{finalGroupTotal.toFixed(2)}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Precio final por alumno: <span className="font-semibold text-foreground">€{finalPerStudentTotal.toFixed(2)}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {pricingPreview && pricingPreview.savings > 0 ? (
+                    <p className="text-xs text-success">Ahorro estimado: €{pricingPreview.savings.toFixed(2)}</p>
+                  ) : null}
+                </>
               )}
             </section>
 

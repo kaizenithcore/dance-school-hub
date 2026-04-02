@@ -47,9 +47,14 @@ export function CandidatesTable({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8" aria-label="Volver a exámenes">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Volver</TooltipContent>
+        </Tooltip>
         <div className="flex-1">
           <h2 className="text-lg font-semibold text-foreground">{exam.name}</h2>
           <p className="text-sm text-muted-foreground">
@@ -114,7 +119,13 @@ export function CandidatesTable({
                       <div className="flex items-center justify-end gap-1">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onOpenGrading(candidate)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label={`Calificar a ${candidate.studentName}`}
+                              onClick={() => onOpenGrading(candidate)}
+                            >
                               <GraduationCap className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>
@@ -123,7 +134,13 @@ export function CandidatesTable({
                         {(candidate.status === "graded" || candidate.status === "certified") && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onGenerateCertificate(candidate)}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label={`${candidate.certificateGenerated ? "Descargar" : "Generar"} certificado de ${candidate.studentName}`}
+                                onClick={() => onGenerateCertificate(candidate)}
+                              >
                                 <Award className="h-3.5 w-3.5" />
                               </Button>
                             </TooltipTrigger>

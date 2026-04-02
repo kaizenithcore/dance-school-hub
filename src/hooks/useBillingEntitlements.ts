@@ -52,7 +52,30 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function asBool(value: unknown, fallback = false): boolean {
-  return typeof value === "boolean" ? value : fallback;
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") {
+      return true;
+    }
+    if (normalized === "false" || normalized === "0") {
+      return false;
+    }
+  }
+
+  if (typeof value === "number") {
+    if (value === 1) {
+      return true;
+    }
+    if (value === 0) {
+      return false;
+    }
+  }
+
+  return fallback;
 }
 
 function toPlanType(value: unknown): PlanType {
@@ -82,10 +105,21 @@ export function useBillingEntitlements() {
       const limits = asRecord(source.limits);
       const addons = asRecord(source.addons);
 
+      if (import.meta.env.DEV) {
+        console.info("[trial-sync] useBillingEntitlements.refresh", {
+          trialPaymentCompletedRaw: source.trialPaymentCompleted ?? source.trial_payment_completed,
+          trialPaymentCompletedAtRaw: source.trialPaymentCompletedAt ?? source.trial_payment_completed_at,
+          planTypeRaw: source.planType,
+        });
+      }
+
       setBilling({
         planType: toPlanType(source.planType),
-        trialPaymentCompleted: asBool(source.trialPaymentCompleted, false),
-        trialPaymentCompletedAt: typeof source.trialPaymentCompletedAt === "string" ? source.trialPaymentCompletedAt : null,
+        trialPaymentCompleted: asBool(source.trialPaymentCompleted ?? source.trial_payment_completed, false),
+        trialPaymentCompletedAt:
+          typeof (source.trialPaymentCompletedAt ?? source.trial_payment_completed_at) === "string"
+            ? String(source.trialPaymentCompletedAt ?? source.trial_payment_completed_at)
+            : null,
         maxActiveStudents: Number(limits.maxActiveStudents ?? DEFAULT_ENTITLEMENTS.maxActiveStudents) || DEFAULT_ENTITLEMENTS.maxActiveStudents,
         includedActiveStudents: Number(limits.includedActiveStudents ?? DEFAULT_ENTITLEMENTS.includedActiveStudents) || DEFAULT_ENTITLEMENTS.includedActiveStudents,
         addons: {
@@ -99,7 +133,7 @@ export function useBillingEntitlements() {
           renewalAutomation: asBool(features.renewalAutomation),
           courseClone: asBool(features.courseClone),
           massCommunicationEmail: asBool(features.massCommunicationEmail),
-          examSuite: asBool(features.examSuite || features.exam_suite || features.examsuite),
+          examSuite: asBool(features.examSuite || features.exam_suite || features.examsuite || features.certifier),
         },
       });
     } finally {

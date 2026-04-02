@@ -18,7 +18,7 @@ export default function ImportStudentsPage() {
         </Button>
       }
     >
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="rounded-lg border bg-card p-6">
           <ImportWizard onComplete={() => navigate("/admin/students")} />
         </div>

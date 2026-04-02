@@ -52,7 +52,7 @@ export function ExamCard({ exam, onEdit, onViewCandidates, onOpenGrading, onOpen
         <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(exam)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(exam)} aria-label={`Editar examen ${exam.name}`}>
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
@@ -61,7 +61,7 @@ export function ExamCard({ exam, onEdit, onViewCandidates, onOpenGrading, onOpen
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onViewCandidates(exam)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onViewCandidates(exam)} aria-label={`Ver candidatos de ${exam.name}`}>
                 <ClipboardList className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
@@ -75,6 +75,7 @@ export function ExamCard({ exam, onEdit, onViewCandidates, onOpenGrading, onOpen
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => onOpenGrading(exam)}
+                aria-label={`Abrir calificaciones de ${exam.name}`}
                 disabled={exam.status === "draft" || exam.status === "registration_open"}
               >
                 <GraduationCap className="h-3.5 w-3.5" />
@@ -90,6 +91,7 @@ export function ExamCard({ exam, onEdit, onViewCandidates, onOpenGrading, onOpen
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => onOpenCertificates(exam)}
+                aria-label={`Abrir certificados de ${exam.name}`}
                 disabled={exam.status !== "finished"}
               >
                 <Award className="h-3.5 w-3.5" />

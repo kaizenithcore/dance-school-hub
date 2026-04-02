@@ -7,9 +7,13 @@ export const importMappingSchema = z.object({
   lastName: z.string().min(1).nullable().optional(),
   email: z.string().min(1).nullable().optional(),
   phone: z.string().min(1).nullable().optional(),
+  locality: z.string().min(1).nullable().optional(),
+  identityDocumentNumber: z.string().min(1).nullable().optional(),
   birthdate: z.string().min(1).nullable().optional(),
   notes: z.string().min(1).nullable().optional(),
-});
+  custom: z.record(z.string(), z.string().min(1).nullable().optional()).optional(),
+  columnTargets: z.record(z.string(), z.string().min(1).nullable().optional()).optional(),
+}).passthrough();
 
 // Each raw row from the parsed spreadsheet
 const rawRowSchema = z.record(z.string(), z.string());

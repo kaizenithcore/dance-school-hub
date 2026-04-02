@@ -23,7 +23,7 @@ import { supabase } from "@/lib/supabase";
 import { validateStrongPassword } from "@/lib/security";
 import type { AuthContextResponse } from "@/lib/api/auth";
 import { useSearchParams } from "react-router-dom";
-import { planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
+import { formatAnnualFinancingLabel, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
 
 interface SchoolInfo {
   name: string;
@@ -611,7 +611,7 @@ export default function SettingsPage() {
   const nextMonthlyAmount = calculateMonthlyAmount(billing);
   const amountDiff = nextMonthlyAmount - currentMonthlyAmount;
   const nextCycleAmountLabel = billing.billingCycle === "annual"
-    ? `${nextMonthlyAmount * 12} EUR/año`
+    ? formatAnnualFinancingLabel(nextMonthlyAmount * 12)
     : `${nextMonthlyAmount} EUR/mes`;
 
   return (
@@ -1152,7 +1152,7 @@ export default function SettingsPage() {
                     >
                       <p className="text-sm font-semibold">{PLAN_CATALOG[planKey].label}</p>
                       <p className="text-xs">{PLAN_CATALOG[planKey].monthlyPriceEur} EUR/mes</p>
-                      <p className="text-[10px] text-muted-foreground">{PLAN_CATALOG[planKey].annualEffectiveMonthlyPriceEur} EUR/mes (anual)</p>
+                      <p className="text-[10px] text-muted-foreground">{formatAnnualFinancingLabel(PLAN_CATALOG[planKey].annualTotalEur)}</p>
                     </button>
                   );
                 })}
@@ -1266,8 +1266,7 @@ export default function SettingsPage() {
                         {isSelected ? <Badge>Seleccionado</Badge> : null}
                       </div>
                       <p className="mt-2 text-xl font-bold text-foreground">{plan.monthlyPriceEur} EUR/mes</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{plan.annualEffectiveMonthlyPriceEur} EUR/mes (anual)</p>
-                      <p className="text-[10px] text-muted-foreground">Total anual: {plan.annualTotalEur} EUR</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{formatAnnualFinancingLabel(plan.annualTotalEur)}</p>
                       <p className="mt-1 text-xs text-muted-foreground">Incluye {plan.includedActiveStudents} alumnos activos</p>
                       <p className="text-xs text-muted-foreground">Bloque extra: {plan.extraStudentsBlockSize} alumnos por {plan.extraStudentsBlockPriceEur} EUR/mes</p>
                       <ul className="mt-3 space-y-1 text-xs text-muted-foreground">

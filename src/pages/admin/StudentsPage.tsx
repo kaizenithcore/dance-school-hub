@@ -5,6 +5,7 @@ import { StudentProfileDrawer } from "@/components/tables/StudentProfileDrawer";
 import { StudentFormModal } from "@/components/tables/StudentFormModal";
 import { DeleteStudentModal } from "@/components/tables/DeleteStudentModal";
 import { StudentClassesModal } from "@/components/tables/StudentClassesModal";
+import { StudentCustomFieldsManager } from "@/components/tables/StudentCustomFieldsManager";
 import { StudentRecord } from "@/lib/data/mockStudents";
 import {
   createStudent,
@@ -13,6 +14,7 @@ import {
   updateStudent,
   type SaveStudentRequest,
 } from "@/lib/api/students";
+import { getStudentFields, type SchoolStudentField } from "@/lib/api/studentFields";
 import { getSchoolSettings } from "@/lib/api/settings";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -60,6 +62,7 @@ function getCapacityAlertMeta(remainingPercent: number, planType: PlanType): {
 export default function StudentsPage() {
   const navigate = useNavigate();
   const [students, setStudents] = useState<StudentRecord[]>([]);
+  const [studentFields, setStudentFields] = useState<SchoolStudentField[]>([]);
   const [loading, setLoading] = useState(true);
   const [planType, setPlanType] = useState<PlanType>("starter");
   const [maxActiveStudents, setMaxActiveStudents] = useState<number>(0);
@@ -94,7 +97,19 @@ export default function StudentsPage() {
     preferredPaymentMethod: data.preferredPaymentMethod,
     accountNumber: data.accountNumber,
     classIds: (data.enrolledClasses || []).map((klass) => klass.id).filter(Boolean),
+    extraData: data.extraData,
   });
+
+  const loadStudentFields = useCallback(async () => {
+    try {
+      const fields = await getStudentFields();
+      setStudentFields(fields);
+    } catch (error) {
+      console.error("Error loading student fields:", error);
+      setStudentFields([]);
+      toast.error("No se pudieron cargar los campos personalizados");
+    }
+  }, []);
 
   const loadCapacity = useCallback(async () => {
     try {
@@ -132,6 +147,10 @@ export default function StudentsPage() {
   useEffect(() => {
     void loadCapacity();
   }, [loadCapacity]);
+
+  useEffect(() => {
+    void loadStudentFields();
+  }, [loadStudentFields]);
 
   useEffect(() => {
     if (loading) {
@@ -310,12 +329,15 @@ export default function StudentsPage() {
 
       <StudentsTable
         students={students}
+        customFields={studentFields}
         isLoading={loading}
         onViewProfile={handleViewProfile}
         onEdit={handleEdit}
         onManageClasses={handleManageClasses}
         onDelete={handleDelete}
       />
+
+      <StudentCustomFieldsManager fields={studentFields} onReload={loadStudentFields} />
 
       <Alert className="border-primary/25 bg-primary/5">
         <ShoppingBag className="h-4 w-4" />
@@ -334,12 +356,14 @@ export default function StudentsPage() {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         student={selectedStudent}
+        customFields={studentFields}
       />
 
       <StudentFormModal
         open={formOpen}
         onOpenChange={setFormOpen}
         student={editingStudent}
+        customFields={studentFields}
         onSave={handleSave}
       />
 

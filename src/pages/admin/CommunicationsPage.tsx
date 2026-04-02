@@ -318,7 +318,7 @@ export default function CommunicationsPage() {
       <div className="rounded-lg border border-border bg-card p-5 shadow-soft">
         <h3 className="text-sm font-semibold text-foreground mb-3">Historial reciente</h3>
         {campaigns.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aún no hay envíos registrados.</p>
+          <p className="text-sm text-muted-foreground">Aun no tienes envios registrados. Cuando prepares el primero, aparecera aqui.</p>
         ) : (
           <div className="space-y-2">
             {campaigns.map((item) => (
@@ -351,11 +351,11 @@ export default function CommunicationsPage() {
           </Button>
         </div>
         {!selectedCampaignId ? (
-          <p className="text-sm text-muted-foreground">Selecciona una campaña para ver detalle.</p>
+          <p className="text-sm text-muted-foreground">Selecciona una campana para ver el detalle de entrega por destinatario.</p>
         ) : loadingDeliveries ? (
-          <p className="text-sm text-muted-foreground">Cargando detalle...</p>
+          <p className="text-sm text-muted-foreground">Estamos cargando el detalle de entregas...</p>
         ) : deliveries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No hay destinatarios para esta campaña.</p>
+          <p className="text-sm text-muted-foreground">Esta campana no tiene destinatarios para mostrar con los filtros actuales.</p>
         ) : (
           <div className="space-y-2 max-h-[360px] overflow-auto pr-1">
             {deliveries.map((delivery) => (

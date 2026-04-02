@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { SharedDemoCta } from "@/components/landing/SharedDemoCta";
 
+const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=launch_offer";
+
 export function LaunchOffer() {
   return (
     <section className="py-20 sm:py-28">
@@ -34,8 +36,8 @@ export function LaunchOffer() {
                 <p className="text-xs text-muted-foreground">Descuento especial en el pago único de implementación + web</p>
               </div>
               <div className="rounded-xl border border-border bg-background p-4">
-                <p className="text-sm font-semibold text-foreground">Plan Pro Anual</p>
-                <p className="text-xs text-muted-foreground">Precio preferente para early adopters con compromiso anual</p>
+                <p className="text-sm font-semibold text-foreground">Plan Pro con financiación sin interés</p>
+                <p className="text-xs text-muted-foreground">Precio preferente para early adopters con activación en cuotas</p>
               </div>
             </div>
 
@@ -46,8 +48,8 @@ export function LaunchOffer() {
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
-                <Link to="/auth/register">
-                  Empezar ahora
+                <Link to={PRO_ANNUAL_CTA_HREF}>
+                  Activar con cuota mensual
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>

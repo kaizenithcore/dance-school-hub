@@ -6,6 +6,7 @@ import { Mail, Phone, Calendar, GraduationCap, Clock, User, Shield, StickyNote, 
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import type { SchoolStudentField } from "@/lib/api/studentFields";
 
 const PAYMENT_LABELS: Record<string, string> = {
   monthly: "Mensual",
@@ -17,9 +18,17 @@ interface StudentProfileDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   student: StudentRecord | null;
+  customFields?: SchoolStudentField[];
 }
 
-export function StudentProfileDrawer({ open, onOpenChange, student }: StudentProfileDrawerProps) {
+function formatCustomFieldValue(value: unknown): string {
+  if (value == null) return "-";
+  if (typeof value === "string") return value.trim() || "-";
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value);
+}
+
+export function StudentProfileDrawer({ open, onOpenChange, student, customFields = [] }: StudentProfileDrawerProps) {
   if (!student) return null;
 
   const age = new Date().getFullYear() - new Date(student.birthdate).getFullYear();
@@ -34,6 +43,8 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
       ? student.monthlyTotalOverride
       : student.enrolledClasses.reduce((sum, c) => sum + c.monthlyPrice, 0))
     : null;
+
+  const visibleCustomFields = customFields.filter((field) => field.visible);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -67,6 +78,14 @@ export function StudentProfileDrawer({ open, onOpenChange, student }: StudentPro
               <InfoRow icon={Calendar} label="Nacimiento" value={student.birthdate ? `${format(new Date(student.birthdate), "d MMM yyyy", { locale: es })} (${age} años)` : "N/A"} />
               <InfoRow icon={Calendar} label="Inscripción" value={student.joinDate ? format(new Date(student.joinDate), "d MMM yyyy", { locale: es }) : "N/A"} />
               <InfoRow icon={DollarSign} label="Tipo de pago" value={PAYMENT_LABELS[student.paymentType]} />
+              {visibleCustomFields.map((field) => (
+                <InfoRow
+                  key={field.id}
+                  icon={User}
+                  label={field.label}
+                  value={formatCustomFieldValue(student.extraData?.[field.key])}
+                />
+              ))}
             </div>
           </section>
 

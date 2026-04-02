@@ -32,7 +32,38 @@ function asString(value: unknown): string {
 }
 
 function asBoolean(value: unknown, fallback = false): boolean {
-  return typeof value === "boolean" ? value : fallback;
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") {
+      return true;
+    }
+    if (normalized === "false" || normalized === "0") {
+      return false;
+    }
+  }
+
+  if (typeof value === "number") {
+    if (value === 1) {
+      return true;
+    }
+    if (value === 0) {
+      return false;
+    }
+  }
+
+  return fallback;
+}
+
+function debugTrialSync(message: string, payload: Record<string, unknown>) {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  console.info(`[settings-trial-sync] ${message}`, payload);
 }
 
 function asNonNegativeInteger(value: unknown, fallback = 0): number {
@@ -154,6 +185,14 @@ export async function GET(request: NextRequest) {
     tiktok: asString(profileSource.tiktok) || undefined,
   };
 
+  debugTrialSync("GET resolved billing", {
+    tenantId,
+    trialPaymentCompletedRaw: rawBillingConfig.trialPaymentCompleted ?? rawBillingConfig.trial_payment_completed,
+    trialPaymentCompletedAtRaw: rawBillingConfig.trialPaymentCompletedAt ?? rawBillingConfig.trial_payment_completed_at,
+    trialPaymentCompletedResolved: asBoolean(rawBillingConfig.trialPaymentCompleted ?? rawBillingConfig.trial_payment_completed, false),
+    billingCycleRaw: rawBillingConfig.billingCycle,
+  });
+
   return ok(
     buildResponsePayload({
       tenantName: tenant.name,
@@ -164,8 +203,8 @@ export async function GET(request: NextRequest) {
       notificationConfig: asObject(settings?.notification_config),
       securityConfig,
       planType: billing.planType,
-      trialPaymentCompleted: asBoolean(rawBillingConfig.trialPaymentCompleted, false),
-      trialPaymentCompletedAt: asString(rawBillingConfig.trialPaymentCompletedAt) || null,
+      trialPaymentCompleted: asBoolean(rawBillingConfig.trialPaymentCompleted ?? rawBillingConfig.trial_payment_completed, false),
+      trialPaymentCompletedAt: asString(rawBillingConfig.trialPaymentCompletedAt ?? rawBillingConfig.trial_payment_completed_at) || null,
       billingCycle: normalizeBillingCycle(rawBillingConfig.billingCycle),
       features: billing.features,
       addons: billing.addons as unknown as Record<string, unknown>,
@@ -244,6 +283,34 @@ export async function PUT(request: NextRequest) {
     const requestedBillingCycle = normalizeBillingCycle(billing.billingCycle);
     const requestedAddons = asObject(billing.addons);
     const requestedExtraStudentBlocks = asNonNegativeInteger(billing.extraStudentBlocks ?? billing.extra_student_blocks, 0);
+    const hasRequestedTrialPaymentCompleted =
+      Object.prototype.hasOwnProperty.call(billing, "trialPaymentCompleted")
+      || Object.prototype.hasOwnProperty.call(billing, "trial_payment_completed");
+    const hasRequestedTrialPaymentCompletedAt =
+      Object.prototype.hasOwnProperty.call(billing, "trialPaymentCompletedAt")
+      || Object.prototype.hasOwnProperty.call(billing, "trial_payment_completed_at");
+    const existingTrialPaymentCompleted = asBoolean(
+      existingBillingConfig.trialPaymentCompleted ?? existingBillingConfig.trial_payment_completed,
+      false
+    );
+    const existingTrialPaymentCompletedAt =
+      asString(existingBillingConfig.trialPaymentCompletedAt ?? existingBillingConfig.trial_payment_completed_at) || null;
+    const requestedTrialPaymentCompleted = hasRequestedTrialPaymentCompleted
+      ? asBoolean(billing.trialPaymentCompleted ?? billing.trial_payment_completed, false)
+      : existingTrialPaymentCompleted;
+    const requestedTrialPaymentCompletedAt = hasRequestedTrialPaymentCompletedAt
+      ? asString(billing.trialPaymentCompletedAt ?? billing.trial_payment_completed_at) || null
+      : existingTrialPaymentCompletedAt;
+
+    debugTrialSync("PUT incoming trial fields", {
+      tenantId,
+      hasRequestedTrialPaymentCompleted,
+      hasRequestedTrialPaymentCompletedAt,
+      requestedTrialPaymentCompleted,
+      requestedTrialPaymentCompletedAt,
+      existingTrialPaymentCompleted,
+      existingTrialPaymentCompletedAt,
+    });
     const existingPlanType =
       asString(existingBillingConfig.planType)
       || asString(existingBillingConfig.plan_type)
@@ -282,6 +349,8 @@ export async function PUT(request: NextRequest) {
         planType: nextPlanType,
         billingCycle: requestedBillingCycle,
         extraStudentBlocks: requestedExtraStudentBlocks,
+        trialPaymentCompleted: requestedTrialPaymentCompleted,
+        trialPaymentCompletedAt: requestedTrialPaymentCompletedAt,
       },
       addons: {
         ...asObject(existingPaymentConfig.addons),
@@ -296,6 +365,12 @@ export async function PUT(request: NextRequest) {
     nextPaymentConfig.features = {
       ...resolvedBilling.features,
     };
+
+    debugTrialSync("PUT next payment config trial fields", {
+      tenantId,
+      nextTrialPaymentCompleted: asBoolean(asObject(nextPaymentConfig.billing).trialPaymentCompleted ?? asObject(nextPaymentConfig.billing).trial_payment_completed, false),
+      nextTrialPaymentCompletedAt: asString(asObject(nextPaymentConfig.billing).trialPaymentCompletedAt ?? asObject(nextPaymentConfig.billing).trial_payment_completed_at) || null,
+    });
 
     const { error: upsertError } = await supabaseAdmin
       .from("school_settings")
@@ -324,8 +399,16 @@ export async function PUT(request: NextRequest) {
         notificationConfig: notifications,
         securityConfig: asObject(nextEnrollmentConfig.security_config),
         planType: resolvedBilling.planType,
-        trialPaymentCompleted: asBoolean(asObject(nextPaymentConfig.billing).trialPaymentCompleted, false),
-        trialPaymentCompletedAt: asString(asObject(nextPaymentConfig.billing).trialPaymentCompletedAt) || null,
+        trialPaymentCompleted: asBoolean(
+          asObject(nextPaymentConfig.billing).trialPaymentCompleted
+          ?? asObject(nextPaymentConfig.billing).trial_payment_completed,
+          false
+        ),
+        trialPaymentCompletedAt:
+          asString(
+            asObject(nextPaymentConfig.billing).trialPaymentCompletedAt
+            ?? asObject(nextPaymentConfig.billing).trial_payment_completed_at
+          ) || null,
         billingCycle: normalizeBillingCycle(asObject(nextPaymentConfig.billing).billingCycle),
         features: resolvedBilling.features,
         addons: resolvedBilling.addons as unknown as Record<string, unknown>,

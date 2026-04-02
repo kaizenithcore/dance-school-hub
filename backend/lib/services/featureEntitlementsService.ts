@@ -32,6 +32,23 @@ interface PlanCommercialDefaults {
   extraStudentsBlockPriceEur: number;
 }
 
+interface PlanFeatureDefaults {
+  smartEnrollmentLink: boolean;
+  attendanceSheetsPdf: boolean;
+  quickIncidents: boolean;
+  receptionMode: boolean;
+  examSuite?: boolean;
+  certifier?: boolean;
+  waitlistAutomation: boolean;
+  renewalAutomation: boolean;
+  courseClone: boolean;
+  massCommunicationEmail: boolean;
+  massCommunicationWhatsapp: boolean;
+  autoScheduler: boolean;
+  customRoles: boolean;
+  maxCustomRoles: number;
+}
+
 interface AddonCatalogEntry {
   monthlyPriceEur: number;
 }
@@ -110,7 +127,7 @@ export const featureEntitlementsService = {
     );
 
     const plan = getCommercialPlan(planType);
-    const defaults = plan.featureFlags;
+    const defaults = plan.featureFlags as PlanFeatureDefaults;
     const commercialDefaults: PlanCommercialDefaults = {
       monthlyPriceEur: plan.billing.monthlyPriceEur,
       includedActiveStudents: plan.limits.includedActiveStudents,
@@ -141,7 +158,7 @@ export const featureEntitlementsService = {
       attendanceSheetsPdf: defaults.attendanceSheetsPdf,
       quickIncidents: defaults.quickIncidents,
       receptionMode: defaults.receptionMode,
-      examSuite: defaults.examSuite,
+      examSuite: toBoolean(defaults.examSuite ?? defaults.certifier, false),
       waitlistAutomation: defaults.waitlistAutomation,
       renewalAutomation: defaults.renewalAutomation,
       courseClone: defaults.courseClone,

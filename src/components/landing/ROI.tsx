@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { TrendingDown, TrendingUp } from "lucide-react";
-import { formatEuro, planCatalog, commercialCatalog } from "@/lib/commercialCatalog";
+import { formatAnnualFinancingLabel, formatEuro, planCatalog, commercialCatalog } from "@/lib/commercialCatalog";
 
 const proPlan = planCatalog.pro;
 const narrative = commercialCatalog.pricingNarrative;
@@ -53,7 +53,7 @@ export function ROI() {
               <span className="text-sm font-semibold text-success">Con Nexa Pro</span>
             </div>
             <p className="text-3xl font-bold text-foreground">{formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}<span className="text-base font-normal text-muted-foreground">/mes</span></p>
-            <p className="mt-1 text-xs text-muted-foreground">Facturación anual: {formatEuro(proPlan.billing.annualTotalEur)}/año ({proPlan.billing.annualSavingsLabel})</p>
+            <p className="mt-1 text-xs text-muted-foreground">{formatAnnualFinancingLabel(proPlan.billing.annualTotalEur)} ({proPlan.billing.annualSavingsLabel})</p>
             <p className="mt-2 text-sm text-muted-foreground">
               Automatiza la mayor parte del trabajo administrativo. Sin errores, sin papel, sin estrés.
             </p>

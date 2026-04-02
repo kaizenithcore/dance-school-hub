@@ -29,6 +29,7 @@ export interface StudentRecord {
   accountNumber?: string;
   jointEnrollmentGroupId?: string | null;
   monthlyTotalOverride?: number;
+  extraData?: Record<string, unknown>;
 }
 
 export const MOCK_STUDENTS: StudentRecord[] = [

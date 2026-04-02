@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CalendarClock, ClipboardPlus, CreditCard, Download, Loader2, Search, UserRound } from "lucide-react";
+import { CalendarClock, ClipboardPlus, CreditCard, Download, Loader2, RefreshCw, Search, UserRound } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { ModuleHelpShortcut } from "@/components/layout/ModuleHelpShortcut";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,7 +16,7 @@ import { createIncident, getIncidents, type IncidentRecord, type IncidentType, u
 import { recordPayment } from "@/lib/api/payments";
 import { downloadAttendanceSheetPdf } from "@/lib/api/attendance";
 import { addWaitlistEntry } from "@/lib/api/waitlist";
-import { useEffect } from "react";
+import { toastErrorOnce } from "@/lib/toastPremium";
 
 const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
   absence: "Ausencia",
@@ -24,10 +26,12 @@ const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
 };
 
 export default function ReceptionPage() {
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [students, setStudents] = useState<Awaited<ReturnType<typeof getStudents>>>([]);
   const [classes, setClasses] = useState<Awaited<ReturnType<typeof getClasses>>>([]);
   const [incidents, setIncidents] = useState<IncidentRecord[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const [searchText, setSearchText] = useState("");
@@ -69,9 +73,17 @@ export default function ReceptionPage() {
       .slice(0, 12);
   }, [students, searchText]);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = useCallback(async (options?: { background?: boolean }) => {
+    const background = options?.background ?? false;
+
+    if (background) {
+      setRefreshing(true);
+    } else {
+      setInitialLoading(true);
+    }
+
     try {
+      setLoadError(null);
       const today = new Date().toISOString().slice(0, 10);
       const [studentsData, classesData, incidentsData] = await Promise.all([
         getStudents(),
@@ -87,15 +99,21 @@ export default function ReceptionPage() {
       setSelectedStudentId((current) => current || studentsData[0]?.id || "");
       setIncidentStudentId((current) => current || studentsData[0]?.id || "");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo cargar recepción");
+      const message = error instanceof Error ? error.message : "No se pudo cargar recepción";
+      setLoadError(message);
+      toastErrorOnce("reception-load", message);
     } finally {
-      setLoading(false);
+      if (background) {
+        setRefreshing(false);
+      } else {
+        setInitialLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [loadData]);
 
   const handleRecordPayment = async () => {
     if (!selectedStudentId) {
@@ -236,12 +254,29 @@ export default function ReceptionPage() {
       title="Recepción"
       description="Pantalla rápida para atención diaria: alumnos, pagos, incidencias y asistencia."
       actions={
-        <Button variant="outline" onClick={() => void loadData()} disabled={loading || busy}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Actualizar
-        </Button>
+        <>
+          <ModuleHelpShortcut module="reception" />
+          <Button variant="outline" onClick={() => void loadData({ background: true })} disabled={refreshing || busy}>
+            {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <span className="ml-2">Actualizar</span>
+          </Button>
+        </>
       }
     >
+      {loadError && !initialLoading ? (
+        <Card>
+          <CardContent>
+            <EmptyState
+              type="error"
+              title="Recepción no disponible"
+              description={loadError}
+              actionLabel="Reintentar"
+              onAction={() => void loadData()}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -308,7 +343,7 @@ export default function ReceptionPage() {
               <Label>Importe</Label>
               <Input value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} type="number" min="1" step="0.01" />
             </div>
-            <Button onClick={handleRecordPayment} disabled={loading || busy || !selectedStudentId}>
+            <Button onClick={handleRecordPayment} disabled={busy || !selectedStudentId}>
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
               Guardar pago
             </Button>
@@ -372,7 +407,7 @@ export default function ReceptionPage() {
               <Label>Notas</Label>
               <Input value={incidentNotes} onChange={(event) => setIncidentNotes(event.target.value)} placeholder="Detalle breve" />
             </div>
-            <Button onClick={handleCreateIncident} disabled={loading || busy || !incidentStudentId}>
+            <Button onClick={handleCreateIncident} disabled={busy || !incidentStudentId}>
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardPlus className="mr-2 h-4 w-4" />}
               Guardar incidencia
             </Button>
@@ -402,7 +437,7 @@ export default function ReceptionPage() {
               <Label>Mes</Label>
               <Input type="month" value={attendanceMonth} onChange={(event) => setAttendanceMonth(event.target.value)} />
             </div>
-            <Button onClick={handleDownloadAttendance} disabled={loading || busy || !attendanceClassId}>
+            <Button onClick={handleDownloadAttendance} disabled={busy || !attendanceClassId}>
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               Descargar hoja
             </Button>
@@ -440,7 +475,7 @@ export default function ReceptionPage() {
               <Label>Teléfono</Label>
               <Input value={waitlistPhone} onChange={(event) => setWaitlistPhone(event.target.value)} placeholder="Opcional" />
             </div>
-            <Button onClick={handleAddWaitlist} disabled={loading || busy || !waitlistClassId}>
+            <Button onClick={handleAddWaitlist} disabled={busy || !waitlistClassId}>
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserRound className="mr-2 h-4 w-4" />}
               Añadir a lista de espera
             </Button>
@@ -454,10 +489,21 @@ export default function ReceptionPage() {
           <CardDescription>Control rápido para cerrar o reabrir incidencias.</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="py-6 text-sm text-muted-foreground">Cargando...</div>
+          {initialLoading ? (
+            <EmptyState
+              title="Cargando incidencias"
+              description="Estamos sincronizando las incidencias de hoy para continuar sin interrupciones."
+            />
           ) : incidents.length === 0 ? (
-            <div className="py-6 text-sm text-muted-foreground">No hay incidencias registradas hoy.</div>
+            <EmptyState
+              title="Sin incidencias registradas hoy"
+              description="Cuando registres una nueva incidencia aparecerá aquí para seguimiento rápido."
+              actionLabel="Nueva incidencia"
+              onAction={() => {
+                const section = document.querySelector("[data-reception-new-incident='true']");
+                section?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
           ) : (
             <div className="space-y-2">
               {incidents.map((incident) => (
@@ -483,6 +529,6 @@ export default function ReceptionPage() {
           )}
         </CardContent>
       </Card>
-    </PageContainer>
+        <CardHeader data-reception-new-incident="true">
   );
 }

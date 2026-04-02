@@ -30,14 +30,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const classId = request.nextUrl.searchParams.get("classId");
+    const requestedClassId = request.nextUrl.searchParams.get("classId") || "";
+    const classes = await waitlistService.listClassQueues(auth.context.tenantId);
 
-    const [classes, entries] = await Promise.all([
-      waitlistService.listClassQueues(auth.context.tenantId),
-      classId ? waitlistService.listByClass(auth.context.tenantId, classId) : Promise.resolve([]),
-    ]);
+    const selectedClassId = requestedClassId || classes[0]?.classId || "";
+    const entries = selectedClassId
+      ? await waitlistService.listByClass(auth.context.tenantId, selectedClassId)
+      : [];
 
-    return ok({ classes, entries, selectedClassId: classId || null }, 200, origin);
+    return ok({ classes, entries, selectedClassId: selectedClassId || null }, 200, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load waitlist";
     return fail({ code: "fetch_failed", message }, 500, origin);

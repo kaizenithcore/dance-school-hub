@@ -22,6 +22,16 @@ const DAY_BY_WEEKDAY: Record<number, string> = {
   7: "Domingo",
 };
 
+const SCHEDULE_SELECTED_PRESET_STORAGE_KEY = "schedule-editor-selected-preset-v1";
+
+function readStoredPresetId(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return window.localStorage.getItem(SCHEDULE_SELECTED_PRESET_STORAGE_KEY) || "";
+}
+
 function toDecimalHour(time: string): number {
   const [h, m] = time.split(":").map((part) => Number.parseInt(part || "0", 10));
   const safeH = Number.isFinite(h) ? h : 0;
@@ -56,7 +66,7 @@ export function ScheduleEditor({ previewProposal = null }: ScheduleEditorProps) 
   const [isSaving, setIsSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [presetName, setPresetName] = useState("");
-  const [selectedPresetId, setSelectedPresetId] = useState<string>("");
+  const [selectedPresetId, setSelectedPresetId] = useState<string>(() => readStoredPresetId());
   const [workDays, setWorkDays] = useState<string[]>(["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]);
   const [hourRange, setHourRange] = useState<{ start: number; end: number }>({ start: 8, end: 20 });
 
@@ -87,6 +97,30 @@ export function ScheduleEditor({ previewProposal = null }: ScheduleEditorProps) 
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!selectedPresetId) {
+      window.localStorage.removeItem(SCHEDULE_SELECTED_PRESET_STORAGE_KEY);
+      return;
+    }
+
+    window.localStorage.setItem(SCHEDULE_SELECTED_PRESET_STORAGE_KEY, selectedPresetId);
+  }, [selectedPresetId]);
+
+  useEffect(() => {
+    if (!selectedPresetId) {
+      return;
+    }
+
+    const exists = presets.some((preset) => preset.id === selectedPresetId);
+    if (!exists) {
+      setSelectedPresetId("");
+    }
+  }, [presets, selectedPresetId]);
 
   const gridHours = useMemo(() => {
     const hours: number[] = [];

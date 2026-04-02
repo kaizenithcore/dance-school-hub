@@ -87,6 +87,7 @@ export interface SchedulePreset {
 }
 
 const SCHEDULE_PRESETS_STORAGE_KEY = "schedule-editor-presets-v1";
+const SCHEDULE_SELECTED_ROOM_STORAGE_KEY = "schedule-editor-selected-room-v1";
 
 function readPresetsFromStorage(): SchedulePreset[] {
   if (typeof window === "undefined") {
@@ -125,6 +126,22 @@ function writePresetsToStorage(presets: SchedulePreset[]) {
   window.localStorage.setItem(SCHEDULE_PRESETS_STORAGE_KEY, JSON.stringify(presets));
 }
 
+function readSelectedRoomFromStorage(): string {
+  if (typeof window === "undefined") {
+    return "all";
+  }
+
+  return window.localStorage.getItem(SCHEDULE_SELECTED_ROOM_STORAGE_KEY) || "all";
+}
+
+function writeSelectedRoomToStorage(roomId: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(SCHEDULE_SELECTED_ROOM_STORAGE_KEY, roomId || "all");
+}
+
 function toTime(decimalHour: number): string {
   const h = Math.floor(decimalHour);
   let m = Math.round((decimalHour - h) * 60);
@@ -144,7 +161,7 @@ export function useScheduleEditor() {
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [classCatalog, setClassCatalog] = useState<AvailableScheduleClass[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<string>("all");
+  const [selectedRoom, setSelectedRoom] = useState<string>(() => readSelectedRoomFromStorage());
   const [loading, setLoading] = useState(true);
   const [deletedPersistedIds, setDeletedPersistedIds] = useState<string[]>([]);
   const [presets, setPresets] = useState<SchedulePreset[]>([]);
@@ -235,6 +252,23 @@ export function useScheduleEditor() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    if (!selectedRoom) {
+      setSelectedRoom("all");
+      return;
+    }
+
+    const isAll = selectedRoom === "all";
+    const roomExists = rooms.some((room) => room.id === selectedRoom);
+
+    if (!isAll && !roomExists) {
+      setSelectedRoom("all");
+      return;
+    }
+
+    writeSelectedRoomToStorage(selectedRoom);
+  }, [rooms, selectedRoom]);
 
   useEffect(() => {
     setPresets(readPresetsFromStorage());

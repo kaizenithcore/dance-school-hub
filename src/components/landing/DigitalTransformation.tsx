@@ -3,6 +3,8 @@ import { Smartphone, Globe, Palette, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
+const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=digital_transformation";
+
 const pillars = [
   {
     icon: Smartphone,
@@ -66,8 +68,8 @@ export function DigitalTransformation() {
           className="mt-10 text-center"
         >
           <Button size="lg" variant="outline" className="h-11 rounded-xl" asChild>
-            <Link to="/auth/register">
-              Empezar ahora
+            <Link to={PRO_ANNUAL_CTA_HREF}>
+              Activar con cuota mensual
               <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>

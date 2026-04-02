@@ -16,6 +16,7 @@ const SchedulePage = lazy(() => import("@/pages/admin/SchedulePage"));
 const ClassesPage = lazy(() => import("@/pages/admin/ClassesPage"));
 const RoomsPage = lazy(() => import("@/pages/admin/RoomsPage"));
 const TeachersPage = lazy(() => import("@/pages/admin/TeachersPage"));
+const EconomyPage = lazy(() => import("@/pages/admin/EconomyPage"));
 const StudentsPage = lazy(() => import("@/pages/admin/StudentsPage"));
 const ImportStudentsPage = lazy(() => import("@/pages/admin/ImportStudentsPage"));
 const EnrollmentsPage = lazy(() => import("@/pages/admin/EnrollmentsPage"));
@@ -33,6 +34,7 @@ const BranchesPage = lazy(() => import("@/pages/admin/BranchesPage"));
 const ExamsPage = lazy(() => import("@/pages/admin/ExamsPage"));
 const OrganizationAccessPage = lazy(() => import("@/pages/admin/OrganizationAccessPage"));
 const EventsPage = lazy(() => import("@/pages/admin/EventsPage"));
+const WebsitePage = lazy(() => import("@/pages/admin/WebsitePage"));
 const SchoolPortalHubScreen = lazy(() => import("@/pages/admin/SchoolPortalHubScreen"));
 const SchoolSettingsScreen = lazy(() => import("@/pages/admin/SchoolSettingsScreen"));
 const SchoolAnalyticsScreen = lazy(() => import("@/pages/admin/SchoolAnalyticsScreen"));
@@ -78,7 +80,6 @@ const PrivacyPolicyPage = lazy(() => import("@/pages/legal/PrivacyPolicyPage"));
 const CookiePolicyPage = lazy(() => import("@/pages/legal/CookiePolicyPage"));
 const TermsOfServicePage = lazy(() => import("@/pages/legal/TermsOfServicePage"));
 const LegalNoticePage = lazy(() => import("@/pages/legal/LegalNoticePage"));
-const DpaPage = lazy(() => import("@/pages/legal/DpaPage"));
 
 const GuidesLayout = lazy(() => import("@/pages/guides/GuidesLayout"));
 const GuidesIndexPage = lazy(() => import("@/pages/guides/GuidesIndexPage"));
@@ -129,7 +130,6 @@ const App = () => (
             <Route path="cookies" element={withSuspense(<CookiePolicyPage />)} />
             <Route path="terms" element={withSuspense(<TermsOfServicePage />)} />
             <Route path="notice" element={withSuspense(<LegalNoticePage />)} />
-            <Route path="dpa" element={withSuspense(<DpaPage />)} />
           </Route>
           <Route path="/guides" element={withSuspense(<GuidesLayout />)}>
             <Route index element={withSuspense(<GuidesIndexPage />)} />
@@ -154,6 +154,7 @@ const App = () => (
             <Route path="classes" element={withSuspense(<ClassesPage />)} />
             <Route path="rooms" element={withSuspense(<RoomsPage />)} />
             <Route path="teachers" element={withSuspense(<TeachersPage />)} />
+            <Route path="economia" element={withSuspense(<EconomyPage />)} />
             <Route path="students" element={withSuspense(<StudentsPage />)} />
             <Route path="students/import" element={withSuspense(<ImportStudentsPage />)} />
             <Route path="enrollments" element={withSuspense(<EnrollmentsPage />)} />
@@ -169,12 +170,13 @@ const App = () => (
             <Route path="branches" element={withSuspense(<BranchesPage />)} />
             <Route path="exams" element={withSuspense(<ExamsPage />)} />
             <Route path="events" element={withSuspense(<EventsPage />)} />
+            <Route path="website" element={withSuspense(<WebsitePage />)} />
             <Route path="school/portal" element={withSuspense(<SchoolPortalHubScreen />)} />
-            <Route path="school/settings" element={withSuspense(<SchoolSettingsScreen />)} />
-            <Route path="school/analytics" element={withSuspense(<SchoolAnalyticsScreen />)} />
-            <Route path="school/posts" element={withSuspense(<PostsManagementScreen />)} />
-            <Route path="school/announcements" element={withSuspense(<AnnouncementsScreen />)} />
-            <Route path="school/gallery" element={withSuspense(<GalleryManagementScreen />)} />
+            <Route path="school/settings" element={withSuspense(<SchoolPortalHubScreen />)} />
+            <Route path="school/analytics" element={withSuspense(<SchoolPortalHubScreen />)} />
+            <Route path="school/posts" element={withSuspense(<SchoolPortalHubScreen />)} />
+            <Route path="school/announcements" element={withSuspense(<SchoolPortalHubScreen />)} />
+            <Route path="school/gallery" element={withSuspense(<SchoolPortalHubScreen />)} />
             <Route path="organization-access" element={withSuspense(<OrganizationAccessPage />)} />
             <Route path="settings" element={withSuspense(<SettingsPage />)} />
           </Route>
@@ -186,6 +188,7 @@ const App = () => (
           <Route path="/portal" element={withSuspense(<StudentPortalLandingPage />)} />
           <Route path="/portal/explorer" element={withSuspense(<SchoolExplorerPage />)} />
           <Route path="/portal/mockup" element={withSuspense(<StudentPortalMockupPage />)} />
+          <Route path="/dashboard/economia" element={<Navigate to="/admin/economia" replace />} />
           <Route path="/portal/onboarding" element={withSuspense(<PortalOnboarding />)} />
           <Route path="/portal/app" element={withSuspense(<PortalAppShell />)}>
             <Route index element={withSuspense(<PortalHome />)} />

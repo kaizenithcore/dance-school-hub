@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
 import { StudentRecord } from "@/lib/data/mockStudents";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import type { SchoolStudentField } from "@/lib/api/studentFields";
 
 interface StudentFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   student?: StudentRecord | null;
+  customFields?: SchoolStudentField[];
   onSave: (data: Omit<StudentRecord, "id">) => Promise<boolean>;
 }
 
@@ -26,6 +28,7 @@ const EMPTY: Omit<StudentRecord, "id"> = {
   payerPhone: "",
   preferredPaymentMethod: "cash",
   accountNumber: "",
+  extraData: {},
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,7 +43,7 @@ function isValidDate(value: string): boolean {
   return !Number.isNaN(date.getTime());
 }
 
-export function StudentFormModal({ open, onOpenChange, student, onSave }: StudentFormModalProps) {
+export function StudentFormModal({ open, onOpenChange, student, customFields = [], onSave }: StudentFormModalProps) {
   const isEdit = !!student;
   const [form, setForm] = useState<Omit<StudentRecord, "id">>(EMPTY);
   const [hasGuardian, setHasGuardian] = useState(false);
@@ -64,7 +67,7 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
   useEffect(() => {
     if (student) {
       const { id, ...rest } = student;
-      setForm(rest);
+      setForm({ ...rest, extraData: rest.extraData || {} });
       setHasGuardian(!!student.guardian);
     } else {
       setForm(EMPTY);
@@ -172,6 +175,13 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
       e.accountNumber = "Cuenta inválida";
     }
 
+    for (const field of customFields.filter((item) => item.visible && item.required)) {
+      const rawValue = form.extraData?.[field.key];
+      if (rawValue == null || String(rawValue).trim() === "") {
+        e[`custom_${field.key}`] = "Obligatorio";
+      }
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -198,6 +208,8 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
       data.accountNumber = undefined;
     }
 
+    data.extraData = { ...(data.extraData || {}) };
+
     setIsLoading(true);
     try {
       const ok = await onSave(data);
@@ -214,6 +226,9 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Alumno" : "Nuevo Alumno"}</DialogTitle>
+          <DialogDescription>
+            {isEdit ? "Modifica los datos del alumno y guarda cambios." : "Completa la ficha para registrar un nuevo alumno."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
@@ -466,6 +481,80 @@ export function StudentFormModal({ open, onOpenChange, student, onSave }: Studen
                   <Input type="email" value={form.guardian?.email || ""} onChange={(e) => setGuardian("email", e.target.value)} disabled={isLoading} className={errors.guardian_email ? "border-destructive" : ""} />
                   {errors.guardian_email && <p className="text-xs text-destructive">{errors.guardian_email}</p>}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {customFields.filter((field) => field.visible).length > 0 && (
+            <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Campos personalizados</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {customFields.filter((field) => field.visible).map((field) => {
+                  const value = form.extraData?.[field.key];
+                  const errorKey = `custom_${field.key}`;
+
+                  if (field.type === "date") {
+                    return (
+                      <div className="space-y-1.5" key={field.id}>
+                        <Label className="text-sm">{field.label}{field.required ? " *" : ""}</Label>
+                        <Input
+                          type="date"
+                          value={typeof value === "string" ? value : ""}
+                          onChange={(event) => set("extraData", { ...(form.extraData || {}), [field.key]: event.target.value })}
+                          disabled={isLoading}
+                          className={errors[errorKey] ? "border-destructive" : ""}
+                        />
+                        {errors[errorKey] && <p className="text-xs text-destructive">{errors[errorKey]}</p>}
+                      </div>
+                    );
+                  }
+
+                  if (field.type === "number") {
+                    return (
+                      <div className="space-y-1.5" key={field.id}>
+                        <Label className="text-sm">{field.label}{field.required ? " *" : ""}</Label>
+                        <Input
+                          type="number"
+                          value={value == null ? "" : String(value)}
+                          onChange={(event) => set("extraData", { ...(form.extraData || {}), [field.key]: event.target.value })}
+                          disabled={isLoading}
+                          className={errors[errorKey] ? "border-destructive" : ""}
+                        />
+                        {errors[errorKey] && <p className="text-xs text-destructive">{errors[errorKey]}</p>}
+                      </div>
+                    );
+                  }
+
+                  if (field.type === "select") {
+                    return (
+                      <div className="space-y-1.5" key={field.id}>
+                        <Label className="text-sm">{field.label}{field.required ? " *" : ""}</Label>
+                        <Input
+                          value={value == null ? "" : String(value)}
+                          onChange={(event) => set("extraData", { ...(form.extraData || {}), [field.key]: event.target.value })}
+                          placeholder="Valor"
+                          disabled={isLoading}
+                          className={errors[errorKey] ? "border-destructive" : ""}
+                        />
+                        {errors[errorKey] && <p className="text-xs text-destructive">{errors[errorKey]}</p>}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-1.5" key={field.id}>
+                      <Label className="text-sm">{field.label}{field.required ? " *" : ""}</Label>
+                      <Input
+                        value={value == null ? "" : String(value)}
+                        onChange={(event) => set("extraData", { ...(form.extraData || {}), [field.key]: event.target.value })}
+                        placeholder={field.label}
+                        disabled={isLoading}
+                        className={errors[errorKey] ? "border-destructive" : ""}
+                      />
+                      {errors[errorKey] && <p className="text-xs text-destructive">{errors[errorKey]}</p>}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

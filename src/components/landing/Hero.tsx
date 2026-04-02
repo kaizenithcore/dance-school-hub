@@ -3,10 +3,12 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
-import { formatEuro, planCatalog } from "@/lib/commercialCatalog";
-import { SharedDemoCta } from "@/components/landing/SharedDemoCta";
+import { formatAnnualFinancingLabel, formatEuro, getInterestFreeInstallment, planCatalog } from "@/lib/commercialCatalog";
+import { activateDemoAdminSession, DEMO_ADMIN_SLUG } from "@/lib/demoAdmin";
 
 const proPlan = planCatalog.pro;
+const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=hero";
+const HERO_DEMO_ADMIN_HREF = `/admin?demo=${DEMO_ADMIN_SLUG}`;
 
 const benefits = [
   "Ahorra horas cada semana",
@@ -21,8 +23,21 @@ export function Hero() {
       category: "funnel",
       metadata: {
         section: "hero",
-        ctaLabel: "Empezar con Pro Anual",
-        destination: "/auth/register",
+        ctaLabel: "Activar con cuota mensual",
+        destination: PRO_ANNUAL_CTA_HREF,
+      },
+    });
+  };
+
+  const handleDemoClick = () => {
+    activateDemoAdminSession(DEMO_ADMIN_SLUG);
+    trackPortalEvent({
+      eventName: "click_cta_secondary",
+      category: "funnel",
+      metadata: {
+        section: "hero",
+        ctaLabel: "Ver cómo funciona",
+        destination: HERO_DEMO_ADMIN_HREF,
       },
     });
   };
@@ -51,28 +66,36 @@ export function Hero() {
 
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-lg">
               Gestiona alumnos, clases, pagos y comunicación desde un único lugar.
-              Empieza desde {formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}/mes con el plan anual.
+              {/* Desde {formatEuro(getInterestFreeInstallment(proPlan.billing.annualTotalEur, 6))}/mes en 6 cuotas.  */}
+              Desde {formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}/mes o {formatEuro(proPlan.billing.annualTotalEur)} al año con ahorro incluido.
+              Financiación sin interés y prueba gratis de 14 días.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" className="h-12 rounded-xl px-7 text-base font-semibold shadow-md hover:shadow-lg" asChild>
-                <Link to="/auth/register" onClick={handlePrimaryClick}>
-                  Probar gratis
+                <Link to={PRO_ANNUAL_CTA_HREF} onClick={handlePrimaryClick}>
+                  Activar con cuota mensual
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
-              <SharedDemoCta
-                section="hero"
-                label="Ver cómo funciona"
-                className="h-12 rounded-xl px-7 text-base"
-              />
+              <Button size="lg" variant="outline" className="h-12 rounded-xl px-7 text-base" asChild>
+                <Link to={HERO_DEMO_ADMIN_HREF} onClick={handleDemoClick}>
+                  Ver cómo funciona
+                </Link>
+              </Button>
             </div>
 
             <div className="mt-5 flex items-center gap-4 text-xs text-muted-foreground">
-              <span>{formatEuro(proPlan.billing.annualEffectiveMonthlyPriceEur)}/mes anual</span>
+              <span>{formatAnnualFinancingLabel(proPlan.billing.annualTotalEur)}</span>
               <span className="text-border">|</span>
               <span className="line-through opacity-60">{formatEuro(proPlan.billing.monthlyPriceEur)}/mes</span>
               <span className="text-success font-medium">{proPlan.billing.annualSavingsLabel}</span>
+            </div>
+
+            <div className="mt-3 space-y-0.5 text-xs text-muted-foreground">
+              <p>Sin comisiones ocultas</p>
+              <p>Sin interés</p>
+              <p>Cambio de plan prorrateado</p>
             </div>
 
             <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-muted-foreground">

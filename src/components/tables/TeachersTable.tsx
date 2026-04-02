@@ -20,6 +20,10 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
 const PAGE_SIZE = 8;
 const PAGE_PREFS_KEY = "teachers-table-page";
 
+function teacherSalaryValue(teacher: TeacherRecord): number {
+  return Number((teacher as { salay?: number; aulary?: number }).salay ?? (teacher as { salay?: number; aulary?: number }).aulary ?? 0) || 0;
+}
+
 type TeacherSortKey = "name" | "email" | "phone" | "classes" | "salary" | "status";
 
 interface TeachersTableProps {
@@ -77,7 +81,7 @@ export function TeachersTable({
           case "classes":
             return teacher.assignedClasses.length;
           case "salary":
-            return teacher.aulary;
+            return teacherSalaryValue(teacher);
           case "status":
             return STATUS_MAP[teacher.status]?.label || teacher.status;
           default:
@@ -99,7 +103,7 @@ export function TeachersTable({
   }, [filtered, sortKey, sortDirection]);
 
   const totalSalary = useMemo(() => {
-    return filtered.reduce((sum, teacher) => sum + (teacher.aulary || 0), 0);
+    return filtered.reduce((sum, teacher) => sum + teacherSalaryValue(teacher), 0);
   }, [filtered]);
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
@@ -232,7 +236,7 @@ export function TeachersTable({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <span className="text-sm font-semibold text-foreground">${teacher.aulary}</span>
+                        <span className="text-sm font-semibold text-foreground">${teacherSalaryValue(teacher)}</span>
                         <span className="text-[10px] text-muted-foreground">/mes</span>
                       </div>
                     </TableCell>

@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
-import { Calendar, BookOpen, Award, PartyPopper, User, Trophy, CheckCircle2 } from "lucide-react";
+import { Calendar, BookOpen, Award, PartyPopper, User, Trophy, CheckCircle2, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const features = [
   { icon: Calendar, title: "Horarios personales", desc: "Cada alumno ve su horario actualizado." },
@@ -109,6 +111,20 @@ export function StudentPortal() {
               </div>
             </div>
           </motion.div>
+        </div>
+        <div className="mt-12 text-center space-x-4">
+                <Button size="lg" asChild>
+                  <Link to="/portal">
+                    Ver más
+                    <ArrowRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link to="/portal/app">
+                    Ver demo
+                    <ArrowRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </Button>
         </div>
       </div>
     </section>

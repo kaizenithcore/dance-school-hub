@@ -74,6 +74,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics | null> {
 
 export interface AnalyticsData {
   revenueByMonth: Record<string, number>;
+  pendingByMonth: Record<string, number>;
+  collectionRateByMonth: Record<string, number>;
   enrollmentsByStatus: Record<string, number>;
   studentsByClass: Record<string, number>;
   methodDistribution: Record<string, number>;
@@ -83,6 +85,18 @@ export interface AnalyticsData {
   avgRevenuePerPayingStudent: number;
   avgPaymentAmount: number;
   collectionRatePct: number;
+  activeStudentsCount: number;
+  payingStudentsCount: number;
+  payingStudentsPct: number;
+  potentialRevenue: number;
+  potentialCollectionPct: number;
+  overduePaymentsCount: number;
+  overdueStudentsCount: number;
+  overdueRevenue: number;
+  occupancyPct: number;
+  totalCapacity: number;
+  totalConfirmedEnrollments: number;
+  revenuePerConfirmedEnrollment: number;
   topPayingStudents: Array<{
     studentId: string;
     studentName: string;
@@ -177,6 +191,17 @@ export async function markInvoiceAsPaid(
   );
 
   return response.success && response.data ? response.data : null;
+}
+
+export async function deleteInvoice(invoiceId: string): Promise<boolean> {
+  const response = await apiRequest<{ id: string; deleted: boolean }>(
+    `/api/admin/invoices/${invoiceId}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  return response.success;
 }
 
 export interface ReceiptBatchResult {

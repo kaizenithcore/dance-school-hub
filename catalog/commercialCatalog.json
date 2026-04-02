@@ -339,7 +339,7 @@
       "renewalPolicy": "Renovacion normal: Pro anual + mantenimiento web si aplica",
       "launchOffer": {
         "label": "Lanzamiento escuelas fundadoras",
-        "discountPercent": 10,
+        "discountPercent": 20,
         "appliesTo": "pack_first_year",
         "note": "El descuento de lanzamiento se aplica al pago anual del pack, no al mensual"
       },
@@ -437,7 +437,7 @@
       "title": "Si tu asociación usa Certifier, tú tienes ventaja",
       "subtitle": "Las escuelas dentro de asociaciones que usan Certifier obtienen acceso directo al ecosistema Nexa.",
       "benefits": [
-        "10% de descuento en Plan Pro anual",
+        "15% de descuento en Plan Pro anual",
         "Activación inmediata sin configuración",
         "Importación automática de alumnos",
         "Historial de exámenes ya integrado"

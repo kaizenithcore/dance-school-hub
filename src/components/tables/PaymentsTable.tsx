@@ -183,11 +183,11 @@ export function PaymentsTable({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg border border-border bg-card p-3 shadow-soft">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Recaudado</p>
-          <p className="text-xl font-bold text-success">${totalCollected.toLocaleString()}</p>
+          <p className="text-xl font-bold text-success">€{totalCollected.toLocaleString()}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-3 shadow-soft">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Pendiente</p>
-          <p className="text-xl font-bold text-warning">${totalPending.toLocaleString()}</p>
+          <p className="text-xl font-bold text-warning">€{totalPending.toLocaleString()}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-3 shadow-soft">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Transacciones</p>
@@ -327,7 +327,7 @@ export function PaymentsTable({
                     </TableCell>
                     <TableCell className="text-right text-sm font-semibold text-foreground">
                       <div className="flex items-center justify-end gap-1">
-                        ${payment.amount.toLocaleString()}
+                        €{payment.amount.toLocaleString()}
                         {payment.amountChanged && (
                           <span className="text-[10px] text-warning">⚠</span>
                         )}

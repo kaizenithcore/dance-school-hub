@@ -19,7 +19,7 @@ export interface TeacherRecord {
   assignedClasses: Class[];
   status: "active" | "inactive";
   hireDate: string;
-  aulary: number;
+  salay: number;
   notes?: string;
 }
 
@@ -55,7 +55,7 @@ export const MOCK_TEACHERS: TeacherRecord[] = [
     ],
     status: "active",
     hireDate: "2015-01-15",
-    aulary: 2500,
+    salay: 2500,
   },
   {
     id: "t2",
@@ -78,7 +78,7 @@ export const MOCK_TEACHERS: TeacherRecord[] = [
     ],
     status: "active",
     hireDate: "2018-05-20",
-    aulary: 2200,
+    salay: 2200,
   },
   {
     id: "t3",
@@ -101,7 +101,7 @@ export const MOCK_TEACHERS: TeacherRecord[] = [
     ],
     status: "active",
     hireDate: "2019-09-10",
-    aulary: 1900,
+    salay: 1900,
   },
   {
     id: "t4",
@@ -124,6 +124,6 @@ export const MOCK_TEACHERS: TeacherRecord[] = [
     ],
     status: "active",
     hireDate: "2020-02-01",
-    aulary: 2100,
+    salay: 2100,
   },
 ];

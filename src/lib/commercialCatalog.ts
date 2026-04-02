@@ -2,7 +2,7 @@ import commercialCatalogJson from "../../catalog/commercialCatalog.json";
 
 export type PlanType = "starter" | "pro" | "enterprise";
 export type SubscriptionAddonKey = "customDomain" | "prioritySupport" | "waitlistAutomation" | "renewalAutomation";
-export type SubscriptionAddonCatalogKey = SubscriptionAddonKey | "extraRoles" | "branding";
+export type SubscriptionAddonCatalogKey = SubscriptionAddonKey | "extraRoles";
 
 interface PlanFeatureFlags {
   smartEnrollmentLink: boolean;
@@ -75,7 +75,6 @@ interface CommercialCatalog {
     anchor: string;
     comparison: string;
     focus: string;
-    launchDiscountStrategy?: string;
   };
   examSuit?: {
     plans?: {
@@ -106,16 +105,41 @@ export const planOrder = commercialCatalog.planOrder;
 export const planCatalog = commercialCatalog.plans;
 export const subscriptionAddonCatalog = commercialCatalog.subscriptionAddons;
 export const professionalServicesCatalog = commercialCatalog.professionalServices;
+export const ANNUAL_FINANCING_TERMS = [3, 6] as const;
 
 function isSelectableSubscriptionAddonKey(
   key: SubscriptionAddonCatalogKey
 ): key is SubscriptionAddonKey {
-  return key !== "extraRoles" && key !== "branding";
+  return key !== "extraRoles";
 }
 
 
 export function formatEuro(value: number) {
   return `${value.toLocaleString("es-ES")}€`;
+}
+
+export function getInterestFreeInstallment(totalEur: number, months: number) {
+  if (!Number.isFinite(totalEur) || totalEur <= 0 || !Number.isFinite(months) || months <= 0) {
+    return 0;
+  }
+
+  return Math.round((totalEur / months) * 100) / 100;
+}
+
+export function formatAnnualFinancing(totalEur: number, terms: readonly number[] = ANNUAL_FINANCING_TERMS) {
+  return terms.map((months) => ({
+    months,
+    installmentEur: getInterestFreeInstallment(totalEur, months),
+    label: `${months}x ${formatEuro(getInterestFreeInstallment(totalEur, months))}`,
+  }));
+}
+
+export function formatAnnualFinancingLabel(totalEur: number, terms: readonly number[] = ANNUAL_FINANCING_TERMS) {
+  const options = formatAnnualFinancing(totalEur, terms)
+    .map((option) => option.label)
+    .join(" o ");
+
+  return `Sin intereses: ${options}`;
 }
 
 export function getMinimumExtraStudentBlockPriceEur() {

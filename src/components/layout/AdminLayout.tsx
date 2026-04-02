@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useOutlet } from "react-router-dom";
 import { AdminSidebar } from "./AdminSidebar";
 import { Topbar } from "./Topbar";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedPage } from "@/components/ui/animated";
 import { PlanDevOverlay } from "@/components/dev/PlanDevOverlay";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
@@ -11,12 +11,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getSchoolSettings, updateSchoolSettings } from "@/lib/api/settings";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getSchoolSettings, syncTrialPaymentStatusFromStripe, updateSchoolSettings } from "@/lib/api/settings";
 import { redirectToBillingCheckout, redirectToExamSubscriptionCheckout } from "@/lib/api/stripe";
 import { toast } from "sonner";
 import type { BillingCycle } from "@/lib/api/stripe";
-import { Check, Copy } from "lucide-react";
-import { commercialCatalog, getSelectableSubscriptionAddons, planCatalog, planOrder, type PlanType as CatalogPlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
+import { Check, CircleHelp, Copy } from "lucide-react";
+import { commercialCatalog, getInterestFreeInstallment, getSelectableSubscriptionAddons, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType as CatalogPlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
+import { getSelectedAdminTenantId } from "@/lib/adminContextSelection";
 import { isDemoAdminSessionActive } from "@/lib/demoAdmin";
 
 const LOGIN_WELCOME_KEY = "nexa:welcome-overlay-until";
@@ -26,23 +28,60 @@ const SECTION_INTRO_STORAGE_KEY = "nexa:admin-section-intros:v1";
 const SECTION_INTRO_MODAL_DURATION_MS = 5200;
 const FIRST_LOGIN_GUIDE_PENDING_KEY = "nexa:first-login-guide-pending";
 const FIRST_LOGIN_GUIDE_SHOWN_KEY = "nexa:first-login-guide-shown:v1";
+const QUICK_HELP_HINT_AUTOHIDE_MS = 2600;
 const FREE_TRIAL_DAYS = 14;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const TRIAL_WARNING_DAYS = 3;
+const TRIAL_STRIPE_SYNC_TOAST_KEY = "nexa:trial-stripe-sync-toast:v1";
 const FOUNDERS_PROMO_CODE = "FOUNDERS";
 const FOUNDERS_MONTHLY_PROMO_PERCENT = 50;
 const FOUNDERS_ANNUAL_PROMO_PERCENT = 15;
 const CHECKOUT_TOTAL_STEPS = 3;
+const SCROLL_POSITION_KEY_PREFIX = "nexa:admin:scroll:";
+const CHECKOUT_PAYMENT_METHOD_KEY = "nexa:checkout:payment-method:v1";
+const CHECKOUT_ALLOW_CHANGE_LATER_KEY = "nexa:checkout:allow-change-later:v1";
+const CHECKOUT_SELECTION_KEY = "nexa:checkout:selection:v1";
+const ADMIN_HOURLY_COST_EUR = 18;
+const NET_ENROLLMENT_CONTRIBUTION_EUR = 55;
+const COMMERCIAL_GUARANTEE_DAYS = 30;
+const COMMERCIAL_INCLUDED_ADDON_MONTHS = 3;
 
 type CheckoutPlanType = CatalogPlanType;
 type CheckoutAddonKey = SubscriptionAddonKey;
 type CheckoutFlowType = "nexa" | "certifier" | "certifierLite";
+type AnnualFinancingMonths = 3 | 6 | 12;
+type CheckoutPaymentMethod = "card" | "sepa" | "transfer";
+
+type SegmentCase = {
+  key: "small" | "medium" | "multi";
+  title: string;
+  activeStudents: number;
+  planType: CheckoutPlanType;
+};
 
 const CHECKOUT_PLANS: Record<CheckoutPlanType, { label: string; monthlyPriceEur: number; students: number }> = {
   starter: { label: planCatalog.starter.name, monthlyPriceEur: planCatalog.starter.billing.monthlyPriceEur, students: planCatalog.starter.limits.includedActiveStudents },
   pro: { label: planCatalog.pro.name, monthlyPriceEur: planCatalog.pro.billing.monthlyPriceEur, students: planCatalog.pro.limits.includedActiveStudents },
   enterprise: { label: planCatalog.enterprise.name, monthlyPriceEur: planCatalog.enterprise.billing.monthlyPriceEur, students: planCatalog.enterprise.limits.includedActiveStudents },
 };
+
+const SEGMENT_CASES: readonly SegmentCase[] = [
+  { key: "small", title: "Escuela pequeña", activeStudents: 60, planType: "starter" },
+  { key: "medium", title: "Escuela mediana", activeStudents: 180, planType: "pro" },
+  { key: "multi", title: "Multi-sede", activeStudents: 420, planType: "enterprise" },
+];
+
+function getAdvisorRecommendation(students: number): { recommendedPlan: CheckoutPlanType; recommendedTermMonths: AnnualFinancingMonths; studentsHint: string } {
+  if (students < 200) {
+    return { recommendedPlan: "starter", recommendedTermMonths: 6, studentsHint: "Menos de 200 alumnos" };
+  }
+
+  if (students < 700) {
+    return { recommendedPlan: "pro", recommendedTermMonths: 6, studentsHint: "Entre 200 y 699 alumnos" };
+  }
+
+  return { recommendedPlan: "enterprise", recommendedTermMonths: 12, studentsHint: "700 alumnos o más" };
+}
 
 const CERTIFIER_ASSOCIATIONS_PLAN = commercialCatalog.examSuit?.plans?.associations;
 const CERTIFIER_SCHOOLS_PLAN = commercialCatalog.examSuit?.plans?.schools;
@@ -332,7 +371,7 @@ function persistSeenIntros(seen: Set<string>) {
 }
 
 export function AdminLayout() {
-  const { billing, planLabel, refresh } = useBillingEntitlements();
+  const { billing, planLabel, refresh, loading: billingLoading } = useBillingEntitlements();
   const { authContext } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -346,6 +385,7 @@ export function AdminLayout() {
   const [checkoutFlow, setCheckoutFlow] = useState<CheckoutFlowType>("nexa");
   const [checkoutPlanType, setCheckoutPlanType] = useState<CheckoutPlanType>("starter");
   const [checkoutBillingCycle, setCheckoutBillingCycle] = useState<BillingCycle>("annual");
+  const [checkoutAnnualFinancingMonths, setCheckoutAnnualFinancingMonths] = useState<AnnualFinancingMonths>(6);
   const [checkoutStep, setCheckoutStep] = useState(1);
   const [checkoutAddons, setCheckoutAddons] = useState<Record<CheckoutAddonKey, boolean>>({
     customDomain: false,
@@ -354,19 +394,43 @@ export function AdminLayout() {
     renewalAutomation: false,
   });
   const [foundersCodeCopied, setFoundersCodeCopied] = useState(false);
+  const [usePromoInSimulator, setUsePromoInSimulator] = useState(true);
+  const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState<CheckoutPaymentMethod>(() => {
+    const stored = window.localStorage.getItem(CHECKOUT_PAYMENT_METHOD_KEY);
+    if (stored === "sepa" || stored === "transfer") {
+      return stored;
+    }
+
+    return "card";
+  });
+  const [allowChangePaymentLater, setAllowChangePaymentLater] = useState(() => window.localStorage.getItem(CHECKOUT_ALLOW_CHANGE_LATER_KEY) !== "0");
+  const [checkoutStripeFailed, setCheckoutStripeFailed] = useState(false);
+  const [reserveFallbackLoading, setReserveFallbackLoading] = useState(false);
+  const [reserveFallbackSaved, setReserveFallbackSaved] = useState(false);
+  const [checkoutTermsAccepted, setCheckoutTermsAccepted] = useState(true);
+  const [planAdvisorStudents, setPlanAdvisorStudents] = useState(260);
   const [trialLockDismissed, setTrialLockDismissed] = useState(false);
+  const [trialStatusSyncing, setTrialStatusSyncing] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [showQuickHelpHint, setShowQuickHelpHint] = useState(false);
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const firstRenderRef = useRef(true);
   const lastIntroPathRef = useRef<string | null>(null);
   const checkoutInitializedRef = useRef(false);
+  const trialStripeSyncAttemptedRef = useRef(false);
+  const quickHelpHideTimerRef = useRef<number | null>(null);
   const isDemoSession = isDemoAdminSessionActive();
+  const sectionIntroForPath = useMemo(() => getSectionIntro(location.pathname), [location.pathname]);
 
   const trialStatus = useMemo(() => {
     if (!authContext) {
       return null;
     }
 
-    const activeMembership = authContext.memberships.find((membership) => membership.tenantId === authContext.tenant.id)
+    const selectedTenantId = getSelectedAdminTenantId();
+    const activeTenantId = selectedTenantId || authContext.tenant.id;
+
+    const activeMembership = authContext.memberships.find((membership) => membership.tenantId === activeTenantId)
       ?? authContext.memberships[0]
       ?? null;
 
@@ -402,8 +466,24 @@ export function AdminLayout() {
   }, [trialStatus]);
 
   const isTrialLocked = Boolean(trialStatus?.expired && !billing.trialPaymentCompleted);
+  const showTrialLoadingModal = isTrialLocked && (billingLoading || trialStatusSyncing);
   const canDismissTrialLockInDev = import.meta.env.DEV;
-  const showTrialLockModal = isTrialLocked && !(canDismissTrialLockInDev && trialLockDismissed);
+  const showTrialLockModal = isTrialLocked && !showTrialLoadingModal && !(canDismissTrialLockInDev && trialLockDismissed);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    console.info("[trial-sync] lock-evaluation", {
+      trialExpired: Boolean(trialStatus?.expired),
+      trialRemainingDays: trialStatus?.remainingDays ?? null,
+      trialPaymentCompleted: billing.trialPaymentCompleted,
+      trialPaymentCompletedAt: billing.trialPaymentCompletedAt,
+      isTrialLocked,
+      showTrialLockModal,
+    });
+  }, [billing.trialPaymentCompleted, billing.trialPaymentCompletedAt, isTrialLocked, showTrialLockModal, trialStatus]);
 
   const bannerTrialText = useMemo(() => {
     if (!trialStatus || trialStatus.remainingDays <= 0) {
@@ -425,11 +505,89 @@ export function AdminLayout() {
     return trialStatus.remainingDays <= TRIAL_WARNING_DAYS ? "font-medium text-amber-700" : "";
   }, [trialStatus]);
 
+  const openContextualHelp = useCallback(() => {
+    if (showTrialLockModal || showTrialLoadingModal) {
+      return;
+    }
+
+    if (sectionIntroForPath) {
+      setActiveSectionIntro(sectionIntroForPath);
+      return;
+    }
+
+    setShowFirstLoginGuide(true);
+  }, [sectionIntroForPath, showTrialLoadingModal, showTrialLockModal]);
+
+  const hideQuickHelpHint = useCallback(() => {
+    if (quickHelpHideTimerRef.current) {
+      window.clearTimeout(quickHelpHideTimerRef.current);
+    }
+
+    quickHelpHideTimerRef.current = window.setTimeout(() => {
+      setShowQuickHelpHint(false);
+      quickHelpHideTimerRef.current = null;
+    }, QUICK_HELP_HINT_AUTOHIDE_MS);
+  }, []);
+
+  const revealQuickHelpHint = useCallback(() => {
+    if (!sectionIntroForPath || showTrialLockModal || showTrialLoadingModal) {
+      return;
+    }
+
+    if (quickHelpHideTimerRef.current) {
+      window.clearTimeout(quickHelpHideTimerRef.current);
+      quickHelpHideTimerRef.current = null;
+    }
+
+    setShowQuickHelpHint(true);
+    hideQuickHelpHint();
+  }, [hideQuickHelpHint, sectionIntroForPath, showTrialLoadingModal, showTrialLockModal]);
+
   useEffect(() => {
     if (!isTrialLocked && trialLockDismissed) {
       setTrialLockDismissed(false);
     }
   }, [isTrialLocked, trialLockDismissed]);
+
+  useEffect(() => {
+    if (!isTrialLocked || billing.trialPaymentCompleted) {
+      trialStripeSyncAttemptedRef.current = false;
+      setTrialStatusSyncing(false);
+      return;
+    }
+
+    if (trialStripeSyncAttemptedRef.current) {
+      return;
+    }
+
+    trialStripeSyncAttemptedRef.current = true;
+    setTrialStatusSyncing(true);
+
+    void (async () => {
+      try {
+        const result = await syncTrialPaymentStatusFromStripe();
+        if (import.meta.env.DEV) {
+          console.info("[trial-sync] backend stripe reconciliation", result);
+        }
+
+        if (result?.synced) {
+          await refresh();
+
+          const shouldToast = typeof window !== "undefined" && !window.sessionStorage.getItem(TRIAL_STRIPE_SYNC_TOAST_KEY);
+          if (shouldToast) {
+            toast.success("Pago detectado en Stripe. Se actualizó el estado de tu prueba.");
+            window.sessionStorage.setItem(TRIAL_STRIPE_SYNC_TOAST_KEY, "1");
+          }
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn("[trial-sync] stripe reconciliation failed", error);
+        }
+      } finally {
+        setTrialStatusSyncing(false);
+      }
+    })();
+  }, [billing.trialPaymentCompleted, isTrialLocked, refresh]);
 
   useEffect(() => {
     if (checkoutInitializedRef.current) {
@@ -503,6 +661,13 @@ export function AdminLayout() {
   const foundersPromoPercent = checkoutBillingCycle === "annual" ? FOUNDERS_ANNUAL_PROMO_PERCENT : FOUNDERS_MONTHLY_PROMO_PERCENT;
   const foundersDiscountAmount = Math.round((checkoutBillingCycle === "annual" ? checkoutAnnualSubtotal : checkoutMonthlySubtotal) * (foundersPromoPercent / 100));
   const checkoutTotalWithFounders = Math.max(0, (checkoutBillingCycle === "annual" ? checkoutAnnualSubtotal : checkoutMonthlySubtotal) - foundersDiscountAmount);
+  const checkoutAnnualFinancedInstallment = getInterestFreeInstallment(checkoutAnnualSubtotal, checkoutAnnualFinancingMonths);
+  const checkoutAnnualFinancedWithFounders = getInterestFreeInstallment(checkoutTotalWithFounders, checkoutAnnualFinancingMonths);
+  const checkoutSimulatorDiscountAmount = usePromoInSimulator ? foundersDiscountAmount : 0;
+  const checkoutSimulatorTotal = Math.max(0, (checkoutBillingCycle === "annual" ? checkoutAnnualSubtotal : checkoutMonthlySubtotal) - checkoutSimulatorDiscountAmount);
+  const checkoutSimulatorTodayAmount = checkoutBillingCycle === "annual"
+    ? getInterestFreeInstallment(checkoutSimulatorTotal, checkoutAnnualFinancingMonths)
+    : checkoutSimulatorTotal;
   const annualUpsellSavings = checkoutMonthlySubtotal * 12 - checkoutAnnualSubtotal;
   const monthlyReferenceForAnnual = Math.max(0, Math.round(checkoutAnnualSubtotal / 12));
   const proMonthlyDelta = Math.max(0, planCatalog.pro.billing.annualEffectiveMonthlyPriceEur - checkoutMonthlySubtotal);
@@ -522,16 +687,146 @@ export function AdminLayout() {
 
   const checkoutCycleTotalLabel = useMemo(() => {
     if (checkoutBillingCycle === "annual") {
-      return `${checkoutAnnualSubtotal} EUR/año`;
+      return `${checkoutAnnualFinancedInstallment} EUR/mes (${checkoutAnnualFinancingMonths} cuotas)`;
     }
 
     return `${checkoutMonthlySubtotal} EUR/mes`;
-  }, [checkoutAnnualSubtotal, checkoutBillingCycle, checkoutMonthlySubtotal]);
+  }, [checkoutAnnualFinancedInstallment, checkoutAnnualFinancingMonths, checkoutBillingCycle, checkoutMonthlySubtotal]);
+
+  const checkoutAnnualTotalLabel = `${checkoutAnnualSubtotal} EUR/año`;
+  const checkoutPrimaryTodayLabel = checkoutBillingCycle === "annual"
+    ? `${checkoutAnnualFinancedWithFounders} EUR/mes`
+    : `${checkoutTotalWithFounders} EUR`;
+  const checkoutFromSixInstallments = getInterestFreeInstallment(checkoutAnnualSubtotal, 6);
+  const checkoutTermLabel = checkoutBillingCycle === "annual"
+    ? `${checkoutAnnualFinancingMonths} cuotas sin interés`
+    : "Mensual";
+  const checkoutNextChargeDateLabel = useMemo(() => {
+    const next = new Date();
+    next.setMonth(next.getMonth() + 1);
+    return next.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }, []);
+  const checkoutPaymentMethodLabel = checkoutPaymentMethod === "card"
+    ? "Tarjeta"
+    : checkoutPaymentMethod === "sepa"
+      ? "Débito SEPA"
+      : "Transferencia";
+  const checkoutFallbackFollowupLink = `mailto:facturacion@dancehub.app?subject=${encodeURIComponent(`Reserva plan ${selectedOfferLabel}`)}&body=${encodeURIComponent(
+    `Hola, necesito el enlace de pago posterior para cerrar mi alta.\n\nPlan: ${selectedOfferLabel}\nCiclo: ${checkoutBillingCycle}\nFinanciación sin interés: ${checkoutAnnualFinancingMonths} cuotas\nMétodo preferido: ${checkoutPaymentMethodLabel}\nPermitir cambio luego: ${allowChangePaymentLater ? "sí" : "no"}`
+  )}`;
+  const checkoutIncludedStudents = isNexaCheckout ? CHECKOUT_PLANS[checkoutPlanType].students : null;
+  const checkoutCostPerActiveStudent = checkoutIncludedStudents
+    ? Math.round((checkoutSimulatorTodayAmount / checkoutIncludedStudents) * 100) / 100
+    : null;
+  const checkoutEquivalentAdminHours = Math.round((checkoutSimulatorTodayAmount / ADMIN_HOURLY_COST_EUR) * 10) / 10;
+  const checkoutSavings12Months = checkoutBillingCycle === "annual" ? checkoutAnnualSavings : 0;
+  const checkoutBestDiscountLabel = `FOUNDERS ${foundersPromoPercent}%`;
+  const checkoutPaybackEnrollments = Math.max(1, Math.ceil(checkoutSimulatorTodayAmount / NET_ENROLLMENT_CONTRIBUTION_EUR));
+  const selectedAdvisorProfile = useMemo(() => getAdvisorRecommendation(planAdvisorStudents), [planAdvisorStudents]);
+  const advisorPlanCatalog = planCatalog[selectedAdvisorProfile.recommendedPlan];
+  const advisorAnnualSavings = Math.max(0, advisorPlanCatalog.billing.monthlyPriceEur * 12 - advisorPlanCatalog.billing.annualTotalEur);
+  const advisorInstallment = getInterestFreeInstallment(advisorPlanCatalog.billing.annualTotalEur, selectedAdvisorProfile.recommendedTermMonths);
+  const annualIncentivesActive = checkoutBillingCycle === "annual";
+  const annualPromoWeekDeadlineLabel = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const daysUntilSunday = (7 - day) % 7;
+    const weekDeadline = new Date(now);
+    weekDeadline.setDate(now.getDate() + daysUntilSunday);
+
+    return weekDeadline.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
+  }, []);
+  const annualIncludedAddon = useMemo(() => {
+    const options = [subscriptionAddonCatalog.customDomain, subscriptionAddonCatalog.prioritySupport];
+    return options[0].monthlyPriceEur >= options[1].monthlyPriceEur ? options[0] : options[1];
+  }, []);
+  const annualIncludedAddonSavings = annualIncentivesActive ? annualIncludedAddon.monthlyPriceEur * COMMERCIAL_INCLUDED_ADDON_MONTHS : 0;
+  const starterToProAnnualMonthlyDelta = getInterestFreeInstallment(
+    Math.max(0, planCatalog.pro.billing.annualTotalEur - planCatalog.starter.billing.annualTotalEur),
+    12
+  );
+  const segmentMiniCases = useMemo(() => {
+    return SEGMENT_CASES.map((segment) => {
+      const catalogPlan = planCatalog[segment.planType];
+      const segmentMonthly = checkoutBillingCycle === "annual"
+        ? getInterestFreeInstallment(catalogPlan.billing.annualTotalEur, checkoutAnnualFinancingMonths)
+        : catalogPlan.billing.monthlyPriceEur;
+      const segmentCostPerStudent = Math.round((segmentMonthly / segment.activeStudents) * 100) / 100;
+      const segmentPayback = Math.max(1, Math.ceil(segmentMonthly / NET_ENROLLMENT_CONTRIBUTION_EUR));
+
+      return {
+        ...segment,
+        monthly: segmentMonthly,
+        costPerStudent: segmentCostPerStudent,
+        payback: segmentPayback,
+      };
+    });
+  }, [checkoutAnnualFinancingMonths, checkoutBillingCycle]);
 
   const selectableCheckoutAddonKeys = useMemo(
     () => new Set(selectableCheckoutAddons.map((addon) => addon.key)),
     [selectableCheckoutAddons]
   );
+
+  useEffect(() => {
+    const persistedRaw = window.localStorage.getItem(CHECKOUT_SELECTION_KEY);
+    if (!persistedRaw) {
+      return;
+    }
+
+    try {
+      const persisted = JSON.parse(persistedRaw) as {
+        flow?: CheckoutFlowType;
+        planType?: CheckoutPlanType;
+        billingCycle?: BillingCycle;
+        annualFinancingMonths?: AnnualFinancingMonths;
+        addons?: Partial<Record<CheckoutAddonKey, boolean>>;
+        usePromoInSimulator?: boolean;
+      };
+
+      if (persisted.flow === "nexa" || persisted.flow === "certifier" || persisted.flow === "certifierLite") {
+        setCheckoutFlow(persisted.flow);
+      }
+
+      if (persisted.planType === "starter" || persisted.planType === "pro" || persisted.planType === "enterprise") {
+        setCheckoutPlanType(persisted.planType);
+      }
+
+      if (persisted.billingCycle === "annual" || persisted.billingCycle === "monthly") {
+        setCheckoutBillingCycle(persisted.billingCycle);
+      }
+
+      if (persisted.annualFinancingMonths === 3 || persisted.annualFinancingMonths === 6 || persisted.annualFinancingMonths === 12) {
+        setCheckoutAnnualFinancingMonths(persisted.annualFinancingMonths);
+      }
+
+      if (persisted.addons) {
+        setCheckoutAddons((prev) => ({
+          ...prev,
+          ...persisted.addons,
+        }));
+      }
+
+      if (typeof persisted.usePromoInSimulator === "boolean") {
+        setUsePromoInSimulator(persisted.usePromoInSimulator);
+      }
+    } catch {
+      // Ignore corrupted local cache and continue with defaults.
+    }
+  }, []);
+
+  useEffect(() => {
+    const payload = {
+      flow: checkoutFlow,
+      planType: checkoutPlanType,
+      billingCycle: checkoutBillingCycle,
+      annualFinancingMonths: checkoutAnnualFinancingMonths,
+      addons: checkoutAddons,
+      usePromoInSimulator,
+    };
+
+    window.localStorage.setItem(CHECKOUT_SELECTION_KEY, JSON.stringify(payload));
+  }, [checkoutAddons, checkoutAnnualFinancingMonths, checkoutBillingCycle, checkoutFlow, checkoutPlanType, usePromoInSimulator]);
 
   const copyFoundersCode = useCallback(async () => {
     try {
@@ -572,6 +867,17 @@ export function AdminLayout() {
           ...settings.billing,
           planType: checkoutPlanType,
           billingCycle: checkoutBillingCycle,
+          paymentPreference: {
+            method: checkoutPaymentMethod,
+            allowChangeLater: allowChangePaymentLater,
+          },
+          checkoutPreference: {
+            flow: checkoutFlow,
+            annualFinancingMonths: checkoutAnnualFinancingMonths,
+            addOns: checkoutAddons,
+            promoAutoApplied: checkoutBestDiscountLabel,
+            simulatorPromoEnabled: usePromoInSimulator,
+          },
           extraStudentBlocks: Number(settings.billing.extraStudentBlocks ?? 0),
           addons: {
             ...(settings.billing.addons || {}),
@@ -589,7 +895,7 @@ export function AdminLayout() {
         throw new Error("No se pudo guardar la configuración de billing");
       }
     },
-    [checkoutAddons, checkoutBillingCycle, checkoutPlanType, isStarterCheckout, selectableCheckoutAddonKeys]
+    [allowChangePaymentLater, checkoutAddons, checkoutAnnualFinancingMonths, checkoutBestDiscountLabel, checkoutBillingCycle, checkoutFlow, checkoutPaymentMethod, checkoutPlanType, isStarterCheckout, selectableCheckoutAddonKeys, usePromoInSimulator]
   );
 
   const handleTrialCheckout = useCallback(async () => {
@@ -598,6 +904,7 @@ export function AdminLayout() {
     }
 
     setCheckoutLoading(true);
+    setCheckoutStripeFailed(false);
     try {
       if (isNexaCheckout) {
         await persistBillingSelection(false, null);
@@ -637,9 +944,69 @@ export function AdminLayout() {
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo iniciar el proceso de pago";
       toast.error(message);
+      setCheckoutStripeFailed(true);
       setCheckoutLoading(false);
     }
   }, [checkoutAddons, checkoutBillingCycle, checkoutFlow, checkoutLoading, checkoutPlanType, isNexaCheckout, isStarterCheckout, persistBillingSelection, refresh, selectableCheckoutAddonKeys]);
+
+  const handleReserveFallback = useCallback(async () => {
+    if (reserveFallbackLoading) {
+      return;
+    }
+
+    setReserveFallbackLoading(true);
+    try {
+      const settings = await getSchoolSettings();
+      if (!settings) {
+        throw new Error("No se pudo guardar la reserva del plan");
+      }
+
+      const savedAt = new Date().toISOString();
+      const updated = await updateSchoolSettings({
+        ...settings,
+        billing: {
+          ...settings.billing,
+          planType: checkoutPlanType,
+          billingCycle: checkoutBillingCycle,
+          trialPaymentCompleted: false,
+          trialPaymentCompletedAt: null,
+          manualCheckoutFallbackLead: {
+            source: "trial-lock-stripe-fallback",
+            savedAt,
+            offerLabel: selectedOfferLabel,
+            flow: checkoutFlow,
+            annualFinancingMonths: checkoutAnnualFinancingMonths,
+            addons: checkoutAddons,
+            paymentMethod: checkoutPaymentMethod,
+            allowChangePaymentLater,
+            userEmail: authContext?.user.email ?? null,
+          },
+        },
+      });
+
+      if (!updated) {
+        throw new Error("No se pudo guardar la reserva del plan");
+      }
+
+      window.localStorage.setItem("nexa:checkout:reserve-fallback:last", JSON.stringify({
+        savedAt,
+        offerLabel: selectedOfferLabel,
+        flow: checkoutFlow,
+        billingCycle: checkoutBillingCycle,
+        annualFinancingMonths: checkoutAnnualFinancingMonths,
+        paymentMethod: checkoutPaymentMethod,
+        allowChangePaymentLater,
+      }));
+
+      setReserveFallbackSaved(true);
+      toast.success("Reserva creada. Ya puedes abrir el enlace para pago posterior.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo registrar la reserva";
+      toast.error(message);
+    } finally {
+      setReserveFallbackLoading(false);
+    }
+  }, [allowChangePaymentLater, authContext?.user.email, checkoutAddons, checkoutAnnualFinancingMonths, checkoutBillingCycle, checkoutFlow, checkoutPaymentMethod, checkoutPlanType, reserveFallbackLoading, selectedOfferLabel]);
 
   useEffect(() => {
     if (!showTrialLockModal) {
@@ -648,7 +1015,17 @@ export function AdminLayout() {
 
     setCheckoutStep(1);
     setFoundersCodeCopied(false);
+    setCheckoutStripeFailed(false);
+    setReserveFallbackSaved(false);
   }, [showTrialLockModal]);
+
+  useEffect(() => {
+    window.localStorage.setItem(CHECKOUT_PAYMENT_METHOD_KEY, checkoutPaymentMethod);
+  }, [checkoutPaymentMethod]);
+
+  useEffect(() => {
+    window.localStorage.setItem(CHECKOUT_ALLOW_CHANGE_LATER_KEY, allowChangePaymentLater ? "1" : "0");
+  }, [allowChangePaymentLater]);
 
   useEffect(() => {
     const raw = window.sessionStorage.getItem(LOGIN_WELCOME_KEY);
@@ -689,6 +1066,22 @@ export function AdminLayout() {
 
     return () => window.clearTimeout(timer);
   }, [displayedPathname, location.pathname, outlet]);
+
+  useEffect(() => {
+    setShowQuickHelpHint(false);
+    if (quickHelpHideTimerRef.current) {
+      window.clearTimeout(quickHelpHideTimerRef.current);
+      quickHelpHideTimerRef.current = null;
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    return () => {
+      if (quickHelpHideTimerRef.current) {
+        window.clearTimeout(quickHelpHideTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     firstRenderRef.current = false;
@@ -740,6 +1133,42 @@ export function AdminLayout() {
   }, [activeSectionIntro]);
 
   useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    const scrollStorageKey = `${SCROLL_POSITION_KEY_PREFIX}${location.pathname}`;
+    const raw = window.sessionStorage.getItem(scrollStorageKey);
+    const scrollY = raw ? Number(raw) : 0;
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: Number.isFinite(scrollY) ? scrollY : 0, behavior: "auto" });
+    });
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const scrollStorageKey = `${SCROLL_POSITION_KEY_PREFIX}${location.pathname}`;
+
+    const saveScroll = () => {
+      window.sessionStorage.setItem(scrollStorageKey, String(window.scrollY));
+    };
+
+    window.addEventListener("scroll", saveScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", saveScroll);
+    };
+  }, [location.pathname]);
+
+  useEffect(() => {
     const pending = window.sessionStorage.getItem(FIRST_LOGIN_GUIDE_PENDING_KEY) === "1";
     if (!pending) {
       return;
@@ -777,8 +1206,23 @@ export function AdminLayout() {
     if (stripeStatus === "success") {
       void (async () => {
         try {
+          if (import.meta.env.DEV) {
+            console.info("[trial-sync] stripe success detected, persisting paid trial state");
+          }
+
           await persistBillingSelection(true, new Date().toISOString());
           await refresh();
+
+          if (import.meta.env.DEV) {
+            const settingsAfterPersist = await getSchoolSettings();
+            const billingAfterPersist = settingsAfterPersist?.billing;
+            console.info("[trial-sync] settings after stripe success persist", {
+              trialPaymentCompleted: billingAfterPersist?.trialPaymentCompleted,
+              trialPaymentCompletedAt: billingAfterPersist?.trialPaymentCompletedAt,
+              planType: billingAfterPersist?.planType,
+            });
+          }
+
           toast.success("Pago confirmado. Ya puedes seguir usando la plataforma.");
         } catch (error) {
           const message = error instanceof Error ? error.message : "No se pudo confirmar el estado del pago";
@@ -824,18 +1268,27 @@ export function AdminLayout() {
             Estás en el tenant demo de solo lectura. Puedes explorar el panel real, pero los cambios no se guardan.
           </div>
         ) : null}
+        {!isOnline ? (
+          <div className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-900 md:px-6">
+            Sin conexión. Mostramos los últimos datos disponibles y algunas acciones pueden fallar hasta reconectar.
+          </div>
+        ) : null}
         <main className="relative flex-1 overflow-hidden p-4 md:p-6">
-          {!showTrialLockModal ? (
+          {!showTrialLockModal && !showTrialLoadingModal ? (
             <AnimatedPage key={displayedPathname} animateOnMount={!firstRenderRef.current}>
               {displayedOutlet}
             </AnimatedPage>
           ) : (
             <div className="flex h-full items-center justify-center">
-              <p className="text-sm text-muted-foreground">Acceso bloqueado hasta completar el pago del plan.</p>
+              <p className="text-sm text-muted-foreground">
+                {showTrialLoadingModal
+                  ? "Estamos preparando tu panel..."
+                  : "Acceso bloqueado hasta completar el pago del plan."}
+              </p>
             </div>
           )}
 
-          {isRouteTransitioning && !showTrialLockModal ? (
+          {isRouteTransitioning && !showTrialLockModal && !showTrialLoadingModal ? (
             <motion.div
               key={`route-transition-${location.pathname}`}
               initial={{ opacity: 0 }}
@@ -846,7 +1299,7 @@ export function AdminLayout() {
             />
           ) : null}
 
-          {showWelcomeOverlay && !showTrialLockModal ? (
+          {showWelcomeOverlay && !showTrialLockModal && !showTrialLoadingModal ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -861,7 +1314,7 @@ export function AdminLayout() {
             </motion.div>
           ) : null}
 
-          {activeSectionIntro && !showTrialLockModal ? (
+          {activeSectionIntro && !showTrialLockModal && !showTrialLoadingModal ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -880,32 +1333,146 @@ export function AdminLayout() {
               </div>
             </motion.div>
           ) : null}
+
+          {!showTrialLockModal && !showTrialLoadingModal ? (
+            <div className="pointer-events-none absolute bottom-20 right-4 z-[80] flex items-end gap-2 md:bottom-24 md:right-6">
+              <AnimatePresence>
+                {sectionIntroForPath && showQuickHelpHint ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.2 }}
+                    className="pointer-events-none hidden max-w-xs rounded-lg border border-border bg-card/95 px-3 py-2 text-left shadow-medium lg:block"
+                  >
+                    <p className="text-xs font-semibold text-foreground">Guía rápida: {sectionIntroForPath.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{sectionIntroForPath.summary}</p>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="pointer-events-auto h-12 w-12 rounded-full shadow-medium"
+                    aria-label={sectionIntroForPath ? `Mostrar guía de ${sectionIntroForPath.title}` : "Mostrar guía de inicio"}
+                    onClick={openContextualHelp}
+                    onMouseEnter={revealQuickHelpHint}
+                    onFocus={revealQuickHelpHint}
+                    onMouseLeave={hideQuickHelpHint}
+                    onBlur={hideQuickHelpHint}
+                  >
+                    <CircleHelp className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  {sectionIntroForPath ? "Volver a ver ayuda de esta sección" : "Ver guía de inicio"}
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          ) : null}
         </main>
         <PlanDevOverlay />
       </div>
+
+      {showTrialLoadingModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 px-4 py-8">
+          <div className="rounded-xl border border-border bg-card px-6 py-5 shadow-medium">
+            <p className="text-base font-semibold text-foreground">Te damos la bienvenida</p>
+            <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Estamos dejando todo listo para ti...</span>
+              <div className="flex items-center gap-1" aria-hidden="true">
+                {[0, 1, 2].map((dot) => (
+                  <motion.span
+                    key={dot}
+                    className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70"
+                    animate={{ opacity: [0.25, 1, 0.25], y: [0, -2, 0] }}
+                    transition={{
+                      duration: 0.9,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: "easeInOut",
+                      delay: dot * 0.14,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {showTrialLockModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 px-4 py-8">
           <div className="w-full max-w-3xl rounded-xl border border-border bg-card p-6 shadow-medium md:p-8">
             <h2 className="text-xl font-semibold text-foreground">Tu prueba gratuita finalizó</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Completa este checkout guiado en 3 pasos para mantener activo tu acceso.
+              Completa este checkout en menos de 2 minutos para mantener activo tu acceso.
             </p>
 
             <div className="mt-4">
               <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Paso {checkoutStep} de {CHECKOUT_TOTAL_STEPS}</span>
-                <span>{checkoutStep === 1 ? "Producto" : checkoutStep === 2 ? "Facturación" : "Confirmación"}</span>
+                <span>Resumen + confirmación final</span>
+                <span>menos de 2 minutos</span>
               </div>
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                {[1, 2, 3].map((step) => (
-                  <div key={step} className={`h-1.5 rounded-full ${checkoutStep >= step ? "bg-primary" : "bg-muted"}`} />
-                ))}
+              <div className="mt-2 h-1.5 rounded-full bg-muted">
+                <div className="h-1.5 w-[88%] rounded-full bg-primary" />
               </div>
             </div>
 
-            {checkoutStep === 1 ? (
-              <div className="mt-6 space-y-6">
+            <div className="mt-6 space-y-6">
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Desde {checkoutFromSixInstallments} EUR/mes en 6 cuotas</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Financiación sin interés y activación inmediata.</p>
+                </div>
+
+                <div className="rounded-lg border border-primary/20 bg-primary/10 p-4">
+                  <p className="text-xs text-muted-foreground">Resumen final claro</p>
+                  <div className="mt-2 grid gap-2 text-sm text-foreground md:grid-cols-2">
+                    <div className="flex items-center justify-between">
+                      <span>Cuota hoy</span>
+                      <span className="text-base font-bold text-emerald-700">{checkoutPrimaryTodayLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Plazo</span>
+                      <span className="font-semibold">{checkoutTermLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Ahorro estimado</span>
+                      <span className="font-semibold text-emerald-700">{checkoutSavings12Months} EUR / 12 meses</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Próxima fecha de cargo</span>
+                      <span className="font-semibold">{checkoutNextChargeDateLabel}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-sm font-semibold text-foreground">Facturación visible desde el primer paso</p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button type="button" variant={checkoutBillingCycle === "annual" ? "default" : "outline"} onClick={() => setCheckoutBillingCycle("annual")}>Financiación sin interés</Button>
+                      <Button type="button" variant={checkoutBillingCycle === "monthly" ? "default" : "outline"} onClick={() => setCheckoutBillingCycle("monthly")}>Mensual</Button>
+                    </div>
+                    {checkoutBillingCycle === "annual" ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {[3, 6, 12].map((months) => (
+                          <Button
+                            key={months}
+                            type="button"
+                            variant={checkoutAnnualFinancingMonths === months ? "default" : "outline"}
+                            onClick={() => setCheckoutAnnualFinancingMonths(months as AnnualFinancingMonths)}
+                          >
+                            {months} cuotas
+                          </Button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
                 <div className="space-y-3">
                   <p className="text-sm font-semibold text-foreground">Nexa School Hub</p>
                   <div className="grid gap-3 md:grid-cols-3">
@@ -927,8 +1494,16 @@ export function AdminLayout() {
                         >
                           <p className="font-semibold text-foreground">{plan.label}</p>
                           <p className="text-xs text-muted-foreground">Hasta {plan.students} alumnos</p>
-                          <p className="mt-2 text-sm font-semibold text-foreground">{planCatalog[planKey].billing.annualEffectiveMonthlyPriceEur} EUR/mes (en anual)</p>
-                          <p className="text-[11px] text-muted-foreground">{plan.monthlyPriceEur} EUR/mes (en mensual)</p>
+                          <p className="mt-2 text-base font-bold text-foreground">
+                            {checkoutBillingCycle === "annual"
+                              ? `${getInterestFreeInstallment(planCatalog[planKey].billing.annualTotalEur, checkoutAnnualFinancingMonths)} EUR/mes`
+                              : `${plan.monthlyPriceEur} EUR/mes`}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {checkoutBillingCycle === "annual"
+                              ? `${planCatalog[planKey].billing.annualTotalEur} EUR/año · ${checkoutAnnualFinancingMonths} cuotas sin interés`
+                              : `${planCatalog[planKey].billing.annualTotalEur} EUR/año en anual`}
+                          </p>
                         </button>
                       );
                     })}
@@ -946,8 +1521,16 @@ export function AdminLayout() {
                       }`}
                     >
                       <p className="font-semibold text-foreground">{CERTIFIER_ASSOCIATIONS_PLAN?.name ?? "Certifier (Asociaciones)"}</p>
-                      <p className="mt-2 text-sm font-semibold text-foreground">{CERTIFIER_ASSOCIATIONS_PLAN?.billing.monthlyPriceEur ?? 299} EUR/mes</p>
-                      <p className="text-[11px] text-muted-foreground">{CERTIFIER_ASSOCIATIONS_PLAN?.billing.annualEffectiveMonthlyPriceEur ?? 249} EUR/mes en anual</p>
+                      <p className="mt-2 text-base font-bold text-foreground">
+                        {checkoutBillingCycle === "annual"
+                          ? `${getInterestFreeInstallment(CERTIFIER_ASSOCIATIONS_PLAN?.billing.annualTotalEur ?? 2988, checkoutAnnualFinancingMonths)} EUR/mes`
+                          : `${CERTIFIER_ASSOCIATIONS_PLAN?.billing.monthlyPriceEur ?? 299} EUR/mes`}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {checkoutBillingCycle === "annual"
+                          ? `${CERTIFIER_ASSOCIATIONS_PLAN?.billing.annualTotalEur ?? 2988} EUR/año · ${checkoutAnnualFinancingMonths} cuotas sin interés`
+                          : `${CERTIFIER_ASSOCIATIONS_PLAN?.billing.annualTotalEur ?? 2988} EUR/año en anual`}
+                      </p>
                     </button>
                     <button
                       type="button"
@@ -957,15 +1540,52 @@ export function AdminLayout() {
                       }`}
                     >
                       <p className="font-semibold text-foreground">{CERTIFIER_SCHOOLS_PLAN?.name ?? "Certifier Lite (Escuelas)"}</p>
-                      <p className="mt-2 text-sm font-semibold text-foreground">{CERTIFIER_SCHOOLS_PLAN?.billing.monthlyPriceEur ?? 129} EUR/mes</p>
-                      <p className="text-[11px] text-muted-foreground">{CERTIFIER_SCHOOLS_PLAN?.billing.annualEffectiveMonthlyPriceEur ?? 99} EUR/mes en anual</p>
+                      <p className="mt-2 text-base font-bold text-foreground">
+                        {checkoutBillingCycle === "annual"
+                          ? `${getInterestFreeInstallment(CERTIFIER_SCHOOLS_PLAN?.billing.annualTotalEur ?? 1188, checkoutAnnualFinancingMonths)} EUR/mes`
+                          : `${CERTIFIER_SCHOOLS_PLAN?.billing.monthlyPriceEur ?? 129} EUR/mes`}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {checkoutBillingCycle === "annual"
+                          ? `${CERTIFIER_SCHOOLS_PLAN?.billing.annualTotalEur ?? 1188} EUR/año · ${checkoutAnnualFinancingMonths} cuotas sin interés`
+                          : `${CERTIFIER_SCHOOLS_PLAN?.billing.annualTotalEur ?? 1188} EUR/año en anual`}
+                      </p>
                     </button>
                   </div>
                 </div>
-              </div>
-            ) : null}
 
-            {checkoutStep === 2 ? (
+                <div className="rounded-lg border border-border bg-muted/30 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-foreground">Simulador instantáneo</p>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Checkbox checked={usePromoInSimulator} onCheckedChange={(checked) => setUsePromoInSimulator(checked === true)} />
+                      Con promo FOUNDERS
+                    </label>
+                  </div>
+                  <div className="mt-3 space-y-1 text-sm text-foreground">
+                    <div className="flex items-center justify-between">
+                      <span>Producto</span>
+                      <span className="font-semibold">{selectedOfferLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Add-ons</span>
+                      <span>{checkoutAddonsMonthlyTotal} EUR/mes</span>
+                    </div>
+                    <div className="flex items-center justify-between text-emerald-700">
+                      <span>Promo aplicada</span>
+                      <span>-{checkoutSimulatorDiscountAmount} EUR</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-border pt-2 text-base font-bold">
+                      <span>{checkoutBillingCycle === "annual" ? "Cuota hoy" : "Pago hoy"}</span>
+                      <span>{checkoutBillingCycle === "annual" ? `${checkoutSimulatorTodayAmount} EUR/mes` : `${checkoutSimulatorTodayAmount} EUR`}</span>
+                    </div>
+                    {checkoutBillingCycle === "annual" ? (
+                      <p className="text-xs text-muted-foreground">Total anual (secundario): {checkoutAnnualTotalLabel}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-6 space-y-6">
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-foreground">Ciclo de facturación</p>
@@ -978,8 +1598,21 @@ export function AdminLayout() {
                     </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Recomendación: anual para maximizar ahorro y menor coste efectivo mensual.
+                    Recomendación: financiación sin interés para maximizar ahorro y menor coste efectivo mensual.
                   </p>
+                  {checkoutBillingCycle === "annual" ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button type="button" variant={checkoutAnnualFinancingMonths === 3 ? "default" : "outline"} onClick={() => setCheckoutAnnualFinancingMonths(3)}>
+                        3 meses
+                      </Button>
+                      <Button type="button" variant={checkoutAnnualFinancingMonths === 6 ? "default" : "outline"} onClick={() => setCheckoutAnnualFinancingMonths(6)}>
+                        6 meses
+                      </Button>
+                      <Button type="button" variant={checkoutAnnualFinancingMonths === 12 ? "default" : "outline"} onClick={() => setCheckoutAnnualFinancingMonths(12)}>
+                        12 meses
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
 
                 {isStarterCheckout ? (
@@ -1011,31 +1644,29 @@ export function AdminLayout() {
 
                 <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Código FOUNDERS</Badge>
-                    <span className="text-xs font-semibold text-emerald-800">50% primer mes en mensual · 15% en anual</span>
+                    <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Descuento óptimo autoaplicado</Badge>
+                    <span className="text-xs font-semibold text-emerald-800">Aplicamos automáticamente el mejor descuento elegible: {checkoutBestDiscountLabel}</span>
                   </div>
                   <p className="mt-2 text-xs text-emerald-900">
-                    Copia FOUNDERS y pégalo en la pasarela de pago para aplicar la promo según tu ciclo.
+                    No necesitas introducir código manualmente para ver el precio final.
                   </p>
                 </div>
               </div>
-            ) : null}
 
-            {checkoutStep === 3 ? (
               <div className="mt-6 space-y-4">
                 <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Código para pasarela</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Descuento autoaplicado en checkout</p>
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p className="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold tracking-[0.2em] text-emerald-700">
-                      {FOUNDERS_PROMO_CODE}
+                      {checkoutBestDiscountLabel}
                     </p>
                     <Button type="button" variant="outline" className="gap-2" onClick={() => void copyFoundersCode()}>
                       {foundersCodeCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      {foundersCodeCopied ? "Copiado" : "Copiar código"}
+                      {foundersCodeCopied ? "Copiado" : "Copiar etiqueta"}
                     </Button>
                   </div>
                   <p className="mt-2 text-xs text-emerald-900">
-                    Promo FOUNDERS: {FOUNDERS_MONTHLY_PROMO_PERCENT}% en el primer mes (mensual) o {FOUNDERS_ANNUAL_PROMO_PERCENT}% en el pago anual.
+                    El descuento ya se refleja en tu cuota final estimada.
                   </p>
                 </div>
 
@@ -1069,11 +1700,158 @@ export function AdminLayout() {
                       <span>-{foundersDiscountAmount} EUR</span>
                     </div>
                     <div className="flex items-center justify-between text-base font-bold text-emerald-800">
-                      <span>{checkoutBillingCycle === "annual" ? "Pagas hoy" : "Primer pago"}</span>
-                      <span>{checkoutTotalWithFounders} EUR</span>
+                      <span>{checkoutBillingCycle === "annual" ? `Cuota hoy (${checkoutAnnualFinancingMonths} meses)` : "Pago hoy"}</span>
+                      <span>{checkoutBillingCycle === "annual" ? `${checkoutAnnualFinancedWithFounders} EUR/mes` : `${checkoutTotalWithFounders} EUR`}</span>
                     </div>
+                    {checkoutBillingCycle === "annual" ? (
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Total anual (secundario)</span>
+                        <span>{checkoutAnnualTotalLabel}</span>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
+
+                <div className="rounded-lg border border-indigo-300 bg-indigo-50 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className="bg-indigo-600 text-white hover:bg-indigo-600">Plan advisor</Badge>
+                    <span className="text-xs font-semibold text-indigo-900">Recomendación según tamaño de escuela</span>
+                  </div>
+                  <div className="mt-3 rounded-md border border-indigo-200 bg-white p-3">
+                    <div className="flex items-center justify-between text-xs text-indigo-900">
+                      <span>Alumnos activos</span>
+                      <span className="font-semibold">{planAdvisorStudents}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={50}
+                      max={1200}
+                      step={10}
+                      value={planAdvisorStudents}
+                      onChange={(event) => setPlanAdvisorStudents(Number(event.target.value))}
+                      className="mt-3 w-full accent-indigo-600"
+                      aria-label="Cantidad de alumnos de la escuela"
+                    />
+                    <div className="mt-2 flex justify-between text-[11px] text-indigo-900/80">
+                      <span>Starter &lt;200</span>
+                      <span>Pro 200-699</span>
+                      <span>Enterprise 700+</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 rounded-md border border-indigo-200 bg-white p-3 text-sm text-indigo-950">
+                    <p>
+                      Plan recomendado: <span className="font-semibold">{advisorPlanCatalog.name}</span> ({selectedAdvisorProfile.studentsHint})
+                    </p>
+                    <p>
+                      Plazo recomendado: <span className="font-semibold">{selectedAdvisorProfile.recommendedTermMonths} cuotas sin interés</span>
+                    </p>
+                    <p>
+                      Cuota estimada: <span className="font-semibold">{advisorInstallment} EUR/mes</span>
+                    </p>
+                    <p>
+                      Ahorro esperado: <span className="font-semibold">{advisorAnnualSavings} EUR en 12 meses vs mensual</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-sky-300 bg-sky-50 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className="bg-sky-600 text-white hover:bg-sky-600">Incentivos comerciales</Badge>
+                    {annualIncentivesActive ? (
+                      <span className="text-xs font-semibold text-sky-900">Precio protegido 12 meses si activas anual esta semana (hasta {annualPromoWeekDeadlineLabel})</span>
+                    ) : (
+                      <span className="text-xs font-semibold text-sky-900">Activa anual para desbloquear incentivos exclusivos</span>
+                    )}
+                  </div>
+                  <ul className="mt-3 space-y-1 text-sm text-sky-900">
+                    <li>• Bono de onboarding premium incluido solo en anual.</li>
+                    <li>• Garantía de satisfacción de {COMMERCIAL_GUARANTEE_DAYS} días.</li>
+                    {annualIncentivesActive ? (
+                      <li>• Add-on incluido {COMMERCIAL_INCLUDED_ADDON_MONTHS} meses: {annualIncludedAddon.label} (valor {annualIncludedAddonSavings} EUR).</li>
+                    ) : null}
+                    <li>
+                      • Upgrade sin penalización: empieza en Starter anual y sube a Pro con diferencia prorrateada
+                      (desde {starterToProAnnualMonthlyDelta} EUR/mes de diferencia anualizada).
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Percepción de valor</Badge>
+                    {checkoutBillingCycle === "annual" ? (
+                      <span className="text-xs font-semibold text-emerald-800">Ahorro acumulado: ahorras {checkoutSavings12Months} EUR en 12 meses vs mensual</span>
+                    ) : null}
+                  </div>
+                  <div className="mt-3 grid gap-2 text-sm text-emerald-900 md:grid-cols-2">
+                    <p>
+                      Coste por alumno activo:{" "}
+                      <span className="font-semibold">
+                        {checkoutCostPerActiveStudent === null ? "N/A para este producto" : `${checkoutCostPerActiveStudent} EUR/mes`}
+                      </span>
+                    </p>
+                    <p>
+                      Coste operativo equivalente:{" "}
+                      <span className="font-semibold">{checkoutEquivalentAdminHours} horas administrativas/mes</span>
+                    </p>
+                    <p className="md:col-span-2">
+                      Payback estimate:{" "}
+                      <span className="font-semibold">se amortiza con {checkoutPaybackEnrollments} matrículas nuevas/mes</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm font-semibold text-foreground">Mini-casos por segmento</p>
+                  <div className="mt-3 grid gap-2 md:grid-cols-3">
+                    {segmentMiniCases.map((segment) => (
+                      <div key={segment.key} className="rounded-md border border-border bg-background p-3 text-xs">
+                        <p className="font-semibold text-foreground">{segment.title}</p>
+                        <p className="mt-1 text-muted-foreground">{CHECKOUT_PLANS[segment.planType].label} · {segment.activeStudents} alumnos activos</p>
+                        <p className="mt-2 text-foreground">Cuota: <span className="font-semibold">{segment.monthly} EUR/mes</span></p>
+                        <p className="text-muted-foreground">Coste/alumno: {segment.costPerStudent} EUR/mes</p>
+                        <p className="text-muted-foreground">Payback: {segment.payback} matrículas/mes</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm font-semibold text-foreground">Método de pago</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Guardamos tu preferencia para no frenar la decisión.</p>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <Button type="button" variant={checkoutPaymentMethod === "card" ? "default" : "outline"} onClick={() => setCheckoutPaymentMethod("card")}>
+                      Tarjeta
+                    </Button>
+                    <Button type="button" variant={checkoutPaymentMethod === "sepa" ? "default" : "outline"} onClick={() => setCheckoutPaymentMethod("sepa")}>
+                      SEPA
+                    </Button>
+                    <Button type="button" variant={checkoutPaymentMethod === "transfer" ? "default" : "outline"} onClick={() => setCheckoutPaymentMethod("transfer")}>
+                      Transfer.
+                    </Button>
+                  </div>
+                  <label className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Checkbox checked={allowChangePaymentLater} onCheckedChange={(checked) => setAllowChangePaymentLater(checked === true)} />
+                    Elegir ahora y cambiar luego
+                  </label>
+                </div>
+
+                {checkoutStripeFailed ? (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+                    <p className="text-sm font-semibold text-amber-900">Fallback activo: reserva plan en 2 clics</p>
+                    <p className="mt-1 text-xs text-amber-800">Si Stripe falla, guardamos tu reserva y continuas luego con enlace de pago posterior.</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" onClick={() => void handleReserveFallback()} disabled={reserveFallbackLoading}>
+                        {reserveFallbackLoading ? "Guardando reserva..." : "1) Reservar plan"}
+                      </Button>
+                      <Button type="button" asChild disabled={!reserveFallbackSaved}>
+                        <a href={checkoutFallbackFollowupLink}>
+                          2) Abrir enlace posterior
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
 
                 {checkoutBillingCycle === "monthly" && annualUpsellSavings > 0 ? (
                   <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -1095,29 +1873,32 @@ export function AdminLayout() {
                   </div>
                 ) : null}
               </div>
-            ) : null}
 
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex gap-2">
-                {checkoutStep > 1 ? (
-                  <Button type="button" variant="outline" onClick={() => setCheckoutStep((prev) => Math.max(1, prev - 1))}>
-                    Atrás
-                  </Button>
-                ) : null}
-              </div>
+              <div className="flex gap-2" />
 
               <div className="flex gap-2">
-                {checkoutStep < CHECKOUT_TOTAL_STEPS ? (
-                  <Button type="button" onClick={() => setCheckoutStep((prev) => Math.min(CHECKOUT_TOTAL_STEPS, prev + 1))}>
-                    Siguiente paso
-                  </Button>
-                ) : (
-                  <Button onClick={() => void handleTrialCheckout()} disabled={checkoutLoading}>
-                    {checkoutLoading ? "Redirigiendo a pago..." : "Ir a la pasarela de pago"}
-                  </Button>
-                )}
+                <Button onClick={() => void handleTrialCheckout()} disabled={checkoutLoading || !checkoutTermsAccepted}>
+                  {checkoutLoading ? "Redirigiendo a pago..." : "Activar con cuota mensual"}
+                </Button>
               </div>
             </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+              <p>Sin comisiones ocultas</p>
+              <p>Sin interés</p>
+              <p>Cambio de plan prorrateado</p>
+            </div>
+
+            <details className="mt-3 rounded-lg border border-border bg-background p-3 text-xs text-muted-foreground">
+              <summary className="cursor-pointer font-medium text-foreground">Ver condiciones de contratación</summary>
+              <div className="mt-2 space-y-2">
+                <label className="flex items-center gap-2">
+                  <Checkbox checked={checkoutTermsAccepted} onCheckedChange={(checked) => setCheckoutTermsAccepted(checked === true)} />
+                  No hay permanencia adicional fuera del periodo pagado.
+                </label>
+              </div>
+            </details>
 
             {canDismissTrialLockInDev ? (
               <Button

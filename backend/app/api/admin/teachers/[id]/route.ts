@@ -85,6 +85,16 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return ok(teacher, 200, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update teacher";
+    if (message === "Teacher not found") {
+      return fail(
+        {
+          code: "not_found",
+          message,
+        },
+        404,
+        origin
+      );
+    }
     return fail(
       {
         code: "update_failed",

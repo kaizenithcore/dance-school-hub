@@ -137,8 +137,6 @@ export default function LoginPage() {
           <Link to="/legal/terms" className="hover:text-foreground hover:underline">Términos</Link>
           <span>·</span>
           <Link to="/legal/cookies" className="hover:text-foreground hover:underline">Cookies</Link>
-          <span>·</span>
-          <Link to="/legal/dpa" className="hover:text-foreground hover:underline">DPA</Link>
         </div>
       </motion.div>
     </div>

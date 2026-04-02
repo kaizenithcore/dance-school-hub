@@ -46,6 +46,14 @@ interface ScheduleBlock {
   class: PublicClass;
 }
 
+function resolveClassLevel(classItem: PublicClass) {
+  return classItem.level || classItem.category || "General";
+}
+
+function resolveTeacherName(classItem: PublicClass) {
+  return classItem.teacherName || classItem.teacher_name;
+}
+
 export function PublicScheduleSelector({
   classes,
   selectedClassIds,
@@ -405,31 +413,30 @@ export function PublicScheduleSelector({
         return (
           <div key={`list-${roomName}`} className="space-y-2">
             <h4 className="text-sm font-semibold text-foreground">Aula: {roomName}</h4>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {roomClasses.map((classItem) => {
         const isFull = classItem.enrolled_count >= classItem.capacity;
         const isSelected = hasSelectionForClass(classItem);
+        const classLevel = resolveClassLevel(classItem);
+        const teacherName = resolveTeacherName(classItem);
         const roomSchedules = (classItem.schedules || []).filter(
           (schedule) => (schedule.room || "Sin aula") === roomName
         );
         const hasSchedules = roomSchedules.length > 0;
 
         return (
-          <button
+          <div
             key={`${roomName}-${classItem.id}`}
-            type="button"
-            onClick={() => onToggleClass(classItem.id)}
-            disabled={isFull}
             className={cn(
-              "w-full rounded-lg border-2 p-4 text-left transition-all",
+              "w-full rounded-xl border-2 p-4 text-left transition-all",
               "hover:shadow-md",
               isSelected
                 ? "border-primary bg-primary/5 shadow-md"
                 : "border-border bg-card hover:border-primary/30",
-              isFull && "opacity-50 cursor-not-allowed hover:border-border hover:shadow-none"
+              isFull && "opacity-50 hover:border-border hover:shadow-none"
             )}
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="font-semibold text-sm truncate">{classItem.name}</h4>
@@ -439,11 +446,15 @@ export function PublicScheduleSelector({
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mb-2">
-                  {effectiveConfig.calendarFields.showDiscipline ? classItem.discipline : ""}
-                  {effectiveConfig.calendarFields.showDiscipline && effectiveConfig.calendarFields.showCategory ? " - " : ""}
-                  {effectiveConfig.calendarFields.showCategory ? classItem.category : ""}
-                </p>
+                <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
+                  <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">Nivel: {classLevel}</span>
+                  {effectiveConfig.calendarFields.showDiscipline ? (
+                    <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">{classItem.discipline}</span>
+                  ) : null}
+                  {teacherName ? (
+                    <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">Profesor: {teacherName}</span>
+                  ) : null}
+                </div>
 
                 {hasSchedules && (
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -465,7 +476,7 @@ export function PublicScheduleSelector({
                 )}
               </div>
 
-                <div className="flex flex-col items-end gap-1.5">
+                <div className="flex flex-col gap-2 sm:items-end">
                   {effectiveConfig.calendarFields.showPrice ? (
                     <div className="flex items-center gap-1.5 text-sm font-semibold">
                       <DollarSign className="h-3.5 w-3.5" />
@@ -483,9 +494,24 @@ export function PublicScheduleSelector({
                       {classItem.enrolled_count}/{classItem.capacity}
                     </div>
                   ) : null}
+
+                  <button
+                    type="button"
+                    onClick={() => onToggleClass(classItem.id)}
+                    disabled={isFull}
+                    className={cn(
+                      "inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-semibold transition-colors",
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-accent text-accent-foreground hover:bg-accent/80",
+                      isFull && "cursor-not-allowed opacity-70"
+                    )}
+                  >
+                    {isSelected ? "Seleccionada" : "Seleccionar"}
+                  </button>
                 </div>
             </div>
-          </button>
+          </div>
         );
       })}
             </div>

@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ExamCandidate, ExamRecord } from "@/lib/data/mockExams";
 import { Award, Download } from "lucide-react";
@@ -28,6 +28,9 @@ export function CertificatePreview({ open, onOpenChange, exam, candidate }: Cert
             <Award className="h-5 w-5 text-primary" />
             Vista previa del certificado
           </DialogTitle>
+          <DialogDescription>
+            Revisa el contenido del certificado con los datos del alumno antes de descargarlo.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="border-2 border-primary/20 rounded-xl p-8 bg-gradient-to-br from-background to-accent/30 text-center space-y-4">

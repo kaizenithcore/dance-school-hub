@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { StatCard } from "@/components/cards/StatCard";
-import { Users, CreditCard, TrendingUp, AlertTriangle, Loader2, Wallet, Trophy } from "lucide-react";
+import { Users, CreditCard, TrendingUp, AlertTriangle, Loader2, Wallet, Trophy, Target, Activity, CircleDollarSign } from "lucide-react";
 import { getAnalyticsData, getDashboardMetrics, type AnalyticsData, type DashboardMetrics } from "@/lib/api/payments";
 import { getStudents } from "@/lib/api/students";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Progress } from "@/components/ui/progress";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend,
@@ -56,22 +57,22 @@ export default function AnalyticsPage() {
   const revenueLineData = useMemo(() => {
     if (!analytics?.revenueByMonth) return [];
     const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    const combined: Record<string, { Cobrado: number; Pendiente: number }> = {};
+    const allMonths = Array.from(
+      new Set([
+        ...Object.keys(analytics.revenueByMonth || {}),
+        ...Object.keys(analytics.pendingByMonth || {}),
+      ])
+    ).sort((a, b) => a.localeCompare(b));
 
-    // Add revenue from revenueByMonth
-    Object.entries(analytics.revenueByMonth).forEach(([month, total]) => {
-      if (!combined[month]) combined[month] = { Cobrado: 0, Pendiente: 0 };
-      combined[month].Cobrado = Math.round(total / 100);
-    });
-
-    return Object.entries(combined)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, data]) => {
+    return allMonths.map((month) => {
         const [y, m] = month.split("-");
+        const paidCents = analytics.revenueByMonth?.[month] || 0;
+        const pendingCents = analytics.pendingByMonth?.[month] || 0;
         return {
           name: `${monthNames[parseInt(m) - 1]} ${y}`,
-          Cobrado: data.Cobrado,
-          Pendiente: Math.round(analytics.pendingRevenue / (Object.keys(analytics.revenueByMonth).length || 1) / 100),
+          Cobrado: Math.round(paidCents / 100),
+          Pendiente: Math.round(pendingCents / 100),
+          CobroPct: analytics.collectionRateByMonth?.[month] || 0,
         };
       });
   }, [analytics]);
@@ -109,7 +110,7 @@ export default function AnalyticsPage() {
       .slice(0, 8);
   }, [analytics]);
 
-  const formatCurrency = (value: number) => `${value.toLocaleString("es-ES")} EUR`;
+  const formatCurrency = (value: number) => `${value.toLocaleString("es-ES")} €`;
   const formatShortDate = (value: string | null) => {
     if (!value) return "Sin fecha";
     const parsed = new Date(value);
@@ -126,58 +127,136 @@ export default function AnalyticsPage() {
     );
   }
 
+  const activeStudentsBase = analytics?.activeStudentsCount || activeStudents;
+  const payingStudents = analytics?.payingStudentsCount || 0;
+  const payingStudentsPct = analytics?.payingStudentsPct || 0;
+  const potentialRevenue = analytics?.potentialRevenue || 0;
+  const potentialCollectionPct = analytics?.potentialCollectionPct || 0;
+  const totalRevenue = analytics?.totalRevenue || 0;
+  const pendingRevenue = analytics?.pendingRevenue || 0;
+  const overdueRevenue = analytics?.overdueRevenue || 0;
+  const collectionRatePct = analytics?.collectionRatePct || 0;
+  const totalEnrollments = Object.values(analytics?.enrollmentsByStatus || {}).reduce((a: number, b: number) => a + b, 0);
+  const revenueGap = Math.max(0, potentialRevenue - totalRevenue);
+
   return (
     <PageContainer
       title="Analíticas"
       description="Indicadores de rendimiento de la escuela"
     >
-      {/* KPI cards */}
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold text-foreground">1. Rendimiento actual</h3>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Alumnos Activos"
-          value={activeStudents}
-          change={`${inactiveStudents} inactivos de ${totalStudents}`}
-          changeType="neutral"
-          icon={Users}
-        />
-        <StatCard
-          title="Recaudado"
-          value={`$${(analytics?.totalRevenue || 0).toLocaleString()}`}
-          change={`$${(analytics?.pendingRevenue || 0).toLocaleString()} pendiente`}
+          title="Ingresos totales"
+          value={formatCurrency(totalRevenue)}
+          change={`${totalEnrollments} inscripciones analizadas`}
           changeType="positive"
           icon={CreditCard}
         />
         <StatCard
-          title="Tasa de Inscripción"
-          value={`${metrics?.enrollmentRate || 0}%`}
-          change={`${Object.values(analytics?.enrollmentsByStatus || {}).reduce((a: number, b: number) => a + b, 0)} inscripciones totales`}
+          title="Pendiente de cobro"
+          value={formatCurrency(pendingRevenue)}
+          change={overdueRevenue > 0 ? `${formatCurrency(overdueRevenue)} en riesgo de impago` : "Sin importe vencido"}
+          changeType={overdueRevenue > 0 ? "negative" : "neutral"}
+          icon={AlertTriangle}
+        />
+        <StatCard
+          title="Tasa de cobro"
+          value={`${collectionRatePct}%`}
+          change={`${formatCurrency(totalRevenue)} cobrados · ${formatCurrency(pendingRevenue)} pendientes`}
           changeType="positive"
           icon={TrendingUp}
         />
         <StatCard
-          title="Pagos Vencidos"
-          value={metrics?.overduePayments || 0}
+          title="Pagos vencidos"
+          value={analytics?.overduePaymentsCount || 0}
           change={
-            (metrics?.overduePayments || 0) > 0
-              ? "Requiere atención"
+            (analytics?.overduePaymentsCount || 0) > 0
+              ? `${analytics?.overdueStudentsCount || 0} alumno(s) afectados`
               : "Todo al día"
           }
-          changeType={(metrics?.overduePayments || 0) > 0 ? "negative" : "positive"}
+          changeType={(analytics?.overduePaymentsCount || 0) > 0 ? "negative" : "positive"}
+          icon={Activity}
+        />
+      </div>
+
+      <div className="mt-4 rounded-lg border border-border bg-card p-5 shadow-soft">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-medium text-foreground">Cobrado vs pendiente</p>
+          <p className="text-xs text-muted-foreground">{collectionRatePct}% cobrado</p>
+        </div>
+        <Progress value={collectionRatePct} className="h-2" />
+      </div>
+
+      <div className="mt-6 mb-3">
+        <h3 className="text-sm font-semibold text-foreground">2. Eficiencia</h3>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Ingreso medio por alumno (mes)"
+          value={formatCurrency(analytics?.avgRevenuePerActiveStudent || 0)}
+          change="Depende de cuántos alumnos han pagado este mes"
+          changeType="neutral"
+          icon={Users}
+          tooltip="Ingresos totales dividido entre alumnos activos"
+        />
+        <StatCard
+          title="Precio medio por cuota"
+          value={formatCurrency(analytics?.avgPaymentAmount || 0)}
+          change="Media de los pagos realizados"
+          changeType="positive"
+          icon={Wallet}
+          tooltip="Importe medio de cada cobro realizado"
+        />
+        <StatCard
+          title="Alumnos que pagan"
+          value={`${payingStudents} / ${activeStudentsBase}`}
+          change={`${payingStudentsPct}% de alumnos activos`}
+          changeType={payingStudentsPct >= 70 ? "positive" : payingStudentsPct >= 40 ? "neutral" : "negative"}
+          icon={CircleDollarSign}
+        />
+        <StatCard
+          title="Tasa de inscripción"
+          value={`${metrics?.enrollmentRate || 0}%`}
+          change={`${totalEnrollments} inscripciones totales`}
+          changeType="positive"
+          icon={TrendingUp}
+        />
+        <StatCard
+          title="Ocupación vs ingresos"
+          value={`${analytics?.occupancyPct || 0}% ocupación`}
+          change={`${formatCurrency(analytics?.revenuePerConfirmedEnrollment || 0)} por plaza ocupada`}
+          changeType={(analytics?.occupancyPct || 0) >= 70 ? "positive" : "neutral"}
+          icon={Target}
+        />
+      </div>
+
+      <div className="mt-6 mb-3">
+        <h3 className="text-sm font-semibold text-foreground">3. Potencial</h3>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          title="Ingreso potencial vs real"
+          value={`${formatCurrency(totalRevenue)} / ${formatCurrency(potentialRevenue)}`}
+          change={`${potentialCollectionPct}% del potencial mensual`}
+          changeType={potentialCollectionPct >= 80 ? "positive" : potentialCollectionPct >= 50 ? "neutral" : "negative"}
+          icon={Target}
+        />
+        <StatCard
+          title="Gap de ingresos"
+          value={formatCurrency(revenueGap)}
+          change={revenueGap > 0 ? "Importe recuperable si sube el porcentaje de cobro" : "Sin gap relevante"}
+          changeType={revenueGap > 0 ? "neutral" : "positive"}
           icon={AlertTriangle}
         />
         <StatCard
-          title="Ticket medio / alumno"
-          value={formatCurrency(analytics?.avgRevenuePerActiveStudent || 0)}
-          change={formatCurrency(analytics?.avgRevenuePerPayingStudent || 0) + " entre alumnos que pagan"}
-          changeType="positive"
+          title="Alumnos activos"
+          value={activeStudentsBase}
+          change={`${inactiveStudents} inactivos de ${totalStudents}`}
+          changeType="neutral"
           icon={Users}
-        />
-        <StatCard
-          title="Importe medio / cobro"
-          value={formatCurrency(analytics?.avgPaymentAmount || 0)}
-          change={`Tasa de cobro ${analytics?.collectionRatePct || 0}%`}
-          changeType={(analytics?.collectionRatePct || 0) >= 80 ? "positive" : "neutral"}
-          icon={Wallet}
         />
       </div>
 
@@ -185,16 +264,18 @@ export default function AnalyticsPage() {
       <div className="grid gap-4 lg:grid-cols-2 mt-6">
         {/* Revenue line chart */}
         <div className="rounded-lg border border-border bg-card p-5 shadow-soft">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Ingresos por Mes</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Tendencia de cobro mensual</h3>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={revenueLineData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 91%)" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(215, 14%, 46%)" />
-              <YAxis tick={{ fontSize: 11 }} stroke="hsl(215, 14%, 46%)" tickFormatter={(v) => `$${v}`} />
-              <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+              <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="hsl(215, 14%, 46%)" tickFormatter={(v) => `${v}€`} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="hsl(215, 14%, 46%)" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+              <Tooltip formatter={(v: number, key: string) => key === "CobroPct" ? `${v}%` : `${v.toLocaleString("es-ES")} €`} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="Cobrado" stroke="hsl(142, 71%, 45%)" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="Pendiente" stroke="hsl(38, 92%, 50%)" strokeWidth={2} dot={{ r: 4 }} />
+              <Line yAxisId="left" type="monotone" dataKey="Cobrado" stroke="hsl(142, 71%, 45%)" strokeWidth={2} dot={{ r: 4 }} />
+              <Line yAxisId="left" type="monotone" dataKey="Pendiente" stroke="hsl(38, 92%, 50%)" strokeWidth={2} dot={{ r: 4 }} />
+              <Line yAxisId="right" type="monotone" dataKey="CobroPct" stroke="hsl(210, 92%, 55%)" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>

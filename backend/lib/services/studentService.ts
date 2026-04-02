@@ -3,6 +3,7 @@ import type { CreateStudentInput, UpdateStudentInput } from "@/lib/validators/st
 import { studentQuotaService } from "@/lib/services/studentQuotaService";
 import { pricingService } from "@/lib/services/pricingService";
 import { communicationService } from "@/lib/services/communicationService";
+import { studentFieldService } from "@/lib/services/studentFieldService";
 import type { ClassSelection } from "@/lib/types/pricing";
 
 type Guardian = {
@@ -133,6 +134,7 @@ export const studentService = {
         preferred_payment_method,
         account_number,
         join_date,
+        extra_data,
         notes,
         guardians(name, phone, email, is_primary),
         enrollments(
@@ -213,6 +215,62 @@ export const studentService = {
       }
     }
 
+    const studentPricingInput = new Map<string, ClassSelection[]>();
+
+    for (const studentRow of data || []) {
+      const activeEnrollments = (studentRow.enrollments || []).filter(
+        (enrollment: any) => enrollment.status === "pending" || enrollment.status === "confirmed"
+      );
+
+      const selections: ClassSelection[] = [];
+      for (const enrollment of activeEnrollments) {
+        const cls = Array.isArray(enrollment.classes) ? enrollment.classes[0] : enrollment.classes;
+        if (!cls) {
+          continue;
+        }
+
+        const schedules = Array.isArray(cls.class_schedules) ? cls.class_schedules : [];
+        const totalClassHours = schedules.reduce((sum: number, schedule: any) => {
+          const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
+          const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
+          const startTotal = startHour + startMinute / 60;
+          const endTotal = endHour + endMinute / 60;
+          return sum + Math.max(0, endTotal - startTotal);
+        }, 0);
+
+        const selectedScheduleIdsRaw = enrollment?.student_snapshot?.selected_schedule_ids;
+        const selectedScheduleIds = Array.isArray(selectedScheduleIdsRaw)
+          ? selectedScheduleIdsRaw.filter((value: unknown): value is string => typeof value === "string")
+          : [];
+
+        const selectedHours = selectedScheduleIds.length > 0
+          ? schedules
+              .filter((schedule: any) => selectedScheduleIds.includes(schedule.id))
+              .reduce((sum: number, schedule: any) => {
+                const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
+                const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
+                const startTotal = startHour + startMinute / 60;
+                const endTotal = endHour + endMinute / 60;
+                return sum + Math.max(0, endTotal - startTotal);
+              }, 0)
+          : totalClassHours;
+
+        const normalizedTotalHours = totalClassHours > 0 ? totalClassHours : 1;
+        const normalizedSelectedHours = selectedHours > 0 ? selectedHours : normalizedTotalHours;
+        const ratio = normalizedTotalHours > 0 ? normalizedSelectedHours / normalizedTotalHours : 1;
+
+        selections.push({
+          class_id: cls.id,
+          discipline_id: cls.discipline_id || "general",
+          discipline_name: cls.name || "Clase",
+          hours_per_week: normalizedSelectedHours,
+          base_price: Math.round(((cls.price_cents || 0) / 100) * ratio * 100) / 100,
+        });
+      }
+
+      studentPricingInput.set(studentRow.id, selections);
+    }
+
     const groupPricingById = new Map<string, { total: number; perMember: number }>();
     await Promise.all(
       Array.from(groupPricingInput.entries()).map(async ([groupId, payload]) => {
@@ -225,6 +283,24 @@ export const studentService = {
           });
         } catch {
           // Fallback: if pricing calculation fails, keep base behavior.
+        }
+      })
+    );
+
+    const studentPricingById = new Map<string, number>();
+    await Promise.all(
+      Array.from(studentPricingInput.entries()).map(async ([studentId, selections]) => {
+        if (selections.length === 0) {
+          studentPricingById.set(studentId, 0);
+          return;
+        }
+
+        try {
+          const pricing = await pricingService.calculatePricing(tenantId, selections);
+          studentPricingById.set(studentId, Math.round(pricing.total * 100) / 100);
+        } catch {
+          const fallbackTotal = selections.reduce((sum, item) => sum + Number(item.base_price || 0), 0);
+          studentPricingById.set(studentId, Math.round(fallbackTotal * 100) / 100);
         }
       })
     );
@@ -282,11 +358,12 @@ export const studentService = {
         payerPhone: student.payer_phone || undefined,
         preferredPaymentMethod: student.preferred_payment_method || "cash",
         accountNumber: student.account_number || undefined,
+        extraData: student.extra_data && typeof student.extra_data === "object" ? student.extra_data : {},
         jointEnrollmentGroupId: activeEnrollments.find((enrollment: any) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id || null,
         monthlyTotalOverride: (() => {
           const groupId = activeEnrollments.find((enrollment: any) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id;
           if (!groupId) {
-            return undefined;
+            return studentPricingById.get(student.id);
           }
           const pricing = groupPricingById.get(groupId);
           return pricing ? Math.round(pricing.perMember * 100) / 100 : undefined;
@@ -305,6 +382,11 @@ export const studentService = {
 
   async createStudent(tenantId: string, input: CreateStudentInput) {
     await studentQuotaService.assertCanAddStudents(tenantId, 1);
+
+    const normalizedExtraData = await studentFieldService.normalizeAndValidateExtraData(
+      tenantId,
+      studentFieldService.mergeExtraDataFromInput(input as Record<string, unknown>)
+    );
 
     const { data, error } = await supabaseAdmin
       .from("students")
@@ -327,6 +409,7 @@ export const studentService = {
         preferred_payment_method: input.preferredPaymentMethod ?? "cash",
         account_number: (input.preferredPaymentMethod ?? "cash") === "transfer" ? input.accountNumber ?? null : null,
         join_date: input.joinDate ?? undefined,
+        extra_data: normalizedExtraData,
         notes: input.notes ?? null,
       })
       .select("id")
@@ -407,6 +490,13 @@ export const studentService = {
     }
     if (input.joinDate !== undefined) payload.join_date = input.joinDate ?? null;
     if (input.notes !== undefined) payload.notes = input.notes ?? null;
+
+    if (input.extraData !== undefined || input.extra_data !== undefined) {
+      payload.extra_data = await studentFieldService.normalizeAndValidateExtraData(
+        tenantId,
+        studentFieldService.mergeExtraDataFromInput(input as Record<string, unknown>)
+      );
+    }
 
     if (Object.keys(payload).length > 0) {
       const { error } = await supabaseAdmin
@@ -529,7 +619,57 @@ export const studentService = {
       const fallbackGroupId = previousGroupId;
       const jointEnrollmentGroupId = input.jointEnrollmentGroupId ?? fallbackGroupId;
 
-      const rows = toAdd.map((classId) => ({
+      const { data: reusableEnrollments, error: reusableEnrollmentsError } = await supabaseAdmin
+        .from("enrollments")
+        .select("id, class_id")
+        .eq("tenant_id", tenantId)
+        .eq("student_id", studentId)
+        .eq("status", "cancelled")
+        .in("class_id", toAdd);
+
+      if (reusableEnrollmentsError) {
+        throw new Error(`Failed to load reusable enrollments: ${reusableEnrollmentsError.message}`);
+      }
+
+      const reusableByClassId = new Map<string, string>(
+        (reusableEnrollments || [])
+          .filter((row: any) => row?.id && row?.class_id)
+          .map((row: any) => [row.class_id as string, row.id as string])
+      );
+
+      for (const classId of toAdd.filter((id) => reusableByClassId.has(id))) {
+        const selectedScheduleIds = selectionMap.get(classId) || [];
+        const enrollmentId = reusableByClassId.get(classId);
+
+        const { error: reactivateEnrollmentError } = await supabaseAdmin
+          .from("enrollments")
+          .update({
+            status: "confirmed",
+            payment_method: student.preferred_payment_method || "cash",
+            joint_enrollment_group_id: jointEnrollmentGroupId,
+            student_snapshot: {
+              first_name: String(student.name || "").split(" ")[0] || null,
+              last_name: String(student.name || "").split(" ").slice(1).join(" ") || null,
+              email: student.email,
+              phone: student.phone,
+              guardian_name: guardian?.name || null,
+              guardian_email: guardian?.email || null,
+              guardian_phone: guardian?.phone || null,
+              selected_schedule_ids: selectedScheduleIds,
+              updated_from_admin: true,
+            },
+          })
+          .eq("tenant_id", tenantId)
+          .eq("id", enrollmentId);
+
+        if (reactivateEnrollmentError) {
+          throw new Error(`Failed to reactivate enrollment: ${reactivateEnrollmentError.message}`);
+        }
+      }
+
+      const classesToInsert = toAdd.filter((classId) => !reusableByClassId.has(classId));
+
+      const rows = classesToInsert.map((classId) => ({
         tenant_id: tenantId,
         student_id: studentId,
         class_id: classId,
@@ -549,9 +689,9 @@ export const studentService = {
         },
       }));
 
-      const { error: insertError } = await supabaseAdmin
-        .from("enrollments")
-        .insert(rows);
+      const { error: insertError } = rows.length
+        ? await supabaseAdmin.from("enrollments").insert(rows)
+        : { error: null };
 
       if (insertError) {
         throw new Error(`Failed to create enrollments: ${insertError.message}`);

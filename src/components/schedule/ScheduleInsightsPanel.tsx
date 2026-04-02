@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowRight, ChevronDown, Clock3, LayoutGrid, Users } fro
 import type { ScheduleInsight, ScheduleInsightsResult } from "@/lib/api/schedules";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface ScheduleInsightsPanelProps {
@@ -43,8 +44,23 @@ export function ScheduleInsightsPanel({
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-border bg-card p-4 shadow-soft">
-        <p className="text-sm text-muted-foreground">Analizando problemas de horario...</p>
+      <div className="rounded-lg border border-border bg-card p-4 shadow-soft space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-56" />
+          </div>
+          <Skeleton className="h-8 w-28" />
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="rounded-md border border-border p-2.5 space-y-2">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-4 w-10" />
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">Analizando ocupación, demanda y huecos del horario...</p>
       </div>
     );
   }

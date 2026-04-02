@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, RefreshCw } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { ModuleHelpShortcut } from "@/components/layout/ModuleHelpShortcut";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   createRenewalCampaign,
   getRenewalCampaigns,
@@ -16,6 +18,7 @@ import {
   type RenewalOffer,
   type RenewalOfferStatus,
 } from "@/lib/api/renewals";
+import { runWithRetry } from "@/lib/reliability";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
 import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
@@ -35,21 +38,112 @@ const OFFER_STATUS_LABELS: Record<RenewalOfferStatus, string> = {
   released: "Plaza liberada",
 };
 
+const RENEWALS_SELECTED_CAMPAIGN_KEY = "nexa:renewals:selected-campaign";
+const RENEWALS_STATUS_FILTER_KEY = "nexa:renewals:status-filter";
+const RENEWALS_CAMPAIGNS_CACHE_KEY = "nexa:renewals:campaigns-cache";
+
+function readStoredString(key: string): string {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(key) || "";
+}
+
+function readStoredStatusFilter(): "all" | RenewalOfferStatus {
+  const stored = readStoredString(RENEWALS_STATUS_FILTER_KEY);
+  return stored === "pending" || stored === "confirmed" || stored === "changed" || stored === "released" ? stored : "all";
+}
+
+function readStoredCampaignsCache(): RenewalCampaign[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.localStorage.getItem(RENEWALS_CAMPAIGNS_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as RenewalCampaign[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistString(key: string, value: string): void {
+  if (typeof window === "undefined") return;
+
+  if (!value) {
+    window.localStorage.removeItem(key);
+    return;
+  }
+
+  window.localStorage.setItem(key, value);
+}
+
+function persistCampaignsCache(campaigns: RenewalCampaign[]): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(RENEWALS_CAMPAIGNS_CACHE_KEY, JSON.stringify(campaigns));
+}
+
+function isValidPeriodCode(value: string): boolean {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+}
+
 export default function RenewalsPage() {
   const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
-  const [processing, setProcessing] = useState(false);
+  const [loadingOffers, setLoadingOffers] = useState(false);
+  const [mutating, setMutating] = useState(false);
   const [lockOpen, setLockOpen] = useState(false);
-  const [campaigns, setCampaigns] = useState<RenewalCampaign[]>([]);
+  const [campaignsError, setCampaignsError] = useState<string | null>(null);
+  const [offersError, setOffersError] = useState<string | null>(null);
+  const [campaigns, setCampaigns] = useState<RenewalCampaign[]>(() => readStoredCampaignsCache());
   const [offers, setOffers] = useState<RenewalOffer[]>([]);
-  const [selectedCampaignId, setSelectedCampaignId] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | RenewalOfferStatus>("all");
+  const [selectedCampaignId, setSelectedCampaignId] = useState(() => readStoredString(RENEWALS_SELECTED_CAMPAIGN_KEY));
+  const [statusFilter, setStatusFilter] = useState<"all" | RenewalOfferStatus>(() => readStoredStatusFilter());
 
   const [campaignName, setCampaignName] = useState("");
   const [fromPeriod, setFromPeriod] = useState("");
   const [toPeriod, setToPeriod] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
   const renewalsLocked = !billingLoading && !billing.features.renewalAutomation;
+
+  const campaignNameTrimmed = campaignName.trim();
+  const fromPeriodTrimmed = fromPeriod.trim();
+  const toPeriodTrimmed = toPeriod.trim();
+
+  const createValidationError = useMemo(() => {
+    if (!campaignNameTrimmed) {
+      return "El nombre de la campaña es obligatorio.";
+    }
+
+    if (!fromPeriodTrimmed || !toPeriodTrimmed) {
+      return "Periodo origen y periodo destino son obligatorios.";
+    }
+
+    if (!isValidPeriodCode(fromPeriodTrimmed) || !isValidPeriodCode(toPeriodTrimmed)) {
+      return "Usa formato AAAA-MM en ambos periodos.";
+    }
+
+    if (fromPeriodTrimmed === toPeriodTrimmed) {
+      return "El periodo destino debe ser distinto del periodo origen.";
+    }
+
+    if (fromPeriodTrimmed > toPeriodTrimmed) {
+      return "El periodo destino debe ser posterior al periodo origen.";
+    }
+
+    return null;
+  }, [campaignNameTrimmed, fromPeriodTrimmed, toPeriodTrimmed]);
+
+  const canCreateCampaign = !mutating && !loadingCampaigns && !renewalsLocked && !createValidationError;
+
+  const setCampaignsPersisted = (nextCampaigns: RenewalCampaign[]) => {
+    setCampaigns(nextCampaigns);
+    persistCampaignsCache(nextCampaigns);
+  };
+
+  const setSelectedCampaignIdPersisted = (campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+    persistString(RENEWALS_SELECTED_CAMPAIGN_KEY, campaignId);
+  };
 
   const selectedCampaign = useMemo(
     () => campaigns.find((campaign) => campaign.id === selectedCampaignId) || null,
@@ -58,14 +152,44 @@ export default function RenewalsPage() {
 
   const loadCampaigns = async () => {
     setLoadingCampaigns(true);
+    setCampaignsError(null);
     try {
       const data = await getRenewalCampaigns();
-      setCampaigns(data);
-      setSelectedCampaignId((previous) => previous || data[0]?.id || "");
+      setCampaignsPersisted(data);
+
+      setSelectedCampaignId((previous) => {
+        if (previous && data.some((campaign) => campaign.id === previous)) {
+          return previous;
+        }
+
+        const storedCampaignId = readStoredString(RENEWALS_SELECTED_CAMPAIGN_KEY);
+        if (storedCampaignId && data.some((campaign) => campaign.id === storedCampaignId)) {
+          return storedCampaignId;
+        }
+
+        return data[0]?.id || "";
+      });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudieron cargar las campañas");
-      setCampaigns([]);
-      setSelectedCampaignId("");
+      const message = error instanceof Error ? error.message : "No se pudieron cargar las campañas";
+      setCampaignsError(message);
+      toast.error(message);
+
+      const cached = readStoredCampaignsCache();
+      if (cached.length > 0) {
+        setCampaigns((previous) => previous.length > 0 ? previous : cached);
+        setSelectedCampaignId((previous) => {
+          if (previous && cached.some((campaign) => campaign.id === previous)) {
+            return previous;
+          }
+
+          const storedCampaignId = readStoredString(RENEWALS_SELECTED_CAMPAIGN_KEY);
+          if (storedCampaignId && cached.some((campaign) => campaign.id === storedCampaignId)) {
+            return storedCampaignId;
+          }
+
+          return cached[0]?.id || previous;
+        });
+      }
     } finally {
       setLoadingCampaigns(false);
     }
@@ -77,17 +201,33 @@ export default function RenewalsPage() {
       return;
     }
 
-    setProcessing(true);
+    setLoadingOffers(true);
+    setOffersError(null);
     try {
       const data = await getRenewalOffers(campaignId, filter === "all" ? undefined : filter);
       setOffers(data);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudieron cargar las ofertas");
-      setOffers([]);
+      const message = error instanceof Error ? error.message : "No se pudieron cargar las ofertas";
+      setOffersError(message);
+      toast.error(message);
     } finally {
-      setProcessing(false);
+      setLoadingOffers(false);
     }
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!selectedCampaignId) {
+      window.localStorage.removeItem(RENEWALS_SELECTED_CAMPAIGN_KEY);
+      return;
+    }
+    window.localStorage.setItem(RENEWALS_SELECTED_CAMPAIGN_KEY, selectedCampaignId);
+  }, [selectedCampaignId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(RENEWALS_STATUS_FILTER_KEY, statusFilter);
+  }, [statusFilter]);
 
   useEffect(() => {
     void loadCampaigns();
@@ -97,23 +237,46 @@ export default function RenewalsPage() {
     void loadOffers(selectedCampaignId, statusFilter);
   }, [selectedCampaignId, statusFilter]);
 
+  useEffect(() => {
+    if (campaigns.length === 0) {
+      if (selectedCampaignId) {
+        setSelectedCampaignId("");
+      }
+      return;
+    }
+
+    if (selectedCampaignId && campaigns.some((campaign) => campaign.id === selectedCampaignId)) {
+      return;
+    }
+
+    const storedCampaignId = readStoredString(RENEWALS_SELECTED_CAMPAIGN_KEY);
+    if (storedCampaignId && campaigns.some((campaign) => campaign.id === storedCampaignId)) {
+      setSelectedCampaignId(storedCampaignId);
+      return;
+    }
+
+    setSelectedCampaignId(campaigns[0]?.id || "");
+  }, [campaigns, selectedCampaignId]);
+
   const handleCreateCampaign = async () => {
     if (renewalsLocked) {
       setLockOpen(true);
       return;
     }
 
-    if (!campaignName.trim() || !fromPeriod || !toPeriod) {
-      toast.error("Nombre, periodo origen y periodo destino son obligatorios");
+    if (createValidationError) {
+      setCreateError(createValidationError);
+      toast.error(createValidationError);
       return;
     }
 
-    setProcessing(true);
+    setMutating(true);
+    setCreateError(null);
     try {
       const result = await createRenewalCampaign({
-        name: campaignName.trim(),
-        fromPeriod,
-        toPeriod,
+        name: campaignNameTrimmed,
+        fromPeriod: fromPeriodTrimmed,
+        toPeriod: toPeriodTrimmed,
         expiresAt: expiresAt || undefined,
       });
 
@@ -122,11 +285,24 @@ export default function RenewalsPage() {
       setFromPeriod("");
       setToPeriod("");
       setExpiresAt("");
-      await loadCampaigns();
+
+      const refreshedCampaigns = await runWithRetry(async () => {
+        const data = await getRenewalCampaigns();
+        if (!data.some((campaign) => campaign.id === result.campaignId)) {
+          throw new Error("La campaña aún se está sincronizando");
+        }
+        return data;
+      }, { retries: 2, delayMs: 350 });
+
+      setCampaignsPersisted(refreshedCampaigns);
+      setSelectedCampaignIdPersisted(result.campaignId);
+      await loadOffers(result.campaignId, statusFilter);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo crear la campaña");
+      const message = error instanceof Error ? error.message : "No se pudo crear la campaña";
+      setCreateError(message);
+      toast.error(message);
     } finally {
-      setProcessing(false);
+      setMutating(false);
     }
   };
 
@@ -140,7 +316,7 @@ export default function RenewalsPage() {
       return;
     }
 
-    setProcessing(true);
+    setMutating(true);
     try {
       await updateRenewalOffer({
         campaignId: selectedCampaignId,
@@ -153,7 +329,7 @@ export default function RenewalsPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar la oferta");
     } finally {
-      setProcessing(false);
+      setMutating(false);
     }
   };
 
@@ -162,10 +338,13 @@ export default function RenewalsPage() {
       title="Renovación de alumnos"
       description="Gestiona propuestas de continuidad por periodo de forma simple"
       actions={
-        <Button variant="outline" onClick={() => void loadCampaigns()} disabled={loadingCampaigns || processing}>
-          {loadingCampaigns ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          <span className="ml-2">Recargar</span>
-        </Button>
+        <>
+          <ModuleHelpShortcut module="renewals" />
+          <Button variant="outline" onClick={() => void loadCampaigns()} disabled={loadingCampaigns || loadingOffers || mutating}>
+            {loadingCampaigns ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <span className="ml-2">Recargar</span>
+          </Button>
+        </>
       }
     >
       {renewalsLocked ? (
@@ -178,6 +357,20 @@ export default function RenewalsPage() {
 
       <div className={renewalsLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
 
+      {campaignsError && campaigns.length === 0 ? (
+        <Card>
+          <CardContent>
+            <EmptyState
+              type="error"
+              title="No se pudieron cargar campañas"
+              description={campaignsError}
+              actionLabel="Reintentar"
+              onAction={() => void loadCampaigns()}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>Crear campaña</CardTitle>
@@ -186,18 +379,42 @@ export default function RenewalsPage() {
         <CardContent className="grid gap-4 md:grid-cols-4">
           <div className="space-y-2 md:col-span-2">
             <Label>Nombre</Label>
-            <Input value={campaignName} onChange={(event) => setCampaignName(event.target.value)} placeholder="Renovación abril" />
+            <Input
+              value={campaignName}
+              onChange={(event) => {
+                setCampaignName(event.target.value);
+                if (createError) setCreateError(null);
+              }}
+              placeholder="Renovación abril"
+              aria-invalid={Boolean(createError || createValidationError) && !campaignNameTrimmed}
+            />
           </div>
           <div className="space-y-2">
             <Label>Periodo origen</Label>
-            <Input value={fromPeriod} onChange={(event) => setFromPeriod(event.target.value)} placeholder="2026-03" />
+            <Input
+              value={fromPeriod}
+              onChange={(event) => {
+                setFromPeriod(event.target.value);
+                if (createError) setCreateError(null);
+              }}
+              placeholder="2026-03"
+              aria-invalid={Boolean(createError || createValidationError) && (!fromPeriodTrimmed || !isValidPeriodCode(fromPeriodTrimmed))}
+            />
           </div>
           <div className="space-y-2">
             <Label>Periodo destino</Label>
-            <Input value={toPeriod} onChange={(event) => setToPeriod(event.target.value)} placeholder="2026-04" />
+            <Input
+              value={toPeriod}
+              onChange={(event) => {
+                setToPeriod(event.target.value);
+                if (createError) setCreateError(null);
+              }}
+              placeholder="2026-04"
+              aria-invalid={Boolean(createError || createValidationError) && (!toPeriodTrimmed || !isValidPeriodCode(toPeriodTrimmed) || fromPeriodTrimmed >= toPeriodTrimmed)}
+            />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label>Fecha limite (opcional)</Label>
+            <Label>Fecha límite (opcional)</Label>
             <Input
               type="datetime-local"
               value={expiresAt}
@@ -205,10 +422,19 @@ export default function RenewalsPage() {
             />
           </div>
           <div className="md:col-span-2 flex items-end">
-            <Button onClick={handleCreateCampaign} disabled={processing || loadingCampaigns}>
-              {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            <Button onClick={handleCreateCampaign} disabled={!canCreateCampaign}>
+              {mutating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Crear campaña
             </Button>
+          </div>
+          <div className="md:col-span-4">
+            {createError ? (
+              <p className="text-sm text-destructive">{createError}</p>
+            ) : createValidationError ? (
+              <p className="text-xs text-muted-foreground">{createValidationError}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Listo para crear la campaña con validación completa.</p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -221,7 +447,7 @@ export default function RenewalsPage() {
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="space-y-2 md:col-span-2">
             <Label>Campaña activa</Label>
-            <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+            <Select value={selectedCampaignId} onValueChange={setSelectedCampaignIdPersisted}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona una campaña" />
               </SelectTrigger>
@@ -233,6 +459,14 @@ export default function RenewalsPage() {
                 ))}
               </SelectContent>
             </Select>
+            {!loadingCampaigns && campaigns.length === 0 ? (
+              <div className="pt-2">
+                <EmptyState
+                  title="Aún no hay campañas"
+                  description="Crea la primera campaña para preparar propuestas de continuidad automáticamente."
+                />
+              </div>
+            ) : null}
           </div>
           <div className="space-y-2">
             <Label>Estado</Label>
@@ -285,12 +519,25 @@ export default function RenewalsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {processing ? (
+          {loadingOffers ? (
             <div className="py-8 text-center text-muted-foreground">
               <Loader2 className="mx-auto h-5 w-5 animate-spin" />
             </div>
+          ) : offersError ? (
+            <EmptyState
+              type="error"
+              title="No se pudieron cargar propuestas"
+              description={offersError}
+              actionLabel="Reintentar"
+              onAction={() => void loadOffers(selectedCampaignId, statusFilter)}
+            />
           ) : offers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sin datos para mostrar.</p>
+            <EmptyState
+              title="Sin propuestas para este filtro"
+              description="Cambia el estado o selecciona otra campaña para recuperar resultados rápidamente."
+              actionLabel="Ver todas"
+              onAction={() => setStatusFilter("all")}
+            />
           ) : (
             <div className="space-y-3">
               {offers.map((offer) => (
@@ -310,7 +557,7 @@ export default function RenewalsPage() {
                         size="sm"
                         variant="secondary"
                         onClick={() => void handleOfferAction(offer.id, "confirm")}
-                        disabled={processing || offer.status !== "pending"}
+                        disabled={mutating || loadingOffers || offer.status !== "pending"}
                       >
                         Confirmar
                       </Button>
@@ -318,7 +565,7 @@ export default function RenewalsPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => void handleOfferAction(offer.id, "release")}
-                        disabled={processing || offer.status === "released"}
+                        disabled={mutating || loadingOffers || offer.status === "released"}
                       >
                         Liberar plaza
                       </Button>

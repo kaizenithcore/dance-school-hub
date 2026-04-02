@@ -1,14 +1,17 @@
-import { Search, GraduationCap, Users, CreditCard, ClipboardList, Inbox } from "lucide-react";
+import { Search, GraduationCap, Users, CreditCard, ClipboardList, Inbox, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 export interface EmptyStateProps {
-  type?: "students" | "teachers" | "classes" | "enrollments" | "payments" | "search";
+  type?: "students" | "teachers" | "classes" | "enrollments" | "payments" | "search" | "error";
   icon?: React.ComponentType<{ className?: string }>;
   title?: string;
   description?: string;
   message?: string;
   actionLabel?: string;
   onAction?: () => void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
 }
 
 const CONFIGS = {
@@ -18,9 +21,20 @@ const CONFIGS = {
   enrollments: { icon: ClipboardList, title: "Sin inscripciones", description: "No se encontraron inscripciones. Las solicitudes aparecerán aquí." },
   payments: { icon: CreditCard, title: "Sin pagos", description: "No hay pagos registrados. Los pagos aparecerán aquí al registrarlos." },
   search: { icon: Search, title: "Sin resultados", description: "No se encontraron registros con los filtros aplicados. Intentá ajustar la búsqueda." },
+  error: { icon: AlertTriangle, title: "No se pudo cargar", description: "Hubo un problema temporal. Reintenta para recuperar la vista." },
 };
 
-export function EmptyState({ type, icon: IconProp, title: titleProp, description: descProp, message, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({
+  type,
+  icon: IconProp,
+  title: titleProp,
+  description: descProp,
+  message,
+  actionLabel,
+  onAction,
+  secondaryActionLabel,
+  onSecondaryAction,
+}: EmptyStateProps) {
   const config = type ? CONFIGS[type] : null;
   const Icon = IconProp || config?.icon || Inbox;
   const displayTitle = titleProp || config?.title || "Sin datos";
@@ -40,14 +54,20 @@ export function EmptyState({ type, icon: IconProp, title: titleProp, description
       <p className="text-xs text-muted-foreground text-center max-w-[260px]">
         {displayDesc}
       </p>
-      {actionLabel && onAction && (
-        <button
-          onClick={onAction}
-          className="mt-3 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-        >
-          {actionLabel}
-        </button>
-      )}
+      {(actionLabel && onAction) || (secondaryActionLabel && onSecondaryAction) ? (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          {actionLabel && onAction ? (
+            <Button size="sm" onClick={onAction}>
+              {actionLabel}
+            </Button>
+          ) : null}
+          {secondaryActionLabel && onSecondaryAction ? (
+            <Button size="sm" variant="outline" onClick={onSecondaryAction}>
+              {secondaryActionLabel}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </motion.div>
   );
 }

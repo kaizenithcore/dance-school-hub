@@ -27,6 +27,11 @@ export interface CreateSubscriptionCheckoutSessionInput {
   lineItems: SubscriptionCheckoutLineItem[];
 }
 
+export interface StripeCompletedCheckoutMatch {
+  sessionId: string;
+  completedAt: string;
+}
+
 let stripeClient: Stripe | null = null;
 
 function getStripeClient(): Stripe {
@@ -139,5 +144,46 @@ export const stripeService = {
       id: session.id,
       url: session.url,
     };
+  },
+
+  async findLatestCompletedSubscriptionCheckoutByTenant(tenantId: string): Promise<StripeCompletedCheckoutMatch | null> {
+    const stripe = getStripeClient();
+
+    // Stripe Events API does not support metadata filters, so we inspect recent completed checkout events.
+    const events = await stripe.events.list({
+      type: "checkout.session.completed",
+      limit: 100,
+    });
+
+    for (const event of events.data) {
+      const payload = event.data.object;
+      if (!payload || payload.object !== "checkout.session") {
+        continue;
+      }
+
+      const session = payload as Stripe.Checkout.Session;
+      const metadataTenantId = typeof session.metadata?.tenantId === "string"
+        ? session.metadata.tenantId
+        : null;
+
+      if (metadataTenantId !== tenantId) {
+        continue;
+      }
+
+      if (session.mode !== "subscription") {
+        continue;
+      }
+
+      if (session.payment_status !== "paid" && session.status !== "complete") {
+        continue;
+      }
+
+      return {
+        sessionId: session.id,
+        completedAt: new Date(event.created * 1000).toISOString(),
+      };
+    }
+
+    return null;
   },
 };

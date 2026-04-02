@@ -44,6 +44,8 @@ const studentBaseSchema = z.object({
   guardian: guardianSchema.optional(),
   classIds: z.array(z.string().uuid()).optional(),
   jointEnrollmentGroupId: z.string().uuid().optional().nullable(),
+  extraData: z.record(z.string(), z.unknown()).optional(),
+  extra_data: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const createStudentSchema = studentBaseSchema.refine((data) => {

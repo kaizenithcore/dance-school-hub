@@ -6,8 +6,12 @@ export interface ImportMapping {
   lastName?: string | null;
   email?: string | null;
   phone?: string | null;
+  locality?: string | null;
+  identityDocumentNumber?: string | null;
   birthdate?: string | null;
   notes?: string | null;
+  custom?: Record<string, string | null | undefined>;
+  columnTargets?: Record<string, string | null | undefined>;
 }
 
 export interface ImportRowResult {

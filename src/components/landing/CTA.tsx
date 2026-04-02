@@ -1,9 +1,12 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
-import { SharedDemoCta } from "@/components/landing/SharedDemoCta";
+import { activateDemoAdminSession, DEMO_ADMIN_SLUG } from "@/lib/demoAdmin";
+
+const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=final_cta";
+const DEMO_ADMIN_HREF = `/admin?demo=${DEMO_ADMIN_SLUG}`;
 
 export function CTA() {
   const handlePrimaryClick = () => {
@@ -13,7 +16,20 @@ export function CTA() {
       metadata: {
         section: "final_cta",
         ctaLabel: "Empezar con el pack",
-        destination: "/auth/register",
+        destination: PRO_ANNUAL_CTA_HREF,
+      },
+    });
+  };
+
+  const handleDemoClick = () => {
+    activateDemoAdminSession(DEMO_ADMIN_SLUG);
+    trackPortalEvent({
+      eventName: "click_cta_secondary",
+      category: "funnel",
+      metadata: {
+        section: "final_cta",
+        ctaLabel: "Ver demo + prueba gratis",
+        destination: DEMO_ADMIN_HREF,
       },
     });
   };
@@ -33,16 +49,21 @@ export function CTA() {
               Todo tu centro, en un solo sistema
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-lg mx-auto">
-              Ahorra horas cada semana y gestiona con control total desde Nexa.
+              Ahorra horas cada semana y activa un sistema de gestión + captación con prueba gratis de 14 días.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" className="h-12 rounded-xl px-8 text-base font-semibold shadow-md hover:shadow-lg" asChild>
-                <Link to="/auth/register" onClick={handlePrimaryClick}>
-                  Empezar ahora
+                <Link to={PRO_ANNUAL_CTA_HREF} onClick={handlePrimaryClick}>
+                  Activar con cuota mensual
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
-              <SharedDemoCta section="final_cta" className="h-12 px-8 text-base" />
+              <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
+                <Link to={DEMO_ADMIN_HREF} onClick={handleDemoClick}>
+                  <Play className="mr-1 h-4 w-4" />
+                  Ver demo + prueba gratis
+                </Link>
+              </Button>
             </div>
           </div>
         </motion.div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ export function EventFormModal({ open, onOpenChange, event, onSubmit }: Props) {
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState<EventStatus>("draft");
   const [showOptional, setShowOptional] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (event) {
@@ -43,12 +44,24 @@ export function EventFormModal({ open, onOpenChange, event, onSubmit }: Props) {
       setDescription(""); setTicketPrice(""); setCapacity(""); setNotes("");
       setStatus("draft"); setShowOptional(false);
     }
+
+    setSubmitError(null);
   }, [event, open]);
 
   const canSubmit = name.trim() && startDate && location.trim();
 
   const handleSubmit = () => {
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      const missingFields = [
+        !name.trim() ? "Nombre" : null,
+        !startDate ? "Fecha inicio" : null,
+        !location.trim() ? "Ubicacion" : null,
+      ].filter(Boolean);
+      setSubmitError(`Completa los campos obligatorios: ${missingFields.join(", ")}.`);
+      return;
+    }
+
+    setSubmitError(null);
     onSubmit({
       name: name.trim(),
       startDate,
@@ -68,18 +81,53 @@ export function EventFormModal({ open, onOpenChange, event, onSubmit }: Props) {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{event ? "Editar evento" : "Crear evento"}</DialogTitle>
+          <DialogDescription>
+            Completa los datos principales del evento y añade campos opcionales si necesitas más detalle.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {submitError ? (
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+            >
+              {submitError}
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label htmlFor="evt-name">Nombre del evento *</Label>
-            <Input id="evt-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Festival de Primavera" />
+            <Input
+              id="evt-name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (submitError) setSubmitError(null);
+              }}
+              placeholder="Ej: Festival de Primavera"
+              required
+              aria-invalid={Boolean(submitError) && !name.trim()}
+              aria-describedby={Boolean(submitError) && !name.trim() ? "evt-required-error" : undefined}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="evt-start">Fecha inicio *</Label>
-              <Input id="evt-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Input
+                id="evt-start"
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  if (submitError) setSubmitError(null);
+                }}
+                required
+                aria-invalid={Boolean(submitError) && !startDate}
+                aria-describedby={Boolean(submitError) && !startDate ? "evt-required-error" : undefined}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="evt-end">Fecha fin</Label>
@@ -89,8 +137,21 @@ export function EventFormModal({ open, onOpenChange, event, onSubmit }: Props) {
 
           <div className="space-y-2">
             <Label htmlFor="evt-location">Ubicación *</Label>
-            <Input id="evt-location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ej: Teatro Municipal" />
+            <Input
+              id="evt-location"
+              value={location}
+              onChange={(e) => {
+                setLocation(e.target.value);
+                if (submitError) setSubmitError(null);
+              }}
+              placeholder="Ej: Teatro Municipal"
+              required
+              aria-invalid={Boolean(submitError) && !location.trim()}
+              aria-describedby={Boolean(submitError) && !location.trim() ? "evt-required-error" : undefined}
+            />
           </div>
+
+          {submitError ? <p id="evt-required-error" className="sr-only">{submitError}</p> : null}
 
           <Collapsible open={showOptional} onOpenChange={setShowOptional}>
             <CollapsibleTrigger asChild>

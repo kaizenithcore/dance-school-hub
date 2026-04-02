@@ -3,6 +3,7 @@ import type { PublicEnrollmentInput, JointEnrollmentInput } from "@/lib/validato
 import { enrollmentFormConfigService } from "@/lib/services/enrollmentFormConfigService";
 import { waitlistService } from "@/lib/services/waitlistService";
 import { studentQuotaService } from "@/lib/services/studentQuotaService";
+import { studentFieldService } from "@/lib/services/studentFieldService";
 import { DEMO_TENANT_CONFIG, isDemoTenantSlug } from "@/lib/constants/demoTenant";
 
 function normalizeName(value: string | null | undefined) {
@@ -20,6 +21,71 @@ function normalizePhone(value: string | null | undefined) {
 
 function normalizeEmail(value: string | null | undefined) {
   return String(value || "").trim().toLowerCase();
+}
+
+function toSnakeCase(value: string) {
+  return value
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+}
+
+function buildPublicStudentExtraData(
+  payload: Record<string, unknown>,
+  formValues: Record<string, unknown>
+): Record<string, unknown> {
+  const reserved = new Set([
+    "class_id",
+    "class_ids",
+    "class_selections",
+    "first_name",
+    "last_name",
+    "student_first_name",
+    "student_last_name",
+    "student_name",
+    "full_name",
+    "email",
+    "student_email",
+    "correo",
+    "phone",
+    "student_phone",
+    "telefono",
+    "date_of_birth",
+    "student_birthdate",
+    "birthdate",
+    "fecha_nacimiento",
+    "guardian_name",
+    "guardian_email",
+    "guardian_phone",
+    "notes",
+    "form_values",
+    "payer_info",
+    "selected_branch_slug",
+  ]);
+
+  const extraData: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(formValues || {})) {
+    const normalizedKey = toSnakeCase(key);
+    if (!normalizedKey || reserved.has(normalizedKey) || value === undefined) {
+      continue;
+    }
+    extraData[normalizedKey] = value;
+  }
+
+  for (const [key, value] of Object.entries(payload || {})) {
+    const normalizedKey = toSnakeCase(key);
+    if (!normalizedKey || reserved.has(normalizedKey) || value === undefined) {
+      continue;
+    }
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      extraData[normalizedKey] = value;
+    }
+  }
+
+  return extraData;
 }
 
 export interface PublicSchoolProfile {
@@ -511,6 +577,11 @@ export const publicEnrollmentService = {
       throw new Error("Tenant not found");
     }
 
+    const studentExtraData = await studentFieldService.normalizeAndValidateExtraData(
+      tenant.id,
+      buildPublicStudentExtraData(input as unknown as Record<string, unknown>, formValues)
+    );
+
     // Validate classes exist and belong to tenant
     const { data: classData, error: classError } = await supabaseAdmin
       .from("classes")
@@ -606,6 +677,7 @@ export const publicEnrollmentService = {
           phone: phone ?? "N/A",
           date_of_birth: dateOfBirth ?? null,
           notes: noteValue || null,
+          extra_data: studentExtraData,
           status: "active",
           payment_type: "monthly",
         })
@@ -807,6 +879,10 @@ export const publicEnrollmentService = {
           const phone = (studentData.phone as string) || input.payer_info.phone;
           const dateOfBirth = (studentData.date_of_birth as string) || null;
           const formValues = studentData.form_values || {};
+          const studentExtraData = await studentFieldService.normalizeAndValidateExtraData(
+            tenant.id,
+            buildPublicStudentExtraData(studentData as Record<string, unknown>, formValues as Record<string, unknown>)
+          );
 
           const studentName = `${firstName} ${lastName}`.trim();
           const studentNotes = [
@@ -846,6 +922,7 @@ export const publicEnrollmentService = {
                 phone: phone ?? "N/A",
                 date_of_birth: dateOfBirth,
                 notes: noteValue || null,
+                extra_data: studentExtraData,
                 status: "active",
                 payment_type: "monthly",
               })

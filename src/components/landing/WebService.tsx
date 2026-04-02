@@ -2,10 +2,12 @@ import { motion } from "framer-motion";
 import { Globe, Link2, CreditCard, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { commercialCatalog, formatEuro } from "@/lib/commercialCatalog";
+import { Link } from "react-router-dom";
 
 const webCatalog = commercialCatalog.professionalServices as Record<string, any>;
 const integratedWeb = webCatalog.integratedWebsite;
 const standaloneWeb = webCatalog.standaloneWebsite;
+const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=web_service";
 
 const integratedFeatures = (integratedWeb?.includes as string[] | undefined) || [
   "Página pública profesional",
@@ -139,12 +141,13 @@ export function WebService() {
           viewport={{ once: true }}
           className="mt-10 text-center"
         >
-          <Button size="lg" variant="outline" className="h-11" asChild>
-            <a href="mailto:hola@nexa.es?subject=Consulta%20servicio%20web%20Nexa">
-              Solicitar información
+          <Button size="lg" className="h-11" asChild>
+            <Link to={PRO_ANNUAL_CTA_HREF}>
+              Probar web integrada gratis
               <ArrowRight className="ml-1 h-4 w-4" />
-            </a>
+            </Link>
           </Button>
+          <p className="mt-3 text-xs text-muted-foreground">Activa tu prueba gratuita de 14 días sin compromiso.</p>
         </motion.div>
       </div>
     </section>

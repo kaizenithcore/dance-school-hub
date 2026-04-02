@@ -2,11 +2,13 @@ import { motion } from "framer-motion";
 import { Award, FileCheck, Users, BarChart3, ClipboardList, Globe, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { commercialCatalog, formatEuro } from "@/lib/commercialCatalog";
+import { commercialCatalog, formatAnnualFinancingLabel, formatEuro } from "@/lib/commercialCatalog";
+import { Link } from "react-router-dom";
 
 const examSuit = (commercialCatalog as any).examSuit;
 const assocPlan = examSuit?.plans?.associations;
 const schoolPlan = examSuit?.plans?.schools;
+const CERTIFIER_CTA_HREF = "/auth/register?plan=pro&billing=annual&product=certifier&trial=14d&source=certifier";
 
 const highlights = [
   { icon: ClipboardList, text: "Convocatorias" },
@@ -36,7 +38,7 @@ export function ExamSuit() {
             Gestiona certificaciones con Certifier
           </h2>
           <p className="mt-4 text-muted-foreground text-lg">
-            Automatiza inscripciones, resultados y certificados en un único flujo.
+            Automatiza inscripciones, resultados y certificados en un único flujo con prueba gratis.
           </p>
         </motion.div>
 
@@ -91,7 +93,7 @@ export function ExamSuit() {
                 <span className="text-sm text-muted-foreground">/mes</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Facturación anual: {formatEuro(assocPlan.billing.annualTotalEur)}/año
+                {formatAnnualFinancingLabel(assocPlan.billing.annualTotalEur)}
               </p>
               <p className="text-xs font-medium text-success">{assocPlan.billing.annualSavingsLabel}</p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -108,10 +110,10 @@ export function ExamSuit() {
               </ul>
 
               <Button className="mt-7 w-full" size="lg" asChild>
-                <a href={assocPlan.cta.href}>
-                  {assocPlan.cta.label}
+                <Link to={CERTIFIER_CTA_HREF}>
+                  Crear cuenta gratis
                   <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
+                </Link>
               </Button>
             </motion.div>
           )}
@@ -137,7 +139,7 @@ export function ExamSuit() {
                 <span className="text-sm text-muted-foreground">/mes</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Facturación anual: {formatEuro(schoolPlan.billing.annualTotalEur)}/año
+                {formatAnnualFinancingLabel(schoolPlan.billing.annualTotalEur)}
               </p>
               <p className="text-xs font-medium text-success">{schoolPlan.billing.annualSavingsLabel}</p>
 
@@ -153,10 +155,10 @@ export function ExamSuit() {
               <p className="mt-4 text-xs text-muted-foreground italic">{schoolPlan.note}</p>
 
               <Button className="mt-5 w-full" variant="outline" size="lg" asChild>
-                <a href={schoolPlan.cta.href}>
-                  {schoolPlan.cta.label}
+                <Link to={CERTIFIER_CTA_HREF}>
+                  Crear cuenta gratis
                   <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
+                </Link>
               </Button>
             </motion.div>
           )}

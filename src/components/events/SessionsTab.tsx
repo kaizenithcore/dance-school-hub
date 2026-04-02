@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Clock, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { SessionScheduleEditor } from "./SessionScheduleEditor";
 import type { DanceEvent, EventSession, ScheduleItem } from "@/lib/types/events";
@@ -79,6 +79,7 @@ export function SessionsTab({ event, onAddSession, onUpdateSession, onDeleteSess
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label={`Eliminar sesión ${session.name || format(new Date(session.date), "d MMM yyyy", { locale: es })}`}
                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     onClick={(e) => { e.stopPropagation(); void onDeleteSession(session.id); }}
                   >
@@ -103,7 +104,12 @@ export function SessionsTab({ event, onAddSession, onUpdateSession, onDeleteSess
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Nueva sesión</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Nueva sesión</DialogTitle>
+            <DialogDescription>
+              Define fecha y hora para crear una nueva sesión dentro de este evento.
+            </DialogDescription>
+          </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-2">
               <Label>Fecha *</Label>

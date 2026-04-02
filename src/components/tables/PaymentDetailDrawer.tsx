@@ -78,7 +78,7 @@ export function PaymentDetailDrawer({ open, onOpenChange, payment, onMarkPaid, o
                   </Badge>
                 )}
               </div>
-              <span className="text-lg font-bold text-primary">${payment.amount.toLocaleString()}</span>
+              <span className="text-lg font-bold text-primary">€{payment.amount.toLocaleString()}</span>
             </div>
           </section>
 

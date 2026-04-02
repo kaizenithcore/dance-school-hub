@@ -210,7 +210,7 @@ export const paymentService = {
     // Get all payments for revenue analysis
     const { data: payments } = await supabaseAdmin
       .from("payments")
-      .select("amount_cents, status, paid_at, created_at, provider")
+      .select("amount_cents, status, paid_at, due_at, created_at, provider")
       .eq("tenant_id", tenantId);
 
     const { data: studentPayments } = await supabaseAdmin
@@ -239,15 +239,40 @@ export const paymentService = {
       `)
       .eq("tenant_id", tenantId);
 
-    // Revenue by month
+    const { data: classes } = await supabaseAdmin
+      .from("classes")
+      .select("id, capacity, status")
+      .eq("tenant_id", tenantId)
+      .eq("status", "active");
+
+    // Revenue and pending by month
     const revenueByMonth: Record<string, number> = {};
+    const pendingByMonth: Record<string, number> = {};
     const paidPayments = (payments || []).filter((p: any) => p.status === "paid");
+    const pendingOrOverduePayments = (payments || []).filter((p: any) => p.status === "pending" || p.status === "overdue");
     
     paidPayments.forEach((p: any) => {
       if (p.paid_at) {
         const month = p.paid_at.substring(0, 7);
         revenueByMonth[month] = (revenueByMonth[month] || 0) + (p.amount_cents || 0);
       }
+    });
+
+    pendingOrOverduePayments.forEach((p: any) => {
+      const referenceDate = p.due_at || p.created_at;
+      if (referenceDate) {
+        const month = referenceDate.substring(0, 7);
+        pendingByMonth[month] = (pendingByMonth[month] || 0) + (p.amount_cents || 0);
+      }
+    });
+
+    const collectionRateByMonth: Record<string, number> = {};
+    const monthKeys = Array.from(new Set([...Object.keys(revenueByMonth), ...Object.keys(pendingByMonth)]));
+    monthKeys.forEach((month) => {
+      const paid = revenueByMonth[month] || 0;
+      const pending = pendingByMonth[month] || 0;
+      const tracked = paid + pending;
+      collectionRateByMonth[month] = tracked > 0 ? Math.round((paid / tracked) * 100) : 0;
     });
 
     // Enrollments by status
@@ -258,10 +283,14 @@ export const paymentService = {
 
     // Students per class
     const studentsByClass: Record<string, number> = {};
+    const confirmedStudentsByClassId: Record<string, number> = {};
     (classEnrollments || []).forEach((ce: any) => {
       const cls = Array.isArray(ce.classes) ? ce.classes[0] : ce.classes;
       if (cls) {
         studentsByClass[cls.name] = (studentsByClass[cls.name] || 0) + 1;
+        if (ce.status === "confirmed") {
+          confirmedStudentsByClassId[cls.id] = (confirmedStudentsByClassId[cls.id] || 0) + 1;
+        }
       }
     });
 
@@ -275,6 +304,9 @@ export const paymentService = {
     const totalRevenueCents = paidPayments.reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0);
     const pendingRevenueCents = (payments || [])
       .filter((p: any) => p.status === "pending" || p.status === "overdue")
+      .reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0);
+    const overdueRevenueCents = (payments || [])
+      .filter((p: any) => p.status === "overdue")
       .reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0);
 
     const activeStudentsCount = (students || []).filter((student: any) => student.status === "active").length;
@@ -345,9 +377,26 @@ export const paymentService = {
     const payingStudentsCount = paidStudentMap.size;
     const paidPaymentsCount = paidPayments.length;
     const totalTrackedRevenueCents = totalRevenueCents + pendingRevenueCents;
+    const avgPaymentAmountCents = paidPaymentsCount > 0 ? Math.round(totalRevenueCents / paidPaymentsCount) : 0;
+    const potentialRevenueCents = avgPaymentAmountCents * activeStudentsCount;
+    const overdueStudentsCount = Array.from(
+      new Set(
+        (studentPayments || [])
+          .filter((payment: AnalyticsStudentRow) => payment.status === "overdue" && Boolean(payment.student_id))
+          .map((payment: AnalyticsStudentRow) => String(payment.student_id))
+      )
+    ).length;
+    const totalCapacity = (classes || []).reduce((sum: number, klass: any) => sum + Number(klass.capacity || 0), 0);
+    const totalConfirmedEnrollments = Object.values(confirmedStudentsByClassId).reduce((sum, value) => sum + value, 0);
+    const occupancyPct = totalCapacity > 0 ? Math.round((totalConfirmedEnrollments / totalCapacity) * 100) : 0;
+    const revenuePerConfirmedEnrollment = totalConfirmedEnrollments > 0
+      ? Math.round(totalRevenueCents / totalConfirmedEnrollments / 100)
+      : 0;
 
     return {
       revenueByMonth,
+      pendingByMonth,
+      collectionRateByMonth,
       enrollmentsByStatus,
       studentsByClass,
       methodDistribution,
@@ -355,8 +404,20 @@ export const paymentService = {
       pendingRevenue: Math.round(pendingRevenueCents / 100),
       avgRevenuePerActiveStudent: activeStudentsCount > 0 ? Math.round(totalRevenueCents / activeStudentsCount / 100) : 0,
       avgRevenuePerPayingStudent: payingStudentsCount > 0 ? Math.round(totalRevenueCents / payingStudentsCount / 100) : 0,
-      avgPaymentAmount: paidPaymentsCount > 0 ? Math.round(totalRevenueCents / paidPaymentsCount / 100) : 0,
+      avgPaymentAmount: Math.round(avgPaymentAmountCents / 100),
       collectionRatePct: totalTrackedRevenueCents > 0 ? Math.round((totalRevenueCents / totalTrackedRevenueCents) * 100) : 0,
+      activeStudentsCount,
+      payingStudentsCount,
+      payingStudentsPct: activeStudentsCount > 0 ? Math.round((payingStudentsCount / activeStudentsCount) * 100) : 0,
+      potentialRevenue: Math.round(potentialRevenueCents / 100),
+      potentialCollectionPct: potentialRevenueCents > 0 ? Math.round((totalRevenueCents / potentialRevenueCents) * 100) : 0,
+      overduePaymentsCount: (payments || []).filter((p: any) => p.status === "overdue").length,
+      overdueStudentsCount,
+      overdueRevenue: Math.round(overdueRevenueCents / 100),
+      occupancyPct,
+      totalCapacity,
+      totalConfirmedEnrollments,
+      revenuePerConfirmedEnrollment,
       topPayingStudents,
       highestPendingBalances,
     };

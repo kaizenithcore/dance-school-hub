@@ -25,6 +25,39 @@ export interface Class {
   }>;
 }
 
+async function getActiveEnrollmentCountByClassId(
+  tenantId: string,
+  classIds: string[]
+): Promise<Map<string, number>> {
+  const uniqueClassIds = Array.from(new Set(classIds.filter(Boolean)));
+  const countByClassId = new Map<string, number>();
+
+  if (uniqueClassIds.length === 0) {
+    return countByClassId;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("enrollments")
+    .select("class_id")
+    .eq("tenant_id", tenantId)
+    .in("status", ["pending", "confirmed"])
+    .in("class_id", uniqueClassIds);
+
+  if (error) {
+    throw new Error(`Failed to fetch class enrollments: ${error.message}`);
+  }
+
+  for (const row of data || []) {
+    const classId = (row as { class_id?: string | null }).class_id;
+    if (!classId) {
+      continue;
+    }
+    countByClassId.set(classId, (countByClassId.get(classId) || 0) + 1);
+  }
+
+  return countByClassId;
+}
+
 function normalizeTeacherIds(input: CreateClassInput | UpdateClassInput): string[] {
   const fromArray = Array.isArray(input.teacher_ids) ? input.teacher_ids : [];
   const fromSingle = typeof input.teacher_id === "string" && input.teacher_id.length > 0 ? [input.teacher_id] : [];
@@ -117,9 +150,11 @@ async function getClassWithTeachers(tenantId: string, classId: string): Promise<
     throw new Error(`Failed to fetch class: ${error?.message || "Class not found"}`);
   }
 
+  const activeEnrollmentCountByClassId = await getActiveEnrollmentCountByClassId(tenantId, [classId]);
   const teacherRows = mapTeacherRows(data as Class);
   return {
     ...(data as Class),
+    enrolled_count: activeEnrollmentCountByClassId.get(classId) || 0,
     teachers: teacherRows,
   };
 }
@@ -154,31 +189,13 @@ export const classService = {
     }
 
     const classIds = (data ?? []).map((item) => item.id);
-    const enrolledCountByClass = new Map<string, number>();
-
-    if (classIds.length > 0) {
-      const { data: confirmedEnrollments, error: enrollmentsError } = await supabaseAdmin
-        .from("enrollments")
-        .select("class_id")
-        .eq("tenant_id", tenantId)
-        .eq("status", "confirmed")
-        .in("class_id", classIds);
-
-      if (enrollmentsError) {
-        throw new Error(`Failed to fetch class occupancy: ${enrollmentsError.message}`);
-      }
-
-      for (const enrollment of confirmedEnrollments || []) {
-        const classId = enrollment.class_id;
-        enrolledCountByClass.set(classId, (enrolledCountByClass.get(classId) || 0) + 1);
-      }
-    }
+    const activeEnrollmentCountByClassId = await getActiveEnrollmentCountByClassId(tenantId, classIds);
 
     return (data ?? []).map((item) => {
       const teacherRows = mapTeacherRows(item as Class);
       return {
         ...(item as Class),
-        enrolled_count: enrolledCountByClass.get(item.id) || 0,
+        enrolled_count: activeEnrollmentCountByClassId.get(item.id) || 0,
         teachers: teacherRows,
       };
     });

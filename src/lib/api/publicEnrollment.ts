@@ -163,6 +163,9 @@ export interface PublicClass {
   name: string;
   discipline: string;
   category: string;
+  level?: string;
+  teacherName?: string;
+  teacher_name?: string;
   min_age?: number | null;
   max_age?: number | null;
   price_cents: number;
@@ -174,6 +177,7 @@ export interface PublicClass {
 export interface PublicSchoolProfile {
   tagline?: string;
   description?: string;
+  hasOptimizedWebsite?: boolean;
   address?: string;
   city?: string;
   phone?: string;
@@ -202,6 +206,7 @@ export interface PublicScheduleConfig {
 export interface PublicFormData {
   tenantId: string;
   tenantName: string;
+  hasOptimizedWebsite?: boolean;
   branches?: PublicBranchProfile[];
   formConfig: EnrollmentFormConfig;
   demo?: {

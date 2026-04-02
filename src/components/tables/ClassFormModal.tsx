@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ClassRecord } from "@/lib/data/mockClassRecords";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -256,6 +256,9 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Clase" : "Nueva Clase"}</DialogTitle>
+          <DialogDescription>
+            {isEdit ? "Actualiza la informacion de la clase." : "Completa los datos para crear una clase nueva."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">

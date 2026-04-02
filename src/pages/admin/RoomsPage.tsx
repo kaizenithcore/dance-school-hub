@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,8 @@ import { createRoom, deleteRoom, getRooms, Room, updateRoom } from "@/lib/api/ro
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
+import { runWithSaveFeedback } from "@/lib/saveFeedback";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 
 type RoomForm = {
   name: string;
@@ -41,6 +43,8 @@ const EMPTY_FORM: RoomForm = {
   isActive: true,
 };
 
+const ROOM_DELETE_UNDO_MS = 5000;
+
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,8 +55,36 @@ export default function RoomsPage() {
   const [deletingRoom, setDeletingRoom] = useState<Room | null>(null);
   const [form, setForm] = useState<RoomForm>(EMPTY_FORM);
   const [searchParams, setSearchParams] = useSearchParams();
+  const pendingDeleteRef = useRef<{ room: Room; index: number } | null>(null);
+  const pendingDeleteTimerRef = useRef<number | null>(null);
 
   const activeCount = useMemo(() => rooms.filter((r) => r.isActive).length, [rooms]);
+  const formHasUnsavedChanges = useMemo(() => {
+    if (!formOpen) {
+      return false;
+    }
+
+    const source = editingRoom
+      ? {
+          name: editingRoom.name,
+          capacity: editingRoom.capacity,
+          description: editingRoom.description,
+          isActive: editingRoom.isActive,
+        }
+      : EMPTY_FORM;
+
+    return (
+      form.name.trim() !== source.name.trim()
+      || form.capacity !== source.capacity
+      || form.description.trim() !== source.description.trim()
+      || form.isActive !== source.isActive
+    );
+  }, [editingRoom, form, formOpen]);
+
+  useUnsavedChangesGuard({
+    enabled: formHasUnsavedChanges,
+    message: "Tienes cambios sin guardar en Aulas. Si sales ahora, se perderán. ¿Quieres continuar?",
+  });
 
   useEffect(() => {
     const loadRooms = async () => {
@@ -97,6 +129,14 @@ export default function RoomsPage() {
     setSearchParams({}, { replace: true });
   }, [loading, rooms, searchParams, setSearchParams]);
 
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteTimerRef.current) {
+        window.clearTimeout(pendingDeleteTimerRef.current);
+      }
+    };
+  }, []);
+
   const openCreate = () => {
     setEditingRoom(null);
     setForm(EMPTY_FORM);
@@ -135,52 +175,146 @@ export default function RoomsPage() {
 
     try {
       if (editingRoom) {
-        const updated = await updateRoom(editingRoom.id, {
-          name: form.name,
-          capacity: form.capacity,
-          description: form.description,
-          isActive: form.isActive,
-        });
-        if (!updated) throw new Error("No se pudo actualizar el aula");
+        const updated = await runWithSaveFeedback(
+          {
+            loading: "Guardando aula...",
+            success: "Aula guardada correctamente",
+            error: "No se pudo guardar el aula",
+            successDescription: "Los cambios ya están disponibles en Horarios.",
+            errorHint: "Revisa los datos e inténtalo nuevamente.",
+          },
+          async () => {
+            const result = await updateRoom(editingRoom.id, {
+              name: form.name,
+              capacity: form.capacity,
+              description: form.description,
+              isActive: form.isActive,
+            });
+
+            if (!result) {
+              throw new Error("sin respuesta del servidor");
+            }
+
+            return result;
+          }
+        );
 
         setRooms((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-        toast.success("Aula actualizada");
       } else {
-        const created = await createRoom({
-          name: form.name,
-          capacity: form.capacity,
-          description: form.description,
-          isActive: form.isActive,
-        });
-        if (!created) throw new Error("No se pudo crear el aula");
+        const created = await runWithSaveFeedback(
+          {
+            loading: "Creando aula...",
+            success: "Aula creada correctamente",
+            error: "No se pudo crear el aula",
+            successDescription: "Ya puedes asignarla a clases y horarios.",
+            errorHint: "Comprueba el nombre y la capacidad.",
+          },
+          async () => {
+            const result = await createRoom({
+              name: form.name,
+              capacity: form.capacity,
+              description: form.description,
+              isActive: form.isActive,
+            });
+
+            if (!result) {
+              throw new Error("sin respuesta del servidor");
+            }
+
+            return result;
+          }
+        );
 
         setRooms((prev) => [created, ...prev]);
-        toast.success("Aula creada");
       }
 
       setFormOpen(false);
     } catch (error) {
       console.error("Error saving room:", error);
-      const message = error instanceof Error ? error.message : "No se pudo guardar el aula";
-      toast.error(message);
     }
   };
 
   const handleDelete = async () => {
     if (!deletingRoom) return;
 
-    try {
-      const success = await deleteRoom(deletingRoom.id);
-      if (!success) throw new Error("No se pudo eliminar el aula");
+    const roomToDelete = deletingRoom;
+    const roomIndex = rooms.findIndex((room) => room.id === roomToDelete.id);
 
-      setRooms((prev) => prev.filter((r) => r.id !== deletingRoom.id));
+    if (roomIndex === -1) {
       setDeleteOpen(false);
       setDeletingRoom(null);
-      toast.success("Aula eliminada");
-    } catch (error) {
-      console.error("Error deleting room:", error);
-      toast.error("No se pudo eliminar el aula");
+      return;
     }
+
+    if (pendingDeleteTimerRef.current) {
+      window.clearTimeout(pendingDeleteTimerRef.current);
+      pendingDeleteTimerRef.current = null;
+      pendingDeleteRef.current = null;
+    }
+
+    pendingDeleteRef.current = { room: roomToDelete, index: roomIndex };
+    setRooms((prev) => prev.filter((room) => room.id !== roomToDelete.id));
+    setDeleteOpen(false);
+    setDeletingRoom(null);
+
+    toast.warning("Aula preparada para eliminar", {
+      description: "Puedes deshacer durante unos segundos.",
+      action: {
+        label: "Deshacer",
+        onClick: () => {
+          if (!pendingDeleteRef.current) {
+            return;
+          }
+
+          if (pendingDeleteTimerRef.current) {
+            window.clearTimeout(pendingDeleteTimerRef.current);
+            pendingDeleteTimerRef.current = null;
+          }
+
+          const { room, index } = pendingDeleteRef.current;
+          setRooms((prev) => {
+            const next = [...prev];
+            next.splice(Math.min(index, next.length), 0, room);
+            return next;
+          });
+          pendingDeleteRef.current = null;
+          toast.success("Eliminación cancelada");
+        },
+      },
+    });
+
+    pendingDeleteTimerRef.current = window.setTimeout(() => {
+      const pending = pendingDeleteRef.current;
+      pendingDeleteRef.current = null;
+      pendingDeleteTimerRef.current = null;
+
+      if (!pending) {
+        return;
+      }
+
+      void runWithSaveFeedback(
+        {
+          loading: "Eliminando aula...",
+          success: "Aula eliminada",
+          error: "No se pudo eliminar el aula",
+          successDescription: "La quitamos del listado y de futuras asignaciones.",
+          errorHint: "Puede estar en uso. Revisa clases y vuelve a intentarlo.",
+        },
+        async () => {
+          const ok = await deleteRoom(pending.room.id);
+          if (!ok) {
+            throw new Error("sin respuesta del servidor");
+          }
+        }
+      ).catch((error) => {
+        console.error("Error deleting room:", error);
+        setRooms((prev) => {
+          const next = [...prev];
+          next.splice(Math.min(pending.index, next.length), 0, pending.room);
+          return next;
+        });
+      });
+    }, ROOM_DELETE_UNDO_MS);
   };
 
   return (
@@ -189,7 +323,7 @@ export default function RoomsPage() {
       description={`Gestiona las aulas disponibles. ${activeCount}/${rooms.length} activas`}
       actions={
         <Button size="sm" onClick={openCreate}>
-          <Plus className="mr-1 h-4 w-4" /> Nueva Aula
+          <Plus className="mr-1 h-4 w-4" /> Nueva aula
         </Button>
       }
     >
@@ -208,7 +342,12 @@ export default function RoomsPage() {
             {rooms.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5}>
-                  <EmptyState type="classes" message="No hay aulas creadas todavía." />
+                  <EmptyState
+                    type="classes"
+                    message="No hay aulas creadas todavía."
+                    actionLabel="Crear aula"
+                    onAction={openCreate}
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -224,10 +363,20 @@ export default function RoomsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="inline-flex items-center gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(room)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openEdit(room)}
+                        aria-label={`Editar aula ${room.name}`}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => openDelete(room)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openDelete(room)}
+                        aria-label={`Eliminar aula ${room.name}`}
+                      >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
@@ -242,7 +391,7 @@ export default function RoomsPage() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingRoom ? "Editar Aula" : "Nueva Aula"}</DialogTitle>
+            <DialogTitle>{editingRoom ? "Editar aula" : "Nueva aula"}</DialogTitle>
             <DialogDescription>
               {editingRoom ? "Actualiza los datos del aula" : "Crea una nueva aula para tus horarios"}
             </DialogDescription>
@@ -301,7 +450,7 @@ export default function RoomsPage() {
           <DialogHeader>
             <DialogTitle>Eliminar Aula</DialogTitle>
             <DialogDescription>
-              ¿Seguro que deseas eliminar {deletingRoom?.name}? Esta acción no se puede deshacer.
+              ¿Seguro que deseas eliminar {deletingRoom?.name}? Tendrás unos segundos para deshacer la acción.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

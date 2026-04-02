@@ -1,6 +1,8 @@
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
+import { Link } from "react-router-dom";
+import { activateDemoAdminSession, DEMO_ADMIN_SLUG } from "@/lib/demoAdmin";
 
 type DemoCtaSection = "hero" | "launch_offer" | "modernization_pack" | "final_cta";
 
@@ -14,14 +16,15 @@ interface SharedDemoCtaProps {
 
 export function SharedDemoCta({
   section,
-  subject = "Solicitar demo Nexa",
-  label = "Ver demo",
+  subject = "Demo + prueba gratis Pro anual",
+  label = "Ver demo + prueba gratis",
   variant = "outline",
   className,
 }: SharedDemoCtaProps) {
-  const href = `mailto:hola@nexa.es?subject=${encodeURIComponent(subject)}`;
+  const href = `/admin?demo=${DEMO_ADMIN_SLUG}`;
 
   const handleClick = () => {
+    activateDemoAdminSession(DEMO_ADMIN_SLUG);
     trackPortalEvent({
       eventName: "click_cta_secondary",
       category: "funnel",
@@ -29,16 +32,17 @@ export function SharedDemoCta({
         section,
         ctaLabel: label,
         destination: href,
+        subject,
       },
     });
   };
 
   return (
     <Button size="lg" variant={variant} className={className} asChild>
-      <a href={href} onClick={handleClick}>
+      <Link to={href} onClick={handleClick}>
         <Play className="mr-1 h-4 w-4" />
         {label}
-      </a>
+      </Link>
     </Button>
   );
 }

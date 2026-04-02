@@ -66,7 +66,7 @@ function buildPlanLineItem(env: ReturnType<typeof getEnv>, planType: PlanType, b
     unitAmountCents: billingCycle === "annual"
       ? plan.billing.annualTotalEur * 100
       : plan.billing.monthlyPriceEur * 100,
-    productName: `Nexa plan ${planType}`,
+    productName: `DanceHub plan ${planType}`,
     recurringInterval: intervalForCycle(billingCycle),
   };
 }
@@ -109,7 +109,7 @@ function buildBlockLineItem(
     quantity: blocks,
     currency: "eur",
     unitAmountCents: (billingCycle === "annual" ? monthlyPrice * 12 : monthlyPrice) * 100,
-    productName: `Nexa extra student block (${planType})`,
+    productName: `DanceHub extra student block (${planType})`,
     recurringInterval: intervalForCycle(billingCycle),
   };
 }
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
           quantity: 1,
           currency: "eur",
           unitAmountCents: (billingCycle === "annual" ? monthly * 12 : monthly) * 100,
-          productName: "Nexa add-on custom domain",
+          productName: "DanceHub add-on custom domain",
           recurringInterval: intervalForCycle(billingCycle),
         });
       }
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
           quantity: 1,
           currency: "eur",
           unitAmountCents: (billingCycle === "annual" ? monthly * 12 : monthly) * 100,
-          productName: "Nexa add-on priority support",
+          productName: "DanceHub add-on priority support",
           recurringInterval: intervalForCycle(billingCycle),
         });
       }
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
           quantity: 1,
           currency: "eur",
           unitAmountCents: (billingCycle === "annual" ? monthly * 12 : monthly) * 100,
-          productName: "Nexa add-on waitlist automation",
+          productName: "DanceHub add-on waitlist automation",
           recurringInterval: intervalForCycle(billingCycle),
         });
       }
@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
         quantity: 1,
         currency: "eur",
           unitAmountCents: (billingCycle === "annual" ? monthly * 12 : monthly) * 100,
-        productName: "Nexa add-on renewal automation",
+        productName: "DanceHub add-on renewal automation",
           recurringInterval: intervalForCycle(billingCycle),
       });
       }

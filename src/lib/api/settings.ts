@@ -46,3 +46,12 @@ export async function updateSchoolSettings(payload: SchoolSettingsPayload): Prom
   });
   return response.success ? response.data || null : null;
 }
+
+export async function syncTrialPaymentStatusFromStripe(): Promise<{ synced: boolean; reason?: string } | null> {
+  const response = await apiRequest<{ synced: boolean; reason?: string }>("/api/admin/billing/trial-payment-status", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+
+  return response.success ? response.data || null : null;
+}

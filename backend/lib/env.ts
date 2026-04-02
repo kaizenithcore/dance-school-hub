@@ -89,61 +89,6 @@ const envSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
-  STRIPE_PRICE_EXAM_SUIT_CORE: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-    z.string().min(1).optional()
-  ),
-  STRIPE_PRICE_EXAM_SUIT_CORE_ANNUAL: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-    z.string().min(1).optional()
-  ),
-  STRIPE_PRICE_EXAM_SUIT_LITE: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-    z.string().min(1).optional()
-  ),
-  STRIPE_PRICE_EXAM_SUIT_LITE_ANNUAL: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-    z.string().min(1).optional()
-  ),
-  EXAM_USAGE_PRICE_SESSION_CREATED_CENTS: z.preprocess(
-    (value) => {
-      if (typeof value === "string") {
-        const trimmed = value.trim();
-        if (trimmed === "") return undefined;
-        const parsed = Number.parseInt(trimmed, 10);
-        return Number.isFinite(parsed) ? parsed : value;
-      }
-
-      return value;
-    },
-    z.number().int().min(0).optional()
-  ),
-  EXAM_USAGE_PRICE_ENROLLMENT_CREATED_CENTS: z.preprocess(
-    (value) => {
-      if (typeof value === "string") {
-        const trimmed = value.trim();
-        if (trimmed === "") return undefined;
-        const parsed = Number.parseInt(trimmed, 10);
-        return Number.isFinite(parsed) ? parsed : value;
-      }
-
-      return value;
-    },
-    z.number().int().min(0).optional()
-  ),
-  EXAM_USAGE_PRICE_CERTIFICATE_GENERATED_CENTS: z.preprocess(
-    (value) => {
-      if (typeof value === "string") {
-        const trimmed = value.trim();
-        if (trimmed === "") return undefined;
-        const parsed = Number.parseInt(trimmed, 10);
-        return Number.isFinite(parsed) ? parsed : value;
-      }
-
-      return value;
-    },
-    z.number().int().min(0).optional()
-  ),
   RESEND_API_KEY: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()

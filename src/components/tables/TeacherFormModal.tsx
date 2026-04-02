@@ -25,7 +25,7 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave }: Teache
     assignedClasses: [],
     status: "active",
     hireDate: new Date().toISOString().split("T")[0],
-    aulary: 2000,
+    salay: 2000,
   });
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave }: Teache
         assignedClasses: teacher.assignedClasses,
         status: teacher.status,
         hireDate: teacher.hireDate,
-        aulary: teacher.aulary,
+        salay: teacher.salay,
         notes: teacher.notes,
       });
     } else {
@@ -52,7 +52,7 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave }: Teache
         assignedClasses: [],
         status: "active",
         hireDate: new Date().toISOString().split("T")[0],
-        aulary: 2000,
+        salay: 2000,
       });
     }
   }, [teacher, open]);
@@ -132,14 +132,14 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave }: Teache
             </div>
 
             <div>
-              <Label htmlFor="aulary" className="text-xs font-semibold">
-                Salario Mensual ($) *
+              <Label htmlFor="salay" className="text-xs font-semibold">
+                Salario Mensual (€) *
               </Label>
               <Input
-                id="aulary"
+                id="salay"
                 type="number"
-                value={formData.aulary}
-                onChange={(e) => setFormData({ ...formData, aulary: parseInt(e.target.value) || 0 })}
+                value={formData.salay}
+                onChange={(e) => setFormData({ ...formData, salay: parseInt(e.target.value) || 0 })}
                 placeholder="2000"
                 required
                 disabled={isLoading}

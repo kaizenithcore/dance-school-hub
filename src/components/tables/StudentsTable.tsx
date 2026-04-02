@@ -12,6 +12,7 @@ import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, GraduationCap, 
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { SchoolStudentField } from "@/lib/api/studentFields";
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   active: { label: "Activo", className: "bg-success/15 text-success border-success/20" },
@@ -48,6 +49,7 @@ const DEFAULT_VISIBLE_COLUMNS: StudentsVisibleColumns = {
 
 interface StudentsTableProps {
   students: StudentRecord[];
+  customFields?: SchoolStudentField[];
   isLoading?: boolean;
   onViewProfile: (student: StudentRecord) => void;
   onEdit: (student: StudentRecord) => void;
@@ -55,7 +57,14 @@ interface StudentsTableProps {
   onDelete: (student: StudentRecord) => void;
 }
 
-export function StudentsTable({ students, isLoading = false, onViewProfile, onEdit, onManageClasses, onDelete }: StudentsTableProps) {
+function formatCustomFieldValue(value: unknown): string {
+  if (value == null) return "-";
+  if (typeof value === "string") return value.trim() || "-";
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value);
+}
+
+export function StudentsTable({ students, customFields = [], isLoading = false, onViewProfile, onEdit, onManageClasses, onDelete }: StudentsTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [localityFilter, setLocalityFilter] = useState<string>("all");
@@ -102,6 +111,11 @@ export function StudentsTable({ students, isLoading = false, onViewProfile, onEd
     ).sort((a, b) => a.localeCompare(b, "es"));
   }, [students]);
 
+  const tableCustomFields = useMemo(
+    () => customFields.filter((field) => field.visible && field.visibleInTable),
+    [customFields]
+  );
+
   const filtered = useMemo(() => {
     return students.filter((s) => {
       const matchSearch =
@@ -110,29 +124,21 @@ export function StudentsTable({ students, isLoading = false, onViewProfile, onEd
         s.phone.includes(search) ||
         (s.identityDocumentNumber || "").toLowerCase().includes(search.toLowerCase()) ||
         (s.locality || "").toLowerCase().includes(search.toLowerCase()) ||
-        (s.address || "").toLowerCase().includes(search.toLowerCase());
+        (s.address || "").toLowerCase().includes(search.toLowerCase()) ||
+        tableCustomFields.some((field) =>
+          formatCustomFieldValue(s.extraData?.[field.key]).toLowerCase().includes(search.toLowerCase())
+        );
       const matchStatus = statusFilter === "all" || s.status === statusFilter;
       const matchLocality = localityFilter === "all" || (s.locality || "") === localityFilter;
       const matchDocument = !documentFilter.trim() || (s.identityDocumentNumber || "").toLowerCase().includes(documentFilter.toLowerCase());
       const matchAddress = !addressFilter.trim() || (s.address || "").toLowerCase().includes(addressFilter.toLowerCase());
       return matchSearch && matchStatus && matchLocality && matchDocument && matchAddress;
     });
-  }, [students, search, statusFilter, localityFilter, documentFilter, addressFilter]);
+  }, [students, search, statusFilter, localityFilter, documentFilter, addressFilter, tableCustomFields]);
 
   useEffect(() => {
     window.localStorage.setItem(PAGE_PREFS_KEY, String(page));
   }, [page]);
-
-  useEffect(() => {
-    if (totalPages === 0) {
-      if (page !== 0) setPage(0);
-      return;
-    }
-
-    if (page > totalPages - 1) {
-      setPage(totalPages - 1);
-    }
-  }, [page, totalPages]);
 
   const getMonthlyTotal = (student: StudentRecord) => {
     if (student.paymentType !== "monthly") return null;
@@ -188,6 +194,17 @@ export function StudentsTable({ students, isLoading = false, onViewProfile, onEd
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  useEffect(() => {
+    if (totalPages === 0) {
+      if (page !== 0) setPage(0);
+      return;
+    }
+
+    if (page > totalPages - 1) {
+      setPage(totalPages - 1);
+    }
+  }, [page, totalPages]);
+
   const getDocumentLabel = (student: StudentRecord) => {
     if (!student.identityDocumentType || !student.identityDocumentNumber) {
       return "-";
@@ -202,11 +219,15 @@ export function StudentsTable({ students, isLoading = false, onViewProfile, onEd
     if (visibleColumns.locality) return student.locality || "-";
     if (visibleColumns.document) return getDocumentLabel(student);
     if (visibleColumns.address) return student.address || "-";
+    for (const field of tableCustomFields) {
+      const value = formatCustomFieldValue(student.extraData?.[field.key]);
+      if (value !== "-") return `${field.label}: ${value}`;
+    }
     return "";
   };
 
   const visibleDataColumnsCount = Object.values(visibleColumns).filter(Boolean).length;
-  const totalColumnCount = 5 + visibleDataColumnsCount;
+  const totalColumnCount = 5 + visibleDataColumnsCount + tableCustomFields.length;
 
   const toggleSort = (key: StudentSortKey) => {
     setPage(0);
@@ -340,6 +361,9 @@ export function StudentsTable({ students, isLoading = false, onViewProfile, onEd
               {visibleColumns.locality && renderSortableHead("Localidad", "locality", "hidden lg:table-cell")}
               {visibleColumns.document && renderSortableHead("DNI/Pasaporte", "document", "hidden xl:table-cell")}
               {visibleColumns.address && renderSortableHead("Domicilio", "address", "hidden xl:table-cell")}
+              {tableCustomFields.map((field) => (
+                <TableHead key={field.id} className="text-xs hidden xl:table-cell">{field.label}</TableHead>
+              ))}
               {renderSortableHead("Clases", "classes", undefined, "center")}
               {renderSortableHead("Mensualidad", "monthlyTotal", undefined, "right")}
               {renderSortableHead("Estado", "status", undefined, "center")}
@@ -386,6 +410,11 @@ export function StudentsTable({ students, isLoading = false, onViewProfile, onEd
                     {visibleColumns.locality && <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{student.locality || "-"}</TableCell>}
                     {visibleColumns.document && <TableCell className="text-sm text-muted-foreground hidden xl:table-cell">{getDocumentLabel(student)}</TableCell>}
                     {visibleColumns.address && <TableCell className="text-sm text-muted-foreground hidden xl:table-cell">{student.address || "-"}</TableCell>}
+                    {tableCustomFields.map((field) => (
+                      <TableCell key={field.id} className="text-sm text-muted-foreground hidden xl:table-cell">
+                        {formatCustomFieldValue(student.extraData?.[field.key])}
+                      </TableCell>
+                    ))}
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
                         <GraduationCap className="h-3 w-3 text-muted-foreground" />
@@ -395,7 +424,7 @@ export function StudentsTable({ students, isLoading = false, onViewProfile, onEd
                     <TableCell className="text-right">
                       {monthlyTotal !== null ? (
                         <div className="flex items-center justify-end gap-1">
-                          <span className="text-sm font-semibold text-foreground">${monthlyTotal}</span>
+                          <span className="text-sm font-semibold text-foreground">€{monthlyTotal}</span>
                           <span className="text-[10px] text-muted-foreground">/mes</span>
                         </div>
                       ) : (

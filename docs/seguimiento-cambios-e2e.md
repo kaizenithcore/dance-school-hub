@@ -79,22 +79,22 @@
 - [x] Modificar subheader para incluir de forma no invasiva, pero como recordatorio constante la capacidad del plan con barra progresiva como en /students
 
 # /auth
-- [] El botón de "Recuérdame" no funciona y hay que volver a iniciar sesión cada vez que expira el tiempo de sesión
+- [] El botón de "Recuérdame" no funciona y hay que volver a iniciar sesión cada vez que expira el tiempo de sesión (por defecto debe ser 8h)
 
 
 # /admin
-- [] El modal de aviso de fin de la prueba gratuita puede no entrar en la pantalla no permitiendo continuar al pago y se puede borrar desde el inspector para continuar con el uso normal de la aplicacion. 
-- [] En el modal de aviso de fin de la prueba gratuita no deja claro los precios reales de los planes (la suma de los addons confunde y los cálculos del ahorro no son suficientemente visibles para el usuario), además el plan preseleccionado debe ser el plan pro con facturación anual. Crea un badge con un código de descuento promocional y que indique que sólo se da el primer mes "FOUNDERS50"
+- [x] El modal de aviso de fin de la prueba gratuita puede no entrar en la pantalla no permitiendo continuar al pago y se puede borrar desde el inspector para continuar con el uso normal de la aplicacion. 
+- [x] En el modal de aviso de fin de la prueba gratuita no deja claro los precios reales de los planes (la suma de los addons confunde y los cálculos del ahorro no son suficientemente visibles para el usuario), además el plan preseleccionado debe ser el plan pro con facturación anual. Crea un badge con un código de descuento promocional y que indique que sólo se da el primer mes "FOUNDERS50"
     
 # /alumnos
-- [] Tratar de importar da error:
+- [x] Tratar de importar da error:
     client:702 [vite] Internal Server Error
     Failed to resolve import "xlsx" from "src/components/import/ImportWizard.tsx". Does the file exist?
 
 - [] Validar campos al crear alumnos
 
 # /form-builder
-- [] El formulario por defecto debe ser el que se carga tras restablecer (actualmente es otro más básico, el objetivo es mostrar claramente las funcionalidades y capacidades que puede tener este formulario)
+- [x] El formulario por defecto debe ser el que se carga tras restablecer (actualmente es otro más básico, el objetivo es mostrar claramente las funcionalidades y capacidades que puede tener este formulario)
 - [] Añadir aviso si se sale de la sección teniendo cambios sin guardar
 
 # /enrollments

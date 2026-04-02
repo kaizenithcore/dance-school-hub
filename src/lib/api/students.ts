@@ -23,6 +23,7 @@ export interface SaveStudentRequest {
   accountNumber?: string;
   classIds?: string[];
   jointEnrollmentGroupId?: string | null;
+  extraData?: Record<string, unknown>;
 }
 
 export interface JointGroupMember {
@@ -42,6 +43,7 @@ function mapStudentFromApi(student: StudentRecord): StudentRecord {
     notes: student.notes || "",
     birthdate: student.birthdate || "",
     joinDate: student.joinDate || new Date().toISOString().slice(0, 10),
+    extraData: student.extraData && typeof student.extraData === "object" ? student.extraData : {},
   };
 }
 

@@ -10,6 +10,8 @@ import {
   getInvoices,
   generateMonthlyInvoices,
   getInvoiceDetail,
+  markInvoiceAsPaid,
+  deleteInvoice,
   createCashReceiptBatch,
   downloadReceiptBatchPdf,
   downloadPaymentReceiptPdf,
@@ -20,7 +22,7 @@ import {
 import { getEnrollments } from "@/lib/api/enrollments";
 import { redirectToStripeCheckout } from "@/lib/api/stripe";
 import { toast } from "sonner";
-import { Loader2, Copy, DollarSign, FileText, AlertTriangle, Eye } from "lucide-react";
+import { Loader2, Copy, DollarSign, FileText, AlertTriangle, Eye, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +52,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 
 function formatDate(dateString: string): string {
@@ -107,20 +110,58 @@ export default function PaymentsPage() {
   const [invoiceMonthFilter, setInvoiceMonthFilter] = useState<string>("all");
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>("all");
   const [invoiceSearchFilter, setInvoiceSearchFilter] = useState<string>("");
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
 
   // Loading state
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [generatingInvoices, setGeneratingInvoices] = useState(false);
+  const [markingInvoiceId, setMarkingInvoiceId] = useState<string | null>(null);
+  const [bulkAction, setBulkAction] = useState<"mark-paid" | "delete" | null>(null);
   const [generatingReceipts, setGeneratingReceipts] = useState(false);
   const [generatingReceiptPaymentId, setGeneratingReceiptPaymentId] = useState<string | null>(null);
   const [acceptedEnrollments, setAcceptedEnrollments] = useState<Array<{ studentId?: string; studentName: string }>>([]);
 
-  useEffect(() => {
-    loadData();
+  const loadData = useCallback(async (options?: { background?: boolean }) => {
+    const background = options?.background ?? false;
+
+    try {
+      if (background) {
+        setRefreshing(true);
+      } else {
+        setInitialLoading(true);
+      }
+
+      const [paymentsData, invoicesData, enrollmentsData] = await Promise.all([
+        getPayments(),
+        getInvoices(),
+        getEnrollments(),
+      ]);
+      setPayments(paymentsData || []);
+      setInvoices(invoicesData || []);
+      setAcceptedEnrollments(
+        (enrollmentsData || [])
+          .filter((enrollment) => enrollment.status === "confirmed")
+          .map((enrollment) => ({ studentId: enrollment.studentId, studentName: enrollment.studentName }))
+      );
+    } catch (error) {
+      console.error("Failed to load data:", error);
+      toast.error("Error al cargar los datos");
+    } finally {
+      if (background) {
+        setRefreshing(false);
+      } else {
+        setInitialLoading(false);
+      }
+    }
   }, []);
 
   useEffect(() => {
-    if (loading) {
+    void loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    if (initialLoading) {
       return;
     }
 
@@ -138,30 +179,7 @@ export default function PaymentsPage() {
 
     handleViewDetail(targetPayment);
     setSearchParams({}, { replace: true });
-  }, [loading, payments, searchParams, setSearchParams]);
-
-  async function loadData() {
-    try {
-      setLoading(true);
-      const [paymentsData, invoicesData, enrollmentsData] = await Promise.all([
-        getPayments(),
-        getInvoices(),
-        getEnrollments(),
-      ]);
-      setPayments(paymentsData || []);
-      setInvoices(invoicesData || []);
-      setAcceptedEnrollments(
-        (enrollmentsData || [])
-          .filter((enrollment) => enrollment.status === "confirmed")
-          .map((enrollment) => ({ studentId: enrollment.studentId, studentName: enrollment.studentName }))
-      );
-    } catch (error) {
-      console.error("Failed to load data:", error);
-      toast.error("Error al cargar los datos");
-    } finally {
-      setLoading(false);
-    }
-  }
+  }, [initialLoading, payments, searchParams, setSearchParams]);
 
   // Payments handlers
   const handleViewDetail = (payment: PaymentRecord) => {
@@ -208,7 +226,7 @@ export default function PaymentsPage() {
       anchor.remove();
       URL.revokeObjectURL(url);
 
-      await loadData();
+      await loadData({ background: true });
       toast.success(`Recibo generado para ${payment.studentName}`);
     } catch (error) {
       console.error("Failed to generate payment receipt:", error);
@@ -298,7 +316,7 @@ export default function PaymentsPage() {
       const result = await generateMonthlyInvoices(selectedMonth);
 
       if (result) {
-        await loadData(); // Reload invoices
+        await loadData({ background: true }); // Reload invoices
         setGenerateDialogOpen(false);
         toast.success(`${result.created} factura(s) generada(s) para ${selectedMonth}`);
       }
@@ -322,6 +340,54 @@ export default function PaymentsPage() {
     }
   };
 
+  const handleMarkInvoiceAsPaid = useCallback(async (invoice: InvoiceRecord) => {
+    if (markingInvoiceId) {
+      return;
+    }
+
+    try {
+      setMarkingInvoiceId(invoice.id);
+      const updated = await markInvoiceAsPaid(invoice.id, {
+        paymentMethod: "cash",
+      });
+
+      if (!updated) {
+        toast.error("No se pudo marcar la factura como pagada");
+        return;
+      }
+
+      await loadData({ background: true });
+      toast.success(`Factura ${invoice.invoiceNumber} marcada como pagada`);
+    } catch (error) {
+      console.error("Failed to mark invoice as paid:", error);
+      toast.error("Error al marcar la factura como pagada");
+    } finally {
+      setMarkingInvoiceId(null);
+    }
+  }, [markingInvoiceId]);
+
+  const handleDeleteInvoice = useCallback(async (invoice: InvoiceRecord) => {
+    const confirmed = window.confirm(`Eliminar la factura ${invoice.invoiceNumber} de ${invoice.studentName}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const ok = await deleteInvoice(invoice.id);
+      if (!ok) {
+        toast.error("No se pudo eliminar la factura");
+        return;
+      }
+
+      await loadData({ background: true });
+      setSelectedInvoiceIds((prev) => prev.filter((id) => id !== invoice.id));
+      toast.success(`Factura ${invoice.invoiceNumber} eliminada`);
+    } catch (error) {
+      console.error("Failed to delete invoice:", error);
+      toast.error("Error al eliminar la factura");
+    }
+  }, []);
+
   // Filter invoices
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
@@ -334,6 +400,123 @@ export default function PaymentsPage() {
       return matchesMonth && matchesStatus && matchesSearch;
     });
   }, [invoices, invoiceMonthFilter, invoiceStatusFilter, invoiceSearchFilter]);
+
+  const selectableInvoices = useMemo(
+    () => filteredInvoices.filter((invoice) => invoice.status !== "paid"),
+    [filteredInvoices]
+  );
+
+  const allSelectableChecked =
+    selectableInvoices.length > 0 && selectableInvoices.every((invoice) => selectedInvoiceIds.includes(invoice.id));
+
+  const someSelectableChecked =
+    selectableInvoices.some((invoice) => selectedInvoiceIds.includes(invoice.id)) && !allSelectableChecked;
+
+  const selectedInvoices = useMemo(
+    () => filteredInvoices.filter((invoice) => selectedInvoiceIds.includes(invoice.id)),
+    [filteredInvoices, selectedInvoiceIds]
+  );
+
+  const selectedUnpaidInvoices = useMemo(
+    () => selectedInvoices.filter((invoice) => invoice.status !== "paid"),
+    [selectedInvoices]
+  );
+
+  useEffect(() => {
+    const visibleIds = new Set(filteredInvoices.map((invoice) => invoice.id));
+    setSelectedInvoiceIds((prev) => prev.filter((id) => visibleIds.has(id)));
+  }, [filteredInvoices]);
+
+  const toggleInvoiceSelection = useCallback((invoiceId: string, checked: boolean) => {
+    setSelectedInvoiceIds((prev) => {
+      if (checked) {
+        if (prev.includes(invoiceId)) return prev;
+        return [...prev, invoiceId];
+      }
+
+      return prev.filter((id) => id !== invoiceId);
+    });
+  }, []);
+
+  const toggleAllSelectableInvoices = useCallback((checked: boolean) => {
+    if (!checked) {
+      setSelectedInvoiceIds([]);
+      return;
+    }
+
+    setSelectedInvoiceIds(selectableInvoices.map((invoice) => invoice.id));
+  }, [selectableInvoices]);
+
+  const handleBulkMarkInvoicesAsPaid = useCallback(async () => {
+    if (selectedUnpaidInvoices.length === 0 || bulkAction) {
+      return;
+    }
+
+    setBulkAction("mark-paid");
+    try {
+      const results = await Promise.allSettled(
+        selectedUnpaidInvoices.map((invoice) =>
+          markInvoiceAsPaid(invoice.id, { paymentMethod: "cash" })
+        )
+      );
+
+      const successCount = results.filter((result) => result.status === "fulfilled" && result.value).length;
+      const failedCount = results.length - successCount;
+
+      await loadData({ background: true });
+      setSelectedInvoiceIds([]);
+
+      if (successCount > 0) {
+        toast.success(`${successCount} factura(s) marcada(s) como pagada(s)`);
+      }
+      if (failedCount > 0) {
+        toast.error(`${failedCount} factura(s) no se pudieron marcar como pagadas`);
+      }
+    } catch (error) {
+      console.error("Failed to mark invoices as paid in bulk:", error);
+      toast.error("Error al marcar facturas como pagadas");
+    } finally {
+      setBulkAction(null);
+    }
+  }, [selectedUnpaidInvoices, bulkAction]);
+
+  const handleBulkDeleteInvoices = useCallback(async () => {
+    if (selectedUnpaidInvoices.length === 0 || bulkAction) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Eliminar ${selectedUnpaidInvoices.length} factura(s) seleccionada(s)? Esta acción no se puede deshacer.`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setBulkAction("delete");
+    try {
+      const results = await Promise.allSettled(
+        selectedUnpaidInvoices.map((invoice) => deleteInvoice(invoice.id))
+      );
+
+      const successCount = results.filter((result) => result.status === "fulfilled" && result.value === true).length;
+      const failedCount = results.length - successCount;
+
+      await loadData({ background: true });
+      setSelectedInvoiceIds([]);
+
+      if (successCount > 0) {
+        toast.success(`${successCount} factura(s) eliminada(s)`);
+      }
+      if (failedCount > 0) {
+        toast.error(`${failedCount} factura(s) no se pudieron eliminar`);
+      }
+    } catch (error) {
+      console.error("Failed to delete invoices in bulk:", error);
+      toast.error("Error al eliminar facturas");
+    } finally {
+      setBulkAction(null);
+    }
+  }, [selectedUnpaidInvoices, bulkAction]);
 
   // Available months from invoices
   const availableInvoiceMonths = useMemo(() => {
@@ -392,7 +575,7 @@ export default function PaymentsPage() {
     return result;
   }, [payments]);
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <PageContainer title="Pagos" description="Seguimiento y gestión de pagos">
         <div className="flex items-center justify-center py-12">
@@ -453,6 +636,21 @@ export default function PaymentsPage() {
             </AlertDescription>
           </Alert>
 
+          <PaymentsTable
+            payments={payments}
+            isLoading={refreshing}
+            onViewDetail={handleViewDetail}
+            onAddPayment={() => setPaymentModalOpen(true)}
+            onGenerateReceipt={handleGenerateReceipt}
+            generatingReceiptPaymentId={generatingReceiptPaymentId}
+          />
+
+          <div className="flex justify-end">
+            <Button onClick={() => setGenerateDialogOpen(true)}>
+              Generar Facturas
+            </Button>
+          </div>
+
           <div className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-1">
               <h3 className="text-sm font-semibold">Recibos en efectivo (PDF único)</h3>
@@ -481,21 +679,6 @@ export default function PaymentsPage() {
                 Generar PDF de Recibos
               </Button>
             </div>
-          </div>
-
-          <PaymentsTable
-            payments={payments}
-            isLoading={loading}
-            onViewDetail={handleViewDetail}
-            onAddPayment={() => setPaymentModalOpen(true)}
-            onGenerateReceipt={handleGenerateReceipt}
-            generatingReceiptPaymentId={generatingReceiptPaymentId}
-          />
-
-          <div className="flex justify-end">
-            <Button onClick={() => setGenerateDialogOpen(true)}>
-              Generar Facturas
-            </Button>
           </div>
         </TabsContent>
 
@@ -551,6 +734,33 @@ export default function PaymentsPage() {
             </div>
           )}
 
+          {selectedInvoiceIds.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-3">
+              <p className="text-sm text-muted-foreground">
+                {selectedInvoiceIds.length} factura(s) seleccionada(s)
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => void handleBulkMarkInvoicesAsPaid()}
+                  disabled={selectedUnpaidInvoices.length === 0 || bulkAction !== null}
+                >
+                  {bulkAction === "mark-paid" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  Marcar pagadas
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => void handleBulkDeleteInvoices()}
+                  disabled={selectedUnpaidInvoices.length === 0 || bulkAction !== null}
+                >
+                  {bulkAction === "delete" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                  Eliminar seleccionadas
+                </Button>
+              </div>
+            </div>
+          )}
+
           {filteredInvoices.length === 0 ? (
             <div className="rounded-lg border border-dashed p-8 text-center">
               <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -565,6 +775,13 @@ export default function PaymentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[42px]">
+                      <Checkbox
+                        checked={allSelectableChecked || (someSelectableChecked ? "indeterminate" : false)}
+                        onCheckedChange={(checked) => toggleAllSelectableInvoices(checked === true)}
+                        aria-label="Seleccionar facturas"
+                      />
+                    </TableHead>
                     <TableHead>Número</TableHead>
                     <TableHead>Alumno</TableHead>
                     <TableHead>Mes</TableHead>
@@ -577,6 +794,14 @@ export default function PaymentsPage() {
                 <TableBody>
                   {filteredInvoices.map((invoice) => (
                     <TableRow key={invoice.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedInvoiceIds.includes(invoice.id)}
+                          onCheckedChange={(checked) => toggleInvoiceSelection(invoice.id, checked === true)}
+                          aria-label={`Seleccionar factura ${invoice.invoiceNumber}`}
+                          disabled={invoice.status === "paid"}
+                        />
+                      </TableCell>
                       <TableCell className="font-mono text-sm">{invoice.invoiceNumber}</TableCell>
                       <TableCell>
                         <div>
@@ -608,6 +833,31 @@ export default function PaymentsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
+                        {invoice.status !== "paid" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => void handleMarkInvoiceAsPaid(invoice)}
+                            disabled={markingInvoiceId === invoice.id}
+                            title="Marcar como pagada"
+                          >
+                            {markingInvoiceId === invoice.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+                            Marcar pagada
+                          </Button>
+                        )}
+                        {invoice.status !== "paid" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => void handleDeleteInvoice(invoice)}
+                            title="Eliminar factura"
+                            disabled={bulkAction !== null}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -666,7 +916,7 @@ export default function PaymentsPage() {
                 onChange={(e) => setSelectedMonth(e.target.value)}
               />
               <p className="text-sm text-muted-foreground">
-                Las facturas se generarán solo para alumnos con clases en este mes.
+                Las facturas se generarán para alumnos activos con matrícula confirmada.
               </p>
             </div>
           </div>

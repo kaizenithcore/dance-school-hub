@@ -1,4 +1,6 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
+import { pricingService } from "@/lib/services/pricingService";
+import type { ClassSelection } from "@/lib/types/pricing";
 
 export type InvoiceStatus = "pending" | "paid" | "overdue";
 
@@ -37,6 +39,120 @@ export const invoiceService = {
     tenantId: string,
     month: string // Format: "2026-03"
   ) {
+    const buildSelectionFromEnrollment = (enrollment: any): ClassSelection | null => {
+      const cls = Array.isArray(enrollment.classes) ? enrollment.classes[0] : enrollment.classes;
+      if (!cls) return null;
+
+      const schedules = Array.isArray(cls.class_schedules) ? cls.class_schedules : [];
+      const totalClassHours = schedules.reduce((sum: number, schedule: any) => {
+        const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
+        const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
+        const startTotal = startHour + startMinute / 60;
+        const endTotal = endHour + endMinute / 60;
+        return sum + Math.max(0, endTotal - startTotal);
+      }, 0);
+
+      const selectedScheduleIdsRaw = enrollment?.student_snapshot?.selected_schedule_ids;
+      const selectedScheduleIds = Array.isArray(selectedScheduleIdsRaw)
+        ? selectedScheduleIdsRaw.filter((value: unknown): value is string => typeof value === "string")
+        : [];
+
+      const selectedHours = selectedScheduleIds.length > 0
+        ? schedules
+            .filter((schedule: any) => selectedScheduleIds.includes(schedule.id))
+            .reduce((sum: number, schedule: any) => {
+              const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
+              const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
+              const startTotal = startHour + startMinute / 60;
+              const endTotal = endHour + endMinute / 60;
+              return sum + Math.max(0, endTotal - startTotal);
+            }, 0)
+        : totalClassHours;
+
+      const normalizedTotalHours = totalClassHours > 0 ? totalClassHours : 1;
+      const normalizedSelectedHours = selectedHours > 0 ? selectedHours : normalizedTotalHours;
+      const ratio = normalizedTotalHours > 0 ? normalizedSelectedHours / normalizedTotalHours : 1;
+
+      return {
+        class_id: cls.id,
+        discipline_id: cls.discipline_id || "general",
+        discipline_name: cls.name || "Clase",
+        hours_per_week: normalizedSelectedHours,
+        base_price: Math.round(((cls.price_cents || 0) / 100) * ratio * 100) / 100,
+      };
+    };
+
+    const distributeTotalByBasePrice = (selections: ClassSelection[], totalAmountCents: number) => {
+      if (selections.length === 0) {
+        return [] as Array<{ class_id: string; amount_cents: number }>;
+      }
+
+      const basePricesCents = selections.map((selection) => Math.max(0, Math.round(Number(selection.base_price || 0) * 100)));
+      const totalBaseCents = basePricesCents.reduce((sum, value) => sum + value, 0);
+
+      if (totalBaseCents <= 0) {
+        const equalShare = Math.floor(totalAmountCents / selections.length);
+        let remainder = totalAmountCents - equalShare * selections.length;
+        return selections.map((selection) => {
+          const amount = equalShare + (remainder > 0 ? 1 : 0);
+          remainder = Math.max(0, remainder - 1);
+          return { class_id: selection.class_id, amount_cents: amount };
+        });
+      }
+
+      const rawShares = selections.map((selection, index) => ({
+        class_id: selection.class_id,
+        base_cents: basePricesCents[index],
+        exact_amount: (totalAmountCents * basePricesCents[index]) / totalBaseCents,
+      }));
+
+      const floored = rawShares.map((share) => ({
+        class_id: share.class_id,
+        amount_cents: Math.floor(share.exact_amount),
+        fraction: share.exact_amount - Math.floor(share.exact_amount),
+      }));
+
+      let distributed = floored.reduce((sum, share) => sum + share.amount_cents, 0);
+      let remainder = totalAmountCents - distributed;
+
+      floored.sort((a, b) => b.fraction - a.fraction);
+      for (const share of floored) {
+        if (remainder <= 0) break;
+        share.amount_cents += 1;
+        remainder -= 1;
+      }
+
+      distributed = floored.reduce((sum, share) => sum + share.amount_cents, 0);
+      if (distributed !== totalAmountCents && floored.length > 0) {
+        floored[0].amount_cents += totalAmountCents - distributed;
+      }
+
+      return floored.map((share) => ({ class_id: share.class_id, amount_cents: share.amount_cents }));
+    };
+
+    const isPaymentInMonth = (payment: {
+      paid_at?: string | null;
+      created_at?: string | null;
+      metadata?: Record<string, unknown> | null;
+    }) => {
+      const metadata = payment.metadata && typeof payment.metadata === "object"
+        ? payment.metadata
+        : {};
+
+      const metadataMonth = typeof metadata.month === "string" ? metadata.month.substring(0, 7) : null;
+      if (metadataMonth === month) {
+        return true;
+      }
+
+      const paidMonth = typeof payment.paid_at === "string" ? payment.paid_at.substring(0, 7) : null;
+      if (paidMonth === month) {
+        return true;
+      }
+
+      const createdMonth = typeof payment.created_at === "string" ? payment.created_at.substring(0, 7) : null;
+      return createdMonth === month;
+    };
+
     // Get all active students with their enrollments
     const { data: enrollments, error: enrollError } = await supabaseAdmin
       .from("enrollments")
@@ -49,8 +165,10 @@ export const invoiceService = {
         classes(
           id,
           name,
+          discipline_id,
           price_cents,
-          created_at
+          created_at,
+          class_schedules(id, start_time, end_time)
         ),
         students(
           id,
@@ -66,6 +184,23 @@ export const invoiceService = {
     if (enrollError) {
       throw new Error(`Failed to fetch enrollments: ${enrollError.message}`);
     }
+
+    // Preload paid payments to avoid generating invoices for students already marked as paid in the month.
+    const { data: paidPayments, error: paidPaymentsError } = await supabaseAdmin
+      .from("payments")
+      .select("student_id, paid_at, created_at, metadata")
+      .eq("tenant_id", tenantId)
+      .eq("status", "paid");
+
+    if (paidPaymentsError) {
+      throw new Error(`Failed to fetch paid payments: ${paidPaymentsError.message}`);
+    }
+
+    const paidStudentsForMonth = new Set(
+      (paidPayments || [])
+        .filter((payment: any) => Boolean(payment.student_id) && isPaymentInMonth(payment))
+        .map((payment: any) => String(payment.student_id))
+    );
 
     // Filter by active students (client-side)
     const filteredEnrollments = (enrollments ?? []).filter(
@@ -102,65 +237,110 @@ export const invoiceService = {
     const createdInvoices: Invoice[] = [];
 
     for (const [studentId, { student, enrollments: studentEnrollmentsList }] of studentEnrollments) {
-      // Filter enrollments for the given month
-      // Using created_at as the class month indicator
-      const monthEnrollments = studentEnrollmentsList.filter((e: any) => {
-        const classDate = e.classes?.created_at;
-        if (!classDate) return false;
-        const classMonth = classDate.substring(0, 7); // "2026-03"
-        return classMonth === month;
-      });
+      if (paidStudentsForMonth.has(studentId)) {
+        continue;
+      }
+
+      // Bill all current confirmed enrollments for the selected month.
+      // Do not depend on class creation date, otherwise old classes are never billed.
+      const monthEnrollments = studentEnrollmentsList;
 
       if (monthEnrollments.length === 0) continue;
 
-      // Calculate total amount
-      const totalAmountCents = monthEnrollments.reduce(
+      const selections = monthEnrollments
+        .map((enrollment: any) => buildSelectionFromEnrollment(enrollment))
+        .filter((selection: ClassSelection | null): selection is ClassSelection => Boolean(selection));
+
+      const fallbackTotalCents = monthEnrollments.reduce(
         (sum: number, e: any) => sum + (e.classes?.price_cents || 0),
         0
       );
 
+      let totalAmountCents = fallbackTotalCents;
+      try {
+        if (selections.length > 0) {
+          const pricing = await pricingService.calculatePricing(tenantId, selections);
+          totalAmountCents = Math.max(0, Math.round(Number(pricing.total || 0) * 100));
+        }
+      } catch {
+        totalAmountCents = fallbackTotalCents;
+      }
+
       // Check if invoice already exists
       const { data: existingInvoice } = await supabaseAdmin
         .from("monthly_invoices")
-        .select("id")
+        .select("id, status")
         .eq("tenant_id", tenantId)
         .eq("student_id", studentId)
         .eq("month", month)
         .maybeSingle();
 
-      if (existingInvoice) continue; // Skip if already exists
+      if (existingInvoice) {
+        // If a payment already exists for the month, keep invoice synchronized as paid.
+        if (paidStudentsForMonth.has(studentId) && existingInvoice.status !== "paid") {
+          await supabaseAdmin
+            .from("monthly_invoices")
+            .update({
+              status: "paid",
+              paid_date: new Date().toISOString(),
+            })
+            .eq("tenant_id", tenantId)
+            .eq("id", existingInvoice.id);
+        }
 
-      // Generate a stable, unique-ish invoice number per student/month.
-      const studentSuffix = studentId.replace(/-/g, "").slice(0, 6).toUpperCase();
-      const invoiceNumber = `INV-${month.replace("-", "")}-${studentSuffix}`;
-
-      // Create invoice
-      const { data: invoiceData, error: invoiceError } = await supabaseAdmin
-        .from("monthly_invoices")
-        .insert([
-          {
-            tenant_id: tenantId,
-            student_id: studentId,
-            month,
-            status: "pending",
-            total_amount_cents: totalAmountCents,
-            invoice_number: invoiceNumber,
-          },
-        ])
-        .select();
-
-      if (invoiceError || !invoiceData || invoiceData.length === 0) {
-        console.error(`Failed to create invoice for student ${studentId}:`, invoiceError);
         continue;
       }
 
-      const invoice = invoiceData[0];
+      const monthToken = month.replace("-", "");
+      const studentSuffix = studentId.replace(/-/g, "").slice(-6).toUpperCase();
 
-      // Create invoice items
-      const items = monthEnrollments.map((e: any) => ({
+      let invoice: any | null = null;
+      let lastInvoiceError: any = null;
+
+      // Retry with a deterministic suffix if a unique invoice_number collision happens.
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const invoiceNumber =
+          attempt === 0
+            ? `INV-${monthToken}-${studentSuffix}`
+            : `INV-${monthToken}-${studentSuffix}-${attempt + 1}`;
+
+        const { data: invoiceData, error: invoiceError } = await supabaseAdmin
+          .from("monthly_invoices")
+          .insert([
+            {
+              tenant_id: tenantId,
+              student_id: studentId,
+              month,
+              status: "pending",
+              total_amount_cents: totalAmountCents,
+              invoice_number: invoiceNumber,
+            },
+          ])
+          .select()
+          .maybeSingle();
+
+        if (!invoiceError && invoiceData) {
+          invoice = invoiceData;
+          break;
+        }
+
+        lastInvoiceError = invoiceError;
+        if (invoiceError?.code !== "23505") {
+          break;
+        }
+      }
+
+      if (!invoice) {
+        console.error(`Failed to create invoice for student ${studentId}:`, lastInvoiceError);
+        continue;
+      }
+
+      // Create invoice items with amounts distributed from the final (discounted) invoice total.
+      const distributedItems = distributeTotalByBasePrice(selections, totalAmountCents);
+      const items = distributedItems.map((item) => ({
         invoice_id: invoice.id,
-        class_id: e.class_id,
-        amount_cents: e.classes?.price_cents || 0,
+        class_id: item.class_id,
+        amount_cents: item.amount_cents,
       }));
 
       const { error: itemsError } = await supabaseAdmin
@@ -502,6 +682,44 @@ export const invoiceService = {
       invoiceNumber: detail.invoiceNumber,
       createdAt: detail.createdAt,
     };
+  },
+
+  async deleteInvoice(tenantId: string, invoiceId: string) {
+    const { data: invoice, error: invoiceError } = await supabaseAdmin
+      .from("monthly_invoices")
+      .select("id, status")
+      .eq("tenant_id", tenantId)
+      .eq("id", invoiceId)
+      .single();
+
+    if (invoiceError || !invoice) {
+      throw new Error(`Failed to fetch invoice: ${invoiceError?.message}`);
+    }
+
+    if (invoice.status === "paid") {
+      throw new Error("No se pueden eliminar facturas pagadas");
+    }
+
+    const { error: itemsError } = await supabaseAdmin
+      .from("monthly_invoice_items")
+      .delete()
+      .eq("invoice_id", invoiceId);
+
+    if (itemsError) {
+      throw new Error(`Failed to delete invoice items: ${itemsError.message}`);
+    }
+
+    const { error: deleteError } = await supabaseAdmin
+      .from("monthly_invoices")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .eq("id", invoiceId);
+
+    if (deleteError) {
+      throw new Error(`Failed to delete invoice: ${deleteError.message}`);
+    }
+
+    return { id: invoiceId, deleted: true };
   },
 };
 

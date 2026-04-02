@@ -1,10 +1,10 @@
 import {
   LayoutDashboard, Calendar, GraduationCap, Users, BookOpen, ClipboardList,
-  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award, Lock, Building2, MapPinned, CalendarHeart,
+  CreditCard, BarChart3, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags, Megaphone, ListOrdered, Repeat, Copy, Monitor, Award, Lock, Building2, MapPinned, CalendarHeart, Globe, Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type FeatureKey = "waitlistAutomation" | "renewalAutomation" | "courseClone" | "massCommunicationEmail" | "examSuite";
 
@@ -27,18 +29,27 @@ const navItems: Array<{ title: string; url: string; icon: LucideIcon; featureKey
   { title: "Recepción", url: "/admin/reception", icon: Monitor },
   { title: "Sedes", url: "/admin/branches", icon: MapPinned, featureKey: "examSuite" },
   { title: "Pagos", url: "/admin/payments", icon: CreditCard },
+  { title: "Economía", url: "/admin/economia", icon: Wallet },
   { title: "Tarifas y Bonos", url: "/admin/pricing", icon: Tags },
   { title: "Comunicación", url: "/admin/communications", icon: Megaphone, featureKey: "massCommunicationEmail" },
   { title: "Lista de Espera", url: "/admin/waitlist", icon: ListOrdered, featureKey: "waitlistAutomation" },
   { title: "Renovaciones", url: "/admin/renewals", icon: Repeat, featureKey: "renewalAutomation" },
   { title: "Duplicar cursos", url: "/admin/course-clone", icon: Copy, featureKey: "courseClone" },
-  { title: "Certifier", url: "/admin/exams", icon: Award, featureKey: "examSuite" },
+  { title: "Exámenes", url: "/admin/exams", icon: Award, featureKey: "examSuite" },
   { title: "Eventos", url: "/admin/events", icon: CalendarHeart },
-  { title: "Portal Escuela", url: "/admin/school/portal", icon: Building2 },
+  { title: "Nexa Crew (Próximamente)", url: "/admin/school/portal", icon: Building2 },
+  { title: "Página web", url: "/admin/website", icon: Globe },
   { title: "Roles y escuelas", url: "/admin/organization-access", icon: Building2, featureKey: "examSuite" },
   { title: "Analíticas", url: "/admin/analytics", icon: BarChart3 },
   { title: "Configuración", url: "/admin/settings", icon: Settings },
 ];
+
+const legalLinks = [
+  { label: "Privacidad", to: "/legal/privacy" },
+  { label: "Terminos", to: "/legal/terms" },
+  { label: "Cookies", to: "/legal/cookies" },
+  { label: "Aviso legal", to: "/legal/notice" },
+] as const;
 
 export function AdminSidebar() {
   const { billing, loading, startUpgrade } = useBillingEntitlements();
@@ -125,6 +136,38 @@ export function AdminSidebar() {
               );
             })}
           </nav>
+
+          <div className="border-t border-border px-4 py-3">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="rounded px-1.5 py-0.5 uppercase tracking-wide hover:bg-accent hover:text-foreground"
+                    aria-label="Abrir enlaces legales"
+                  >
+                    Legal
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-40">
+                  {legalLinks.map((item) => (
+                    <DropdownMenuItem key={item.to} asChild>
+                      <Link to={item.to}>{item.label}</Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <a
+                href="https://kaizenith.es"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-foreground"
+              >
+                kaizenith
+              </a>
+            </div>
+          </div>
         </aside>
 
         <FeatureLockDialog
@@ -190,14 +233,91 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="border-t border-border p-3 flex items-center justify-between">
-        <ThemeToggle size="sm" />
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center justify-center rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-        >
-          <ChevronLeft className={cn("h-4 w-4 transition-transform duration-300", collapsed && "rotate-180")} />
-        </button>
+      <div className="border-t border-border px-3 py-3 space-y-2">
+        {!collapsed ? (
+          <div className="px-1 flex items-center justify-between text-[11px] text-muted-foreground">
+            <HoverCard openDelay={120} closeDelay={120}>
+              <HoverCardTrigger asChild>
+                <button
+                  type="button"
+                  className="rounded px-1.5 py-0.5 uppercase tracking-wide hover:bg-accent hover:text-foreground"
+                  aria-label="Ver enlaces legales"
+                >
+                  Legal
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent align="start" className="w-44 p-2">
+                <div className="flex flex-col">
+                  {legalLinks.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className="rounded px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+
+            <a
+              href="https://kaizenith.es"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-foreground"
+            >
+              kaizenith
+            </a>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-1">
+            <HoverCard openDelay={120} closeDelay={120}>
+              <HoverCardTrigger asChild>
+                <button
+                  type="button"
+                  title="Legal"
+                  className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
+                  aria-label="Ver enlaces legales"
+                >
+                  LG
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent align="end" className="w-40 p-2">
+                <div className="flex flex-col">
+                  {legalLinks.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className="rounded px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+            <a
+              href="https://kaizenith.es"
+              target="_blank"
+              rel="noreferrer"
+              title="kaizenith"
+              className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              KZ
+            </a>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <ThemeToggle size="sm" />
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="flex items-center justify-center rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <ChevronLeft className={cn("h-4 w-4 transition-transform duration-300", collapsed && "rotate-180")} />
+          </button>
+        </div>
       </div>
 
       <FeatureLockDialog

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   createSchoolGalleryAlbum,
   listPhotosByAlbum,
@@ -14,6 +15,9 @@ import {
   uploadSchoolGalleryPhoto,
 } from "@/lib/api/portalFoundation";
 import { toast } from "sonner";
+import { runWithSaveFeedback } from "@/lib/saveFeedback";
+import { toastErrorOnce } from "@/lib/toastPremium";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 
 export default function GalleryManagementScreen() {
   const [albums, setAlbums] = useState<PortalGalleryAlbum[]>([]);
@@ -24,7 +28,18 @@ export default function GalleryManagementScreen() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [photoCaption, setPhotoCaption] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const albumNameInputRef = useRef<HTMLInputElement | null>(null);
+  const photoUrlInputRef = useRef<HTMLInputElement | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const hasUnsavedChanges = Boolean(albumName.trim() || albumDescription.trim() || photoUrl.trim() || photoCaption.trim());
+
+  useUnsavedChangesGuard({
+    enabled: hasUnsavedChanges && !uploading,
+    message: "Tienes cambios sin guardar en Galería. Si sales ahora, se perderán. ¿Quieres continuar?",
+  });
 
   const selectedAlbum = useMemo(
     () => albums.find((item) => item.id === selectedAlbumId) ?? null,
@@ -33,6 +48,7 @@ export default function GalleryManagementScreen() {
 
   const loadAlbums = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const data = await listSchoolGalleryAlbums();
       setAlbums(data);
@@ -41,7 +57,9 @@ export default function GalleryManagementScreen() {
       }
     } catch (error) {
       console.error(error);
-      toast.error("No se pudieron cargar los albumes");
+      const message = "No se pudieron cargar los álbumes";
+      setLoadError(message);
+      toastErrorOnce("gallery-albums-load", message);
     } finally {
       setLoading(false);
     }
@@ -53,7 +71,7 @@ export default function GalleryManagementScreen() {
       setPhotos(data.items);
     } catch (error) {
       console.error(error);
-      toast.error("No se pudieron cargar las fotos del album");
+      toastErrorOnce("gallery-photos-load", "No se pudieron cargar las fotos del álbum");
     }
   }, []);
 
@@ -70,53 +88,102 @@ export default function GalleryManagementScreen() {
   }, [selectedAlbumId, loadPhotos]);
 
   const handleCreateAlbum = async () => {
+    const nextErrors: Record<string, string> = {};
+
     if (!albumName.trim()) {
-      toast.error("Nombre de album obligatorio");
+      nextErrors.albumName = "El nombre del álbum es obligatorio";
+    } else if (albumName.trim().length < 3) {
+      nextErrors.albumName = "El nombre del álbum debe tener al menos 3 caracteres";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...nextErrors }));
+      toast.error("Revisa los datos del álbum antes de guardarlo");
       return;
     }
 
+    setFieldErrors((prev) => {
+      const { albumName: _albumName, ...rest } = prev;
+      return rest;
+    });
+
     try {
-      const created = await createSchoolGalleryAlbum({
-        name: albumName.trim(),
-        description: albumDescription.trim() || null,
-        isPublic: true,
-      });
+      const created = await runWithSaveFeedback(
+        {
+          loading: "Creando álbum...",
+          success: "Álbum creado",
+          error: "No se pudo crear el álbum",
+          successDescription: "Ya puedes seleccionarlo y empezar a subir fotos.",
+          errorHint: "Comprueba el nombre del álbum e inténtalo de nuevo.",
+        },
+        async () => {
+          return await createSchoolGalleryAlbum({
+            name: albumName.trim(),
+            description: albumDescription.trim() || null,
+            isPublic: true,
+          });
+        }
+      );
       setAlbumName("");
       setAlbumDescription("");
       setSelectedAlbumId(created.id);
-      toast.success("Album creado");
       await loadAlbums();
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo crear el album");
     }
   };
 
   const handleUploadPhoto = async () => {
     if (!selectedAlbumId) {
-      toast.error("Selecciona un album");
+      toast.error("Selecciona un álbum");
       return;
     }
 
+    const nextErrors: Record<string, string> = {};
+
     if (!photoUrl.trim()) {
-      toast.error("URL de imagen obligatoria");
+      nextErrors.photoUrl = "La URL de imagen es obligatoria";
+    } else {
+      const isValidUrl = /^https?:\/\//i.test(photoUrl.trim());
+      if (!isValidUrl) {
+        nextErrors.photoUrl = "La URL debe empezar por http:// o https://";
+      }
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...nextErrors }));
+      toast.error("Revisa la URL de la imagen antes de subirla");
       return;
     }
+
+    setFieldErrors((prev) => {
+      const { photoUrl: _photoUrl, ...rest } = prev;
+      return rest;
+    });
 
     setUploading(true);
     try {
-      await uploadSchoolGalleryPhoto({
-        albumId: selectedAlbumId,
-        imageUrl: photoUrl.trim(),
-        caption: photoCaption.trim() || null,
-      });
+      await runWithSaveFeedback(
+        {
+          loading: "Subiendo foto...",
+          success: "Foto subida",
+          error: "No se pudo subir la foto",
+          successDescription: "La imagen ya está disponible en el álbum seleccionado.",
+          errorHint: "Verifica la URL y prueba nuevamente.",
+        },
+        async () => {
+          await uploadSchoolGalleryPhoto({
+            albumId: selectedAlbumId,
+            imageUrl: photoUrl.trim(),
+            caption: photoCaption.trim() || null,
+          });
+        }
+      );
       setPhotoUrl("");
       setPhotoCaption("");
-      toast.success("Foto subida");
       await loadPhotos(selectedAlbumId);
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo subir la foto");
     } finally {
       setUploading(false);
     }
@@ -124,24 +191,42 @@ export default function GalleryManagementScreen() {
 
   return (
     <PageContainer
-      title="Fotogaleria"
-      description="Organiza albumes y fotos publicas de la escuela"
+      title="Fotogalería"
+      description="Organiza álbumes y fotos públicas de la escuela"
     >
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Crear album</CardTitle>
+            <CardTitle>Crear álbum</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="album-name">Nombre</Label>
-              <Input id="album-name" value={albumName} onChange={(event) => setAlbumName(event.target.value)} />
+              <Input
+                id="album-name"
+                ref={albumNameInputRef}
+                value={albumName}
+                onChange={(event) => {
+                  setAlbumName(event.target.value);
+                  if (fieldErrors.albumName) {
+                    setFieldErrors((prev) => {
+                      const { albumName: _albumName, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
+                aria-invalid={Boolean(fieldErrors.albumName)}
+              />
+              {fieldErrors.albumName ? <p className="mt-1 text-xs text-destructive">{fieldErrors.albumName}</p> : null}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="album-description">Descripcion</Label>
+              <Label htmlFor="album-description">Descripción</Label>
               <Textarea id="album-description" rows={3} value={albumDescription} onChange={(event) => setAlbumDescription(event.target.value)} />
             </div>
-            <Button onClick={() => void handleCreateAlbum()}>Crear album</Button>
+            <div className="sticky bottom-0 -mx-6 mt-3 flex items-center justify-between border-t bg-card/90 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-card/75">
+              <p className="text-xs text-muted-foreground">{albumName.trim() || albumDescription.trim() ? "Listo para guardar" : "Completa los datos del álbum"}</p>
+              <Button onClick={() => void handleCreateAlbum()}>Crear álbum</Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -150,29 +235,69 @@ export default function GalleryManagementScreen() {
             <CardTitle>Subir foto</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">Album seleccionado: {selectedAlbum?.name || "Ninguno"}</p>
+            <p className="text-sm text-muted-foreground">Álbum seleccionado: {selectedAlbum?.name || "Ninguno"}</p>
             <div className="space-y-2">
               <Label htmlFor="photo-url">URL de imagen</Label>
-              <Input id="photo-url" placeholder="https://..." value={photoUrl} onChange={(event) => setPhotoUrl(event.target.value)} />
+              <Input
+                id="photo-url"
+                ref={photoUrlInputRef}
+                placeholder="https://..."
+                value={photoUrl}
+                onChange={(event) => {
+                  setPhotoUrl(event.target.value);
+                  if (fieldErrors.photoUrl) {
+                    setFieldErrors((prev) => {
+                      const { photoUrl: _photoUrl, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
+                aria-invalid={Boolean(fieldErrors.photoUrl)}
+              />
+              {fieldErrors.photoUrl ? <p className="mt-1 text-xs text-destructive">{fieldErrors.photoUrl}</p> : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="photo-caption">Pie de foto</Label>
               <Input id="photo-caption" value={photoCaption} onChange={(event) => setPhotoCaption(event.target.value)} />
             </div>
-            <Button disabled={uploading} onClick={() => void handleUploadPhoto()}>
-              {uploading ? "Subiendo..." : "Subir"}
-            </Button>
+            <div className="sticky bottom-0 -mx-6 mt-3 flex items-center justify-between border-t bg-card/90 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-card/75">
+              <p className="text-xs text-muted-foreground">{photoUrl.trim() ? "Imagen lista para subir" : "Pega una URL para habilitar la subida"}</p>
+              <Button disabled={uploading} onClick={() => void handleUploadPhoto()}>
+                {uploading ? "Subiendo..." : "Subir"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Albumes</CardTitle>
+          <CardTitle>Álbumes</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {loading ? <p className="text-sm text-muted-foreground">Cargando albumes...</p> : null}
-          {!loading && albums.length === 0 ? <p className="text-sm text-muted-foreground">No hay albumes creados.</p> : null}
+          {loading ? (
+            <EmptyState
+              title="Cargando álbumes"
+              description="Estamos sincronizando tu galería para continuar sin interrupciones."
+            />
+          ) : null}
+          {!loading && loadError ? (
+            <EmptyState
+              type="error"
+              title="No se pudo cargar la galería"
+              description={loadError}
+              actionLabel="Reintentar"
+              onAction={() => void loadAlbums()}
+            />
+          ) : null}
+          {!loading && albums.length === 0 ? (
+            <EmptyState
+              title="Aún no tienes álbumes"
+              description="Crea tu primer álbum para empezar a organizar contenido de clases y eventos."
+              actionLabel="Crear primer álbum"
+              onAction={() => albumNameInputRef.current?.focus()}
+            />
+          ) : null}
           {albums.map((album) => (
             <button
               type="button"
@@ -181,7 +306,7 @@ export default function GalleryManagementScreen() {
               onClick={() => setSelectedAlbumId(album.id)}
             >
               <p className="font-medium">{album.name}</p>
-              <p className="text-xs text-muted-foreground">{album.description || "Sin descripcion"}</p>
+              <p className="text-xs text-muted-foreground">{album.description || "Sin descripción"}</p>
             </button>
           ))}
         </CardContent>
@@ -189,10 +314,23 @@ export default function GalleryManagementScreen() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Fotos del album</CardTitle>
+          <CardTitle>Fotos del álbum</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {photos.length === 0 ? <p className="text-sm text-muted-foreground">No hay fotos en este album.</p> : null}
+          {photos.length === 0 ? (
+            <div className="sm:col-span-2 lg:col-span-3">
+              <EmptyState
+                title={selectedAlbum ? "Este álbum aún no tiene fotos" : "Selecciona un álbum"}
+                description={
+                  selectedAlbum
+                    ? "Sube la primera foto para empezar a darle visibilidad al álbum."
+                    : "Elige un álbum para revisar o cargar fotos."
+                }
+                actionLabel={selectedAlbum ? "Subir primera foto" : undefined}
+                onAction={selectedAlbum ? () => photoUrlInputRef.current?.focus() : undefined}
+              />
+            </div>
+          ) : null}
           {photos.map((photo) => (
             <div key={photo.id} className="rounded-md border overflow-hidden">
               <img src={photo.imageUrl} alt={photo.caption || "Foto"} className="h-40 w-full object-cover" />

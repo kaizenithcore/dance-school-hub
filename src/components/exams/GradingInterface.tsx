@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,9 @@ export function GradingInterface({ open, onOpenChange, exam, candidate, onSave }
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Calificación</DialogTitle>
+          <DialogDescription>
+            Introduce las notas por categoría para calcular y guardar la calificación final del candidato.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

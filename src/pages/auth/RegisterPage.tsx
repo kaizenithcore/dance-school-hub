@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Music, ArrowLeft, ArrowRight, Loader2, Eye, EyeOff, AlertCircle, Check, Copy } from "lucide-react";
@@ -8,16 +8,47 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { registerSchool } from "@/lib/auth";
-import { commercialCatalog, getSelectableSubscriptionAddons, planCatalog, planOrder, type PlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
+import { commercialCatalog, formatAnnualFinancingLabel, getInterestFreeInstallment, getSelectableSubscriptionAddons, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 const FOUNDERS_PROMO_CODE = "FOUNDERS";
 const FOUNDERS_MONTHLY_PROMO_PERCENT = 50;
 const FOUNDERS_ANNUAL_PROMO_PERCENT = 15;
 const ASSOCIATED_PRO_ANNUAL_DISCOUNT_PERCENT = 10;
+const ADMIN_HOURLY_COST_EUR = 18;
+const NET_ENROLLMENT_CONTRIBUTION_EUR = 55;
+const COMMERCIAL_GUARANTEE_DAYS = 30;
+const COMMERCIAL_INCLUDED_ADDON_MONTHS = 3;
+const REGISTER_CHECKOUT_SELECTION_KEY = "nexa:register:checkout-selection:v1";
 
 type BillingCycle = "monthly" | "annual";
+type AnnualFinancingMonths = 3 | 6 | 12;
 type RegisterOfferId = PlanType | "certifier" | "certifierLite";
+
+type SegmentCase = {
+  key: "small" | "medium" | "multi";
+  title: string;
+  activeStudents: number;
+  planType: PlanType;
+};
+
+const SEGMENT_CASES: readonly SegmentCase[] = [
+  { key: "small", title: "Escuela pequeña", activeStudents: 60, planType: "starter" },
+  { key: "medium", title: "Escuela mediana", activeStudents: 180, planType: "pro" },
+  { key: "multi", title: "Multi-sede", activeStudents: 420, planType: "enterprise" },
+];
+
+function getAdvisorRecommendation(students: number): { recommendedPlan: PlanType; recommendedTermMonths: AnnualFinancingMonths; studentsHint: string } {
+  if (students < 200) {
+    return { recommendedPlan: "starter", recommendedTermMonths: 6, studentsHint: "Menos de 200 alumnos" };
+  }
+
+  if (students < 700) {
+    return { recommendedPlan: "pro", recommendedTermMonths: 6, studentsHint: "Entre 200 y 699 alumnos" };
+  }
+
+  return { recommendedPlan: "enterprise", recommendedTermMonths: 12, studentsHint: "700 alumnos o más" };
+}
 
 interface RegisterOffer {
   id: RegisterOfferId;
@@ -61,8 +92,11 @@ export default function RegisterPage() {
   // Step 3 - Plan selection
   const [selectedPlan, setSelectedPlan] = useState<RegisterOfferId>("pro");
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
+  const [annualFinancingMonths, setAnnualFinancingMonths] = useState<AnnualFinancingMonths>(6);
   const [foundersCodeCopied, setFoundersCodeCopied] = useState(false);
+  const [usePromoInSimulator, setUsePromoInSimulator] = useState(true);
   const [isAssociatedSchool, setIsAssociatedSchool] = useState(false);
+  const [planAdvisorStudents, setPlanAdvisorStudents] = useState(260);
   const [addOns, setAddOns] = useState<Record<SubscriptionAddonKey, boolean>>({
     customDomain: false,
     prioritySupport: false,
@@ -72,6 +106,57 @@ export default function RegisterPage() {
 
   const certifierAssociationsPlan = commercialCatalog.examSuit?.plans?.associations;
   const certifierSchoolsPlan = commercialCatalog.examSuit?.plans?.schools;
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(REGISTER_CHECKOUT_SELECTION_KEY);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        selectedPlan?: RegisterOfferId;
+        billingCycle?: BillingCycle;
+        annualFinancingMonths?: AnnualFinancingMonths;
+        addOns?: Partial<Record<SubscriptionAddonKey, boolean>>;
+        usePromoInSimulator?: boolean;
+      };
+
+      if (parsed.selectedPlan) {
+        setSelectedPlan(parsed.selectedPlan);
+      }
+
+      if (parsed.billingCycle === "annual" || parsed.billingCycle === "monthly") {
+        setBillingCycle(parsed.billingCycle);
+      }
+
+      if (parsed.annualFinancingMonths === 3 || parsed.annualFinancingMonths === 6 || parsed.annualFinancingMonths === 12) {
+        setAnnualFinancingMonths(parsed.annualFinancingMonths);
+      }
+
+      if (parsed.addOns) {
+        setAddOns((prev) => ({ ...prev, ...parsed.addOns }));
+      }
+
+      if (typeof parsed.usePromoInSimulator === "boolean") {
+        setUsePromoInSimulator(parsed.usePromoInSimulator);
+      }
+    } catch {
+      // Ignore invalid cache and keep defaults.
+    }
+  }, []);
+
+  useEffect(() => {
+    const payload = {
+      selectedPlan,
+      billingCycle,
+      annualFinancingMonths,
+      addOns,
+      usePromoInSimulator,
+    };
+
+    window.localStorage.setItem(REGISTER_CHECKOUT_SELECTION_KEY, JSON.stringify(payload));
+  }, [addOns, annualFinancingMonths, billingCycle, selectedPlan, usePromoInSimulator]);
 
   const offers: RegisterOffer[] = [
     ...planOrder.map((planType) => ({
@@ -132,9 +217,62 @@ export default function RegisterPage() {
   const foundersPercent = billingCycle === "annual" ? FOUNDERS_ANNUAL_PROMO_PERCENT : FOUNDERS_MONTHLY_PROMO_PERCENT;
   const foundersDiscountAmount = Math.round((billingCycle === "annual" ? annualSubtotal : monthlySubtotal) * (foundersPercent / 100));
   const totalWithFounders = Math.max(0, (billingCycle === "annual" ? annualSubtotal : monthlySubtotal) - foundersDiscountAmount);
+  const simulatorDiscountAmount = usePromoInSimulator ? foundersDiscountAmount : 0;
+  const simulatorTotal = Math.max(0, (billingCycle === "annual" ? annualSubtotal : monthlySubtotal) - simulatorDiscountAmount);
+  const annualFinancedSubtotal = getInterestFreeInstallment(annualSubtotal, annualFinancingMonths);
+  const annualFinancedWithFounders = getInterestFreeInstallment(totalWithFounders, annualFinancingMonths);
+  const annualFinancedSimulatorTotal = getInterestFreeInstallment(simulatorTotal, annualFinancingMonths);
+  const fromSixInstallments = getInterestFreeInstallment(annualSubtotal, 6);
+  const simulatorMonthlyToday = billingCycle === "annual" ? annualFinancedSimulatorTotal : simulatorTotal;
+  const selectedPlanIncludedStudents = selectedNexaPlan ? planCatalog[selectedNexaPlan].limits.includedActiveStudents : null;
+  const costPerActiveStudent = selectedPlanIncludedStudents
+    ? Math.round((simulatorMonthlyToday / selectedPlanIncludedStudents) * 100) / 100
+    : null;
+  const equivalentAdminHours = Math.round((simulatorMonthlyToday / ADMIN_HOURLY_COST_EUR) * 10) / 10;
+  const savingsIn12Months = billingCycle === "annual" ? annualSavingsAmount : 0;
+  const paybackEnrollments = Math.max(1, Math.ceil(simulatorMonthlyToday / NET_ENROLLMENT_CONTRIBUTION_EUR));
+  const selectedAdvisorProfile = getAdvisorRecommendation(planAdvisorStudents);
+  const advisorPlanCatalog = planCatalog[selectedAdvisorProfile.recommendedPlan];
+  const advisorAnnualSavings = Math.max(0, advisorPlanCatalog.billing.monthlyPriceEur * 12 - advisorPlanCatalog.billing.annualTotalEur);
+  const advisorInstallment = getInterestFreeInstallment(advisorPlanCatalog.billing.annualTotalEur, selectedAdvisorProfile.recommendedTermMonths);
+  const annualIncentivesActive = billingCycle === "annual";
+  const annualPromoWeekDeadlineLabel = (() => {
+    const now = new Date();
+    const day = now.getDay();
+    const daysUntilSunday = (7 - day) % 7;
+    const weekDeadline = new Date(now);
+    weekDeadline.setDate(now.getDate() + daysUntilSunday);
+
+    return weekDeadline.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
+  })();
+  const annualIncludedAddon = (() => {
+    const options = [subscriptionAddonCatalog.customDomain, subscriptionAddonCatalog.prioritySupport];
+    return options[0].monthlyPriceEur >= options[1].monthlyPriceEur ? options[0] : options[1];
+  })();
+  const annualIncludedAddonSavings = annualIncentivesActive ? annualIncludedAddon.monthlyPriceEur * COMMERCIAL_INCLUDED_ADDON_MONTHS : 0;
+  const starterToProAnnualMonthlyDelta = getInterestFreeInstallment(
+    Math.max(0, planCatalog.pro.billing.annualTotalEur - planCatalog.starter.billing.annualTotalEur),
+    12
+  );
+  const segmentMiniCases = SEGMENT_CASES.map((segment) => {
+    const segmentPlan = planCatalog[segment.planType];
+    const segmentMonthly = billingCycle === "annual"
+      ? getInterestFreeInstallment(segmentPlan.billing.annualTotalEur, annualFinancingMonths)
+      : segmentPlan.billing.monthlyPriceEur;
+    const segmentCostPerStudent = Math.round((segmentMonthly / segment.activeStudents) * 100) / 100;
+    const segmentPayback = Math.max(1, Math.ceil(segmentMonthly / NET_ENROLLMENT_CONTRIBUTION_EUR));
+
+    return {
+      ...segment,
+      monthly: segmentMonthly,
+      costPerStudent: segmentCostPerStudent,
+      payback: segmentPayback,
+    };
+  });
 
   const proAnnualBase = planCatalog.pro.billing.annualTotalEur;
   const proAnnualWithFounders = Math.max(0, proAnnualBase - Math.round(proAnnualBase * (FOUNDERS_ANNUAL_PROMO_PERCENT / 100)));
+  const proAnnualWithFoundersInstallment = getInterestFreeInstallment(proAnnualWithFounders, annualFinancingMonths);
   const proAnnualSavingsVsMonthly = Math.max(0, planCatalog.pro.billing.monthlyPriceEur * 12 - planCatalog.pro.billing.annualTotalEur);
 
   const copyFoundersCode = async () => {
@@ -217,6 +355,7 @@ export default function RegisterPage() {
         selectedOfferKind: selectedOffer.kind,
         billingCycle,
         foundersCode: FOUNDERS_PROMO_CODE,
+        promoEnabled: usePromoInSimulator,
         associatedReminderEnabled: isAssociatedSchool,
         selectedAddOns: selectableAddOns
           .filter((addon) => addOns[addon.key])
@@ -249,6 +388,7 @@ export default function RegisterPage() {
         ));
         localStorage.setItem("selected_checkout_product", selectedOffer.kind);
         localStorage.setItem("selected_billing_cycle", billingCycle);
+        localStorage.setItem("selected_financing_months", String(annualFinancingMonths));
         localStorage.setItem("selected_discount_code", FOUNDERS_PROMO_CODE);
         localStorage.setItem("selected_associated_discount", isAssociatedSchool ? "1" : "0");
         
@@ -436,10 +576,6 @@ export default function RegisterPage() {
                   <Link to="/legal/privacy" className="text-primary hover:underline" target="_blank">
                     política de privacidad
                   </Link>
-                  {" "}y el{" "}
-                  <Link to="/legal/dpa" className="text-primary hover:underline" target="_blank">
-                    DPA
-                  </Link>
                 </Label>
               </div>
               {errors.acceptTerms && (
@@ -468,17 +604,22 @@ export default function RegisterPage() {
             >
               <p className="text-center text-sm text-muted-foreground">Paso 3 de 3: Elige tu plan</p>
 
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Desde {fromSixInstallments}€/mes en 6 cuotas</p>
+                <p className="mt-1 text-xs text-muted-foreground">Financiación sin interés y activación inmediata.</p>
+              </div>
+
               <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold text-emerald-800">Código promocional FOUNDERS</p>
+                    <p className="text-sm font-semibold text-emerald-800">Mejor descuento autoaplicado</p>
                     <p className="text-xs text-emerald-700">
-                      {FOUNDERS_MONTHLY_PROMO_PERCENT}% en el primer mes (mensual) o {FOUNDERS_ANNUAL_PROMO_PERCENT}% en el pago anual.
+                      Aplicamos automáticamente FOUNDERS: {FOUNDERS_MONTHLY_PROMO_PERCENT}% en mensual o {FOUNDERS_ANNUAL_PROMO_PERCENT}% en financiación sin interés.
                     </p>
                   </div>
                   <Button type="button" variant="outline" className="gap-2 border-emerald-500 text-emerald-700" onClick={() => void copyFoundersCode()}>
                     {foundersCodeCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {foundersCodeCopied ? "Copiado" : "Copiar"}
+                    {foundersCodeCopied ? "Copiado" : "Copiar etiqueta"}
                   </Button>
                 </div>
               </div>
@@ -506,16 +647,55 @@ export default function RegisterPage() {
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Anual
+                    Financiación sin interés
                   </button>
                 </div>
+                {billingCycle === "annual" ? (
+                  <div className="mt-2 grid grid-cols-3 gap-2 rounded-lg border border-border p-1">
+                    <button
+                      type="button"
+                      onClick={() => setAnnualFinancingMonths(3)}
+                      className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                        annualFinancingMonths === 3
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      3 meses
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAnnualFinancingMonths(6)}
+                      className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                        annualFinancingMonths === 6
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      6 meses
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAnnualFinancingMonths(12)}
+                      className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                        annualFinancingMonths === 12
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      12 meses
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">Planes disponibles</Label>
                 {offers.map((offer) => {
                   const isSelected = selectedPlan === offer.id;
-                  const displayPrice = billingCycle === "annual" ? offer.annualEffectiveMonthlyPriceEur : offer.monthlyPriceEur;
+                  const displayPrice = billingCycle === "annual"
+                    ? getInterestFreeInstallment(offer.annualTotalEur, annualFinancingMonths)
+                    : offer.monthlyPriceEur;
 
                   return (
                   <div
@@ -554,7 +734,7 @@ export default function RegisterPage() {
                       <div className="text-right">
                         <p className="font-bold text-foreground">{displayPrice}€/mes</p>
                         {billingCycle === "annual" ? (
-                          <p className="text-xs text-muted-foreground">Pago anual: {offer.annualTotalEur}€</p>
+                          <p className="text-xs text-muted-foreground">{formatAnnualFinancingLabel(offer.annualTotalEur)}</p>
                         ) : null}
                         {billingCycle === "annual" && offer.annualSavingsLabel ? (
                           <p className="text-xs font-medium text-emerald-600">{offer.annualSavingsLabel}</p>
@@ -614,10 +794,14 @@ export default function RegisterPage() {
 
               <div className="rounded-lg bg-primary/10 p-4 border border-primary/20">
                 <p className="text-sm text-muted-foreground mb-2">Resumen final estimado</p>
+                <label className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Checkbox checked={usePromoInSimulator} onCheckedChange={(checked) => setUsePromoInSimulator(checked === true)} />
+                  Simular con promo FOUNDERS
+                </label>
                 <div className="space-y-1.5 text-sm text-foreground">
                   <div className="flex items-center justify-between">
                     <span>Subtotal {billingCycle === "annual" ? "anual" : "mensual"}</span>
-                    <span>{billingCycle === "annual" ? `${annualSubtotal}€` : `${monthlySubtotal}€/mes`}</span>
+                    <span>{billingCycle === "annual" ? `${annualFinancedSubtotal}€/mes (${annualFinancingMonths} cuotas)` : `${monthlySubtotal}€/mes`}</span>
                   </div>
                   {billingCycle === "annual" && annualSavingsAmount > 0 ? (
                     <div className="flex items-center justify-between text-emerald-700">
@@ -627,27 +811,135 @@ export default function RegisterPage() {
                   ) : null}
                   <div className="flex items-center justify-between text-emerald-700">
                     <span>Descuento FOUNDERS ({foundersPercent}%)</span>
-                    <span>-{foundersDiscountAmount}€</span>
+                    <span>-{simulatorDiscountAmount}€</span>
                   </div>
                 </div>
                 <div className="mt-3 border-t border-primary/20 pt-3">
                   <p className="text-xs text-muted-foreground">
                     {billingCycle === "annual"
-                      ? "Total estimado hoy (anual):"
+                      ? `Cuota hoy (${annualFinancingMonths} meses):`
                       : "Total estimado del primer mes (mensual):"}
                   </p>
                   <p className="text-3xl font-bold text-foreground">
-                    {billingCycle === "annual" ? `${totalWithFounders}€` : `${totalWithFounders}€/mes`}
+                    {billingCycle === "annual" ? `${annualFinancedSimulatorTotal}€/mes` : `${simulatorTotal}€/mes`}
                   </p>
+                  {billingCycle === "annual" ? (
+                    <p className="mt-1 text-xs text-muted-foreground">Total anual (secundario): {annualSubtotal}€</p>
+                  ) : null}
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  En Pro anual pagarías {proAnnualWithFounders}€ con FOUNDERS y ahorrarías {proAnnualSavingsVsMonthly}€ frente a Pro mensual.
+                  En Pro anual pagarías {proAnnualWithFoundersInstallment}€/mes ({annualFinancingMonths} cuotas) con FOUNDERS y ahorrarías {proAnnualSavingsVsMonthly}€ frente a Pro mensual.
                 </p>
                 {isAssociatedSchool ? (
                   <p className="mt-1 text-xs font-medium text-amber-800">
                     Escuela asociada: recuerda aplicar también el código de {ASSOCIATED_PRO_ANNUAL_DISCOUNT_PERCENT}% para Pro anual.
                   </p>
                 ) : null}
+              </div>
+
+              <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4">
+                <p className="text-sm font-semibold text-emerald-900">Percepción de valor</p>
+                <div className="mt-2 space-y-1 text-sm text-emerald-900">
+                  <p>
+                    Coste por alumno activo:{" "}
+                    <span className="font-semibold">
+                      {costPerActiveStudent === null ? "N/A para este producto" : `${costPerActiveStudent}€/mes`}
+                    </span>
+                  </p>
+                  <p>
+                    Coste operativo equivalente:{" "}
+                    <span className="font-semibold">{equivalentAdminHours} horas administrativas/mes</span>
+                  </p>
+                  {billingCycle === "annual" ? (
+                    <p>
+                      Ahorro acumulado:{" "}
+                      <span className="font-semibold">ahorras {savingsIn12Months}€ en 12 meses vs mensual</span>
+                    </p>
+                  ) : null}
+                  <p>
+                    Payback estimate:{" "}
+                    <span className="font-semibold">se amortiza con {paybackEnrollments} matrículas nuevas/mes</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-indigo-300 bg-indigo-50 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-indigo-900">Plan advisor</p>
+                  <span className="text-xs font-semibold text-indigo-900">Recomendación según tamaño de escuela</span>
+                </div>
+                <div className="mt-3 rounded-md border border-indigo-200 bg-white p-3">
+                  <div className="flex items-center justify-between text-xs text-indigo-900">
+                    <span>Alumnos activos</span>
+                    <span className="font-semibold">{planAdvisorStudents}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={50}
+                    max={1200}
+                    step={10}
+                    value={planAdvisorStudents}
+                    onChange={(event) => setPlanAdvisorStudents(Number(event.target.value))}
+                    className="mt-3 w-full accent-indigo-600"
+                    aria-label="Cantidad de alumnos de la escuela"
+                  />
+                  <div className="mt-2 flex justify-between text-[11px] text-indigo-900/80">
+                    <span>Starter &lt;200</span>
+                    <span>Pro 200-699</span>
+                    <span>Enterprise 700+</span>
+                  </div>
+                </div>
+                <div className="mt-3 rounded-md border border-indigo-200 bg-white p-3 text-sm text-indigo-950">
+                  <p>
+                    Plan recomendado: <span className="font-semibold">{advisorPlanCatalog.name}</span> ({selectedAdvisorProfile.studentsHint})
+                  </p>
+                  <p>
+                    Plazo recomendado: <span className="font-semibold">{selectedAdvisorProfile.recommendedTermMonths} cuotas sin interés</span>
+                  </p>
+                  <p>
+                    Cuota estimada: <span className="font-semibold">{advisorInstallment}€/mes</span>
+                  </p>
+                  <p>
+                    Ahorro esperado: <span className="font-semibold">{advisorAnnualSavings}€ en 12 meses vs mensual</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-sky-300 bg-sky-50 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-sky-900">Incentivos comerciales</p>
+                  {annualIncentivesActive ? (
+                    <span className="text-xs font-semibold text-sky-900">Precio protegido 12 meses si activas anual esta semana (hasta {annualPromoWeekDeadlineLabel})</span>
+                  ) : (
+                    <span className="text-xs font-semibold text-sky-900">Activa anual para desbloquear incentivos exclusivos</span>
+                  )}
+                </div>
+                <ul className="mt-2 space-y-1 text-sm text-sky-900">
+                  <li>• Bono de onboarding premium incluido solo en anual.</li>
+                  <li>• Garantía de satisfacción de {COMMERCIAL_GUARANTEE_DAYS} días.</li>
+                  {annualIncentivesActive ? (
+                    <li>• Add-on incluido {COMMERCIAL_INCLUDED_ADDON_MONTHS} meses: {annualIncludedAddon.label} (valor {annualIncludedAddonSavings}€).</li>
+                  ) : null}
+                  <li>
+                    • Upgrade sin penalización: empieza en Starter anual y sube a Pro con diferencia prorrateada
+                    (desde {starterToProAnnualMonthlyDelta}€/mes de diferencia anualizada).
+                  </li>
+                </ul>
+              </div>
+
+              <div className="rounded-lg border border-border bg-muted/30 p-4">
+                <p className="text-sm font-semibold text-foreground">Mini-casos por segmento</p>
+                <div className="mt-3 grid gap-2 md:grid-cols-3">
+                  {segmentMiniCases.map((segment) => (
+                    <div key={segment.key} className="rounded-md border border-border bg-background p-3 text-xs">
+                      <p className="font-semibold text-foreground">{segment.title}</p>
+                      <p className="mt-1 text-muted-foreground">{planCatalog[segment.planType].name} · {segment.activeStudents} alumnos activos</p>
+                      <p className="mt-2 text-foreground">Cuota: <span className="font-semibold">{segment.monthly}€/mes</span></p>
+                      <p className="text-muted-foreground">Coste/alumno: {segment.costPerStudent}€/mes</p>
+                      <p className="text-muted-foreground">Payback: {segment.payback} matrículas/mes</p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-3">
@@ -657,9 +949,30 @@ export default function RegisterPage() {
                   </Button>
                   <Button type="submit" className="flex-1" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Empezar prueba gratis
+                    Activar con cuota mensual
                   </Button>
                 </div>
+                <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+                  <p>Sin comisiones ocultas</p>
+                  <p>Sin interés</p>
+                  <p>Cambio de plan prorrateado</p>
+                </div>
+                <details className="rounded-lg border border-border bg-background p-3 text-xs text-muted-foreground">
+                  <summary className="cursor-pointer font-medium text-foreground">Ver condiciones legales</summary>
+                  <div className="mt-2">
+                    <p>
+                      Al activar aceptas los{" "}
+                      <Link to="/legal/terms" className="text-primary hover:underline" target="_blank">
+                        términos de servicio
+                      </Link>
+                      {" "}y la{" "}
+                      <Link to="/legal/privacy" className="text-primary hover:underline" target="_blank">
+                        política de privacidad
+                      </Link>
+                      .
+                    </p>
+                  </div>
+                </details>
               </form>
             </motion.div>
           )}

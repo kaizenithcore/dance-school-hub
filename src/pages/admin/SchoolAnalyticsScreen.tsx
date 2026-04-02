@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { ModuleHelpShortcut } from "@/components/layout/ModuleHelpShortcut";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   getPortalAnalyticsKpiDefinitions,
   getSchoolPortalAnalytics,
@@ -10,6 +13,8 @@ import {
   type PortalSchoolAnalytics,
 } from "@/lib/api/portalFoundation";
 import { toast } from "sonner";
+import { Loader2, RefreshCw } from "lucide-react";
+import { toastErrorOnce } from "@/lib/toastPremium";
 
 const emptyAnalytics: PortalSchoolAnalytics = {
   studentsCount: 0,
@@ -27,35 +32,62 @@ export default function SchoolAnalyticsScreen() {
   const [overview, setOverview] = useState<PortalAnalyticsOverview | null>(null);
   const [kpis, setKpis] = useState<PortalKpiDefinition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadAnalytics = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [data, advanced, kpiContract] = await Promise.all([
+        getSchoolPortalAnalytics(),
+        getSchoolPortalAnalyticsOverview(30),
+        getPortalAnalyticsKpiDefinitions(),
+      ]);
+      setAnalytics(data);
+      setOverview(advanced);
+      setKpis(kpiContract.kpis);
+    } catch (error) {
+      console.error(error);
+      const message = "No se pudieron cargar las analíticas";
+      setLoadError(message);
+      toastErrorOnce("school-analytics-load", message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [data, advanced, kpiContract] = await Promise.all([
-          getSchoolPortalAnalytics(),
-          getSchoolPortalAnalyticsOverview(30),
-          getPortalAnalyticsKpiDefinitions(),
-        ]);
-        setAnalytics(data);
-        setOverview(advanced);
-        setKpis(kpiContract.kpis);
-      } catch (error) {
-        console.error(error);
-        toast.error("No se pudieron cargar las analiticas");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void load();
+    void loadAnalytics();
   }, []);
 
   return (
     <PageContainer
-      title="Analiticas de Escuela"
+      title="Analíticas de Escuela"
       description="Actividad y engagement del ecosistema social"
+      actions={
+        <>
+          <ModuleHelpShortcut module="school-analytics" />
+          <Button variant="outline" onClick={() => void loadAnalytics()} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <span className="ml-2">Recargar</span>
+          </Button>
+        </>
+      }
     >
+      {loadError ? (
+        <Card>
+          <CardContent>
+            <EmptyState
+              type="error"
+              title="Analíticas no disponibles"
+              description={loadError}
+              actionLabel="Reintentar"
+              onAction={() => void loadAnalytics()}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader>
@@ -117,14 +149,14 @@ export default function SchoolAnalyticsScreen() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Conversion</CardTitle>
+            <CardTitle>Conversión</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold">
               {loading ? "..." : `${(analytics.conversionRate * 100).toFixed(1)}%`}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              Ultima actividad: {analytics.lastActivityAt ? new Date(analytics.lastActivityAt).toLocaleString("es-ES") : "Sin datos"}
+              Última actividad: {analytics.lastActivityAt ? new Date(analytics.lastActivityAt).toLocaleString("es-ES") : "Sin datos"}
             </p>
           </CardContent>
         </Card>
@@ -133,29 +165,29 @@ export default function SchoolAnalyticsScreen() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Engagement (30 dias)</CardTitle>
+            <CardTitle>Engagement (30 días)</CardTitle>
             <CardDescription>Interacciones en portal del alumno</CardDescription>
           </CardHeader>
           <CardContent className="space-y-1 text-sm text-muted-foreground">
             <p>Vistas de feed: {loading ? "..." : overview?.engagement.views ?? 0}</p>
             <p>Likes: {loading ? "..." : overview?.engagement.likes ?? 0}</p>
             <p>Guardados: {loading ? "..." : overview?.engagement.saves ?? 0}</p>
-            <p>Busquedas: {loading ? "..." : overview?.engagement.searches ?? 0}</p>
+            <p>Búsquedas: {loading ? "..." : overview?.engagement.searches ?? 0}</p>
             <p className="text-foreground font-semibold">Rate: {loading ? "..." : `${overview?.engagement.engagementRate ?? 0}%`}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Funnel y Retencion</CardTitle>
-            <CardDescription>Descubrimiento a matricula y riesgo de churn</CardDescription>
+            <CardTitle>Funnel y Retención</CardTitle>
+            <CardDescription>Descubrimiento a matrícula y riesgo de churn</CardDescription>
           </CardHeader>
           <CardContent className="space-y-1 text-sm text-muted-foreground">
             <p>Explorer views: {loading ? "..." : overview?.funnel.explorerViews ?? 0}</p>
             <p>Onboarding completado: {loading ? "..." : overview?.funnel.onboardingCompletions ?? 0}</p>
-            <p>Matriculas iniciadas: {loading ? "..." : overview?.funnel.enrollmentStarts ?? 0}</p>
-            <p>Matriculas completadas: {loading ? "..." : overview?.funnel.enrollmentCompletions ?? 0}</p>
-            <p className="text-foreground font-semibold">Conversion: {loading ? "..." : `${overview?.funnel.conversionRate ?? 0}%`}</p>
+            <p>Matrículas iniciadas: {loading ? "..." : overview?.funnel.enrollmentStarts ?? 0}</p>
+            <p>Matrículas completadas: {loading ? "..." : overview?.funnel.enrollmentCompletions ?? 0}</p>
+            <p className="text-foreground font-semibold">Conversión: {loading ? "..." : `${overview?.funnel.conversionRate ?? 0}%`}</p>
             <p className="text-foreground font-semibold">Churn riesgo: {loading ? "..." : `${overview?.retention.churnRiskRate ?? 0}%`}</p>
           </CardContent>
         </Card>
@@ -164,17 +196,29 @@ export default function SchoolAnalyticsScreen() {
       <Card>
         <CardHeader>
           <CardTitle>Contrato KPI</CardTitle>
-          <CardDescription>Definicion oficial de metricas, formula y ownership.</CardDescription>
+          <CardDescription>Definición oficial de métricas, fórmula y ownership.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {loading ? <p className="text-sm text-muted-foreground">Cargando definiciones KPI...</p> : null}
-          {!loading && kpis.length === 0 ? <p className="text-sm text-muted-foreground">Sin definiciones KPI.</p> : null}
+          {loading ? (
+            <EmptyState
+              title="Cargando contrato KPI"
+              description="Estamos sincronizando definiciones para mostrar métricas confiables."
+            />
+          ) : null}
+          {!loading && kpis.length === 0 ? (
+            <EmptyState
+              title="Sin definiciones KPI"
+              description="Aún no hay contrato de métricas publicado para esta escuela."
+              actionLabel="Reintentar"
+              onAction={() => void loadAnalytics()}
+            />
+          ) : null}
           {kpis.map((kpi) => (
             <div key={kpi.key} className="rounded-md border p-3">
               <p className="text-sm font-semibold text-foreground">{kpi.name}</p>
               <p className="text-xs text-muted-foreground mt-1">{kpi.formula}</p>
               <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                <span>Categoria: {kpi.category}</span>
+                <span>Categoría: {kpi.category}</span>
                 <span>Frecuencia: {kpi.frequency}</span>
                 <span>Owner: {kpi.owner}</span>
                 <span>Target: {kpi.target}</span>

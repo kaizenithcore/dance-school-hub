@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from "react";
 import { motion } from "framer-motion";
 import { Plus, Calendar, MapPin, Users, MoreHorizontal, Eye, Pencil, Copy, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,13 @@ interface Props {
 }
 
 export function EventsListView({ events, onCreateNew, onView, onEdit, onDuplicate, onDelete }: Props) {
+  const handleCardKeyDown = (event: KeyboardEvent<HTMLElement>, eventId: string) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onView(eventId);
+    }
+  };
+
   if (events.length === 0) {
     return (
       <EmptyState
@@ -47,13 +55,25 @@ export function EventsListView({ events, onCreateNew, onView, onEdit, onDuplicat
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
           >
-            <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => onView(evt.id)}>
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              onClick={() => onView(evt.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => handleCardKeyDown(event, evt.id)}
+              aria-label={`Abrir detalle del evento ${evt.name}`}
+            >
               <CardContent className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-foreground line-clamp-2 leading-tight">{evt.name}</h3>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Acciones del evento ${evt.name}`}
+                        className="h-8 w-8 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 transition-opacity focus-visible:ring-2 focus-visible:ring-primary/40"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { UNSAFE_NavigationContext as NavigationContext } from "react-router-dom";
 import { EnrollmentFormConfig, createDefaultSection, getDefaultEnrollmentConfig } from "@/lib/types/formBuilder";
 import { SectionCard } from "./SectionCard";
 import { JointEnrollmentSettings } from "./JointEnrollmentSettings";
@@ -9,23 +10,29 @@ import { Label } from "@/components/ui/label";
 import { Plus, Eye, Pencil, CalendarDays, RotateCcw, Tags, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import type { FormBuilderSection } from "@/lib/types/formBuilder";
+import type { FormBuilderField, FormBuilderSection, FieldType } from "@/lib/types/formBuilder";
 import { Textarea } from "@/components/ui/textarea";
 import { getEnrollmentFormConfig, saveEnrollmentFormConfig } from "@/lib/api/enrollmentFormConfig";
+import { Badge } from "@/components/ui/badge";
+import { getStudentFields, type SchoolStudentField } from "@/lib/api/studentFields";
 
 type Mode = "edit" | "preview";
 const FORM_BUILDER_UNSAVED_KEY = "nexa:form-builder:unsaved";
+const FORM_BUILDER_SAVE_REQUEST_EVENT = "nexa:form-builder:request-save";
+const FORM_BUILDER_SAVE_RESULT_EVENT = "nexa:form-builder:save-result";
 
 export function FormBuilder() {
   const [config, setConfig] = useState<EnrollmentFormConfig>(getDefaultEnrollmentConfig);
   const [mode, setMode] = useState<Mode>("edit");
   const [saving, setSaving] = useState(false);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState(() => JSON.stringify(getDefaultEnrollmentConfig()));
+  const [schoolStudentFields, setSchoolStudentFields] = useState<SchoolStudentField[]>([]);
 
   const hasUnsavedChanges = useMemo(
     () => JSON.stringify(config) !== lastSavedSnapshot,
     [config, lastSavedSnapshot]
   );
+  const navigationContext = useContext(NavigationContext);
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -41,6 +48,19 @@ export function FormBuilder() {
     };
 
     void loadConfig();
+  }, []);
+
+  useEffect(() => {
+    const loadSchoolFields = async () => {
+      try {
+        const fields = await getStudentFields();
+        setSchoolStudentFields(fields);
+      } catch {
+        setSchoolStudentFields([]);
+      }
+    };
+
+    void loadSchoolFields();
   }, []);
 
   useEffect(() => {
@@ -68,6 +88,81 @@ export function FormBuilder() {
     };
   }, [hasUnsavedChanges]);
 
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      return;
+    }
+
+    const navigator = navigationContext.navigator as {
+      block?: (blocker: (tx: { retry: () => void }) => void) => () => void;
+    };
+
+    if (typeof navigator.block !== "function") {
+      return;
+    }
+
+    const unblock = navigator.block((tx) => {
+      const confirmLeave = window.confirm(
+        "Tienes cambios sin guardar en el Form Builder. Si sales ahora, se perderan. ¿Quieres continuar?"
+      );
+
+      if (!confirmLeave) {
+        return;
+      }
+
+      window.localStorage.removeItem(FORM_BUILDER_UNSAVED_KEY);
+      unblock();
+      tx.retry();
+    });
+
+    return unblock;
+  }, [hasUnsavedChanges, navigationContext]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      return;
+    }
+
+    const handleAnchorNavigation = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) {
+        return;
+      }
+
+      const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
+      if (!anchor) {
+        return;
+      }
+
+      const href = anchor.getAttribute("href") || "";
+      if (!href || href.startsWith("#") || anchor.target === "_blank") {
+        return;
+      }
+
+      const isInternal = href.startsWith("/");
+      if (!isInternal) {
+        return;
+      }
+
+      const confirmLeave = window.confirm(
+        "Tienes cambios sin guardar en el Form Builder. Si sales ahora, se perderan. ¿Quieres continuar?"
+      );
+
+      if (!confirmLeave) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      window.localStorage.removeItem(FORM_BUILDER_UNSAVED_KEY);
+    };
+
+    document.addEventListener("click", handleAnchorNavigation, true);
+    return () => {
+      document.removeEventListener("click", handleAnchorNavigation, true);
+    };
+  }, [hasUnsavedChanges]);
+
   const updateSection = (index: number, section: FormBuilderSection) => {
     const sections = [...config.sections];
     sections[index] = section;
@@ -90,7 +185,7 @@ export function FormBuilder() {
     setConfig({ ...config, sections: [...config.sections, createDefaultSection()] });
   };
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<boolean> => {
     setSaving(true);
 
     const response = await saveEnrollmentFormConfig(config);
@@ -98,16 +193,124 @@ export function FormBuilder() {
 
     if (!response.success) {
       toast.error(response.error?.message || "No se pudo guardar el formulario");
-      return;
+      return false;
     }
 
     setLastSavedSnapshot(JSON.stringify(config));
     toast.success("Formulario guardado correctamente");
+    return true;
   };
+
+  useEffect(() => {
+    const onRequestSave = () => {
+      void (async () => {
+        const success = await handleSave();
+        window.dispatchEvent(new CustomEvent(FORM_BUILDER_SAVE_RESULT_EVENT, { detail: { success } }));
+      })();
+    };
+
+    window.addEventListener(FORM_BUILDER_SAVE_REQUEST_EVENT, onRequestSave);
+    return () => {
+      window.removeEventListener(FORM_BUILDER_SAVE_REQUEST_EVENT, onRequestSave);
+    };
+  }, [handleSave]);
 
   const handleReset = () => {
     setConfig(getDefaultEnrollmentConfig());
     toast.info("Formulario restaurado a valores por defecto");
+  };
+
+  const sectionIndexForStudentData = useMemo(() => {
+    const byId = config.sections.findIndex((section) => section.id.toLowerCase().includes("student"));
+    if (byId >= 0) return byId;
+
+    const byTitle = config.sections.findIndex((section) => section.title.toLowerCase().includes("alumno"));
+    if (byTitle >= 0) return byTitle;
+
+    return 0;
+  }, [config.sections]);
+
+  const existingFieldIds = useMemo(() => {
+    return new Set(config.sections.flatMap((section) => section.fields.map((field) => field.id)));
+  }, [config.sections]);
+
+  const toFormFieldType = (type: SchoolStudentField["type"]): FieldType => {
+    if (type === "number") return "number";
+    if (type === "date") return "date";
+    return "text";
+  };
+
+  const makeSchoolFieldFormId = (field: SchoolStudentField) => field.key;
+
+  const makeSchoolFieldFormField = (field: SchoolStudentField): FormBuilderField => ({
+    id: makeSchoolFieldFormId(field),
+    type: toFormFieldType(field.type),
+    label: field.label,
+    placeholder: `Ingresa ${field.label.toLowerCase()}`,
+    required: field.required,
+  });
+
+  const requiredSchoolFieldsNotIncluded = useMemo(() => {
+    return schoolStudentFields.filter((field) => field.required && !existingFieldIds.has(makeSchoolFieldFormId(field)));
+  }, [schoolStudentFields, existingFieldIds]);
+
+  const addSchoolFieldToForm = (field: SchoolStudentField) => {
+    const fieldId = makeSchoolFieldFormId(field);
+    if (existingFieldIds.has(fieldId)) {
+      toast.info(`El campo ${field.label} ya esta incluido en el formulario`);
+      return;
+    }
+
+    if (config.sections.length === 0) {
+      toast.error("No hay secciones disponibles para agregar el campo");
+      return;
+    }
+
+    setConfig((prev) => {
+      const sections = [...prev.sections];
+      const target = sections[sectionIndexForStudentData] ?? sections[0];
+      const targetIndex = sections.indexOf(target);
+      const nextFields = [...target.fields, makeSchoolFieldFormField(field)];
+      sections[targetIndex] = { ...target, fields: nextFields };
+      return { ...prev, sections };
+    });
+
+    toast.success(`Campo ${field.label} agregado al formulario`);
+  };
+
+  const addAllRequiredSchoolFieldsToForm = () => {
+    if (requiredSchoolFieldsNotIncluded.length === 0) {
+      toast.info("No hay campos requeridos pendientes de agregar");
+      return;
+    }
+
+    if (config.sections.length === 0) {
+      toast.error("No hay secciones disponibles para agregar campos");
+      return;
+    }
+
+    setConfig((prev) => {
+      const sections = [...prev.sections];
+      const target = sections[sectionIndexForStudentData] ?? sections[0];
+      const targetIndex = sections.indexOf(target);
+      const knownIds = new Set(target.fields.map((field) => field.id));
+      const fieldsToAdd = requiredSchoolFieldsNotIncluded
+        .filter((field) => !knownIds.has(makeSchoolFieldFormId(field)))
+        .map((field) => makeSchoolFieldFormField(field));
+
+      if (fieldsToAdd.length === 0) {
+        return prev;
+      }
+
+      sections[targetIndex] = {
+        ...target,
+        fields: [...target.fields, ...fieldsToAdd],
+      };
+
+      return { ...prev, sections };
+    });
+
+    toast.success(`Se agregaron ${requiredSchoolFieldsNotIncluded.length} campo(s) requeridos al formulario`);
   };
 
   return (
@@ -325,6 +528,60 @@ export function FormBuilder() {
             config={config.jointEnrollment}
             onChange={(jointEnrollment) => setConfig({ ...config, jointEnrollment })}
           />
+
+          <div className="rounded-xl border border-border bg-card shadow-soft p-5 space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Campos personalizados de alumnos (escuela)</h3>
+                <p className="text-xs text-muted-foreground">
+                  Estos campos vienen de la configuracion de tu escuela. Puedes agregarlos al formulario
+                  publico para pedirlos durante la inscripcion.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={addAllRequiredSchoolFieldsToForm}
+                disabled={requiredSchoolFieldsNotIncluded.length === 0}
+              >
+                Agregar todos los requeridos
+              </Button>
+            </div>
+
+            {schoolStudentFields.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No hay campos personalizados configurados para esta escuela.</p>
+            ) : (
+              <div className="space-y-2">
+                {schoolStudentFields.map((field) => {
+                  const included = existingFieldIds.has(makeSchoolFieldFormId(field));
+                  return (
+                    <div key={field.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">
+                          {field.label}
+                          <span className="ml-1 text-xs text-muted-foreground">({field.key})</span>
+                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge variant="outline" className="text-[10px]">{field.type}</Badge>
+                          {field.required ? <Badge variant="outline" className="text-[10px]">Requerido</Badge> : null}
+                          {field.visibleInTable ? <Badge variant="outline" className="text-[10px]">Visible en tabla</Badge> : null}
+                          {included ? <Badge className="text-[10px]">Incluido en formulario</Badge> : null}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={included ? "outline" : "default"}
+                        disabled={included}
+                        onClick={() => addSchoolFieldToForm(field)}
+                      >
+                        {included ? "Ya agregado" : "Agregar al formulario"}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Sections */}
           <div className="space-y-4">

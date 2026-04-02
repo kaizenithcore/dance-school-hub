@@ -61,3 +61,24 @@ export async function PATCH(
     return fail({ code: "update_failed", message }, 500, origin);
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const origin = request.headers.get("origin");
+  const auth = await requireAuth(request);
+
+  if (!auth.authorized || !auth.context) {
+    return auth.response;
+  }
+
+  try {
+    const { id } = await context.params;
+    const deleted = await invoiceService.deleteInvoice(auth.context.tenantId, id);
+    return ok(deleted, 200, origin);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete invoice";
+    return fail({ code: "delete_failed", message }, 500, origin);
+  }
+}

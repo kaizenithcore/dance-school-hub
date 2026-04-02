@@ -14,6 +14,8 @@ const nav = [
   { label: "FAQ", href: "#faq" },
 ];
 
+const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=landing_header";
+
 export function LandingHeader() {
   const [open, setOpen] = useState(false);
 
@@ -25,7 +27,7 @@ export function LandingHeader() {
         section: "header",
         placement,
         ctaLabel: "Probar gratis",
-        destination: "/auth/register",
+        destination: PRO_ANNUAL_CTA_HREF,
       },
     });
   };
@@ -57,7 +59,7 @@ export function LandingHeader() {
             <Link to="/auth/login">Iniciar sesión</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link to="/auth/register" className="rounded-xl shadow-sm hover:shadow-md" onClick={() => handlePrimaryClick("header_desktop")}>Probar Nexa</Link>
+            <Link to={PRO_ANNUAL_CTA_HREF} className="rounded-xl shadow-sm hover:shadow-md" onClick={() => handlePrimaryClick("header_desktop")}>Probar gratis 14 días</Link>
           </Button>
         </div>
 
@@ -87,7 +89,7 @@ export function LandingHeader() {
               <Link to="/auth/login">Iniciar sesión</Link>
             </Button>
             <Button size="sm" className="flex-1" asChild>
-              <Link to="/auth/register" className="rounded-xl" onClick={() => handlePrimaryClick("header_mobile")}>Probar Nexa</Link>
+              <Link to={PRO_ANNUAL_CTA_HREF} className="rounded-xl" onClick={() => handlePrimaryClick("header_mobile")}>Probar gratis 14 días</Link>
             </Button>
           </div>
         </div>

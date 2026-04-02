@@ -106,7 +106,7 @@ export function TeacherProfileDrawer({ open, onOpenChange, teacher }: TeacherPro
           {/* Salary */}
           <div className="p-3 rounded-lg bg-accent/10 border border-accent/30">
             <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Salario Mensual</p>
-            <p className="text-lg font-semibold text-foreground">${teacher.aulary}</p>
+            <p className="text-lg font-semibold text-foreground">€{teacher.salay}</p>
           </div>
 
           {/* Notes */}
