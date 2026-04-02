@@ -529,6 +529,6 @@ export default function ReceptionPage() {
           )}
         </CardContent>
       </Card>
-        <CardHeader data-reception-new-incident="true">
+    </PageContainer>
   );
 }
