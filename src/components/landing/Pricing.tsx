@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Check, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check, ArrowRight, Sparkles, Users, TrendingUp, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -25,19 +25,16 @@ interface Plan {
   highlighted?: boolean;
   savings?: string;
   strategicHighlights: string[];
+  includedStudents: number;
 }
 
 function getAdvisorRecommendation(students: number): { recommendedPlan: PlanType; months: 3 | 6 | 12; studentsHint: string } {
-  if (students < 200) {
-    return { recommendedPlan: "starter", months: 6, studentsHint: "Menos de 200 alumnos" };
-  }
-
-  if (students < 700) {
-    return { recommendedPlan: "pro", months: 6, studentsHint: "Entre 200 y 699 alumnos" };
-  }
-
+  if (students < 200) return { recommendedPlan: "starter", months: 6, studentsHint: "Menos de 200 alumnos" };
+  if (students < 700) return { recommendedPlan: "pro", months: 6, studentsHint: "Entre 200 y 699 alumnos" };
   return { recommendedPlan: "enterprise", months: 12, studentsHint: "700 alumnos o más" };
 }
+
+const AVERAGE_ENROLLMENT_FEE = 45;
 
 const plans: Plan[] = planOrder.map((planType) => {
   const plan = planCatalog[planType];
@@ -46,7 +43,6 @@ const plans: Plan[] = planOrder.map((planType) => {
     pro: "La forma más eficiente de gestionar y crecer",
     enterprise: "Control total para escuelas avanzadas",
   };
-
   return {
     planType,
     name: plan.name,
@@ -62,15 +58,12 @@ const plans: Plan[] = planOrder.map((planType) => {
     ctaHref: planType === "enterprise" ? plan.cta.href : PRO_ANNUAL_CTA_HREF,
     ctaExternal: planType === "enterprise" ? plan.cta.external : false,
     highlighted: plan.highlighted,
+    includedStudents: plan.limits.includedActiveStudents,
     strategicHighlights:
       planType === "starter"
         ? ["Incluye web básica con matrícula online"]
         : planType === "pro"
-          ? [
-              "Web básica desde el primer día",
-              "Pack de modernización incluido",
-              "Acceso a web optimizada (incluida o con descuento)",
-            ]
+          ? ["Web básica desde el primer día", "Pack de modernización incluido", "Acceso a web optimizada (incluida o con descuento)"]
           : ["Escalado avanzado de operaciones y captación"],
   };
 });
@@ -85,7 +78,6 @@ const addons = [
   `${subscriptionAddonCatalog.prioritySupport.label}: ${formatEuro(subscriptionAddonCatalog.prioritySupport.monthlyPriceEur)}/mes`,
   `Bloques extra de alumnos desde ${formatEuro(getMinimumExtraStudentBlockPriceEur())}/mes (según el plan)`,
   `${subscriptionAddonCatalog.extraRoles.label}: ${formatEuro(subscriptionAddonCatalog.extraRoles.monthlyPriceEur)}/mes`,
-  
 ];
 
 export function Pricing() {
@@ -97,6 +89,12 @@ export function Pricing() {
   const advisorInstallment = getInterestFreeInstallment(advisorPlan.billing.annualTotalEur, advisor.months);
   const advisorSavings = Math.max(0, advisorPlan.billing.monthlyPriceEur * 12 - advisorPlan.billing.annualTotalEur);
   const pricingFromSixInstallments = getInterestFreeInstallment(planCatalog.pro.billing.annualTotalEur, 6);
+
+  const advisorMonthlyPrice = annual
+    ? getInterestFreeInstallment(advisorPlan.billing.annualTotalEur, annualFinancingMonths)
+    : advisorPlan.billing.monthlyPriceEur;
+  const costPerStudent = advisorStudents > 0 ? advisorMonthlyPrice / advisorStudents : 0;
+  const paybackEnrollments = Math.ceil(advisorMonthlyPrice / AVERAGE_ENROLLMENT_FEE);
 
   const handlePlanClick = (plan: Plan) => {
     trackPortalEvent({
@@ -116,6 +114,7 @@ export function Pricing() {
   return (
     <section id="pricing" className="py-20 sm:py-28">
       <div className="container">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -135,8 +134,8 @@ export function Pricing() {
           <p className="mt-1 text-xs text-muted-foreground">Financiación sin interés + mejor descuento elegible autoaplicado en checkout.</p>
         </motion.div>
 
-        {/* Toggle */}
-        <div className="flex items-center justify-center gap-3 mb-10">
+        {/* Billing toggle */}
+        <div className="flex items-center justify-center gap-3 mb-6">
           <button
             onClick={() => setAnnual(false)}
             className={cn(
@@ -158,132 +157,215 @@ export function Pricing() {
           </button>
         </div>
 
-        {annual ? (
-          <div className="mx-auto mb-8 max-w-md rounded-xl border border-border bg-card p-2">
-            <p className="px-2 pb-2 text-center text-xs text-muted-foreground">Selecciona tu plazo</p>
-            <div className="grid grid-cols-3 gap-2">
-              {[3, 6, 12].map((months) => (
-                <button
-                  key={months}
-                  type="button"
-                  onClick={() => setAnnualFinancingMonths(months as 3 | 6 | 12)}
-                  className={cn(
-                    "rounded-md px-3 py-2 text-sm font-medium transition",
-                    annualFinancingMonths === months ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                  )}
-                >
-                  {months} cuotas
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="mb-8 rounded-2xl border border-indigo-300 bg-indigo-50 p-5 max-w-5xl mx-auto">
-          <p className="text-sm font-semibold text-indigo-900">Plan advisor</p>
-          <div className="mt-3 rounded-md border border-indigo-200 bg-white p-3">
-            <div className="flex items-center justify-between text-xs text-indigo-900">
-              <span>Alumnos activos</span>
-              <span className="font-semibold">{advisorStudents}</span>
-            </div>
-            <input
-              type="range"
-              min={50}
-              max={1200}
-              step={10}
-              value={advisorStudents}
-              onChange={(event) => setAdvisorStudents(Number(event.target.value))}
-              className="mt-3 w-full accent-indigo-600"
-              aria-label="Cantidad de alumnos de la escuela"
-            />
-            <div className="mt-2 flex justify-between text-[11px] text-indigo-900/80">
-              <span>Starter &lt;200</span>
-              <span>Pro 200-699</span>
-              <span>Enterprise 700+</span>
-            </div>
-          </div>
-          <p className="mt-3 text-sm text-indigo-950">
-            Recomendación: <span className="font-semibold">{advisorPlan.name}</span> ({advisor.studentsHint}) · {advisor.months} cuotas · {formatEuro(advisorInstallment)}/mes · ahorro esperado {formatEuro(advisorSavings)} en 12 meses.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto items-start">
-          {plans.map((plan, i) => (
+        {/* Term selector — directly above cards */}
+        <AnimatePresence>
+          {annual && (
             <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className={cn(
-                "rounded-2xl border p-7 flex flex-col relative",
-                plan.highlighted
-                    ? "border-primary bg-card shadow-xl ring-1 ring-primary/20"
-                  : "border-border bg-card"
-              )}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
             >
-              {plan.highlighted && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-semibold text-primary-foreground">
-                  Recomendado
-                </span>
-              )}
-              <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-foreground">
-                  {annual ? formatEuro(getInterestFreeInstallment(plan.annualTotalEur, annualFinancingMonths)) : plan.monthlyPrice}
-                </span>
-                <span className="text-sm text-muted-foreground">/mes</span>
-              </div>
-              {annual && (
-                <div className="mt-1 space-y-0.5">
-                  <p className="text-xs font-semibold text-primary">Desde {formatEuro(getInterestFreeInstallment(plan.annualTotalEur, 6))}/mes en 6 cuotas</p>
-                  <p className="text-xs text-muted-foreground">{plan.annualFinancing}</p>
-                  {plan.savings && (
-                    <p className="text-xs font-medium text-success">{plan.savings}</p>
-                  )}
+              <div className="mx-auto mb-6 max-w-md rounded-xl border border-border bg-card p-2">
+                <p className="px-2 pb-2 text-center text-xs text-muted-foreground">Selecciona tu plazo de financiación</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[3, 6, 12].map((months) => (
+                    <button
+                      key={months}
+                      type="button"
+                      onClick={() => setAnnualFinancingMonths(months as 3 | 6 | 12)}
+                      className={cn(
+                        "rounded-md px-3 py-2 text-sm font-medium transition",
+                        annualFinancingMonths === months ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                      )}
+                    >
+                      {months} cuotas
+                    </button>
+                  ))}
                 </div>
-              )}
-              <p className="mt-2 text-sm text-muted-foreground">{plan.desc}</p>
-
-              <div className="mt-3 space-y-1.5">
-                {plan.strategicHighlights.map((item) => (
-                  <p key={item} className="text-xs font-medium text-primary">
-                    Incluye: {item}
-                  </p>
-                ))}
-              </div>
-
-              <ul className="mt-6 space-y-2.5 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-foreground">
-                    <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-
-              <Button
-                className="mt-7 w-full"
-                variant={plan.highlighted ? "default" : "outline"}
-                size="lg"
-                asChild
-              >
-                {plan.ctaExternal ? (
-                  <a href={plan.ctaHref} onClick={() => handlePlanClick(plan)}>{plan.cta}<ArrowRight className="ml-1 h-4 w-4" /></a>
-                ) : (
-                  <Link to={plan.ctaHref} onClick={() => handlePlanClick(plan)}>{plan.cta}<ArrowRight className="ml-1 h-4 w-4" /></Link>
-                )}
-              </Button>
-
-              <div className="mt-3 space-y-0.5 text-xs text-muted-foreground">
-                <p>Sin comisiones ocultas</p>
-                <p>Sin interés</p>
-                <p>Cambio de plan prorrateado</p>
               </div>
             </motion.div>
-          ))}
+          )}
+        </AnimatePresence>
+
+        {/* Plan cards */}
+        <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto items-start">
+          {plans.map((plan, i) => {
+            const isAdvisorRecommended = plan.planType === advisor.recommendedPlan;
+            return (
+              <motion.div
+                key={plan.name}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className={cn(
+                  "rounded-2xl border p-7 flex flex-col relative transition-all duration-300",
+                  plan.highlighted
+                    ? "border-primary bg-card shadow-xl ring-1 ring-primary/20"
+                    : "border-border bg-card",
+                  isAdvisorRecommended && !plan.highlighted && "ring-2 ring-accent-foreground/20 border-accent-foreground/30 shadow-lg"
+                )}
+              >
+                {/* Badges */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {plan.highlighted && (
+                    <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground whitespace-nowrap">
+                      Recomendado
+                    </span>
+                  )}
+                  {isAdvisorRecommended && (
+                    <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground whitespace-nowrap flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      Advisor recomienda
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-foreground">
+                    {annual ? formatEuro(getInterestFreeInstallment(plan.annualTotalEur, annualFinancingMonths)) : plan.monthlyPrice}
+                  </span>
+                  <span className="text-sm text-muted-foreground">/mes</span>
+                </div>
+                {annual && (
+                  <div className="mt-1 space-y-0.5">
+                    <p className="text-xs font-semibold text-primary">Desde {formatEuro(getInterestFreeInstallment(plan.annualTotalEur, 6))}/mes en 6 cuotas</p>
+                    <p className="text-xs text-muted-foreground">{plan.annualFinancing}</p>
+                    {plan.savings && <p className="text-xs font-medium text-success">{plan.savings}</p>}
+                  </div>
+                )}
+                <p className="mt-2 text-sm text-muted-foreground">{plan.desc}</p>
+
+                <div className="mt-3 space-y-1.5">
+                  {plan.strategicHighlights.map((item) => (
+                    <p key={item} className="text-xs font-medium text-primary">Incluye: {item}</p>
+                  ))}
+                </div>
+
+                <ul className="mt-6 space-y-2.5 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-foreground">
+                      <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <Button className="mt-7 w-full" variant={plan.highlighted ? "default" : "outline"} size="lg" asChild>
+                  {plan.ctaExternal ? (
+                    <a href={plan.ctaHref} onClick={() => handlePlanClick(plan)}>{plan.cta}<ArrowRight className="ml-1 h-4 w-4" /></a>
+                  ) : (
+                    <Link to={plan.ctaHref} onClick={() => handlePlanClick(plan)}>{plan.cta}<ArrowRight className="ml-1 h-4 w-4" /></Link>
+                  )}
+                </Button>
+
+                <div className="mt-3 space-y-0.5 text-xs text-muted-foreground">
+                  <p>Sin comisiones ocultas</p>
+                  <p>Sin interés</p>
+                  <p>Cambio de plan prorrateado</p>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
 
+        {/* Plan Advisor — below cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-10 max-w-5xl mx-auto"
+        >
+          <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 via-card to-accent/5 p-6 sm:p-8 shadow-sm">
+            <div className="flex items-center gap-2 mb-5">
+              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10">
+                <Calculator className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Plan Advisor</h3>
+                <p className="text-xs text-muted-foreground">Encuentra el plan ideal para tu escuela</p>
+              </div>
+            </div>
+
+            {/* Slider */}
+            <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  Alumnos activos
+                </span>
+                <span className="text-lg font-bold text-primary">{advisorStudents}</span>
+              </div>
+              <input
+                type="range"
+                min={50}
+                max={1200}
+                step={10}
+                value={advisorStudents}
+                onChange={(e) => setAdvisorStudents(Number(e.target.value))}
+                className="w-full accent-primary h-2 cursor-pointer"
+                aria-label="Cantidad de alumnos de la escuela"
+              />
+              <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
+                <span>Starter &lt;200</span>
+                <span>Pro 200–699</span>
+                <span>Enterprise 700+</span>
+              </div>
+            </div>
+
+            {/* Recommendation result */}
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              {/* Recommended plan */}
+              <div className="rounded-xl border-2 border-primary/40 bg-primary/5 p-4 flex flex-col items-center text-center">
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground mb-3">
+                  <Sparkles className="h-3 w-3" />
+                  Recomendado
+                </span>
+                <p className="text-xl font-bold text-foreground">{advisorPlan.name}</p>
+                <p className="text-xs text-muted-foreground mt-1">{advisor.studentsHint}</p>
+                <p className="text-2xl font-bold text-primary mt-2">
+                  {formatEuro(advisorMonthlyPrice)}<span className="text-sm font-normal text-muted-foreground">/mes</span>
+                </p>
+                {annual && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    en {annualFinancingMonths} cuotas sin interés
+                  </p>
+                )}
+                {advisorSavings > 0 && (
+                  <p className="text-xs font-semibold text-success mt-1">Ahorro: {formatEuro(advisorSavings)}/año</p>
+                )}
+              </div>
+
+              {/* Cost per student */}
+              <div className="rounded-xl border border-border bg-card p-4 flex flex-col items-center text-center">
+                <div className="flex items-center justify-center h-10 w-10 rounded-full bg-accent/50 mb-2">
+                  <Users className="h-5 w-5 text-accent-foreground" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Coste por alumno</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {costPerStudent < 0.01 ? "<0,01€" : formatEuro(Math.round(costPerStudent * 100) / 100)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">al mes por alumno activo</p>
+              </div>
+
+              {/* Payback */}
+              <div className="rounded-xl border border-border bg-card p-4 flex flex-col items-center text-center">
+                <div className="flex items-center justify-center h-10 w-10 rounded-full bg-success/10 mb-2">
+                  <TrendingUp className="h-5 w-5 text-success" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Se amortiza con</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {paybackEnrollments} matrículas
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">nuevas al mes (media {formatEuro(AVERAGE_ENROLLMENT_FEE)}/matrícula)</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Contract details */}
         <details className="mt-6 rounded-2xl border border-border bg-card p-5 max-w-5xl mx-auto text-sm text-muted-foreground">
           <summary className="cursor-pointer font-medium text-foreground">Ver condiciones de contratación</summary>
           <p className="mt-2">No hay permanencia adicional fuera del periodo pagado. El cambio de plan se calcula con prorrateo automático.</p>
@@ -304,6 +386,7 @@ export function Pricing() {
           </p>
         </motion.div>
 
+        {/* Addons */}
         <div className="mt-6 rounded-2xl border border-border bg-card p-6 max-w-5xl mx-auto">
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Add-ons disponibles para Starter</h3>
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
