@@ -36,7 +36,7 @@ export default function EventsPage() {
     moveScheduleItem,
     recalculateSchedule,
   } = useEvents();
-  const [view, setView] = useState<View>({ mode: "list" });
+  const [view, setView] = useState<ViewState>({ mode: "list" });
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeEventId = view.mode === "detail" || view.mode === "edit" ? view.eventId : undefined;
