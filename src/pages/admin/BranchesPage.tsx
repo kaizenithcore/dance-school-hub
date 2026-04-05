@@ -191,7 +191,7 @@ export default function BranchesPage() {
       <section className="rounded-lg border bg-card p-4">
         <p className="text-sm font-semibold text-foreground">El sistema que tu academia se merece</p>
         <p className="mt-1 text-xs text-muted-foreground">Coordina sedes, permisos y operación diaria desde un único panel.</p>
-      </div>
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Card>

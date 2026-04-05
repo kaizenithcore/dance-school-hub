@@ -6,15 +6,11 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 const nav = [
-  { label: "Solución", href: "#solution" },
-  { label: "Pack Pro", href: "#modernization" },
-  { label: "Nexa Club", href: "#student-portal" },
-  { label: "Webs", href: "#web-service" },
   { label: "Precios", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
 ];
 
-const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=landing_header";
+const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&trial=14d&source=landing_header";
 
 export function LandingHeader() {
   const [open, setOpen] = useState(false);
@@ -23,12 +19,7 @@ export function LandingHeader() {
     trackPortalEvent({
       eventName: "click_cta_primary",
       category: "funnel",
-      metadata: {
-        section: "header",
-        placement,
-        ctaLabel: "Probar gratis",
-        destination: PRO_ANNUAL_CTA_HREF,
-      },
+      metadata: { section: "header", placement, ctaLabel: "Probar gratis", destination: PRO_ANNUAL_CTA_HREF },
     });
   };
 
@@ -39,10 +30,7 @@ export function LandingHeader() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <span className="text-sm font-bold text-primary-foreground">N</span>
           </div>
-          <div className="leading-tight">
-            <span className="block text-base font-semibold text-foreground">Nexa</span>
-            <span className="hidden text-[11px] text-muted-foreground md:block">Todo tu centro, en un solo sistema</span>
-          </div>
+          <span className="text-base font-semibold text-foreground">Nexa</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
@@ -59,26 +47,20 @@ export function LandingHeader() {
             <Link to="/auth/login">Iniciar sesión</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link to={PRO_ANNUAL_CTA_HREF} className="rounded-xl shadow-sm hover:shadow-md" onClick={() => handlePrimaryClick("header_desktop")}>Probar gratis 14 días</Link>
+            <Link to={PRO_ANNUAL_CTA_HREF} className="rounded-xl" onClick={() => handlePrimaryClick("header_desktop")}>Probar gratis</Link>
           </Button>
         </div>
 
         <div className="flex md:hidden items-center gap-1">
           <ThemeToggle size="sm" />
-          <button
-            className="p-2 text-foreground"
-            onClick={() => setOpen(!open)}
-            aria-label={open ? "Cerrar menú" : "Abrir menú"}
-            aria-expanded={open}
-            aria-controls="landing-mobile-menu"
-          >
+          <button className="p-2 text-foreground" onClick={() => setOpen(!open)} aria-label={open ? "Cerrar menú" : "Abrir menú"}>
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
       {open && (
-        <div id="landing-mobile-menu" className="md:hidden border-t border-border bg-card px-6 py-4 space-y-3">
+        <div className="md:hidden border-t border-border bg-card px-6 py-4 space-y-3">
           {nav.map((n) => (
             <a key={n.label} href={n.href} className="block text-sm text-muted-foreground" onClick={() => setOpen(false)}>
               {n.label}
@@ -89,7 +71,7 @@ export function LandingHeader() {
               <Link to="/auth/login">Iniciar sesión</Link>
             </Button>
             <Button size="sm" className="flex-1" asChild>
-              <Link to={PRO_ANNUAL_CTA_HREF} className="rounded-xl" onClick={() => handlePrimaryClick("header_mobile")}>Probar gratis 14 días</Link>
+              <Link to={PRO_ANNUAL_CTA_HREF} onClick={() => handlePrimaryClick("header_mobile")}>Probar gratis</Link>
             </Button>
           </div>
         </div>

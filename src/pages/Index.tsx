@@ -1,24 +1,12 @@
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { Hero } from "@/components/landing/Hero";
-import { WebIncluded } from "@/components/landing/WebIncluded";
-import { Problems } from "@/components/landing/Problems";
-import { Solution } from "@/components/landing/Solution";
-import { WebComparison } from "@/components/landing/WebComparison";
-import { ModernizationPack } from "@/components/landing/ModernizationPack";
-import { DigitalTransformation } from "@/components/landing/DigitalTransformation";
-import { StudentPortal } from "@/components/landing/StudentPortal";
-import { WebService } from "@/components/landing/WebService";
-import { WeydiCreativeServices } from "@/components/landing/WeydiCreativeServices";
-import { HowItWorks } from "@/components/landing/HowItWorks";
-import { Features } from "@/components/landing/Features";
-import { WhatYouGet } from "@/components/landing/WhatYouGet";
+import { ValuePillars } from "@/components/landing/ValuePillars";
+import { ProductShowcase } from "@/components/landing/ProductShowcase";
+import { Results } from "@/components/landing/Results";
 import { DecisionCompare } from "@/components/landing/DecisionCompare";
 import { Pricing } from "@/components/landing/Pricing";
 import { ExamSuit } from "@/components/landing/ExamSuit";
-import { AssociatedSchools } from "@/components/landing/AssociatedSchools";
-import { LaunchOffer } from "@/components/landing/LaunchOffer";
-import { ROI } from "@/components/landing/ROI";
-import { Results } from "@/components/landing/Results";
+import { WebService } from "@/components/landing/WebService";
 import { Credibility } from "@/components/landing/Credibility";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
@@ -28,28 +16,9 @@ const Index = () => (
   <div className="min-h-screen bg-background text-foreground">
     <LandingHeader />
     <Hero />
-    <WebIncluded />
-    <Problems />
-    <div id="solution">
-      <Solution />
-    </div>
-    <WebComparison />
-    <div id="modernization">
-      <ModernizationPack />
-    </div>
-    <DigitalTransformation />
-    <div id="student-portal">
-      <StudentPortal />
-    </div>
-    <div id="web-service">
-      <WebService />
-    </div>
-    <WeydiCreativeServices />
-    <HowItWorks />
-    <div id="features">
-      <Features />
-    </div>
-    <WhatYouGet />
+    <ValuePillars />
+    <ProductShowcase />
+    <Results />
     <DecisionCompare />
     <div id="pricing">
       <Pricing />
@@ -57,10 +26,9 @@ const Index = () => (
     <div id="examsuit">
       <ExamSuit />
     </div>
-    <AssociatedSchools />
-    <LaunchOffer />
-    <ROI />
-    <Results />
+    <div id="web-service">
+      <WebService />
+    </div>
     <Credibility />
     <div id="faq">
       <FAQ />
