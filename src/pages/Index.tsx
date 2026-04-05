@@ -1,7 +1,6 @@
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { Hero } from "@/components/landing/Hero";
 import { ValuePillars } from "@/components/landing/ValuePillars";
-import { ProductShowcase } from "@/components/landing/ProductShowcase";
 import { Results } from "@/components/landing/Results";
 import { DecisionCompare } from "@/components/landing/DecisionCompare";
 import { Pricing } from "@/components/landing/Pricing";
@@ -17,7 +16,6 @@ const Index = () => (
     <LandingHeader />
     <Hero />
     <ValuePillars />
-    <ProductShowcase />
     <Results />
     <DecisionCompare />
     <div id="pricing">

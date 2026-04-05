@@ -11,7 +11,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useEvents, useEvent } from "@/hooks/useEvents";
 import type { DanceEvent } from "@/lib/types/events";
 
-type View = { mode: "list" } | { mode: "detail"; eventId: string } | { mode: "create" } | { mode: "edit"; eventId: string };
+type ViewMode = "list" | "detail" | "create" | "edit";
+interface ViewState {
+  mode: ViewMode;
+  eventId?: string;
+}
 
 export default function EventsPage() {
   const {
@@ -32,14 +36,15 @@ export default function EventsPage() {
     moveScheduleItem,
     recalculateSchedule,
   } = useEvents();
-  const [view, setView] = useState<View>({ mode: "list" });
+  const [view, setView] = useState<ViewState>({ mode: "list" });
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeEventId = view.mode === "detail" || view.mode === "edit" ? view.eventId : undefined;
   const totalSessions = events.reduce((sum, event) => sum + (event.sessions?.length || 0), 0);
   const upcomingEvents = events.filter((event) => {
-    if (!event.date) return false;
-    return new Date(event.date).getTime() >= new Date().setHours(0, 0, 0, 0);
+    const d = event.startDate;
+    if (!d) return false;
+    return new Date(d).getTime() >= new Date().setHours(0, 0, 0, 0);
   }).length;
   const { event, addSession: addEventSession, updateSession: updateEventSession, deleteSession: deleteEventSession } = useEvent(
     activeEventId,
@@ -135,10 +140,10 @@ export default function EventsPage() {
         />
 
         <EventFormModal
-          open={view.mode === "create" || view.mode === "edit"}
+          open={view.mode === ("create" as ViewMode) || view.mode === ("edit" as ViewMode)}
           onOpenChange={(open) => { if (!open) setView({ mode: "list" }); }}
-          event={view.mode === "edit" ? events.find((e) => e.id === view.eventId) : undefined}
-          onSubmit={(data) => { void (view.mode === "edit" ? handleUpdate(data) : handleCreate(data)); }}
+          event={view.mode === ("edit" as ViewMode) ? events.find((e) => e.id === view.eventId) : undefined}
+          onSubmit={(data) => { void (view.mode === ("edit" as ViewMode) ? handleUpdate(data) : handleCreate(data)); }}
         />
       </PageContainer>
     );

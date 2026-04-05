@@ -9,7 +9,8 @@ interface PlanFeatureFlags {
   attendanceSheetsPdf: boolean;
   quickIncidents: boolean;
   receptionMode: boolean;
-  examSuite: boolean;
+  examSuite?: boolean;
+  certifier?: boolean;
   waitlistAutomation: boolean;
   renewalAutomation: boolean;
   courseClone: boolean;

@@ -146,7 +146,7 @@ export function Pricing() {
           {plans.map((plan, i) => {
             const isAdvisorRecommended = plan.planType === advisor.recommendedPlan;
             const displayPrice = annual
-              ? formatEuro(plan.annualTotalEur / 12)
+              ? formatEuro(Math.round(plan.annualTotalEur / 12))
               : formatEuro(plan.monthlyPriceEur);
 
             return (

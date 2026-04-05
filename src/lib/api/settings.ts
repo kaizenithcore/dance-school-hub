@@ -31,6 +31,7 @@ export interface SchoolSettingsPayload {
     pricing?: Record<string, unknown>;
     extraStudentBlocks?: number;
     features?: Record<string, unknown>;
+    [key: string]: unknown;
   };
 }
 

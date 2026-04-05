@@ -15,7 +15,7 @@ import {
   Mail, Phone, MapPin, Instagram, Facebook, Music2, ShieldCheck, KeyRound, User, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getSchoolSettings, updateSchoolSettings } from "@/lib/api/settings";
+import { getSchoolSettings, updateSchoolSettings, type SchoolSettingsPayload } from "@/lib/api/settings";
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
 import type { BillingCycle } from "@/lib/api/stripe";
 import { getCurrentAuthContext } from "@/lib/auth";
@@ -562,7 +562,7 @@ export default function SettingsPage() {
         payment: payment as unknown as Record<string, unknown>,
         notifications: notifications as unknown as Record<string, unknown>,
         security: security as unknown as Record<string, unknown>,
-        billing,
+        billing: billing as unknown as SchoolSettingsPayload["billing"],
       });
 
       if (!updated) {
