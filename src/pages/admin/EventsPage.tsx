@@ -11,7 +11,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useEvents, useEvent } from "@/hooks/useEvents";
 import type { DanceEvent } from "@/lib/types/events";
 
-type View = { mode: "list" } | { mode: "detail"; eventId: string } | { mode: "create" } | { mode: "edit"; eventId: string };
+type ViewMode = "list" | "detail" | "create" | "edit";
+interface ViewState {
+  mode: ViewMode;
+  eventId?: string;
+}
 
 export default function EventsPage() {
   const {
