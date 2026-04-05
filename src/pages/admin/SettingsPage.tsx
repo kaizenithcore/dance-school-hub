@@ -562,7 +562,7 @@ export default function SettingsPage() {
         payment: payment as unknown as Record<string, unknown>,
         notifications: notifications as unknown as Record<string, unknown>,
         security: security as unknown as Record<string, unknown>,
-        billing,
+        billing: billing as unknown as SchoolSettingsPayload["billing"],
       });
 
       if (!updated) {

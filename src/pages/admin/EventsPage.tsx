@@ -140,10 +140,10 @@ export default function EventsPage() {
         />
 
         <EventFormModal
-          open={view.mode === "create" || view.mode === "edit"}
+          open={view.mode === ("create" as ViewMode) || view.mode === ("edit" as ViewMode)}
           onOpenChange={(open) => { if (!open) setView({ mode: "list" }); }}
-          event={view.mode === "edit" ? events.find((e) => e.id === view.eventId) : undefined}
-          onSubmit={(data) => { void (view.mode === "edit" ? handleUpdate(data) : handleCreate(data)); }}
+          event={view.mode === ("edit" as ViewMode) ? events.find((e) => e.id === view.eventId) : undefined}
+          onSubmit={(data) => { void (view.mode === ("edit" as ViewMode) ? handleUpdate(data) : handleCreate(data)); }}
         />
       </PageContainer>
     );
