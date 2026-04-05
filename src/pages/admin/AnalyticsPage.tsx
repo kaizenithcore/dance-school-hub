@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <PageContainer title="Analíticas" description="Indicadores de rendimiento de la escuela">
+      <PageContainer title="Analíticas" description="Control financiero y comercial en tiempo real">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -142,10 +142,17 @@ export default function AnalyticsPage() {
   return (
     <PageContainer
       title="Analíticas"
-      description="Indicadores de rendimiento de la escuela"
+      description="Control financiero y comercial en tiempo real"
     >
+      <div className="rounded-lg border border-border bg-card p-4 shadow-soft">
+        <p className="text-sm font-medium text-foreground">Resumen ejecutivo</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Prioriza tres señales para decidir rápido: cobro efectivo, riesgo de impago y capacidad de crecimiento.
+        </p>
+      </div>
+
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-foreground">1. Rendimiento actual</h3>
+        <h3 className="text-sm font-semibold text-foreground">1. Pulso de caja</h3>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -191,7 +198,7 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="mt-6 mb-3">
-        <h3 className="text-sm font-semibold text-foreground">2. Eficiencia</h3>
+        <h3 className="text-sm font-semibold text-foreground">2. Eficiencia operativa</h3>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -234,7 +241,7 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="mt-6 mb-3">
-        <h3 className="text-sm font-semibold text-foreground">3. Potencial</h3>
+        <h3 className="text-sm font-semibold text-foreground">3. Potencial capturable</h3>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard

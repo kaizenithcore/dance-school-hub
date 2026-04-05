@@ -59,6 +59,7 @@ export default function RoomsPage() {
   const pendingDeleteTimerRef = useRef<number | null>(null);
 
   const activeCount = useMemo(() => rooms.filter((r) => r.isActive).length, [rooms]);
+  const totalCapacity = useMemo(() => rooms.reduce((sum, room) => sum + room.capacity, 0), [rooms]);
   const formHasUnsavedChanges = useMemo(() => {
     if (!formOpen) {
       return false;
@@ -320,13 +321,32 @@ export default function RoomsPage() {
   return (
     <PageContainer
       title="Aulas"
-      description={`Gestiona las aulas disponibles. ${activeCount}/${rooms.length} activas`}
+      description="Espacios listos para operar clases sin fricción"
       actions={
         <Button size="sm" onClick={openCreate}>
           <Plus className="mr-1 h-4 w-4" /> Nueva aula
         </Button>
       }
     >
+      <section className="mb-4 rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">Menos gestión. Más control.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Mantén capacidad y disponibilidad claras para planificar mejor.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Aulas activas</p>
+            <p className="text-lg font-semibold text-foreground">{activeCount}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Aulas totales</p>
+            <p className="text-lg font-semibold text-foreground">{rooms.length}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Capacidad total</p>
+            <p className="text-lg font-semibold text-foreground">{totalCapacity}</p>
+          </div>
+        </div>
+      </section>
+
       <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
         <Table>
           <TableHeader>

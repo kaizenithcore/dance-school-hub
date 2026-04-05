@@ -70,6 +70,8 @@ export default function TeachersPage() {
   const [deletingTeacher, setDeletingTeacher] = useState<TeacherRecord | null>(null);
   const [teacherWithClassesToEdit, setTeacherWithClassesToEdit] = useState<TeacherRecord | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const activeTeachers = teachers.filter((teacher) => teacher.status === "active").length;
+  const totalAssignedClasses = teachers.reduce((sum, teacher) => sum + (teacher.assignedClasses?.length || 0), 0);
 
   const mapTeachersWithAssignedClasses = useCallback(
     (
@@ -354,13 +356,32 @@ export default function TeachersPage() {
   return (
     <PageContainer
       title="Profesores"
-      description="Gestiona los profesores y sus clases asignadas"
+      description="Equipo docente ordenado, disponible y bien asignado"
       actions={
         <Button size="sm" onClick={handleCreate}>
-          <Plus className="h-4 w-4 mr-1" /> Nuevo Profesor
+          <Plus className="h-4 w-4 mr-1" /> Añadir profesor
         </Button>
       }
     >
+      <section className="rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">El sistema que tu academia se merece</p>
+        <p className="mt-1 text-xs text-muted-foreground">Coordina docentes y clases con una operativa simple y escalable.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Profesores activos</p>
+            <p className="text-lg font-semibold text-foreground">{activeTeachers}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Clases asignadas</p>
+            <p className="text-lg font-semibold text-foreground">{totalAssignedClasses}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Cobertura catálogo</p>
+            <p className="text-lg font-semibold text-foreground">{classesCatalog.length}</p>
+          </div>
+        </div>
+      </section>
+
       <TeachersTable
         teachers={teachers}
         isLoading={loading}

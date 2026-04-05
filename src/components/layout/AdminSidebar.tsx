@@ -18,9 +18,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 type FeatureKey = "waitlistAutomation" | "renewalAutomation" | "courseClone" | "massCommunicationEmail" | "examSuite";
 
 const navItems: Array<{ title: string; url: string; icon: LucideIcon; featureKey?: FeatureKey }> = [
-  { title: "Panel", url: "/admin", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Alumnos", url: "/admin/students", icon: Users },
-    { title: "Formulario de inscripción", url: "/admin/form-builder", icon: FileEdit },
+  { title: "Matrícula online", url: "/admin/form-builder", icon: FileEdit },
   { title: "Inscripciones", url: "/admin/enrollments", icon: ClipboardList },
   { title: "Clases", url: "/admin/classes", icon: GraduationCap },
   { title: "Horarios", url: "/admin/schedule", icon: Calendar },
@@ -30,16 +30,16 @@ const navItems: Array<{ title: string; url: string; icon: LucideIcon; featureKey
   { title: "Sedes", url: "/admin/branches", icon: MapPinned, featureKey: "examSuite" },
   { title: "Pagos", url: "/admin/payments", icon: CreditCard },
   { title: "Economía", url: "/admin/economia", icon: Wallet },
-  { title: "Tarifas y Bonos", url: "/admin/pricing", icon: Tags },
+  { title: "Planes y precios", url: "/admin/pricing", icon: Tags },
   { title: "Comunicación", url: "/admin/communications", icon: Megaphone, featureKey: "massCommunicationEmail" },
-  { title: "Lista de Espera", url: "/admin/waitlist", icon: ListOrdered, featureKey: "waitlistAutomation" },
+  { title: "Lista de espera", url: "/admin/waitlist", icon: ListOrdered, featureKey: "waitlistAutomation" },
   { title: "Renovaciones", url: "/admin/renewals", icon: Repeat, featureKey: "renewalAutomation" },
-  { title: "Duplicar cursos", url: "/admin/course-clone", icon: Copy, featureKey: "courseClone" },
+  { title: "Plantillas", url: "/admin/course-clone", icon: Copy, featureKey: "courseClone" },
   { title: "Exámenes", url: "/admin/exams", icon: Award, featureKey: "examSuite" },
   { title: "Eventos", url: "/admin/events", icon: CalendarHeart },
-  { title: "Nexa Crew (Próximamente)", url: "/admin/school/portal", icon: Building2 },
+  { title: "Portal alumno (próx.)", url: "/admin/school/portal", icon: Building2 },
   { title: "Página web", url: "/admin/website", icon: Globe },
-  { title: "Roles y escuelas", url: "/admin/organization-access", icon: Building2, featureKey: "examSuite" },
+  { title: "Organización", url: "/admin/organization-access", icon: Building2, featureKey: "examSuite" },
   { title: "Analíticas", url: "/admin/analytics", icon: BarChart3 },
   { title: "Configuración", url: "/admin/settings", icon: Settings },
 ];
@@ -105,7 +105,10 @@ export function AdminSidebar() {
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
               <Music className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-base font-semibold text-foreground">Nexa</span>
+            <div>
+              <span className="text-base font-semibold text-foreground">Nexa</span>
+              <p className="text-[11px] text-muted-foreground">Menos gestión. Más control.</p>
+            </div>
           </div>
           <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             {navItems.map((item) => {
@@ -198,7 +201,10 @@ export function AdminSidebar() {
           <Music className="h-5 w-5 text-primary-foreground" />
         </div>
         {!collapsed && (
-          <span className="text-base font-semibold text-foreground animate-fade-in">Nexa</span>
+          <div className="animate-fade-in">
+            <span className="text-base font-semibold text-foreground">Nexa</span>
+            <p className="text-[11px] text-muted-foreground">El sistema que tu academia se merece</p>
+          </div>
         )}
       </div>
 

@@ -27,6 +27,9 @@ export default function ClassesPage() {
   const [deletingClass, setDeletingClass] = useState<ClassRecord | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const activeClasses = classes.filter((cls) => cls.status === "active").length;
+  const totalCapacity = classes.reduce((sum, cls) => sum + (cls.capacity || 0), 0);
+  const totalEnrolled = classes.reduce((sum, cls) => sum + (cls.enrolled || 0), 0);
 
   // Load classes from API
   useEffect(() => {
@@ -240,18 +243,37 @@ export default function ClassesPage() {
   return (
     <PageContainer
       title="Clases"
-      description="Gestiona tu catálogo de clases"
+      description="Catálogo claro de clases para operar con menos fricción"
       actions={
         <>
           <Button size="sm" variant="outline" onClick={() => navigate("/admin/reception")}>
             <CalendarClock className="h-4 w-4 mr-1" /> Hoja de asistencia
           </Button>
           <Button size="sm" onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-1" /> Nueva Clase
+            <Plus className="h-4 w-4 mr-1" /> Crear clase
           </Button>
         </>
       }
     >
+      <section className="rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">Todo conectado. Todo bajo control.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Define oferta, capacidad y docentes en una sola vista.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Clases activas</p>
+            <p className="text-lg font-semibold text-foreground">{activeClasses}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Plazas totales</p>
+            <p className="text-lg font-semibold text-foreground">{totalCapacity}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Alumnos asignados</p>
+            <p className="text-lg font-semibold text-foreground">{totalEnrolled}</p>
+          </div>
+        </div>
+      </section>
+
       <ClassesTable
         classes={classes}
         isLoading={loading}

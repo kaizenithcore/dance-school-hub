@@ -336,7 +336,7 @@ export default function RenewalsPage() {
   return (
     <PageContainer
       title="Renovación de alumnos"
-      description="Gestiona propuestas de continuidad por periodo de forma simple"
+      description="Continuidad de alumnado con flujo claro y accionable"
       actions={
         <>
           <ModuleHelpShortcut module="renewals" />
@@ -354,6 +354,25 @@ export default function RenewalsPage() {
           onUpgrade={() => void startUpgrade("renewalAutomation")}
         />
       ) : null}
+
+      <section className="rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">El sistema que tu academia se merece</p>
+        <p className="mt-1 text-xs text-muted-foreground">Lanza campañas, confirma continuidad y libera plazas en un mismo flujo.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Campañas activas</p>
+            <p className="text-lg font-semibold text-foreground">{campaigns.length}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Propuestas visibles</p>
+            <p className="text-lg font-semibold text-foreground">{offers.length}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Filtro activo</p>
+            <p className="text-lg font-semibold text-foreground">{OFFER_STATUS_FILTERS.find((item) => item.value === statusFilter)?.label || "Todas"}</p>
+          </div>
+        </div>
+      </section>
 
       <div className={renewalsLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
 

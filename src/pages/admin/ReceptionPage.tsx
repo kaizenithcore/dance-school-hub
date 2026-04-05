@@ -73,6 +73,8 @@ export default function ReceptionPage() {
       .slice(0, 12);
   }, [students, searchText]);
 
+  const openIncidentsCount = useMemo(() => incidents.filter((incident) => incident.status === "open").length, [incidents]);
+
   const loadData = useCallback(async (options?: { background?: boolean }) => {
     const background = options?.background ?? false;
 
@@ -252,7 +254,7 @@ export default function ReceptionPage() {
   return (
     <PageContainer
       title="Recepción"
-      description="Pantalla rápida para atención diaria: alumnos, pagos, incidencias y asistencia."
+      description="Operativa diaria en una sola vista: cobros, asistencia e incidencias"
       actions={
         <>
           <ModuleHelpShortcut module="reception" />
@@ -276,6 +278,25 @@ export default function ReceptionPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      <section className="rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">Todo conectado. Todo bajo control.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Resuelve caja y seguimiento en minutos desde recepción.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Alumnos cargados</p>
+            <p className="text-lg font-semibold text-foreground">{students.length}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Clases activas</p>
+            <p className="text-lg font-semibold text-foreground">{classes.length}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Incidencias abiertas</p>
+            <p className="text-lg font-semibold text-foreground">{openIncidentsCount}</p>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

@@ -36,6 +36,11 @@ export default function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeEventId = view.mode === "detail" || view.mode === "edit" ? view.eventId : undefined;
+  const totalSessions = events.reduce((sum, event) => sum + (event.sessions?.length || 0), 0);
+  const upcomingEvents = events.filter((event) => {
+    if (!event.date) return false;
+    return new Date(event.date).getTime() >= new Date().setHours(0, 0, 0, 0);
+  }).length;
   const { event, addSession: addEventSession, updateSession: updateEventSession, deleteSession: deleteEventSession } = useEvent(
     activeEventId,
     events,
@@ -86,7 +91,7 @@ export default function EventsPage() {
     return (
       <PageContainer
         title="Eventos"
-        description="Preparando tu agenda de eventos"
+        description="Preparando tu operación de eventos"
       >
         <div className="rounded-xl border bg-card p-6 text-center shadow-soft">
           <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
@@ -101,7 +106,7 @@ export default function EventsPage() {
     return (
       <PageContainer
         title="Eventos"
-        description="Crea y gestiona festivales, exhibiciones y eventos de tu escuela"
+        description="Organiza sesiones, programación y seguimiento en un solo flujo"
         actions={<ModuleHelpShortcut module="events" />}
       >
         <EmptyState
@@ -119,7 +124,7 @@ export default function EventsPage() {
     return (
       <PageContainer
         title="Eventos"
-        description="Crea y gestiona festivales, exhibiciones y eventos de tu escuela"
+        description="Organiza sesiones, programación y seguimiento en un solo flujo"
         actions={<ModuleHelpShortcut module="events" />}
       >
         <EmptyState
@@ -162,7 +167,7 @@ export default function EventsPage() {
   return (
     <PageContainer
       title="Eventos"
-      description="Crea y gestiona festivales, exhibiciones y eventos de tu escuela"
+      description="Organiza sesiones, programación y seguimiento en un solo flujo"
       actions={
         <>
           <ModuleHelpShortcut module="events" />
@@ -173,6 +178,25 @@ export default function EventsPage() {
         </>
       }
     >
+      <section className="mb-4 rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">Menos gestión. Más control.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Concentra planificación, sesiones y ejecución de eventos en un panel único.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Eventos totales</p>
+            <p className="text-lg font-semibold text-foreground">{events.length}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Eventos próximos</p>
+            <p className="text-lg font-semibold text-foreground">{upcomingEvents}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Sesiones planificadas</p>
+            <p className="text-lg font-semibold text-foreground">{totalSessions}</p>
+          </div>
+        </div>
+      </section>
+
       <EventsListView
         events={events}
         onCreateNew={() => setView({ mode: "create" })}

@@ -241,7 +241,7 @@ export default function EconomyPage() {
   return (
     <PageContainer
       title="Economía"
-      description="Resumen claro de ingresos y gastos de tu escuela"
+      description="Visión financiera clara para decidir con rapidez"
       actions={
         <>
           <ModuleHelpShortcut module="economia" />
@@ -250,10 +250,10 @@ export default function EconomyPage() {
             <span className="ml-2">Recargar</span>
           </Button>
           <Button variant="outline" onClick={() => setIncomeDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Añadir ingreso
+            <Plus className="h-4 w-4 mr-1" /> Registrar ingreso
           </Button>
           <Button onClick={() => setExpenseDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Añadir gasto
+            <Plus className="h-4 w-4 mr-1" /> Registrar gasto
           </Button>
         </>
       }
@@ -267,6 +267,27 @@ export default function EconomyPage() {
           onAction={() => void loadEconomyData()}
         />
       ) : null}
+
+      <section className="rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">Todo conectado. Todo bajo control.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Supervisa ingresos, gastos y balance sin complejidad contable.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Ingresos del mes</p>
+            <p className="text-lg font-semibold text-foreground">{euro(summary12.monthlyIncome)}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Gastos del mes</p>
+            <p className="text-lg font-semibold text-foreground">{euro(summary12.monthlyExpenses)}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Balance</p>
+            <p className={`text-lg font-semibold ${summary12.monthlyBalance >= 0 ? "text-success" : "text-destructive"}`}>
+              {summary12.monthlyBalance >= 0 ? "+" : ""}{euro(summary12.monthlyBalance)}
+            </p>
+          </div>
+        </div>
+      </section>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>

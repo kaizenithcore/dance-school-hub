@@ -322,10 +322,12 @@ export default function ExamsPage() {
   const examCandidates = selectedExam
     ? candidates.filter((c) => c.examId === selectedExam.id)
     : [];
+  const gradedCandidatesCount = candidates.filter((candidate) => candidate.status === "graded" || candidate.status === "certified").length;
+  const openExamsCount = exams.filter((exam) => exam.status === "registration_open" || exam.status === "grading").length;
 
   if (view === "candidates" && selectedExam) {
     return (
-      <PageContainer title="Exámenes" description="Gestión de exámenes, candidatos y certificados">
+      <PageContainer title="Exámenes" description="Gestión de candidatos, calificaciones y certificados">
         <CandidatesTable
           exam={selectedExam}
           candidates={examCandidates}
@@ -362,7 +364,7 @@ export default function ExamsPage() {
   return (
     <PageContainer
       title="Exámenes"
-      description="Gestión de exámenes, candidatos y certificados"
+      description="Operativa de convocatorias con foco en evaluación y certificados"
       actions={<ModuleHelpShortcut module="exams" />}
     >
       {examsLocked ? (
@@ -383,6 +385,25 @@ export default function ExamsPage() {
           />
         </div>
       ) : null}
+
+      <section className="mb-6 rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">Todo conectado. Todo bajo control.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Gestiona convocatorias y certificación en un flujo claro y escalable.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Convocatorias</p>
+            <p className="text-lg font-semibold text-foreground">{exams.length}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Activas</p>
+            <p className="text-lg font-semibold text-foreground">{openExamsCount}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Candidatos evaluados</p>
+            <p className="text-lg font-semibold text-foreground">{gradedCandidatesCount}</p>
+          </div>
+        </div>
+      </section>
 
       <div className={examsLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">

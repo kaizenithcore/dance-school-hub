@@ -34,16 +34,16 @@ export default function WebsitePage() {
   return (
     <PageContainer
       title="Página web"
-      description="Opciones para escalar desde la web básica incluida hasta una web optimizada para captación"
+      description="Elige el formato web que mejor acompaña tu fase de crecimiento"
     >
       <Card className="mb-4 border-primary/20 bg-primary/5">
         <CardHeader>
           <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
             <Rocket className="h-5 w-5" />
           </div>
-          <CardTitle>¿Tu escuela ya está convirtiendo visitas en matrículas?</CardTitle>
+          <CardTitle>Convierte tu web en tu mejor canal de matrícula</CardTitle>
           <CardDescription>
-            Si aún no tienes web optimizada, este es el siguiente salto para captar más alumnos sin aumentar tu carga operativa.
+            Prioriza una presencia digital con foco comercial: mejor mensaje, mejor estructura y más solicitudes cualificadas.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -56,7 +56,7 @@ export default function WebsitePage() {
             </div>
             <CardTitle>{integratedWebsite?.label || "Web optimizada con Nexa"}</CardTitle>
             <CardDescription>
-              {integratedWebsite?.shortDescription || "Web profesional conectada al sistema y orientada a conversión."}
+              {integratedWebsite?.shortDescription || "Web conectada a Nexa para unir captación, seguimiento y matrícula."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -72,7 +72,7 @@ export default function WebsitePage() {
             </ul>
             <Button asChild>
               <a href="mailto:hola@nexa.es?subject=Quiero%20informacion%20sobre%20web%20optimizada">
-                Solicitar propuesta
+                Solicitar diagnóstico
                 <ArrowRight className="ml-1 h-4 w-4" />
               </a>
             </Button>
@@ -86,7 +86,7 @@ export default function WebsitePage() {
             </div>
             <CardTitle>{standaloneWebsite?.label || "Web independiente"}</CardTitle>
             <CardDescription>
-              {standaloneWebsite?.shortDescription || "Opción para presencia digital sin integración del sistema."}
+              {standaloneWebsite?.shortDescription || "Opción web profesional para escuelas que aún no integran toda la operación en Nexa."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -96,11 +96,11 @@ export default function WebsitePage() {
               <Badge variant="outline">Complete: {formatEuro(standaloneWebsite?.tierPricingEur?.complete ?? 2490)}</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Ideal para escuelas que quieren una web profesional hoy y planifican migración completa más adelante.
+              Recomendado si necesitas una web comercial ahora y prefieres integrar el sistema por fases.
             </p>
             <Button variant="outline" asChild>
               <a href="mailto:hola@nexa.es?subject=Consulta%20web%20independiente">
-                Consultar opción independiente
+                Pedir propuesta independiente
               </a>
             </Button>
           </CardContent>

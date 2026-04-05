@@ -77,6 +77,19 @@ export default function CommunicationsPage() {
     return true;
   }, [audienceType, classId, disciplineId, message, subject]);
 
+  const activeCampaignsCount = useMemo(
+    () => campaigns.filter((campaign) => campaign.status === "queued" || campaign.status === "processing").length,
+    [campaigns]
+  );
+  const totalSentCount = useMemo(
+    () => campaigns.reduce((sum, campaign) => sum + campaign.sentCount, 0),
+    [campaigns]
+  );
+  const totalFailedCount = useMemo(
+    () => campaigns.reduce((sum, campaign) => sum + campaign.failedCount, 0),
+    [campaigns]
+  );
+
   const buildAudience = () => ({
     type: audienceType,
     classId: audienceType === "class" ? classId : undefined,
@@ -218,7 +231,7 @@ export default function CommunicationsPage() {
   return (
     <PageContainer
       title="Comunicados"
-      description="Envía mensajes por email a grupos de alumnos de forma simple"
+      description="Comunicación masiva clara y enfocada a resultados"
       actions={
         <Button variant="outline" onClick={() => void handleProcessQueue()} disabled={processingQueue}>
           {processingQueue ? "Enviando..." : "Enviar pendientes"}
@@ -232,6 +245,25 @@ export default function CommunicationsPage() {
           onUpgrade={() => void startUpgrade("massCommunicationEmail")}
         />
       ) : null}
+
+      <section className="rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">Todo conectado. Todo bajo control.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Prepara campañas, valida audiencia y ejecuta envíos sin ruido operativo.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Campañas activas</p>
+            <p className="text-lg font-semibold text-foreground">{activeCampaignsCount}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Mensajes enviados</p>
+            <p className="text-lg font-semibold text-foreground">{totalSentCount}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Errores acumulados</p>
+            <p className="text-lg font-semibold text-foreground">{totalFailedCount}</p>
+          </div>
+        </div>
+      </section>
 
       <div className={communicationLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
 

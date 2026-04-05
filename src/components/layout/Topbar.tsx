@@ -626,14 +626,12 @@ export function Topbar({ title }: TopbarProps) {
         <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-6">
           <div className="flex min-w-0 items-center gap-4">
           <div className="min-w-0 rounded-md px-2 py-1 text-left">
-            <p className="truncate text-sm font-semibold text-foreground">{schoolName}</p>
-            <p className="truncate text-[11px] text-muted-foreground">
-              {schoolSlug ? `/s/${schoolSlug}` : "Slug público no disponible"}
-            </p>
+            <p className="truncate text-sm font-semibold text-foreground">{title || "Dashboard"}</p>
+            <p className="truncate text-[11px] text-muted-foreground">Todo conectado. Todo bajo control.</p>
           </div>
           <Button
             type="button"
-            variant="outline"
+              variant="default"
             size="sm"
             className="h-8 gap-1.5"
             onClick={handleOpenPublicSchool}
@@ -641,7 +639,7 @@ export function Topbar({ title }: TopbarProps) {
             title={publicSchoolUrl ? "Abrir página pública" : "Slug público no disponible"}
           >
             <ExternalLink className="h-3.5 w-3.5" />
-            Ver página pública
+            Ver web pública
           </Button>
           <div className="h-6 w-px bg-border" />
           {shouldShowTenantSelector ? (
@@ -694,7 +692,7 @@ export function Topbar({ title }: TopbarProps) {
               <div className="flex items-center justify-between px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-foreground">Notificaciones</p>
-                  <p className="text-xs text-muted-foreground">{unreadCount} sin leer</p>
+                  <p className="text-xs text-muted-foreground">{unreadCount} pendientes</p>
                 </div>
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={markAllAsRead} disabled={notifications.length === 0 || unreadCount === 0}>
                   <CheckCheck className="h-3.5 w-3.5 mr-1" /> Marcar todo
@@ -776,11 +774,11 @@ export function Topbar({ title }: TopbarProps) {
         {hasCapacityData ? (
           <div className="border-b border-border bg-card/70 px-6 py-2 backdrop-blur-sm">
             <div className="flex items-center gap-3">
-              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Capacidad del plan</span>
+              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Capacidad activa</span>
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 <Progress value={usedPercent} className="h-1.5 flex-1" />
                 <span className="whitespace-nowrap text-[11px] text-muted-foreground">
-                  {remainingStudents} libres · {planCapacity.activeStudents}/{effectiveMaxStudents}
+                  {planCapacity.activeStudents}/{effectiveMaxStudents} · {remainingStudents} libres
                 </span>
               </div>
             </div>
@@ -789,7 +787,7 @@ export function Topbar({ title }: TopbarProps) {
       </div>
 
       <CommandDialog open={openSearch} onOpenChange={setOpenSearch}>
-        <CommandInput placeholder="Buscar secciones, alumnos, clases, pagos, inscripciones, profesores o aulas..." />
+        <CommandInput placeholder="Buscar secciones, alumnos, clases o pagos..." />
         <CommandList>
           <CommandEmpty>{loading ? "Cargando elementos..." : "No se encontraron resultados."}</CommandEmpty>
 

@@ -52,6 +52,8 @@ export default function OrganizationAccessPage() {
 
   const featureLocked = !billingLoading && !billing.features.examSuite;
   const multiSiteEnabled = snapshot?.billing.multiSiteEnabled ?? false;
+  const activeMembersCount = snapshot?.members.filter((member) => member.isActive).length ?? 0;
+  const linkedSchoolsCount = snapshot?.linkedSchools.length ?? 0;
 
   const loadData = useCallback(async () => {
     if (featureLocked) {
@@ -166,8 +168,23 @@ export default function OrganizationAccessPage() {
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Roles y escuelas</h1>
         <p className="text-muted-foreground">
-          Gestiona el acceso de una cuenta de asociación sobre varias escuelas y define permisos por miembro.
+          Controla roles, accesos y estructura multisede desde una sola capa de gobierno.
         </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Escuelas vinculadas</p>
+          <p className="mt-1 text-2xl font-semibold text-foreground">{linkedSchoolsCount}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Miembros activos</p>
+          <p className="mt-1 text-2xl font-semibold text-foreground">{activeMembersCount}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Modelo de despliegue</p>
+          <p className="mt-1 text-sm font-semibold text-foreground">{multiSiteEnabled ? "Multisede activo" : "Sede unica"}</p>
+        </div>
       </div>
 
       <Card>
@@ -183,8 +200,8 @@ export default function OrganizationAccessPage() {
         <CardContent className="text-sm text-muted-foreground">
           Tu rol actual es <span className="font-medium text-foreground">{ROLE_LABELS[snapshot.organization.role]}</span>.
           {canManage
-            ? " Puedes añadir miembros, ajustar permisos y vincular escuelas."
-            : " Solo puedes visualizar la configuración porque tu rol no permite cambios."}
+            ? " Puedes gestionar miembros, permisos y estructura de escuelas."
+            : " Tu rol actual es de lectura y no permite cambios."}
         </CardContent>
       </Card>
 
@@ -193,8 +210,8 @@ export default function OrganizationAccessPage() {
           <CardTitle>Escuelas vinculadas</CardTitle>
           <CardDescription>
             {multiSiteEnabled
-              ? "En Enterprise puedes crear y vincular sedes, con gestión centralizada de accesos."
-              : "La gestión multisede (crear, vincular, definir principal y desvincular) está disponible en Enterprise."}
+              ? "Gestiona sedes desde un único panel y define cuál actúa como principal."
+              : "La gestión multisede completa está disponible en Enterprise."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -296,7 +313,7 @@ export default function OrganizationAccessPage() {
         <CardHeader>
           <CardTitle>Miembros y permisos</CardTitle>
           <CardDescription>
-            Asigna un rol por persona para controlar el alcance dentro de todas las escuelas vinculadas.
+            Asigna responsabilidades claras por persona para mantener una operación segura y escalable.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

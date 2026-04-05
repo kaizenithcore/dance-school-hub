@@ -1,11 +1,13 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { EnrollmentsTable } from "@/components/tables/EnrollmentsTable";
 import { EnrollmentDetailDrawer } from "@/components/tables/EnrollmentDetailDrawer";
 import { EnrollmentRecord, EnrollmentStatus } from "@/lib/data/mockEnrollments";
 import { getEnrollments, updateEnrollmentStatus } from "@/lib/api/enrollments";
 import { toast } from "sonner";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const STATUS_LABELS: Record<EnrollmentStatus, string> = {
   pending: "pendiente",
@@ -15,6 +17,7 @@ const STATUS_LABELS: Record<EnrollmentStatus, string> = {
 };
 
 export default function EnrollmentsPage() {
+  const navigate = useNavigate();
   const [enrollments, setEnrollments] = useState<EnrollmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEnrollment, setSelectedEnrollment] = useState<EnrollmentRecord | null>(null);
@@ -81,11 +84,44 @@ export default function EnrollmentsPage() {
     })();
   }, []);
 
+  const pendingCount = useMemo(() => enrollments.filter((item) => item.status === "pending").length, [enrollments]);
+  const confirmedCount = useMemo(() => enrollments.filter((item) => item.status === "confirmed").length, [enrollments]);
+  const declinedCount = useMemo(() => enrollments.filter((item) => item.status === "declined").length, [enrollments]);
+
   return (
     <PageContainer
       title="Inscripciones"
-      description="Revisa y gestiona las solicitudes de inscripción"
+      description="Revisión clara de altas nuevas y seguimiento sin fricción"
+      actions={
+        <Button size="sm" onClick={() => navigate("/admin/form-builder")}>
+          Optimizar matrícula online
+        </Button>
+      }
     >
+      <section className="rounded-lg border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Todo conectado. Todo bajo control.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Prioriza pendientes y resuelve altas en minutos.</p>
+          </div>
+          {pendingCount > 0 ? <Badge variant="outline">{pendingCount} pendientes</Badge> : null}
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Pendientes</p>
+            <p className="text-lg font-semibold text-foreground">{pendingCount}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Aceptadas</p>
+            <p className="text-lg font-semibold text-foreground">{confirmedCount}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Rechazadas</p>
+            <p className="text-lg font-semibold text-foreground">{declinedCount}</p>
+          </div>
+        </div>
+      </section>
+
       <EnrollmentsTable
         enrollments={enrollments}
         isLoading={loading}

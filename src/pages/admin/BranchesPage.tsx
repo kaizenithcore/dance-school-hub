@@ -185,9 +185,12 @@ export default function BranchesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Sedes</h1>
-        <p className="text-muted-foreground">
-          Accede a la información centralizada de todas las sedes y gestiona su configuración, altas y permisos.
-        </p>
+        <p className="text-muted-foreground">Gestión multisede centralizada para academias en crecimiento.</p>
+      </div>
+
+      <section className="rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">El sistema que tu academia se merece</p>
+        <p className="mt-1 text-xs text-muted-foreground">Coordina sedes, permisos y operación diaria desde un único panel.</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -230,7 +233,7 @@ export default function BranchesPage() {
             Vista centralizada de sedes
           </CardTitle>
           <CardDescription>
-            Consulta y administra cada sede. Puedes abrir su panel, configuración, cambiar principal, editar datos o desvincularla.
+            Abre el panel de cada sede, ajusta configuración y define la sede principal.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -384,7 +387,7 @@ export default function BranchesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Crear nueva sede</CardTitle>
-          <CardDescription>Crea una sede adicional y, opcionalmente, copia el profesorado de la sede activa.</CardDescription>
+          <CardDescription>Crea una sede en segundos y empieza a operar con estructura lista.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 rounded-lg border border-dashed p-4 md:grid-cols-[1.2fr_1fr_auto] md:items-end">
           <div className="space-y-2">
@@ -446,7 +449,7 @@ export default function BranchesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Vincular sede existente</CardTitle>
-          <CardDescription>Une una escuela ya creada para administrarla desde este panel central.</CardDescription>
+          <CardDescription>Conecta una sede ya creada para administrarla desde aquí.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 rounded-lg border border-dashed p-4 md:grid-cols-[1fr_auto] md:items-end">
           <div className="space-y-2">

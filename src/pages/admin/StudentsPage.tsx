@@ -276,25 +276,30 @@ export default function StudentsPage() {
   return (
     <PageContainer
       title="Alumnos"
-      description="Gestiona los registros de alumnos"
+      description="Menos gestión. Más control del alumnado activo."
       actions={
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => navigate("/admin/students/import")}>
-            <FileUp className="h-4 w-4 mr-1" /> Importar
+            <FileUp className="h-4 w-4 mr-1" /> Importar base
           </Button>
           <Button size="sm" onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-1" /> Nuevo Alumno
+            <Plus className="h-4 w-4 mr-1" /> Añadir alumno
           </Button>
         </div>
       }
     >
+      <section className="rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">Convierte tu academia en un sistema eficiente</p>
+        <p className="mt-1 text-xs text-muted-foreground">Controla capacidad, altas y seguimiento desde una sola vista.</p>
+      </section>
+
       <section className="space-y-3">
         <div className="rounded-lg border bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm text-muted-foreground">Capacidad del plan</p>
+              <p className="text-sm text-muted-foreground">Capacidad activa</p>
               <p className="text-lg font-semibold text-foreground">
-                {remainingStudents} alumnos restantes
+                {remainingStudents} plazas disponibles
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
                   ({activeStudents}/{effectiveMaxStudents} activos)
                 </span>
@@ -313,7 +318,7 @@ export default function StudentsPage() {
             <AlertTitle>{alertMeta.title}</AlertTitle>
             <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
               <span>
-                {alertMeta.description} Te quedan {remainingStudents} plazas antes de llegar al limite actual.
+                {alertMeta.description} Te quedan {remainingStudents} plazas antes del límite actual.
               </span>
               <Button
                 size="sm"
@@ -341,14 +346,14 @@ export default function StudentsPage() {
 
       <Alert className="border-primary/25 bg-primary/5">
         <ShoppingBag className="h-4 w-4" />
-        <AlertTitle>{planType === "starter" ? "Escala a Pro para crecer sin fricciones" : "Amplia tu capacidad con bloques extra"}</AlertTitle>
+        <AlertTitle>{planType === "starter" ? "Sube a Pro para crecer con margen" : "Amplía capacidad cuando lo necesites"}</AlertTitle>
         <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
           <span>
             {planType === "starter"
-              ? `El plan Pro incluye hasta ${planCatalog.pro.limits.includedActiveStudents} alumnos activos y módulos avanzados.`
-              : "Compra bloques de alumnos activos para seguir creciendo sin cambiar de plan base."}
+              ? `Pro incluye hasta ${planCatalog.pro.limits.includedActiveStudents} alumnos activos y automatizaciones clave.`
+              : "Activa bloques extra para seguir creciendo sin fricción operativa."}
           </span>
-          <Button size="sm" variant="outline" onClick={() => navigate("/admin/settings")}>{planType === "starter" ? "Ver plan Pro" : "Comprar bloques"}</Button>
+          <Button size="sm" variant="outline" onClick={() => navigate("/admin/settings")}>{planType === "starter" ? "Ver Pro" : "Ver bloques"}</Button>
         </AlertDescription>
       </Alert>
 

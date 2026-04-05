@@ -595,7 +595,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <PageContainer title="Configuración" description="Configura tu escuela de danza">
+      <PageContainer title="Configuración" description="Centro de control operativo de tu escuela">
         <div className="rounded-lg border border-border bg-card p-6 shadow-soft">
           <p className="text-sm text-muted-foreground">Cargando configuración...</p>
         </div>
@@ -615,37 +615,44 @@ export default function SettingsPage() {
     : `${nextMonthlyAmount} EUR/mes`;
 
   return (
-    <PageContainer title="Configuración" description="Configura tu escuela de danza">
+    <PageContainer title="Configuración" description="Centro de control operativo de tu escuela">
+      <div className="rounded-lg border border-border bg-card p-4 shadow-soft">
+        <p className="text-sm font-medium text-foreground">Qué puedes resolver aquí</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Ajusta identidad de marca, horarios, cobros, seguridad y plan sin salir del panel.
+        </p>
+      </div>
+
       <Tabs defaultValue={searchParams.get("tab") === "billing" ? "billing" : "account"} className="space-y-4">
         <TabsList className="bg-muted/50 p-1">
           <TabsTrigger value="account" className="text-xs gap-1.5">
-            <User className="h-3.5 w-3.5" /> Cuenta
+            <User className="h-3.5 w-3.5" /> General
           </TabsTrigger>
           <TabsTrigger value="school" className="text-xs gap-1.5">
-            <Building2 className="h-3.5 w-3.5" /> Escuela
+            <Building2 className="h-3.5 w-3.5" /> Marca
           </TabsTrigger>
           <TabsTrigger value="schedule" className="text-xs gap-1.5">
-            <Clock className="h-3.5 w-3.5" /> Horarios
+            <Clock className="h-3.5 w-3.5" /> Agenda
           </TabsTrigger>
           <TabsTrigger value="payments" className="text-xs gap-1.5">
-            <CreditCard className="h-3.5 w-3.5" /> Pagos
+            <CreditCard className="h-3.5 w-3.5" /> Cobros
           </TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs gap-1.5">
-            <Bell className="h-3.5 w-3.5" /> Notificaciones
+            <Bell className="h-3.5 w-3.5" /> Avisos
           </TabsTrigger>
           <TabsTrigger value="security" className="text-xs gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5" /> Seguridad
+            <ShieldCheck className="h-3.5 w-3.5" /> Acceso
           </TabsTrigger>
           <TabsTrigger value="billing" className="text-xs gap-1.5">
-            <CreditCard className="h-3.5 w-3.5" /> Billing
+            <CreditCard className="h-3.5 w-3.5" /> Plan
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="account">
           <div className="rounded-lg border border-border bg-card p-6 shadow-soft space-y-6">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Cuenta</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Información de acceso y cambio de contraseña</p>
+              <h3 className="text-sm font-semibold text-foreground">General de cuenta</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Datos de acceso, rol y seguridad básica</p>
             </div>
             <Separator />
 

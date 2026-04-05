@@ -6,35 +6,35 @@ import { Button } from "@/components/ui/button";
 const sections = [
   {
     title: "Perfil",
-    description: "Configura identidad pública, slug, logo y visibilidad de la escuela.",
+    description: "Ajusta identidad pública, slug, logo y visibilidad en un solo lugar.",
     to: "/admin/school/settings",
     action: "Ir a Perfil",
     icon: Building2,
   },
   {
     title: "Analíticas",
-    description: "Consulta engagement, conversión y embudo del portal de escuela.",
+    description: "Sigue engagement y conversión del portal de escuela.",
     to: "/admin/school/analytics",
     action: "Ver Analíticas",
     icon: BarChart3,
   },
   {
     title: "Publicaciones",
-    description: "Gestiona el feed, modera contenido docente y administra estados.",
+    description: "Gestiona el feed y modera contenido docente.",
     to: "/admin/school/posts",
     action: "Abrir Publicaciones",
     icon: FileEdit,
   },
   {
     title: "Anuncios",
-    description: "Publica comunicados importantes y notificaciones para alumnos.",
+    description: "Publica comunicados clave para alumnos y familias.",
     to: "/admin/school/announcements",
     action: "Abrir Anuncios",
     icon: Megaphone,
   },
   {
     title: "Galería",
-    description: "Organiza álbumes y fotos para eventos y actividad de escuela.",
+    description: "Organiza álbumes para clases, eventos y comunidad.",
     to: "/admin/school/gallery",
     action: "Abrir Galería",
     icon: CalendarHeart,
@@ -45,13 +45,13 @@ export default function SchoolPortalHubScreen() {
   return (
     <PageContainer
       title="Nexa Crew"
-      description="Centro de navegación para perfil, analíticas y contenidos de escuela"
+      description="Centro editorial del portal del alumno para acelerar comunicación y marca"
     >
       <Card className="mb-4 border-amber-300/40 bg-amber-50 dark:bg-amber-950/20">
         <CardHeader>
-          <CardTitle className="text-amber-700 dark:text-amber-300">Nexa Crew está en desarrollo</CardTitle>
+          <CardTitle className="text-amber-700 dark:text-amber-300">Nexa Crew en activación progresiva</CardTitle>
           <CardDescription>
-            Estamos trabajando para lanzar Nexa Crew, el portal de escuela que permitirá gestionar perfil, analíticas y contenidos.
+            Ya puedes preparar la estructura del portal. Los módulos se irán habilitando por fases para asegurar una salida estable.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -63,15 +63,15 @@ export default function SchoolPortalHubScreen() {
           </div>
           <CardTitle>Publicar eventos en el portal del alumno</CardTitle>
           <CardDescription>
-            Próximamente podrás seleccionar eventos y publicarlos directamente en el portal del alumno con visibilidad por fecha y estado.
+            Próximamente podrás publicar eventos con control de visibilidad por fecha, estado y tipo de audiencia.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-2">
           <Button type="button" disabled>
-            Configurar publicación (Próximamente)
+            Activar publicación (Próximamente)
           </Button>
           <p className="text-xs text-muted-foreground">
-            Sección preparada para la siguiente iteración funcional.
+            Función en despliegue por lotes.
           </p>
         </CardContent>
       </Card>
@@ -88,9 +88,9 @@ export default function SchoolPortalHubScreen() {
             </CardHeader>
             <CardContent>
               <Button type="button" className="w-full" disabled>
-                {section.action} (En desarrollo)
+                {section.action} (Próximamente)
               </Button>
-              <p className="mt-2 text-xs text-muted-foreground">Disponible próximamente.</p>
+              <p className="mt-2 text-xs text-muted-foreground">Disponible en siguientes iteraciones.</p>
             </CardContent>
           </Card>
         ))}

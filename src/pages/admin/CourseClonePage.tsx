@@ -38,6 +38,8 @@ export default function CourseClonePage() {
     Boolean(dryRun) &&
     dryRun?.sourcePeriod === normalizedSourcePeriod &&
     dryRun?.targetPeriod === normalizedTargetPeriod;
+  const completedJobsCount = jobs.filter((job) => job.status === "completed").length;
+  const pendingJobsCount = jobs.filter((job) => job.status === "queued" || job.status === "processing").length;
 
   const loadJobs = async (options?: { background?: boolean }) => {
     const background = options?.background ?? false;
@@ -124,8 +126,8 @@ export default function CourseClonePage() {
 
   return (
     <PageContainer
-      title="Duplicar curso entre periodos"
-      description="Copia clases y horarios del periodo actual al siguiente"
+      title="Plantillas"
+      description="Duplica estructura académica entre periodos sin rehacer trabajo"
       actions={
         <>
           <ModuleHelpShortcut module="course-clone" />
@@ -143,6 +145,25 @@ export default function CourseClonePage() {
           onUpgrade={() => void startUpgrade("courseClone")}
         />
       ) : null}
+
+      <section className="rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">El sistema que tu academia se merece</p>
+        <p className="mt-1 text-xs text-muted-foreground">Usa plantillas de periodo para lanzar el siguiente ciclo con menos fricción.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Ejecuciones totales</p>
+            <p className="text-lg font-semibold text-foreground">{jobs.length}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Completadas</p>
+            <p className="text-lg font-semibold text-foreground">{completedJobsCount}</p>
+          </div>
+          <div className="rounded-md border border-border px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">Pendientes</p>
+            <p className="text-lg font-semibold text-foreground">{pendingJobsCount}</p>
+          </div>
+        </div>
+      </section>
 
       <div className={cloneLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
 

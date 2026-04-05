@@ -94,24 +94,29 @@ export function PricingManagement() {
   }
 
   return (
-    <PageContainer title="Gestión de Tarifas" description="Configura las tarifas y bonos de tu escuela">
+    <PageContainer title="Planes y precios" description="Catálogo simple, claro y fácil de mantener">
+      <section className="rounded-lg border bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">El sistema que tu academia se merece</p>
+        <p className="mt-1 text-xs text-muted-foreground">Define precios y paquetes sin ruido técnico, con foco comercial.</p>
+      </section>
+
       <Tabs defaultValue="rules" className="space-y-4">
         <TabsList>
           <TabsTrigger value="rules">Tarifas</TabsTrigger>
-          <TabsTrigger value="categories">Grupos de bonos</TabsTrigger>
+          <TabsTrigger value="categories">Paquetes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="rules" className="space-y-4">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-semibold">Tarifas y Bonos</h2>
+              <h2 className="text-lg font-semibold">Tarifas y bonos</h2>
               <p className="text-sm text-muted-foreground">
-                Define tarifas especiales por disciplina, horas, o bonos combinados
+                Configura precios por tipo de clase o combinación de servicios.
               </p>
             </div>
             <Button onClick={() => setShowRuleForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Nueva Tarifa
+              Nueva tarifa
             </Button>
           </div>
 
@@ -145,14 +150,14 @@ export function PricingManagement() {
         <TabsContent value="categories" className="space-y-4">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-semibold">Grupos de Bonos</h2>
+              <h2 className="text-lg font-semibold">Paquetes y grupos</h2>
               <p className="text-sm text-muted-foreground">
-                Agrupa disciplinas para construir bonos combinados (ej: Danza, Bienestar)
+                Agrupa disciplinas para vender paquetes más claros y atractivos.
               </p>
             </div>
             <Button onClick={() => setShowCategoryForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Nuevo Grupo
+              Nuevo paquete
             </Button>
           </div>
 

@@ -4,7 +4,7 @@ import { Check, ArrowRight, Sparkles, Users, TrendingUp, Calculator } from "luci
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
-import { commercialCatalog, formatAnnualFinancingLabel, formatEuro, getInterestFreeInstallment, getMinimumExtraStudentBlockPriceEur, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
+import { commercialCatalog, formatEuro, getInterestFreeInstallment, getMinimumExtraStudentBlockPriceEur, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=pricing";
@@ -14,7 +14,6 @@ interface Plan {
   name: string;
   annualPrice: string;
   annualTotalEur: number;
-  annualFinancing: string;
   monthlyPrice: string;
   monthlyPriceEur: number;
   desc: string;
@@ -48,7 +47,6 @@ const plans: Plan[] = planOrder.map((planType) => {
     name: plan.name,
     annualPrice: formatEuro(plan.billing.annualEffectiveMonthlyPriceEur),
     annualTotalEur: plan.billing.annualTotalEur,
-    annualFinancing: formatAnnualFinancingLabel(plan.billing.annualTotalEur),
     monthlyPriceEur: plan.billing.monthlyPriceEur,
     monthlyPrice: `${formatEuro(plan.billing.monthlyPriceEur)}/mes`,
     desc: customDescriptionByPlan[planType],
@@ -82,7 +80,7 @@ const addons = [
 
 export function Pricing() {
   const [annual, setAnnual] = useState(true);
-  const [annualFinancingMonths, setAnnualFinancingMonths] = useState<3 | 6 | 12>(6);
+  const [annualFinancingMonths, setAnnualFinancingMonths] = useState<1 | 3 | 6>(1);
   const [advisorStudents, setAdvisorStudents] = useState(260);
   const advisor = getAdvisorRecommendation(advisorStudents);
   const advisorPlan = planCatalog[advisor.recommendedPlan];
@@ -90,11 +88,15 @@ export function Pricing() {
   const advisorSavings = Math.max(0, advisorPlan.billing.monthlyPriceEur * 12 - advisorPlan.billing.annualTotalEur);
   const pricingFromSixInstallments = getInterestFreeInstallment(planCatalog.pro.billing.annualTotalEur, 6);
 
-  const advisorMonthlyPrice = annual
-    ? getInterestFreeInstallment(advisorPlan.billing.annualTotalEur, annualFinancingMonths)
+  const advisorDisplayedPrice = annual
+    ? annualFinancingMonths === 1
+      ? advisorPlan.billing.annualTotalEur
+      : getInterestFreeInstallment(advisorPlan.billing.annualTotalEur, annualFinancingMonths)
     : advisorPlan.billing.monthlyPriceEur;
-  const costPerStudent = advisorStudents > 0 ? advisorMonthlyPrice / advisorStudents : 0;
-  const paybackEnrollments = Math.ceil(advisorMonthlyPrice / AVERAGE_ENROLLMENT_FEE);
+  const advisorDisplayedPriceSuffix = annual && annualFinancingMonths === 1 ? "/año" : "/mes";
+  const advisorComparableMonthlyPrice = annual ? advisorPlan.billing.annualEffectiveMonthlyPriceEur : advisorPlan.billing.monthlyPriceEur;
+  const costPerStudent = advisorStudents > 0 ? advisorComparableMonthlyPrice / advisorStudents : 0;
+  const paybackEnrollments = Math.ceil(advisorComparableMonthlyPrice / AVERAGE_ENROLLMENT_FEE);
 
   const handlePlanClick = (plan: Plan) => {
     trackPortalEvent({
@@ -167,19 +169,23 @@ export function Pricing() {
               className="overflow-hidden"
             >
               <div className="mx-auto mb-6 max-w-md rounded-xl border border-border bg-card p-2">
-                <p className="px-2 pb-2 text-center text-xs text-muted-foreground">Selecciona tu plazo de financiación</p>
+                <p className="px-2 pb-2 text-center text-xs text-muted-foreground">Selecciona tu tipo de pago</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {[3, 6, 12].map((months) => (
+                  {[
+                    { value: 1, label: "Cuota completa" },
+                    { value: 3, label: "3 cuotas" },
+                    { value: 6, label: "6 cuotas" },
+                  ].map((option) => (
                     <button
-                      key={months}
+                      key={option.value}
                       type="button"
-                      onClick={() => setAnnualFinancingMonths(months as 3 | 6 | 12)}
+                      onClick={() => setAnnualFinancingMonths(option.value as 1 | 3 | 6)}
                       className={cn(
                         "rounded-md px-3 py-2 text-sm font-medium transition",
-                        annualFinancingMonths === months ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                        annualFinancingMonths === option.value ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                       )}
                     >
-                      {months} cuotas
+                      {option.label}
                     </button>
                   ))}
                 </div>
@@ -225,14 +231,16 @@ export function Pricing() {
                 <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-foreground">
-                    {annual ? formatEuro(getInterestFreeInstallment(plan.annualTotalEur, annualFinancingMonths)) : plan.monthlyPrice}
+                    {annual
+                      ? annualFinancingMonths === 1
+                        ? formatEuro(plan.annualTotalEur)
+                        : formatEuro(getInterestFreeInstallment(plan.annualTotalEur, annualFinancingMonths))
+                      : plan.monthlyPrice}
                   </span>
-                  <span className="text-sm text-muted-foreground">/mes</span>
+                  <span className="text-sm text-muted-foreground">{annual ? (annualFinancingMonths === 1 ? "/año" : "/mes") : "/mes"}</span>
                 </div>
                 {annual && (
                   <div className="mt-1 space-y-0.5">
-                    <p className="text-xs font-semibold text-primary">Desde {formatEuro(getInterestFreeInstallment(plan.annualTotalEur, 6))}/mes en 6 cuotas</p>
-                    <p className="text-xs text-muted-foreground">{plan.annualFinancing}</p>
                     {plan.savings && <p className="text-xs font-medium text-success">{plan.savings}</p>}
                   </div>
                 )}
@@ -326,11 +334,11 @@ export function Pricing() {
                 <p className="text-xl font-bold text-foreground">{advisorPlan.name}</p>
                 <p className="text-xs text-muted-foreground mt-1">{advisor.studentsHint}</p>
                 <p className="text-2xl font-bold text-primary mt-2">
-                  {formatEuro(advisorMonthlyPrice)}<span className="text-sm font-normal text-muted-foreground">/mes</span>
+                  {formatEuro(advisorDisplayedPrice)}<span className="text-sm font-normal text-muted-foreground">{advisorDisplayedPriceSuffix}</span>
                 </p>
                 {annual && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    en {annualFinancingMonths} cuotas sin interés
+                    {annualFinancingMonths === 1 ? "pago anual completo" : `en ${annualFinancingMonths} cuotas sin interés`}
                   </p>
                 )}
                 {advisorSavings > 0 && (

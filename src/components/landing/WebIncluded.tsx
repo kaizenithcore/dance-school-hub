@@ -26,7 +26,7 @@ const featureDescriptions: Record<string, string> = {
 const features = (publicWeb?.includes?.slice(0, 4) ?? fallbackFeatures).map((label, index) => ({
   icon: featureIcons[index] ?? Globe,
   label,
-  desc: featureDescriptions[label] ?? "Incluido de serie en tu web básica con Nexa.",
+  desc: featureDescriptions[label] ?? "Incluido de serie en tu web básica con Nexa",
 }));
 
 export function WebIncluded() {
@@ -75,7 +75,7 @@ export function WebIncluded() {
           viewport={{ once: true }}
           className="mt-8 text-center text-sm text-muted-foreground"
         >
-          Diseño simple pero funcional. Lista para usar desde el primer día.
+          Diseño funcional. Lista para usar desde el primer día.
         </motion.p>
 
         <div className="mt-6 text-center">

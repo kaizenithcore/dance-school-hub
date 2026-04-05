@@ -20,7 +20,7 @@ export function HowItWorks() {
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Cómo funciona</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            De cero a organizado en 5 pasos
+            En cinco pasos, tu academia organizada y sin complicaciones.  
           </h2>
         </motion.div>
 
