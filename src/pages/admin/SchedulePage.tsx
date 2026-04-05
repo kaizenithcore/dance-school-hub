@@ -19,42 +19,28 @@ export default function SchedulePage() {
       setLoadingInsights(true);
       const data = await getScheduleInsights();
       setInsights(data);
-    } catch {
-      setInsights(null);
-    } finally {
-      setLoadingInsights(false);
-    }
+    } catch { setInsights(null); }
+    finally { setLoadingInsights(false); }
   };
 
-  useEffect(() => {
-    void loadInsights();
-  }, []);
+  useEffect(() => { void loadInsights(); }, []);
 
   return (
     <PageContainer
       title="Horarios"
-      description="Planificación clara para operar clases sin solapes"
+      description="Planifica clases sin solapamientos"
       actions={<Button size="sm" onClick={() => navigate("/admin/classes")}>Gestionar clases</Button>}
     >
-      <section className="mb-4 rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Menos gestión. Más control.</p>
-        <p className="mt-1 text-xs text-muted-foreground">Visualiza disponibilidad, aplica propuestas y publica una planificación limpia.</p>
-      </section>
-
-      <div className="mb-4">
-        <ScheduleInsightsPanel insights={insights} loading={loadingInsights} />
-      </div>
+      <ScheduleInsightsPanel insights={insights} loading={loadingInsights} />
       <ScheduleEditor key={editorVersion} previewProposal={hoveredProposal} />
-      <div className="mb-4">
-        <ScheduleProposalsPanel
-          onPreviewChange={setHoveredProposal}
-          onApplied={() => {
-            setEditorVersion((prev) => prev + 1);
-            setHoveredProposal(null);
-            void loadInsights();
-          }}
-        />
-      </div>
+      <ScheduleProposalsPanel
+        onPreviewChange={setHoveredProposal}
+        onApplied={() => {
+          setEditorVersion((prev) => prev + 1);
+          setHoveredProposal(null);
+          void loadInsights();
+        }}
+      />
     </PageContainer>
   );
 }

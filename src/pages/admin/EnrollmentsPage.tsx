@@ -33,52 +33,29 @@ export default function EnrollmentsPage() {
       console.error("Error loading enrollments:", error);
       toast.error("Error al cargar inscripciones");
       setEnrollments([]);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
-    void loadEnrollments();
-  }, [loadEnrollments]);
+  useEffect(() => { void loadEnrollments(); }, [loadEnrollments]);
 
   useEffect(() => {
-    if (loading) {
-      return;
-    }
-
+    if (loading) return;
     const targetId = searchParams.get("id");
     const action = searchParams.get("action");
-
-    if (!targetId || action !== "preview") {
-      return;
-    }
-
+    if (!targetId || action !== "preview") return;
     const targetEnrollment = enrollments.find((enrollment) => enrollment.id === targetId);
-    if (!targetEnrollment) {
-      return;
-    }
-
+    if (!targetEnrollment) return;
     handleViewDetail(targetEnrollment);
     setSearchParams({}, { replace: true });
   }, [loading, enrollments, searchParams, setSearchParams]);
 
-  const handleViewDetail = (enrollment: EnrollmentRecord) => {
-    setSelectedEnrollment(enrollment);
-    setDrawerOpen(true);
-  };
+  const handleViewDetail = (enrollment: EnrollmentRecord) => { setSelectedEnrollment(enrollment); setDrawerOpen(true); };
 
   const handleChangeStatus = useCallback((id: string, status: EnrollmentStatus) => {
     void (async () => {
       const updated = await updateEnrollmentStatus(id, status);
-      if (!updated) {
-        toast.error("No se pudo actualizar el estado de la inscripción");
-        return;
-      }
-
-      setEnrollments((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, status: updated.status } : e))
-      );
+      if (!updated) { toast.error("No se pudo actualizar el estado"); return; }
+      setEnrollments((prev) => prev.map((e) => (e.id === id ? { ...e, status: updated.status } : e)));
       setSelectedEnrollment((prev) => prev && prev.id === id ? { ...prev, status: updated.status } : prev);
       toast.success(`Inscripción marcada como ${STATUS_LABELS[updated.status]}`);
     })();
@@ -86,54 +63,27 @@ export default function EnrollmentsPage() {
 
   const pendingCount = useMemo(() => enrollments.filter((item) => item.status === "pending").length, [enrollments]);
   const confirmedCount = useMemo(() => enrollments.filter((item) => item.status === "confirmed").length, [enrollments]);
-  const declinedCount = useMemo(() => enrollments.filter((item) => item.status === "declined").length, [enrollments]);
 
   return (
     <PageContainer
       title="Inscripciones"
-      description="Revisión clara de altas nuevas y seguimiento sin fricción"
+      description={`${pendingCount} pendientes · ${confirmedCount} confirmadas`}
       actions={
         <Button size="sm" onClick={() => navigate("/admin/form-builder")}>
-          Optimizar matrícula online
+          Configurar matrícula
         </Button>
       }
     >
-      <section className="rounded-lg border bg-card p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Todo conectado. Todo bajo control.</p>
-            <p className="mt-1 text-xs text-muted-foreground">Prioriza pendientes y resuelve altas en minutos.</p>
-          </div>
-          {pendingCount > 0 ? <Badge variant="outline">{pendingCount} pendientes</Badge> : null}
+      {pendingCount > 0 && (
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+            {pendingCount} pendientes de revisión
+          </Badge>
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Pendientes</p>
-            <p className="text-lg font-semibold text-foreground">{pendingCount}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Aceptadas</p>
-            <p className="text-lg font-semibold text-foreground">{confirmedCount}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Rechazadas</p>
-            <p className="text-lg font-semibold text-foreground">{declinedCount}</p>
-          </div>
-        </div>
-      </section>
+      )}
 
-      <EnrollmentsTable
-        enrollments={enrollments}
-        isLoading={loading}
-        onViewDetail={handleViewDetail}
-      />
-
-      <EnrollmentDetailDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        enrollment={selectedEnrollment}
-        onChangeStatus={handleChangeStatus}
-      />
+      <EnrollmentsTable enrollments={enrollments} isLoading={loading} onViewDetail={handleViewDetail} />
+      <EnrollmentDetailDrawer open={drawerOpen} onOpenChange={setDrawerOpen} enrollment={selectedEnrollment} onChangeStatus={handleChangeStatus} />
     </PageContainer>
   );
 }
