@@ -42,8 +42,9 @@ export default function EventsPage() {
   const activeEventId = view.mode === "detail" || view.mode === "edit" ? view.eventId : undefined;
   const totalSessions = events.reduce((sum, event) => sum + (event.sessions?.length || 0), 0);
   const upcomingEvents = events.filter((event) => {
-    if (!event.date) return false;
-    return new Date(event.date).getTime() >= new Date().setHours(0, 0, 0, 0);
+    const d = event.startDate;
+    if (!d) return false;
+    return new Date(d).getTime() >= new Date().setHours(0, 0, 0, 0);
   }).length;
   const { event, addSession: addEventSession, updateSession: updateEventSession, deleteSession: deleteEventSession } = useEvent(
     activeEventId,

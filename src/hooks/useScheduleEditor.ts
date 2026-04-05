@@ -466,7 +466,7 @@ export function useScheduleEditor() {
           isLocked: item.isLocked ?? false,
         };
       })
-      .filter((item): item is ScheduleBlock => Boolean(item));
+      .filter((item): item is ScheduleBlock => item != null);
 
     const persistedIds = blocks.filter((block) => block.isPersisted).map((block) => block.id);
     setDeletedPersistedIds((prev) => Array.from(new Set([...prev, ...persistedIds])));
