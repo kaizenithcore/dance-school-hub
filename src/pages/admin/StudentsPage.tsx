@@ -17,47 +17,12 @@ import {
 import { getStudentFields, type SchoolStudentField } from "@/lib/api/studentFields";
 import { getSchoolSettings } from "@/lib/api/settings";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, FileUp, Plus, Rocket, ShoppingBag } from "lucide-react";
+import { FileUp, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { planCatalog, type PlanType } from "@/lib/commercialCatalog";
-
-type CapacityAlertLevel = "low" | "medium" | "high";
-
-function getCapacityAlertMeta(remainingPercent: number, planType: PlanType): {
-  level: CapacityAlertLevel;
-  title: string;
-  description: string;
-} {
-  const growthHint = planType === "starter"
-    ? "Sube a Pro para ampliar capacidad y desbloquear automatizaciones clave."
-    : "Activa bloques extra o revisa un upgrade para mantener margen operativo.";
-
-  if (remainingPercent <= 5) {
-    return {
-      level: "high",
-      title: "Capacidad critica: menos del 5% disponible",
-      description: growthHint,
-    };
-  }
-
-  if (remainingPercent <= 15) {
-    return {
-      level: "medium",
-      title: "Capacidad muy baja: menos del 15% disponible",
-      description: growthHint,
-    };
-  }
-
-  return {
-    level: "low",
-    title: "Capacidad en alerta: menos del 25% disponible",
-    description: growthHint,
-  };
-}
 
 export default function StudentsPage() {
   const navigate = useNavigate();
@@ -107,7 +72,6 @@ export default function StudentsPage() {
     } catch (error) {
       console.error("Error loading student fields:", error);
       setStudentFields([]);
-      toast.error("No se pudieron cargar los campos personalizados");
     }
   }, []);
 
@@ -140,115 +104,57 @@ export default function StudentsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    void loadStudents();
-  }, [loadStudents]);
+  useEffect(() => { void loadStudents(); }, [loadStudents]);
+  useEffect(() => { void loadCapacity(); }, [loadCapacity]);
+  useEffect(() => { void loadStudentFields(); }, [loadStudentFields]);
 
   useEffect(() => {
-    void loadCapacity();
-  }, [loadCapacity]);
-
-  useEffect(() => {
-    void loadStudentFields();
-  }, [loadStudentFields]);
-
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
-
+    if (loading) return;
     const targetId = searchParams.get("id");
     const action = searchParams.get("action");
-
-    if (!targetId || !action) {
-      return;
-    }
-
+    if (!targetId || !action) return;
     const targetStudent = students.find((student) => student.id === targetId);
-    if (!targetStudent) {
-      return;
-    }
-
-    if (action === "preview") {
-      handleViewProfile(targetStudent);
-    } else if (action === "edit") {
-      handleEdit(targetStudent);
-    } else if (action === "delete") {
-      handleDelete(targetStudent);
-    }
-
+    if (!targetStudent) return;
+    if (action === "preview") handleViewProfile(targetStudent);
+    else if (action === "edit") handleEdit(targetStudent);
+    else if (action === "delete") handleDelete(targetStudent);
     setSearchParams({}, { replace: true });
   }, [loading, students, searchParams, setSearchParams]);
 
-  const handleViewProfile = (student: StudentRecord) => {
-    setSelectedStudent(student);
-    setDrawerOpen(true);
-  };
-
-  const handleCreate = () => {
-    setEditingStudent(null);
-    setFormOpen(true);
-  };
-
-  const handleEdit = (student: StudentRecord) => {
-    setEditingStudent(student);
-    setFormOpen(true);
-  };
-
-  const handleDelete = (student: StudentRecord) => {
-    setDeletingStudent(student);
-    setDeleteOpen(true);
-  };
-
-  const handleManageClasses = (student: StudentRecord) => {
-    setClassesStudent(student);
-    setClassesModalOpen(true);
-  };
+  const handleViewProfile = (student: StudentRecord) => { setSelectedStudent(student); setDrawerOpen(true); };
+  const handleCreate = () => { setEditingStudent(null); setFormOpen(true); };
+  const handleEdit = (student: StudentRecord) => { setEditingStudent(student); setFormOpen(true); };
+  const handleDelete = (student: StudentRecord) => { setDeletingStudent(student); setDeleteOpen(true); };
+  const handleManageClasses = (student: StudentRecord) => { setClassesStudent(student); setClassesModalOpen(true); };
 
   const handleSave = useCallback(async (data: Omit<StudentRecord, "id">): Promise<boolean> => {
     const payload = mapToSavePayload(data);
-
     try {
       if (editingStudent) {
         const success = await updateStudent(editingStudent.id, payload);
-        if (!success) {
-          toast.error("No se pudo actualizar el alumno");
-          return false;
-        }
-        toast.success("Alumno actualizado exitosamente");
+        if (!success) { toast.error("No se pudo actualizar el alumno"); return false; }
+        toast.success("Alumno actualizado");
       } else {
         const createdId = await createStudent(payload);
-        if (!createdId) {
-          toast.error("No se pudo crear el alumno");
-          return false;
-        }
-        toast.success("Alumno creado exitosamente");
+        if (!createdId) { toast.error("No se pudo crear el alumno"); return false; }
+        toast.success("Alumno creado");
       }
-
       await loadStudents();
       await loadCapacity();
       return true;
     } catch (error) {
       console.error("Error saving student:", error);
-      const message = error instanceof Error ? error.message : "Error al guardar el alumno";
-      toast.error(message);
+      toast.error(error instanceof Error ? error.message : "Error al guardar");
       return false;
     }
   }, [editingStudent, loadCapacity, loadStudents]);
 
   const handleConfirmDelete = useCallback(() => {
-    if (!deletingStudent) {
-      return;
-    }
-
+    if (!deletingStudent) return;
     void (async () => {
       try {
         const success = await deleteStudent(deletingStudent.id);
-        if (!success) {
-          toast.error("No se pudo eliminar el alumno");
-          return;
-        }
-
+        if (!success) { toast.error("No se pudo eliminar el alumno"); return; }
         toast.success("Alumno eliminado");
         await loadStudents();
         await loadCapacity();
@@ -264,73 +170,45 @@ export default function StudentsPage() {
   const remainingStudents = Math.max(0, effectiveMaxStudents - activeStudents);
   const usedPercent = Math.min(100, (activeStudents / effectiveMaxStudents) * 100);
   const remainingPercent = Math.max(0, 100 - usedPercent);
-  const shouldShowUpgradeBanner = maxActiveStudents > 0 && remainingPercent <= 25;
-  const alertMeta = shouldShowUpgradeBanner ? getCapacityAlertMeta(remainingPercent, planType) : null;
-  const upgradeBannerClassName =
-    alertMeta?.level === "high"
-      ? "border-destructive/40 bg-destructive/10 text-destructive"
-      : alertMeta?.level === "medium"
-        ? "border-warning/40 bg-warning/10 text-warning"
-        : "border-primary/30 bg-primary/5 text-primary";
+  const shouldShowUpgrade = maxActiveStudents > 0 && remainingPercent <= 15;
 
   return (
     <PageContainer
       title="Alumnos"
-      description="Menos gestión. Más control del alumnado activo."
+      description={`${activeStudents} activos · ${remainingStudents} plazas disponibles`}
       actions={
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => navigate("/admin/students/import")}>
-            <FileUp className="h-4 w-4 mr-1" /> Importar base
+            <FileUp className="h-4 w-4 mr-1" /> Importar
           </Button>
           <Button size="sm" onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-1" /> Añadir alumno
+            <Plus className="h-4 w-4 mr-1" /> Añadir
           </Button>
         </div>
       }
     >
-      <section className="rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Convierte tu academia en un sistema eficiente</p>
-        <p className="mt-1 text-xs text-muted-foreground">Controla capacidad, altas y seguimiento desde una sola vista.</p>
-      </section>
-
-      <section className="space-y-3">
-        <div className="rounded-lg border bg-card p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Capacidad activa</p>
-              <p className="text-lg font-semibold text-foreground">
-                {remainingStudents} plazas disponibles
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({activeStudents}/{effectiveMaxStudents} activos)
-                </span>
-              </p>
-            </div>
-            <Badge variant="outline" className="text-xs">
-              {Math.round(remainingPercent)}% disponible
-            </Badge>
-          </div>
-          <Progress value={usedPercent} className="mt-3 h-2" />
+      {/* Capacity bar */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm text-muted-foreground">
+            {activeStudents} / {effectiveMaxStudents} alumnos activos
+          </p>
+          <Badge variant="outline" className="text-xs">{Math.round(remainingPercent)}% libre</Badge>
         </div>
-
-        {alertMeta ? (
-          <Alert className={upgradeBannerClassName}>
-            <Rocket className="h-4 w-4" />
-            <AlertTitle>{alertMeta.title}</AlertTitle>
-            <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-              <span>
-                {alertMeta.description} Te quedan {remainingStudents} plazas antes del límite actual.
-              </span>
-              <Button
-                size="sm"
-                variant={alertMeta.level === "high" ? "destructive" : "default"}
-                onClick={() => navigate("/admin/settings")}
-              >
-                Mejorar plan
-              </Button>
-            </AlertDescription>
-          </Alert>
-        ) : null}
-      </section>
+        <Progress value={usedPercent} className="h-1.5" />
+        {shouldShowUpgrade && (
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {planType === "starter"
+                ? `Pro incluye hasta ${planCatalog.pro.limits.includedActiveStudents} alumnos.`
+                : "Activa bloques extra para seguir creciendo."}
+            </p>
+            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => navigate("/admin/settings")}>
+              {planType === "starter" ? "Ver Pro" : "Ampliar"}
+            </Button>
+          </div>
+        )}
+      </div>
 
       <StudentsTable
         students={students}
@@ -344,48 +222,10 @@ export default function StudentsPage() {
 
       <StudentCustomFieldsManager fields={studentFields} onReload={loadStudentFields} />
 
-      <Alert className="border-primary/25 bg-primary/5">
-        <ShoppingBag className="h-4 w-4" />
-        <AlertTitle>{planType === "starter" ? "Sube a Pro para crecer con margen" : "Amplía capacidad cuando lo necesites"}</AlertTitle>
-        <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-          <span>
-            {planType === "starter"
-              ? `Pro incluye hasta ${planCatalog.pro.limits.includedActiveStudents} alumnos activos y automatizaciones clave.`
-              : "Activa bloques extra para seguir creciendo sin fricción operativa."}
-          </span>
-          <Button size="sm" variant="outline" onClick={() => navigate("/admin/settings")}>{planType === "starter" ? "Ver Pro" : "Ver bloques"}</Button>
-        </AlertDescription>
-      </Alert>
-
-      <StudentProfileDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        student={selectedStudent}
-        customFields={studentFields}
-      />
-
-      <StudentFormModal
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        student={editingStudent}
-        customFields={studentFields}
-        onSave={handleSave}
-      />
-
-      <DeleteStudentModal
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        student={deletingStudent}
-        onConfirm={handleConfirmDelete}
-      />
-
-      <StudentClassesModal
-        open={classesModalOpen}
-        onOpenChange={setClassesModalOpen}
-        student={classesStudent}
-        students={students}
-        onUpdated={loadStudents}
-      />
+      <StudentProfileDrawer open={drawerOpen} onOpenChange={setDrawerOpen} student={selectedStudent} customFields={studentFields} />
+      <StudentFormModal open={formOpen} onOpenChange={setFormOpen} student={editingStudent} customFields={studentFields} onSave={handleSave} />
+      <DeleteStudentModal open={deleteOpen} onOpenChange={setDeleteOpen} student={deletingStudent} onConfirm={handleConfirmDelete} />
+      <StudentClassesModal open={classesModalOpen} onOpenChange={setClassesModalOpen} student={classesStudent} students={students} onUpdated={loadStudents} />
     </PageContainer>
   );
 }

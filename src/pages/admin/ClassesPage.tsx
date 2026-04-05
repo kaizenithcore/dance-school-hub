@@ -31,45 +31,28 @@ export default function ClassesPage() {
   const totalCapacity = classes.reduce((sum, cls) => sum + (cls.capacity || 0), 0);
   const totalEnrolled = classes.reduce((sum, cls) => sum + (cls.enrolled || 0), 0);
 
-  // Load classes from API
   useEffect(() => {
     const loadClasses = async () => {
       setLoading(true);
       try {
         const [classesData, disciplinesData, categoriesData, roomsData, schedulesData, teachersData] = await Promise.all([
-          getClasses(),
-          getDisciplines(),
-          getCategories(),
-          getRooms(),
-          getSchedules(),
-          getTeachers(),
+          getClasses(), getDisciplines(), getCategories(), getRooms(), getSchedules(), getTeachers(),
         ]);
-
-        // Create lookup maps
         const disciplineMap = new Map(disciplinesData.map((d) => [d.id, d.name]));
         const categoryMap = new Map(categoriesData.map((c) => [c.id, c.name]));
         const roomMap = new Map(roomsData.map((r) => [r.id, r.name]));
         const teacherMap = new Map(teachersData.map((teacher) => [teacher.id, teacher.name]));
-
         const scheduledByClass = new Map<string, number>();
         (schedulesData || []).forEach((schedule) => {
-          scheduledByClass.set(
-            schedule.class_id,
-            (scheduledByClass.get(schedule.class_id) || 0) + 1
-          );
+          scheduledByClass.set(schedule.class_id, (scheduledByClass.get(schedule.class_id) || 0) + 1);
         });
-
         const mappedClasses: ClassRecord[] = (classesData || []).map((cls) => {
           const embeddedTeacherNames = (cls.teachers || []).map((teacher) => teacher.name).filter(Boolean);
           const teacherIds = Array.from(new Set([...(cls.teacherIds || []), ...(cls.teacherId ? [cls.teacherId] : [])]));
-          const teacherNamesFromIds = teacherIds
-            .map((teacherId) => teacherMap.get(teacherId))
-            .filter((name): name is string => Boolean(name && name.trim().length > 0));
+          const teacherNamesFromIds = teacherIds.map((teacherId) => teacherMap.get(teacherId)).filter((name): name is string => Boolean(name && name.trim().length > 0));
           const resolvedTeacherNames = embeddedTeacherNames.length > 0 ? embeddedTeacherNames : teacherNamesFromIds;
-
           return {
-            id: cls.id,
-            name: cls.name,
+            id: cls.id, name: cls.name,
             discipline: cls.discipline ? (disciplineMap.get(cls.discipline) || cls.discipline) : "General",
             disciplineId: cls.disciplineId || undefined,
             teacher: resolvedTeacherNames.length > 0 ? resolvedTeacherNames.join(", ") : "Sin asignar",
@@ -77,14 +60,10 @@ export default function ClassesPage() {
             teacherIds,
             category: cls.category ? (categoryMap.get(cls.category) || cls.category) : "General",
             categoryId: cls.categoryId || undefined,
-            price: cls.price,
-            capacity: cls.capacity,
-            weeklyFrequency: cls.weeklyFrequency || 1,
+            price: cls.price, capacity: cls.capacity, weeklyFrequency: cls.weeklyFrequency || 1,
             scheduledCount: scheduledByClass.get(cls.id) || 0,
             room: cls.roomId ? roomMap.get(cls.roomId) || "Sin aula" : "Sin aula",
-            roomId: cls.roomId || undefined,
-            status: cls.status,
-            enrolled: cls.enrolledCount || 0,
+            roomId: cls.roomId || undefined, status: cls.status, enrolled: cls.enrolledCount || 0,
           };
         });
         setClasses(mappedClasses);
@@ -92,162 +71,81 @@ export default function ClassesPage() {
         console.error("Error loading classes:", error);
         toast.error("Error al cargar clases");
         setClasses([]);
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     };
     loadClasses();
   }, []);
 
-  const handleCreate = () => {
-    setEditingClass(null);
-    setFormOpen(true);
-  };
-
-  const handlePreview = (cls: ClassRecord) => {
-    setSelectedClass(cls);
-    setPreviewOpen(true);
-  };
-
-  const handleEdit = (cls: ClassRecord) => {
-    setEditingClass(cls);
-    setFormOpen(true);
-  };
-
-  const handleDelete = (cls: ClassRecord) => {
-    setDeletingClass(cls);
-    setDeleteOpen(true);
-  };
+  const handleCreate = () => { setEditingClass(null); setFormOpen(true); };
+  const handlePreview = (cls: ClassRecord) => { setSelectedClass(cls); setPreviewOpen(true); };
+  const handleEdit = (cls: ClassRecord) => { setEditingClass(cls); setFormOpen(true); };
+  const handleDelete = (cls: ClassRecord) => { setDeletingClass(cls); setDeleteOpen(true); };
 
   const handleSave = useCallback(async (data: Omit<ClassRecord, "id" | "enrolled"> & { discipline_id?: string; category_id?: string; teacher_id?: string; teacher_ids?: string[]; room_id?: string }): Promise<boolean> => {
     try {
       if (editingClass) {
-        // Update existing
         const result = await updateClass(editingClass.id, {
-          name: data.name,
-          discipline_id: data.discipline_id || undefined,
-          category_id: data.category_id || undefined,
-          teacher_id: data.teacher_id,
-          teacher_ids: data.teacher_ids,
-          room_id: data.room_id,
-          price: data.price,
-          capacity: data.capacity,
-          weeklyFrequency: data.weeklyFrequency || 1,
-          status: data.status,
+          name: data.name, discipline_id: data.discipline_id || undefined, category_id: data.category_id || undefined,
+          teacher_id: data.teacher_id, teacher_ids: data.teacher_ids, room_id: data.room_id,
+          price: data.price, capacity: data.capacity, weeklyFrequency: data.weeklyFrequency || 1, status: data.status,
         });
         if (result) {
-          setClasses((prev) =>
-            prev.map((c) => (
-              c.id === editingClass.id
-                ? {
-                    ...c,
-                    ...data,
-                    disciplineId: data.discipline_id || undefined,
-                    categoryId: data.category_id || undefined,
-                    roomId: data.room_id || undefined,
-                    teacherId: data.teacher_id || undefined,
-                    teacherIds: data.teacher_ids || [],
-                    teacher: data.teacher?.trim() ? data.teacher : "Sin asignar",
-                  }
-                : c
-            ))
-          );
-          toast.success("Clase actualizada exitosamente");
+          setClasses((prev) => prev.map((c) => (
+            c.id === editingClass.id ? { ...c, ...data, disciplineId: data.discipline_id || undefined, categoryId: data.category_id || undefined, roomId: data.room_id || undefined, teacherId: data.teacher_id || undefined, teacherIds: data.teacher_ids || [], teacher: data.teacher?.trim() ? data.teacher : "Sin asignar" } : c
+          )));
+          toast.success("Clase actualizada");
           return true;
         }
         toast.error("No se pudo actualizar la clase");
         return false;
       } else {
-        // Create new
         const result = await createClass({
-          name: data.name,
-          discipline_id: data.discipline_id || undefined,
-          category_id: data.category_id || undefined,
-          teacher_id: data.teacher_id,
-          teacher_ids: data.teacher_ids,
-          room_id: data.room_id,
-          price: data.price,
-          capacity: data.capacity,
-          weeklyFrequency: data.weeklyFrequency || 1,
-          status: data.status,
+          name: data.name, discipline_id: data.discipline_id || undefined, category_id: data.category_id || undefined,
+          teacher_id: data.teacher_id, teacher_ids: data.teacher_ids, room_id: data.room_id,
+          price: data.price, capacity: data.capacity, weeklyFrequency: data.weeklyFrequency || 1, status: data.status,
         });
         if (result) {
-          const newClass: ClassRecord = {
-            ...data,
-            id: result.id,
-            disciplineId: data.discipline_id || undefined,
-            categoryId: data.category_id || undefined,
-            roomId: data.room_id || undefined,
-            teacherId: data.teacher_id || undefined,
-            teacherIds: data.teacher_ids || [],
-            teacher: data.teacher?.trim() ? data.teacher : "Sin asignar",
-            enrolled: 0,
-          };
+          const newClass: ClassRecord = { ...data, id: result.id, disciplineId: data.discipline_id || undefined, categoryId: data.category_id || undefined, roomId: data.room_id || undefined, teacherId: data.teacher_id || undefined, teacherIds: data.teacher_ids || [], teacher: data.teacher?.trim() ? data.teacher : "Sin asignar", enrolled: 0 };
           setClasses((prev) => [newClass, ...prev]);
-          toast.success("Clase creada exitosamente");
+          toast.success("Clase creada");
           return true;
         }
         toast.error("No se pudo crear la clase");
         return false;
       }
-    } catch (error) {
-      toast.error("Error al guardar la clase");
-      console.error(error);
-      return false;
-    }
+    } catch (error) { toast.error("Error al guardar la clase"); console.error(error); return false; }
   }, [editingClass]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (deletingClass) {
       try {
         const success = await deleteClass(deletingClass.id);
-        if (success) {
-          setClasses((prev) => prev.filter((c) => c.id !== deletingClass.id));
-          toast.success("Clase eliminada");
-        }
-      } catch (error) {
-        toast.error("Error al eliminar la clase");
-        console.error(error);
-      }
+        if (success) { setClasses((prev) => prev.filter((c) => c.id !== deletingClass.id)); toast.success("Clase eliminada"); }
+      } catch (error) { toast.error("Error al eliminar la clase"); console.error(error); }
     }
   }, [deletingClass]);
 
   useEffect(() => {
-    if (loading) {
-      return;
-    }
-
+    if (loading) return;
     const targetId = searchParams.get("id");
     const action = searchParams.get("action");
-
-    if (!targetId || !action) {
-      return;
-    }
-
+    if (!targetId || !action) return;
     const targetClass = classes.find((cls) => cls.id === targetId);
-    if (!targetClass) {
-      return;
-    }
-
-    if (action === "preview") {
-      handlePreview(targetClass);
-    } else if (action === "edit") {
-      handleEdit(targetClass);
-    } else if (action === "delete") {
-      handleDelete(targetClass);
-    }
-
+    if (!targetClass) return;
+    if (action === "preview") handlePreview(targetClass);
+    else if (action === "edit") handleEdit(targetClass);
+    else if (action === "delete") handleDelete(targetClass);
     setSearchParams({}, { replace: true });
   }, [loading, classes, searchParams, setSearchParams]);
 
   return (
     <PageContainer
       title="Clases"
-      description="Catálogo claro de clases para operar con menos fricción"
+      description={`${activeClasses} activas · ${totalEnrolled}/${totalCapacity} alumnos`}
       actions={
         <>
           <Button size="sm" variant="outline" onClick={() => navigate("/admin/reception")}>
-            <CalendarClock className="h-4 w-4 mr-1" /> Hoja de asistencia
+            <CalendarClock className="h-4 w-4 mr-1" /> Asistencia
           </Button>
           <Button size="sm" onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-1" /> Crear clase
@@ -255,52 +153,10 @@ export default function ClassesPage() {
         </>
       }
     >
-      <section className="rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Todo conectado. Todo bajo control.</p>
-        <p className="mt-1 text-xs text-muted-foreground">Define oferta, capacidad y docentes en una sola vista.</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Clases activas</p>
-            <p className="text-lg font-semibold text-foreground">{activeClasses}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Plazas totales</p>
-            <p className="text-lg font-semibold text-foreground">{totalCapacity}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Alumnos asignados</p>
-            <p className="text-lg font-semibold text-foreground">{totalEnrolled}</p>
-          </div>
-        </div>
-      </section>
-
-      <ClassesTable
-        classes={classes}
-        isLoading={loading}
-        onPreview={handlePreview}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
-
-      <ClassPreviewDrawer
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
-        classData={selectedClass}
-      />
-
-      <ClassFormModal
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        classData={editingClass}
-        onSave={handleSave}
-      />
-
-      <DeleteClassModal
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        classData={deletingClass}
-        onConfirm={handleConfirmDelete}
-      />
+      <ClassesTable classes={classes} isLoading={loading} onPreview={handlePreview} onEdit={handleEdit} onDelete={handleDelete} />
+      <ClassPreviewDrawer open={previewOpen} onOpenChange={setPreviewOpen} classData={selectedClass} />
+      <ClassFormModal open={formOpen} onOpenChange={setFormOpen} classData={editingClass} onSave={handleSave} />
+      <DeleteClassModal open={deleteOpen} onOpenChange={setDeleteOpen} classData={deletingClass} onConfirm={handleConfirmDelete} />
     </PageContainer>
   );
 }
