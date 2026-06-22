@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useOutlet } from "react-router-dom";
-import { AdminShell } from "@/components/shell/AdminShell";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { AnimatePresence, motion } from "framer-motion";
@@ -94,144 +93,25 @@ function toCheckoutPlanType(value: string): CheckoutPlanType {
   return "starter";
 }
 
-function readRegisterDefaults() {
-  return (
-    <AdminShell>
-      <div className="border-b border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground md:px-6">
-        <span className="font-medium text-foreground">Plan {planLabel}</span>
-        <span className="mx-2">·</span>
-        <span>Límite alumnos activos: {billing.maxActiveStudents}</span>
-        <span className="mx-2">·</span>
-        <span>Incluidos base: {billing.includedActiveStudents}</span>
-        {bannerTrialText ? (
-          <>
-            <span className="mx-2">·</span>
-            <span className={bannerTrialToneClass}>
-              {bannerTrialText}
-              {trialEndsAtLabel ? ` (fin: ${trialEndsAtLabel})` : ""}
-            </span>
-          </>
-        ) : null}
-      </div>
-      {isDemoSession ? (
-        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 md:px-6">
-          Estás en el tenant demo de solo lectura. Puedes explorar el panel real, pero los cambios no se guardan.
-        </div>
-      ) : null}
-      {!isOnline ? (
-        <div className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-900 md:px-6">
-          Sin conexión. Mostramos los últimos datos disponibles y algunas acciones pueden fallar hasta reconectar.
-        </div>
-      ) : null}
-      <main className="relative flex-1 overflow-hidden p-4 md:p-6">
-        {!showTrialLockModal && !showTrialLoadingModal ? (
-          <AnimatedPage key={location.pathname} animateOnMount={!firstRenderRef.current}>
-            {outlet}
-          </AnimatedPage>
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-muted-foreground">
-              {showTrialLoadingModal
-                ? "Estamos preparando tu panel..."
-                : "Acceso bloqueado hasta completar el pago del plan."}
-            </p>
-          </div>
-        )}
-
-        {isRouteTransitioning && !showTrialLockModal && !showTrialLoadingModal ? (
-          <motion.div
-            key={`route-transition-${location.pathname}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: ROUTE_TRANSITION_BLOCK_MS / 1000, ease: "easeOut" }}
-            className="pointer-events-none absolute inset-0 z-30 bg-background/90 backdrop-blur-[1px]"
-          />
-        ) : null}
-
-        {showWelcomeOverlay && !showTrialLockModal && !showTrialLoadingModal ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 z-40 flex items-center justify-center bg-background/95"
-          >
-            <div className="rounded-xl border border-border bg-card px-6 py-5 shadow-medium">
-              <p className="text-base font-semibold text-foreground">Bienvenido a Nexa</p>
-              <p className="mt-1 text-sm text-muted-foreground">Preparando tus datos...</p>
-            </div>
-          </motion.div>
-        ) : null}
-
-        {activeSectionIntro && !showTrialLockModal && !showTrialLoadingModal ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 z-35 flex items-center justify-center bg-background/75 px-4"
-          >
-            <div className="w-full max-w-xl rounded-xl border border-border bg-card p-6 shadow-medium">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-lg font-semibold text-foreground">{activeSectionIntro.title}</p>
-                <button
-                  type="button"
-                  onClick={() => setActiveSectionIntro(null)}
-                  className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                  aria-label="Cerrar"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">{activeSectionIntro.summary}</p>
-            </div>
-          </motion.div>
-        ) : null}
-
-        {!showTrialLockModal && !showTrialLoadingModal ? (
-          <div className="pointer-events-none absolute bottom-20 right-4 z-[80] flex items-end gap-2 md:bottom-24 md:right-6">
-            <AnimatePresence>
-              {sectionIntroForPath && showQuickHelpHint ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  transition={{ duration: 0.2 }}
-                  className="pointer-events-none hidden max-w-xs rounded-lg border border-border bg-card/95 px-3 py-2 text-left shadow-medium lg:block"
-                >
-                  <p className="text-xs font-semibold text-foreground">Guía rápida: {sectionIntroForPath.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{sectionIntroForPath.summary}</p>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  className="pointer-events-auto h-12 w-12 rounded-full shadow-medium"
-                  aria-label={sectionIntroForPath ? `Mostrar guía de ${sectionIntroForPath.title}` : "Mostrar guía de inicio"}
-                  onClick={openContextualHelp}
-                  onMouseEnter={revealQuickHelpHint}
-                  onFocus={revealQuickHelpHint}
-                  onMouseLeave={hideQuickHelpHint}
-                  onBlur={hideQuickHelpHint}
-                >
-                  <CircleHelp className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                {sectionIntroForPath ? "Volver a ver ayuda de esta sección" : "Ver guía de inicio"}
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        ) : null}
-      </main>
-      <PlanDevOverlay />
-    </AdminShell>
-  );
+// Reads persisted checkout add-on selections from localStorage.
+// Returns safe defaults if nothing is stored or parsing fails.
+function readRegisterDefaults(): { addons: Record<"customDomain" | "prioritySupport" | "waitlistAutomation" | "renewalAutomation", boolean> } {
+  const empty = { addons: { customDomain: false, prioritySupport: false, waitlistAutomation: false, renewalAutomation: false } };
+  try {
+    const raw = window.localStorage.getItem(CHECKOUT_SELECTION_KEY);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw) as { addons?: Record<string, boolean> };
+    return {
+      addons: {
+        customDomain: Boolean(parsed.addons?.customDomain),
+        prioritySupport: Boolean(parsed.addons?.prioritySupport),
+        waitlistAutomation: Boolean(parsed.addons?.waitlistAutomation),
+        renewalAutomation: Boolean(parsed.addons?.renewalAutomation),
+      },
+    };
+  } catch {
+    return empty;
+  }
 }
 
 type SectionIntro = { key: string; title: string; summary: string };
@@ -1247,13 +1127,18 @@ export function AdminLayout() {
               className="absolute inset-0 z-35 flex items-center justify-center bg-background/75 px-4"
             >
               <div className="w-full max-w-xl rounded-xl border border-border bg-card p-6 shadow-medium">
-                <p className="text-lg font-semibold text-foreground">{activeSectionIntro.title}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{activeSectionIntro.summary}</p>
-                <div className="mt-4 flex justify-end">
-                  <Button size="sm" onClick={() => setActiveSectionIntro(null)}>
-                    Entendido
-                  </Button>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-lg font-semibold text-foreground">{activeSectionIntro.title}</p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSectionIntro(null)}
+                    className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                    aria-label="Cerrar"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
+                <p className="mt-2 text-sm text-muted-foreground">{activeSectionIntro.summary}</p>
               </div>
             </motion.div>
           ) : null}
