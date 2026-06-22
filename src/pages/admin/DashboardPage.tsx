@@ -1,324 +1,455 @@
 import { useEffect, useMemo, useState } from "react";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { StatCard } from "@/components/cards/StatCard";
+import { useNavigate } from "react-router-dom";
+import { format, isValid, differenceInDays, addDays } from "date-fns";
+import { es } from "date-fns/locale";
 import {
-  Users,
-  AlertTriangle,
-  ClipboardList,
-  ArrowRight,
-  CheckCircle,
-  UserPlus,
-  Loader2,
-  CircleDollarSign,
+  CreditCard, Repeat, ClipboardList, CheckCircle2, ArrowRight,
+  UserPlus, AlertTriangle, CalendarDays, Loader2, TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
-import { format, isValid } from "date-fns";
-import { es } from "date-fns/locale";
-import { getDashboardMetrics, getAnalyticsData } from "@/lib/api/payments";
-import { getScheduleInsights, type ScheduleInsightsResult } from "@/lib/api/schedules";
-import { getEnrollments } from "@/lib/api/enrollments";
+import { getDashboardMetrics } from "@/lib/api/payments";
 import { getPayments, type PaymentRecord } from "@/lib/api/payments";
-import { getTeachers } from "@/lib/api/teachers";
+import { getEnrollments } from "@/lib/api/enrollments";
+import { getSchedules } from "@/lib/api/schedules";
+import { getRenewalCampaigns, type RenewalCampaign } from "@/lib/api/renewals";
 import type { EnrollmentRecord } from "@/lib/data/mockEnrollments";
-import type { Teacher } from "@/lib/api/teachers";
-import { buildEconomySnapshot } from "@/lib/economy";
-import { ScheduleInsightsPanel } from "@/components/schedule/ScheduleInsightsPanel";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
+import { useAuth } from "@/contexts/AuthContext";
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function timeAgo(dateStr: string | undefined | null): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (!isValid(d)) return "";
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (mins < 60) return `hace ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `hace ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `hace ${days}d`;
+}
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Buenos días";
+  if (h < 19) return "Buenas tardes";
+  return "Buenas noches";
+}
+
+function getDayName(weekday: number): string {
+  // weekday: 0=Sun, 1=Mon … 6=Sat
+  return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][weekday];
+}
+
+// ── Action card ────────────────────────────────────────────────────────────────
+
+interface ActionCardProps {
+  label: string;
+  icon: React.ElementType;
+  allGood: boolean;
+  primary: string;
+  secondary: string;
+  actionLabel: string;
+  onAction: () => void;
+  urgent?: boolean;
+}
+
+function ActionCard({ label, icon: Icon, allGood, primary, secondary, actionLabel, onAction, urgent }: ActionCardProps) {
+  return (
+    <div className={cn(
+      "flex flex-col rounded-xl border bg-card p-5 gap-4",
+      urgent ? "border-destructive/30 bg-destructive/[0.02]" : "border-border"
+    )}>
+      <div className="flex items-center gap-2">
+        <div className={cn(
+          "flex h-7 w-7 items-center justify-center rounded-lg",
+          urgent ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+        )}>
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      </div>
+
+      {allGood ? (
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+          <p className="text-sm font-medium text-success">Todo gestionado</p>
+        </div>
+      ) : (
+        <div>
+          <p className="text-2xl font-bold text-foreground leading-none">{primary}</p>
+          <p className="text-xs text-muted-foreground mt-1">{secondary}</p>
+        </div>
+      )}
+
+      <Button
+        size="sm"
+        variant={allGood ? "outline" : "default"}
+        className="mt-auto w-full"
+        onClick={onAction}
+      >
+        {actionLabel}
+        <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { authContext } = useAuth();
+
   const [metrics, setMetrics] = useState<Awaited<ReturnType<typeof getDashboardMetrics>> | null>(null);
-  const [analytics, setAnalytics] = useState<Awaited<ReturnType<typeof getAnalyticsData>> | null>(null);
-  const [scheduleInsights, setScheduleInsights] = useState<ScheduleInsightsResult | null>(null);
-  const [enrollments, setEnrollments] = useState<EnrollmentRecord[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [enrollments, setEnrollments] = useState<EnrollmentRecord[]>([]);
+  const [schedules, setSchedules] = useState<Awaited<ReturnType<typeof getSchedules>>>([]);
+  const [campaigns, setCampaigns] = useState<RenewalCampaign[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadData() {
+    void (async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        const [metricsData, analyticsData, enrollmentsData, paymentsData, insightsData, teachersData] = await Promise.all([
+        const [metricsData, paymentsData, enrollmentsData, schedulesData, campaignsData] = await Promise.allSettled([
           getDashboardMetrics(),
-          getAnalyticsData(),
-          getEnrollments(),
           getPayments(),
-          getScheduleInsights(),
-          getTeachers(),
+          getEnrollments(),
+          getSchedules(),
+          getRenewalCampaigns(),
         ]);
-        setMetrics(metricsData);
-        setAnalytics(analyticsData);
-        setEnrollments(enrollmentsData || []);
-        setPayments(paymentsData || []);
-        setScheduleInsights(insightsData);
-        setTeachers(teachersData || []);
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
+        if (metricsData.status === "fulfilled") setMetrics(metricsData.value);
+        if (paymentsData.status === "fulfilled") setPayments(paymentsData.value ?? []);
+        if (enrollmentsData.status === "fulfilled") setEnrollments(enrollmentsData.value ?? []);
+        if (schedulesData.status === "fulfilled") setSchedules(schedulesData.value ?? []);
+        if (campaignsData.status === "fulfilled") setCampaigns(campaignsData.value ?? []);
+      } catch {
+        // Best-effort — show empty states
       } finally {
         setLoading(false);
       }
-    }
-    loadData();
+    })();
   }, []);
 
-  const overduePayments = useMemo(
+  // ── Derived data ─────────────────────────────────────────────────────────────
+
+  // Cobros pendientes
+  const pendingPayments = useMemo(
     () => payments.filter((p) => p.status === "overdue" || p.status === "pending"),
     [payments]
   );
+  const pendingPaymentsTotal = useMemo(
+    () => pendingPayments.reduce((sum, p) => sum + p.amount, 0),
+    [pendingPayments]
+  );
 
-  const recentEnrollments = useMemo(
-    () => enrollments.slice(0, 5),
+  // Renovaciones — use the most recent active campaign
+  const activeCampaign = useMemo(
+    () => campaigns.find((c) => c.status === "active") ?? campaigns[0] ?? null,
+    [campaigns]
+  );
+
+  // Inscripciones pendientes
+  const pendingEnrollments = useMemo(
+    () => enrollments.filter((e) => e.status === "pending"),
     [enrollments]
   );
 
-  const economy = useMemo(
-    () => buildEconomySnapshot({ payments: payments || [], teachers: teachers || [], months: 6 }),
-    [payments, teachers]
+  // Esta semana — classes per weekday (0=Sun…6=Sat)
+  const classesPerWeekday = useMemo(() => {
+    const counts: Record<number, number> = {};
+    schedules.forEach((s) => { counts[s.weekday] = (counts[s.weekday] ?? 0) + 1; });
+    return counts;
+  }, [schedules]);
+
+  // Working days to display (Mon-Sat = 1-6)
+  const weekDays = [1, 2, 3, 4, 5, 6];
+  const todayWeekday = new Date().getDay(); // 0=Sun
+  const tomorrowWeekday = addDays(new Date(), 1).getDay();
+  const tomorrowSchedules = useMemo(
+    () => schedules.filter((s) => s.weekday === tomorrowWeekday),
+    [schedules, tomorrowWeekday]
   );
 
-  const revenueByMonth = useMemo(() => {
-    if (!analytics?.revenueByMonth) return [];
-    const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    return Object.entries(analytics.revenueByMonth)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, total]) => {
-        const [, m] = month.split("-");
-        return { name: monthNames[parseInt(m) - 1], total: Math.round(total / 100) };
-      })
-      .slice(-6);
-  }, [analytics]);
+  // Actividad reciente — last 5 enrollments sorted by date
+  const recentActivity = useMemo(() => {
+    return [...enrollments]
+      .sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime())
+      .slice(0, 5);
+  }, [enrollments]);
 
-  const STATUS_STYLES: Record<string, string> = {
-    pending: "bg-warning/10 text-warning border-warning/20",
-    confirmed: "bg-success/10 text-success border-success/20",
-    declined: "bg-destructive/10 text-destructive border-destructive/20",
-    cancelled: "bg-muted text-muted-foreground border-border",
-  };
-  const STATUS_LABELS: Record<string, string> = {
-    pending: "Pendiente", confirmed: "Confirmada", declined: "Rechazada", cancelled: "Cancelada",
-  };
+  // Alumnos a destacar — overdue > 30 days + pending renewals
+  const studentsToHighlight = useMemo(() => {
+    const items: Array<{ id: string; name: string; reason: string; action: () => void }> = [];
+    const seen = new Set<string>();
 
-  const formatSafeDate = (value: unknown) => {
-    if (!value) return "Sin fecha";
-    const parsed = new Date(value as string | number | Date);
-    return isValid(parsed) ? format(parsed, "d MMM", { locale: es }) : "Sin fecha";
-  };
+    // Overdue payments > 30 days
+    payments.forEach((p) => {
+      if (seen.has(p.studentId)) return;
+      if (p.status !== "overdue" && p.status !== "pending") return;
+      const daysOverdue = p.dueAt ? differenceInDays(new Date(), new Date(p.dueAt)) : 0;
+      if (daysOverdue >= 30) {
+        seen.add(p.studentId);
+        items.push({
+          id: p.studentId,
+          name: p.studentName,
+          reason: `${daysOverdue}d sin pagar`,
+          action: () => navigate("/admin/payments"),
+        });
+      }
+    });
+
+    // Pending renewals
+    if (activeCampaign && activeCampaign.counts.pending > 0 && items.length < 5) {
+      items.push({
+        id: "renewals-pending",
+        name: `${activeCampaign.counts.pending} alumnos`,
+        reason: "no han renovado aún",
+        action: () => navigate("/admin/renewals"),
+      });
+    }
+
+    return items.slice(0, 5);
+  }, [payments, activeCampaign, navigate]);
+
+  // Greeting name — from email prefix or fallback
+  const userName = useMemo(() => {
+    const email = authContext?.user?.email ?? "";
+    return email ? email.split("@")[0].split(".")[0] : "";
+  }, [authContext]);
+
+  // ── Loading ───────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
-      <PageContainer title="Dashboard" description="Vista general de tu academia">
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      </PageContainer>
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────────
+
   return (
-    <PageContainer title="Dashboard" description="Vista general de tu academia">
-      {/* KPIs */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard 
-          title="Alumnos activos" 
-          value={metrics?.activeStudents ?? 0} 
-          change={`${metrics?.totalStudents ?? 0} en total`} 
-          changeType="neutral" 
-          icon={Users} 
+    <div className="space-y-6 p-4 md:p-6">
+      {/* Greeting */}
+      <div>
+        <h1 className="text-xl font-bold text-foreground">
+          {greeting()}{userName ? `, ${userName}` : ""}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}
+        </p>
+      </div>
+
+      {/* ── Bloque 1: 3 action cards ─────────────────────────────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <ActionCard
+          label="Cobros pendientes"
+          icon={CreditCard}
+          allGood={pendingPayments.length === 0}
+          primary={`${pendingPayments.length} alumnos · ${pendingPaymentsTotal.toLocaleString()}€`}
+          secondary="del mes en curso"
+          actionLabel="Ver cobros"
+          onAction={() => navigate("/admin/payments")}
+          urgent={pendingPayments.length > 0}
         />
-        <StatCard 
-          title={`Ingresos ${new Date().toLocaleString("es-ES", { month: "short" })}`} 
-          value={`${(metrics?.monthRevenue ?? 0).toLocaleString()}€`} 
-          change={
-            (metrics?.overduePayments ?? 0) > 0 
-              ? `${metrics?.overduePayments} pendientes` 
-              : "Todo al día"
-          } 
-          changeType={(metrics?.overduePayments ?? 0) > 0 ? "negative" : "positive"} 
-          icon={CircleDollarSign} 
+        <ActionCard
+          label="Renovaciones"
+          icon={Repeat}
+          allGood={!activeCampaign || activeCampaign.counts.pending === 0}
+          primary={
+            activeCampaign
+              ? `${activeCampaign.counts.confirmed} de ${activeCampaign.counts.total}`
+              : "Sin campaña activa"
+          }
+          secondary={activeCampaign ? "completadas este curso" : ""}
+          actionLabel="Ver renovaciones"
+          onAction={() => navigate("/admin/renewals")}
         />
-        <StatCard 
-          title="Inscripciones" 
-          value={metrics?.pendingEnrollments ?? 0} 
-          change="pendientes" 
-          changeType={(metrics?.pendingEnrollments ?? 0) > 0 ? "neutral" : "positive"} 
-          icon={ClipboardList} 
+        <ActionCard
+          label="Inscripciones"
+          icon={ClipboardList}
+          allGood={pendingEnrollments.length === 0}
+          primary={`${pendingEnrollments.length} solicitudes`}
+          secondary="esperando respuesta"
+          actionLabel="Revisar"
+          onAction={() => navigate("/admin/enrollments")}
         />
       </div>
 
-      {/* Alerts */}
-      {((metrics?.overduePayments ?? 0) > 0 || (metrics?.pendingEnrollments ?? 0) > 0) && (
-        <div className="flex flex-wrap gap-3">
-          {(metrics?.overduePayments ?? 0) > 0 && (
-            <button
-              onClick={() => navigate("/admin/payments")}
-              className="flex items-center gap-2 rounded-lg border border-destructive/15 bg-destructive/5 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <AlertTriangle className="h-4 w-4" />
-              <span className="font-medium">{metrics?.overduePayments} pagos pendientes</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {(metrics?.pendingEnrollments ?? 0) > 0 && (
-            <button
+      {/* ── Bloque 2: Esta semana ─────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-semibold text-foreground">Esta semana</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-muted-foreground"
+            onClick={() => navigate("/admin/classes?view=schedule")}
+          >
+            Ver horario completo <ArrowRight className="ml-1 h-3 w-3" />
+          </Button>
+        </div>
+
+        {/* Day bars */}
+        <div className="grid grid-cols-6 gap-1.5">
+          {weekDays.map((wd) => {
+            const count = classesPerWeekday[wd] ?? 0;
+            const isToday = wd === todayWeekday;
+            const isTomorrow = wd === tomorrowWeekday;
+            const maxCount = Math.max(...weekDays.map((d) => classesPerWeekday[d] ?? 0), 1);
+            const heightPct = count > 0 ? Math.max(20, Math.round((count / maxCount) * 100)) : 8;
+
+            return (
+              <button
+                key={wd}
+                type="button"
+                onClick={() => navigate(`/admin/classes?view=schedule`)}
+                className="flex flex-col items-center gap-1.5 group"
+                title={`${getDayName(wd)}: ${count} clases`}
+              >
+                <div className="w-full flex flex-col items-center justify-end h-16">
+                  <div
+                    className={cn(
+                      "w-full rounded-md transition-colors group-hover:opacity-80",
+                      isToday ? "bg-primary" : isTomorrow ? "bg-primary/40" : "bg-muted"
+                    )}
+                    style={{ height: `${heightPct}%` }}
+                  />
+                </div>
+                <span className={cn(
+                  "text-[11px] font-medium",
+                  isToday ? "text-primary" : isTomorrow ? "text-foreground" : "text-muted-foreground"
+                )}>
+                  {getDayName(wd)}
+                </span>
+                <span className={cn(
+                  "text-[10px]",
+                  count > 0 ? "text-foreground" : "text-muted-foreground/40"
+                )}>
+                  {count > 0 ? count : "—"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tomorrow highlight */}
+        {tomorrowSchedules.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-border/50">
+            <p className="text-xs text-muted-foreground mb-1.5">
+              Mañana ({getDayName(tomorrowWeekday)}) — {tomorrowSchedules.length} {tomorrowSchedules.length === 1 ? "clase" : "clases"}:
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {tomorrowSchedules.slice(0, 4).map((s, i) => (
+                <span key={i} className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-foreground">
+                  {s.startTime?.slice(0, 5) ?? "—"} {s.className ?? s.classId}
+                </span>
+              ))}
+              {tomorrowSchedules.length > 4 && (
+                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
+                  +{tomorrowSchedules.length - 4} más
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Bloque 3: Actividad + Alumnos a destacar ─────────────────────────── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Actividad reciente */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-semibold text-foreground">Actividad reciente</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-muted-foreground"
               onClick={() => navigate("/admin/enrollments")}
-              className="flex items-center gap-2 rounded-lg border border-warning/15 bg-warning/5 px-4 py-2.5 text-sm text-warning hover:bg-warning/10 transition-colors"
             >
-              <ClipboardList className="h-4 w-4" />
-              <span className="font-medium">{metrics?.pendingEnrollments} inscripciones pendientes</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Revenue chart + Financial status (analytics block hidden when module not MVP) */}
-      {isModuleVisible("analytics") ? (
-        <div className="grid gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl border border-border bg-card p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-sm font-medium text-foreground">Ingresos</h3>
-              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate("/admin/analytics")}>
-                Ver más <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={revenueByMonth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 92%)" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 50%)" />
-                <YAxis tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => `${v}€`} />
-                <Tooltip formatter={(v: number) => `${v.toLocaleString()}€`} />
-                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="rounded-xl border border-border bg-card p-6">
-            <h3 className="text-sm font-medium text-foreground mb-5">Balance mensual</h3>
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Ingresos</p>
-                <p className="text-xl font-semibold text-foreground mt-0.5">{economy.monthlyIncome.toLocaleString()}€</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Gastos</p>
-                <p className="text-xl font-semibold text-foreground mt-0.5">{economy.monthlyExpenses.toLocaleString()}€</p>
-              </div>
-              <div className="pt-3 border-t border-border">
-                <p className="text-xs text-muted-foreground">Balance</p>
-                <p className={cn("text-xl font-semibold mt-0.5", economy.monthlyBalance >= 0 ? "text-success" : "text-destructive")}>
-                  {economy.monthlyBalance >= 0 ? "+" : ""}{economy.monthlyBalance.toLocaleString()}€
-                </p>
-              </div>
-              <Button className="w-full" variant="outline" size="sm" onClick={() => navigate("/admin/economia")}>Ver economía</Button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-border bg-card p-6">
-          <h3 className="text-sm font-medium text-foreground mb-5">Balance mensual</h3>
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Ingresos</p>
-              <p className="text-xl font-semibold text-foreground mt-0.5">{economy.monthlyIncome.toLocaleString()}€</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Gastos</p>
-              <p className="text-xl font-semibold text-foreground mt-0.5">{economy.monthlyExpenses.toLocaleString()}€</p>
-            </div>
-            <div className="pt-3 border-t border-border">
-              <p className="text-xs text-muted-foreground">Balance</p>
-              <p className={cn("text-xl font-semibold mt-0.5", economy.monthlyBalance >= 0 ? "text-success" : "text-destructive")}>
-                {economy.monthlyBalance >= 0 ? "+" : ""}{economy.monthlyBalance.toLocaleString()}€
-              </p>
-            </div>
-            <Button className="w-full" variant="outline" size="sm" onClick={() => navigate("/admin/economia")}>Ver economía</Button>
-          </div>
-        </div>
-      )}
-
-      {/* Schedule insights */}
-      <ScheduleInsightsPanel
-        insights={scheduleInsights}
-        compact
-        onViewSchedule={() => navigate("/admin/schedule")}
-      />
-
-      {/* Activity + Payments */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-medium text-foreground">Actividad reciente</h3>
-            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate("/admin/enrollments")}>
-              Ver todas <ArrowRight className="h-3 w-3 ml-1" />
+              Ver todo <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           </div>
-          {recentEnrollments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <UserPlus className="h-5 w-5 text-muted-foreground mb-2" />
+
+          {recentActivity.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+              <TrendingUp className="h-5 w-5 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Sin actividad reciente</p>
             </div>
           ) : (
-            <div className="space-y-1">
-              {recentEnrollments.slice(0, 4).map((e) => (
-                <div key={e.id} className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent">
-                      <UserPlus className="h-3 w-3 text-accent-foreground" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{e.studentName}</p>
-                      <p className="text-[11px] text-muted-foreground">{formatSafeDate(e.createdAt)}</p>
-                    </div>
+            <div className="space-y-0.5">
+              {recentActivity.map((e) => (
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => navigate("/admin/enrollments")}
+                  className="w-full flex items-start gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-accent transition-colors"
+                >
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 mt-0.5">
+                    <UserPlus className="h-3 w-3 text-primary" />
                   </div>
-                  <Badge variant="outline" className={cn("text-[10px] font-medium shrink-0", STATUS_STYLES[e.status])}>
-                    {STATUS_LABELS[e.status]}
-                  </Badge>
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{e.studentName}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {e.classes?.[0]?.name ?? "Inscripción"} · {timeAgo(e.date)}
+                    </p>
+                  </div>
+                  <span className={cn(
+                    "shrink-0 text-[10px] font-medium rounded-full px-2 py-0.5 mt-0.5",
+                    e.status === "confirmed" ? "bg-success/10 text-success" :
+                    e.status === "pending" ? "bg-warning/10 text-warning" :
+                    "bg-muted text-muted-foreground"
+                  )}>
+                    {e.status === "confirmed" ? "Confirmada" : e.status === "pending" ? "Pendiente" : e.status}
+                  </span>
+                </button>
               ))}
             </div>
           )}
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-medium text-foreground">Pagos pendientes</h3>
-            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate("/admin/payments")}>
-              Ver todos <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
+        {/* Alumnos a destacar */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-semibold text-foreground">Alumnos que necesitan atención</p>
           </div>
-          {overduePayments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <CheckCircle className="h-6 w-6 text-success mb-2" />
-              <p className="text-sm font-medium text-foreground">Todo al día</p>
+
+          {studentsToHighlight.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+              <CheckCircle2 className="h-5 w-5 text-success" />
+              <p className="text-sm font-medium text-success">Todo en orden</p>
+              <p className="text-xs text-muted-foreground">No hay alumnos con alertas activas</p>
             </div>
           ) : (
-            <div className="space-y-1">
-              {overduePayments.slice(0, 5).map((p) => (
-                <div key={p.id} className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{p.studentName}</p>
-                    <p className="text-[11px] text-muted-foreground">{p.concept.slice(0, 35)}</p>
+            <div className="space-y-0.5">
+              {studentsToHighlight.map((student) => (
+                <button
+                  key={student.id}
+                  type="button"
+                  onClick={student.action}
+                  className="w-full flex items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-accent transition-colors"
+                >
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-warning/10">
+                    <AlertTriangle className="h-3 w-3 text-warning" />
                   </div>
-                  <p className="text-sm font-semibold text-destructive shrink-0">{p.amount.toLocaleString()}€</p>
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{student.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{student.reason}</p>
+                  </div>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                </button>
               ))}
             </div>
           )}
         </div>
       </div>
-    </PageContainer>
+    </div>
   );
 }
