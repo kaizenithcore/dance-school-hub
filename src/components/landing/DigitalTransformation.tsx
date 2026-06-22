@@ -2,8 +2,11 @@ import { motion } from "framer-motion";
 import { Smartphone, Globe, Palette, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { buildRegisterHref } from "@/lib/commercialCatalog";
 
-const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=digital_transformation";
+const PRO_ANNUAL_CTA_HREF = buildRegisterHref("digital_transformation", {
+  params: { focus: "integrated-web" },
+});
 
 const pillars = [
   {

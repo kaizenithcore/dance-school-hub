@@ -116,3 +116,10 @@
 # /teachers
 - [] Incluir una suma total de los salarios
 - [] En tabla y vista previa se muestran las clases asignadas, pero en asignar clases no se obtiene las clases asignadas previamente y no se muestran las clases reales, parece que se siguen usando datos de ejemplo
+
+
+# en general
+- [ ] todas las tablas deben tener un botón para imprimir resultados
+- [ ] campo para incluir logotipo de las escuelas y usarlo en archivos imprimibles
+
+- revisar última pantalla /auth

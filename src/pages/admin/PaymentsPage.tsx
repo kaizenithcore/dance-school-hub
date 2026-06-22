@@ -284,7 +284,8 @@ export default function PaymentsPage() {
         toast.success("Pago registrado correctamente");
       }
     } catch (error) {
-      toast.error("Error al registrar el pago");
+      const message = error instanceof Error ? error.message : "Error al registrar el pago";
+      toast.error(message);
     }
   }, []);
 
@@ -600,24 +601,20 @@ export default function PaymentsPage() {
 
   return (
     <PageContainer title="Pagos" description="Control de cobros claro y accionable">
-      <section className="mb-4 rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Menos gestión. Más control.</p>
-        <p className="mt-1 text-xs text-muted-foreground">Prioriza pendientes, confirma cobros y evita duplicados desde una sola vista.</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Pagos pendientes</p>
-            <p className="text-lg font-semibold text-foreground">{pendingPaymentsCount}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Pagos confirmados</p>
-            <p className="text-lg font-semibold text-foreground">{paidPaymentsCount}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Cobrado</p>
-            <p className="text-lg font-semibold text-foreground">€{collectedAmount.toFixed(2)}</p>
-          </div>
+      <div className="mb-4 grid gap-2 sm:grid-cols-3">
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Pagos pendientes</p>
+          <p className="text-lg font-semibold text-foreground">{pendingPaymentsCount}</p>
         </div>
-      </section>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Pagos confirmados</p>
+          <p className="text-lg font-semibold text-foreground">{paidPaymentsCount}</p>
+        </div>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Cobrado</p>
+          <p className="text-lg font-semibold text-foreground">€{collectedAmount.toFixed(2)}</p>
+        </div>
+      </div>
 
       <Tabs defaultValue="payments" className="w-full">
         <div className="space-y-3 mb-4">

@@ -138,6 +138,15 @@ export default function ProgressScreen() {
     };
   }, [persona]);
 
+  const filtered = useMemo(
+    () => (cat === "Todos"
+      ? achievements
+      : achievements.filter((a) => a.category === categoryMap[cat])),
+    [cat, achievements]
+  );
+  const activeMissions = useMemo(() => missions.filter((m) => !m.completed), [missions]);
+  const completedMissions = useMemo(() => missions.filter((m) => m.completed), [missions]);
+
   if (persona === "prospect") {
     return (
       <div className="px-4 pb-24 pt-6 space-y-4">
@@ -152,15 +161,9 @@ export default function ProgressScreen() {
     );
   }
 
-  const filtered = cat === "Todos"
-    ? achievements
-    : achievements.filter((a) => a.category === categoryMap[cat]);
-
   const earned = achievements.filter((a) => a.earned).length;
   const xp = student.xp ?? 0;
   const xpNext = student.xpToNextLevel ?? 1000;
-  const activeMissions = useMemo(() => missions.filter((m) => !m.completed), [missions]);
-  const completedMissions = useMemo(() => missions.filter((m) => m.completed), [missions]);
 
   return (
     <div className="px-4 pb-24 pt-6 space-y-6">

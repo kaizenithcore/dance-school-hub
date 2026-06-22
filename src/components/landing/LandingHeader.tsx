@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { buildRegisterHref } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 const nav = [
@@ -10,7 +11,7 @@ const nav = [
   { label: "FAQ", href: "#faq" },
 ];
 
-const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&trial=14d&source=landing_header";
+const PRO_ANNUAL_CTA_HREF = buildRegisterHref("landing_header");
 
 export function LandingHeader() {
   const [open, setOpen] = useState(false);

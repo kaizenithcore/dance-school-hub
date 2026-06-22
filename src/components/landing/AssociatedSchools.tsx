@@ -1,11 +1,24 @@
 import { motion } from "framer-motion";
 import { Check, ArrowRight, Percent, Zap, Upload, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { commercialCatalog } from "@/lib/commercialCatalog";
+import { buildRegisterHref, commercialCatalog, freeTrialDays } from "@/lib/commercialCatalog";
 import { Link } from "react-router-dom";
 
-const benefits = (commercialCatalog as any).examSuit?.associatedSchoolsBenefits;
-const ASSOCIATED_PRO_CTA_HREF = "/auth/register?plan=pro&billing=annual&product=certifier&discount=associated&trial=14d&source=associated_schools";
+interface AssociatedBenefitsCatalog {
+  examSuit?: {
+    associatedSchoolsBenefits?: {
+      title: string;
+      subtitle: string;
+      benefits: string[];
+      closingLine: string;
+    };
+  };
+}
+
+const benefits = (commercialCatalog as unknown as AssociatedBenefitsCatalog).examSuit?.associatedSchoolsBenefits;
+const ASSOCIATED_PRO_CTA_HREF = buildRegisterHref("associated_schools", {
+  params: { product: "certifier", discount: "associated" },
+});
 
 const icons = [Percent, Zap, Upload, History];
 
@@ -54,7 +67,7 @@ export function AssociatedSchools() {
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <Button size="lg" asChild>
                 <Link to={ASSOCIATED_PRO_CTA_HREF}>
-                  Activar Plan Pro con descuento
+                  Activar plan con descuento
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
@@ -62,7 +75,7 @@ export function AssociatedSchools() {
                 <Link to={ASSOCIATED_PRO_CTA_HREF}>Crear cuenta gratis</Link>
               </Button>
             </div>
-            <p className="mt-3 text-center text-xs text-muted-foreground">Prueba gratis 14 días para empezar sin fricción.</p>
+            <p className="mt-3 text-center text-xs text-muted-foreground">Prueba gratis {freeTrialDays} días para empezar sin fricción.</p>
           </div>
         </motion.div>
       </div>

@@ -22,6 +22,8 @@ import { runWithRetry } from "@/lib/reliability";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
 import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
+import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
+import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
 
 const OFFER_STATUS_FILTERS: Array<{ value: "all" | RenewalOfferStatus; label: string }> = [
   { value: "all", label: "Todas" },
@@ -258,6 +260,10 @@ export default function RenewalsPage() {
     setSelectedCampaignId(campaigns[0]?.id || "");
   }, [campaigns, selectedCampaignId]);
 
+  if (!isModuleVisible("renewals")) {
+    return <ModuleDisabledPage moduleKey="renewals" />;
+  }
+
   const handleCreateCampaign = async () => {
     if (renewalsLocked) {
       setLockOpen(true);
@@ -355,24 +361,20 @@ export default function RenewalsPage() {
         />
       ) : null}
 
-      <section className="rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">El sistema que tu academia se merece</p>
-        <p className="mt-1 text-xs text-muted-foreground">Lanza campañas, confirma continuidad y libera plazas en un mismo flujo.</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Campañas activas</p>
-            <p className="text-lg font-semibold text-foreground">{campaigns.length}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Propuestas visibles</p>
-            <p className="text-lg font-semibold text-foreground">{offers.length}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Filtro activo</p>
-            <p className="text-lg font-semibold text-foreground">{OFFER_STATUS_FILTERS.find((item) => item.value === statusFilter)?.label || "Todas"}</p>
-          </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Campañas activas</p>
+          <p className="text-lg font-semibold text-foreground">{campaigns.length}</p>
         </div>
-      </section>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Propuestas visibles</p>
+          <p className="text-lg font-semibold text-foreground">{offers.length}</p>
+        </div>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Filtro activo</p>
+          <p className="text-lg font-semibold text-foreground">{OFFER_STATUS_FILTERS.find((item) => item.value === statusFilter)?.label || "Todas"}</p>
+        </div>
+      </div>
 
       <div className={renewalsLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
 

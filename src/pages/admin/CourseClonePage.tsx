@@ -12,6 +12,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
 import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
+import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
+import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
 
 const CLONE_STATUS_LABELS: Record<CloneJob["status"], string> = {
   queued: "En cola",
@@ -71,6 +73,10 @@ export default function CourseClonePage() {
   useEffect(() => {
     void loadJobs();
   }, []);
+
+  if (!isModuleVisible("course-clone")) {
+    return <ModuleDisabledPage moduleKey="course-clone" />;
+  }
 
   const handleDryRun = async () => {
     if (cloneLocked) {
@@ -146,24 +152,20 @@ export default function CourseClonePage() {
         />
       ) : null}
 
-      <section className="rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">El sistema que tu academia se merece</p>
-        <p className="mt-1 text-xs text-muted-foreground">Usa plantillas de periodo para lanzar el siguiente ciclo con menos fricción.</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Ejecuciones totales</p>
-            <p className="text-lg font-semibold text-foreground">{jobs.length}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Completadas</p>
-            <p className="text-lg font-semibold text-foreground">{completedJobsCount}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Pendientes</p>
-            <p className="text-lg font-semibold text-foreground">{pendingJobsCount}</p>
-          </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Ejecuciones totales</p>
+          <p className="text-lg font-semibold text-foreground">{jobs.length}</p>
         </div>
-      </section>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Completadas</p>
+          <p className="text-lg font-semibold text-foreground">{completedJobsCount}</p>
+        </div>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Pendientes</p>
+          <p className="text-lg font-semibold text-foreground">{pendingJobsCount}</p>
+        </div>
+      </div>
 
       <div className={cloneLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
 

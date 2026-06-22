@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getSchoolSettings } from "@/lib/api/settings";
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
 import { planCatalog } from "@/lib/commercialCatalog";
+import { isModuleEnabledByPolicy } from "@/lib/moduleLifecyclePolicy";
 
 type PlanType = "starter" | "pro" | "enterprise";
 
@@ -133,7 +134,9 @@ export function useBillingEntitlements() {
           renewalAutomation: asBool(features.renewalAutomation),
           courseClone: asBool(features.courseClone),
           massCommunicationEmail: asBool(features.massCommunicationEmail),
-          examSuite: asBool(features.examSuite || features.exam_suite || features.examsuite || features.certifier),
+          examSuite:
+            isModuleEnabledByPolicy("examSuite")
+              && asBool(features.examSuite || features.exam_suite || features.examsuite || features.certifier),
         },
       });
     } finally {

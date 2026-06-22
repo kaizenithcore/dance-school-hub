@@ -7,12 +7,12 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 function buildApiBaseCandidates(): string[] {
   const candidates = new Set<string>();
 
-  if (typeof API_BASE_URL === "string" && API_BASE_URL.trim().length > 0) {
-    candidates.add(API_BASE_URL.trim().replace(/\/$/, ""));
-  }
-
   if (typeof window !== "undefined" && window.location?.origin) {
     candidates.add(window.location.origin.replace(/\/$/, ""));
+  }
+
+  if (typeof API_BASE_URL === "string" && API_BASE_URL.trim().length > 0) {
+    candidates.add(API_BASE_URL.trim().replace(/\/$/, ""));
   }
 
   candidates.add("http://localhost:3000");

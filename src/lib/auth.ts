@@ -36,9 +36,12 @@ export const REMEMBER_ME_STORAGE_KEY = "nexa:auth:remember-me";
 
 const AUTH_CONTEXT_TIMEOUT_MS = 10000;
 
-async function getAuthContextWithTimeout(): Promise<Awaited<ReturnType<typeof getAuthContext>>> {
+async function getAuthContextWithTimeout(options?: {
+  tenantId?: string;
+  organizationId?: string;
+}): Promise<Awaited<ReturnType<typeof getAuthContext>>> {
   return Promise.race([
-    getAuthContext(),
+    getAuthContext(options),
     new Promise<Awaited<ReturnType<typeof getAuthContext>>>((resolve) => {
       window.setTimeout(() => {
         resolve({
@@ -127,7 +130,10 @@ export async function login(credentials: LoginCredentials): Promise<AuthResult> 
     }
 
     // Fetch tenant context from backend
-    const contextResult = await getAuthContextWithTimeout();
+    const contextResult = await getAuthContextWithTimeout({
+      tenantId: getSelectedAdminTenantId() ?? undefined,
+      organizationId: getSelectedAdminOrganizationId() ?? undefined,
+    });
 
     if (!contextResult.success || !contextResult.data) {
       // Auth succeeded but no tenant membership found
@@ -178,20 +184,30 @@ export async function getCurrentAuthContext(): Promise<AuthContextResponse | nul
       return null;
     }
 
-    const contextResult = await getAuthContext({
+    const contextResult = await getAuthContextWithTimeout({
       tenantId: getSelectedAdminTenantId() ?? undefined,
       organizationId: getSelectedAdminOrganizationId() ?? undefined,
     });
-    if (!contextResult.success || !contextResult.data) {
+    if (contextResult.success && contextResult.data) {
+      syncSelectedAdminContext(contextResult.data);
+      return contextResult.data;
+    }
+
+    // Fallback for demo mode/context selection when timeout races first.
+    const fallbackResult = await getAuthContext({
+      tenantId: getSelectedAdminTenantId() ?? undefined,
+      organizationId: getSelectedAdminOrganizationId() ?? undefined,
+    });
+    if (!fallbackResult.success || !fallbackResult.data) {
       return null;
     }
 
-    syncSelectedAdminContext(contextResult.data);
+    syncSelectedAdminContext(fallbackResult.data);
 
-    return contextResult.data;
+    return fallbackResult.data;
   }
 
-  const contextResult = await getAuthContext({
+  const contextResult = await getAuthContextWithTimeout({
     tenantId: getSelectedAdminTenantId() ?? undefined,
     organizationId: getSelectedAdminOrganizationId() ?? undefined,
   });

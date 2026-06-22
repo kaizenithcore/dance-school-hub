@@ -5,13 +5,15 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { freeTrialDays } from "@/lib/commercialCatalog";
 
 const faqs = [
-  { q: "¿Puedo importar mis alumnos desde Excel?", a: "Sí. El importador mapea automáticamente las columnas de tu archivo." },
-  { q: "¿Necesito conocimientos técnicos?", a: "No. Cualquier persona de tu equipo puede usarlo desde el primer día." },
-  { q: "¿Hay periodo de prueba?", a: "Sí. 14 días gratis, sin tarjeta de crédito." },
-  { q: "¿Puedo gestionar varias sedes?", a: "Sí, el plan Enterprise incluye soporte multi-sede completo." },
-  { q: "¿Incluye portal para alumnos?", a: "Sí. Nexa Club permite a los alumnos consultar horarios, clases y certificaciones." },
+  { q: "¿Puedo importar mis alumnos desde Excel?", a: "Sí. El importador mapea automáticamente las columnas de tu archivo y valida los datos antes de importar." },
+  { q: "¿Necesito conocimientos técnicos?", a: "No. Cualquier persona de tu equipo puede usarlo desde el primer día. Está diseñado para directores de escuela, no para informáticos." },
+  { q: "¿Hay periodo de prueba?", a: `Sí. ${freeTrialDays} días gratis, sin tarjeta de crédito y sin compromiso.` },
+  { q: "¿Qué pasa con mis datos si me voy?", a: "Puedes exportar todos tus datos en cualquier momento. No hay penalización por cancelar." },
+  { q: "¿Incluye portal para alumnos?", a: "Sí. El portal del alumno permite consultar horarios, pagos y avisos de la escuela sin necesidad de llamar o mandar mensajes." },
+  { q: "¿Funciona para escuelas pequeñas?", a: "Especialmente. Está pensado para academias de 50 a 500 alumnos que trabajan con Excel, papel o WhatsApp y quieren pasarse a un sistema sin complicarse." },
 ];
 
 export function FAQ() {

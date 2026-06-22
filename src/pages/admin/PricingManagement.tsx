@@ -95,11 +95,6 @@ export function PricingManagement() {
 
   return (
     <PageContainer title="Planes y precios" description="Catálogo simple, claro y fácil de mantener">
-      <section className="rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">El sistema que tu academia se merece</p>
-        <p className="mt-1 text-xs text-muted-foreground">Define precios y paquetes sin ruido técnico, con foco comercial.</p>
-      </section>
-
       <Tabs defaultValue="rules" className="space-y-4">
         <TabsList>
           <TabsTrigger value="rules">Tarifas</TabsTrigger>

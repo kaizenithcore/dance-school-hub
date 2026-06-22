@@ -113,6 +113,14 @@ export interface PublicBranchProfile {
 export interface PublicFormData {
   tenantId: string;
   tenantName: string;
+  branding?: {
+    logoUrl?: string | null;
+    primaryColor?: string;
+    secondaryColor?: string;
+    accentColor?: string | null;
+    fontFamily?: "inter" | "poppins" | "montserrat" | "lato";
+    styleVariant?: "clean" | "rounded" | "bold";
+  };
   branches?: PublicBranchProfile[];
   formConfig: unknown;
   demo?: {
@@ -177,8 +185,18 @@ export const publicEnrollmentService = {
       .eq("tenant_id", tenant.id)
       .maybeSingle();
 
+    const { data: brandingData, error: brandingError } = await supabaseAdmin
+      .from("tenant_branding")
+      .select("logo_url, primary_color, secondary_color, accent_color, font_family, style_variant")
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+
     if (settingsError) {
       console.error("Error fetching school settings:", settingsError);
+    }
+
+    if (brandingError) {
+      console.error("Error fetching tenant branding:", brandingError);
     }
 
     const enrollmentConfig =
@@ -204,6 +222,26 @@ export const publicEnrollmentService = {
       instagram: typeof profileSource.instagram === "string" ? profileSource.instagram : undefined,
       facebook: typeof profileSource.facebook === "string" ? profileSource.facebook : undefined,
       tiktok: typeof profileSource.tiktok === "string" ? profileSource.tiktok : undefined,
+    };
+
+    const branding = {
+      logoUrl: typeof brandingData?.logo_url === "string" ? brandingData.logo_url : undefined,
+      primaryColor: typeof brandingData?.primary_color === "string" ? brandingData.primary_color : undefined,
+      secondaryColor: typeof brandingData?.secondary_color === "string" ? brandingData.secondary_color : undefined,
+      accentColor: typeof brandingData?.accent_color === "string" ? brandingData.accent_color : undefined,
+      fontFamily:
+        brandingData?.font_family === "inter"
+        || brandingData?.font_family === "poppins"
+        || brandingData?.font_family === "montserrat"
+        || brandingData?.font_family === "lato"
+          ? brandingData.font_family
+          : undefined,
+      styleVariant:
+        brandingData?.style_variant === "clean"
+        || brandingData?.style_variant === "rounded"
+        || brandingData?.style_variant === "bold"
+          ? brandingData.style_variant
+          : undefined,
     };
 
     const { data: currentOrgLink } = await supabaseAdmin
@@ -490,6 +528,7 @@ export const publicEnrollmentService = {
     return {
       tenantId: tenant.id,
       tenantName: tenant.name,
+      branding,
       branches,
       formConfig,
       ...(isDemo

@@ -15,6 +15,8 @@ import {
 import { toast } from "sonner";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toastErrorOnce } from "@/lib/toastPremium";
+import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
+import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
 
 const emptyAnalytics: PortalSchoolAnalytics = {
   studentsCount: 0,
@@ -59,6 +61,10 @@ export default function SchoolAnalyticsScreen() {
   useEffect(() => {
     void loadAnalytics();
   }, []);
+
+  if (!isModuleVisible("analytics")) {
+    return <ModuleDisabledPage moduleKey="analytics" />;
+  }
 
   return (
     <PageContainer

@@ -11,43 +11,108 @@ interface AnalyticsStudentRow {
   students: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
 }
 
-interface PaymentRecord {
+interface EnrollmentStudentIdRow {
+  student_id: string;
+}
+
+interface PaymentListRow {
   id: string;
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
-  payerName: string;
-  accountNumber?: string;
-  enrollmentId?: string;
-  concept: string;
-  month: string;
-  amount: number;
+  student_id: string;
+  enrollment_id: string | null;
+  amount_cents: number | null;
   currency: string;
   status: PaymentStatus;
-  method: string;
-  date: string;
-  notes?: string;
-  receiptGenerated?: boolean;
-  paidAt?: string;
-  dueAt?: string;
-  metadata?: Record<string, any>;
-  createdAt: string;
-  amountChanged?: boolean;
+  provider: string | null;
+  paid_at: string | null;
+  due_at: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  students: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
+  enrollments:
+    | {
+        id: string;
+        classes: { name: string | null; price_cents: number | null } | Array<{ name: string | null; price_cents: number | null }> | null;
+        students: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
+      }
+    | Array<{
+        id: string;
+        classes: { name: string | null; price_cents: number | null } | Array<{ name: string | null; price_cents: number | null }> | null;
+        students: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
+      }>
+    | null;
+}
+
+interface PaymentMetricRow {
+  student_id: string;
+  amount_cents: number | null;
+  status: PaymentStatus;
+  paid_at: string | null;
+  due_at?: string | null;
+  created_at?: string | null;
+  provider?: string | null;
+}
+
+interface EnrollmentStatusRow {
+  id: string;
+  status: string;
+}
+
+interface ClassEnrollmentRow {
+  id: string;
+  status: string;
+  classes: { id: string; name: string } | Array<{ id: string; name: string }> | null;
+}
+
+interface ActiveStudentRow {
+  id: string;
+  status: string;
+}
+
+interface ActiveClassRow {
+  id: string;
+  capacity: number | null;
+  status: string;
+}
+
+export class InvalidPaymentAmountError extends Error {
+  constructor() {
+    super("Payment amount must be greater than zero");
+    this.name = "InvalidPaymentAmountError";
+  }
+}
+
+export class DuplicatePaymentError extends Error {
+  constructor() {
+    super("A payment with the same student, concept, amount and month already exists");
+    this.name = "DuplicatePaymentError";
+  }
+}
+
+async function getConfirmedStudentIds(tenantId: string): Promise<Set<string>> {
+  const { data: confirmedEnrollmentRows, error: confirmedEnrollmentError } = await supabaseAdmin
+    .from("enrollments")
+    .select("student_id")
+    .eq("tenant_id", tenantId)
+    .eq("status", "confirmed");
+
+  if (confirmedEnrollmentError) {
+    throw new Error(`Failed to validate enrolled students: ${confirmedEnrollmentError.message}`);
+  }
+
+  return new Set((confirmedEnrollmentRows || []).map((row: EnrollmentStudentIdRow) => row.student_id));
+}
+
+function normalizeConcept(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().toLowerCase();
 }
 
 export const paymentService = {
   async listPayments(tenantId: string) {
-    const { data: confirmedEnrollmentRows, error: confirmedEnrollmentError } = await supabaseAdmin
-      .from("enrollments")
-      .select("student_id")
-      .eq("tenant_id", tenantId)
-      .eq("status", "confirmed");
-
-    if (confirmedEnrollmentError) {
-      throw new Error(`Failed to validate enrolled students: ${confirmedEnrollmentError.message}`);
-    }
-
-    const confirmedStudentIds = new Set((confirmedEnrollmentRows || []).map((row: any) => row.student_id));
+    const confirmedStudentIds = await getConfirmedStudentIds(tenantId);
 
     const { data, error } = await supabaseAdmin
       .from("payments")
@@ -79,7 +144,8 @@ export const paymentService = {
       throw new Error(`Failed to fetch payments: ${error.message}`);
     }
 
-    const paymentIds = (data ?? []).map((payment: any) => payment.id);
+    const paymentRows = (data ?? []) as PaymentListRow[];
+    const paymentIds = paymentRows.map((payment) => payment.id);
     const { data: receiptRows, error: receiptError } = paymentIds.length > 0
       ? await supabaseAdmin
           .from("receipts")
@@ -94,12 +160,12 @@ export const paymentService = {
 
     const receiptByPaymentId = new Set((receiptRows || []).map((row: { payment_id: string }) => row.payment_id));
 
-    return (data ?? [])
-      .filter((payment: any) => confirmedStudentIds.has(payment.student_id))
-      .map((payment: any) => {
-      const student = payment.students;
+    return paymentRows
+      .filter((payment) => confirmedStudentIds.has(payment.student_id))
+      .map((payment) => {
+      const student = Array.isArray(payment.students) ? payment.students[0] : payment.students;
       const enrollment = Array.isArray(payment.enrollments) ? payment.enrollments[0] : payment.enrollments;
-      const cls = enrollment?.classes;
+      const cls = Array.isArray(enrollment?.classes) ? enrollment.classes[0] : enrollment?.classes;
       const metadata = payment.metadata ?? {};
       const month =
         typeof metadata.month === "string" && metadata.month.length >= 7
@@ -148,6 +214,8 @@ export const paymentService = {
   },
 
   async getDashboardMetrics(tenantId: string) {
+    const confirmedStudentIds = await getConfirmedStudentIds(tenantId);
+
     // Get active students count
     const { data: students } = await supabaseAdmin
       .from("students")
@@ -168,15 +236,17 @@ export const paymentService = {
 
     const { data: payments } = await supabaseAdmin
       .from("payments")
-      .select("amount_cents, status, paid_at")
+      .select("student_id, amount_cents, status, paid_at")
       .eq("tenant_id", tenantId);
 
-    const monthRevenue = (payments || [])
-      .filter((p: any) => p.status === "paid" && p.paid_at?.startsWith(currentMonth))
-      .reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0);
+    const scopedPayments = ((payments || []) as PaymentMetricRow[]).filter((p) => confirmedStudentIds.has(p.student_id));
 
-    const overduePayments = (payments || []).filter(
-      (p: any) => p.status === "pending" || p.status === "overdue"
+    const monthRevenue = scopedPayments
+      .filter((p) => p.status === "paid" && p.paid_at?.startsWith(currentMonth))
+      .reduce((sum: number, p) => sum + (p.amount_cents || 0), 0);
+
+    const overduePayments = scopedPayments.filter(
+      (p) => p.status === "pending" || p.status === "overdue"
     );
 
     const pendingEnrollments = (await supabaseAdmin
@@ -190,7 +260,7 @@ export const paymentService = {
       .select("id, status")
       .eq("tenant_id", tenantId)).data || [];
 
-    const confirmedCount = allEnrollments.filter((e: any) => e.status === "confirmed").length;
+    const confirmedCount = ((allEnrollments || []) as EnrollmentStatusRow[]).filter((e) => e.status === "confirmed").length;
     const enrollmentRate = allEnrollments.length > 0 ? Math.round((confirmedCount / allEnrollments.length) * 100) : 0;
 
     return {
@@ -207,16 +277,23 @@ export const paymentService = {
   },
 
   async getAnalyticsData(tenantId: string) {
+    const confirmedStudentIds = await getConfirmedStudentIds(tenantId);
+
     // Get all payments for revenue analysis
     const { data: payments } = await supabaseAdmin
       .from("payments")
-      .select("amount_cents, status, paid_at, due_at, created_at, provider")
+      .select("student_id, amount_cents, status, paid_at, due_at, created_at, provider")
       .eq("tenant_id", tenantId);
 
     const { data: studentPayments } = await supabaseAdmin
       .from("payments")
       .select("student_id, amount_cents, status, paid_at, due_at, students(name, email)")
       .eq("tenant_id", tenantId);
+
+    const scopedPayments = ((payments || []) as PaymentMetricRow[]).filter((payment) => confirmedStudentIds.has(payment.student_id));
+    const scopedStudentPayments = (studentPayments || []).filter((payment: AnalyticsStudentRow) =>
+      Boolean(payment.student_id && confirmedStudentIds.has(payment.student_id))
+    );
 
     const { data: students } = await supabaseAdmin
       .from("students")
@@ -248,17 +325,17 @@ export const paymentService = {
     // Revenue and pending by month
     const revenueByMonth: Record<string, number> = {};
     const pendingByMonth: Record<string, number> = {};
-    const paidPayments = (payments || []).filter((p: any) => p.status === "paid");
-    const pendingOrOverduePayments = (payments || []).filter((p: any) => p.status === "pending" || p.status === "overdue");
+    const paidPayments = scopedPayments.filter((p) => p.status === "paid");
+    const pendingOrOverduePayments = scopedPayments.filter((p) => p.status === "pending" || p.status === "overdue");
     
-    paidPayments.forEach((p: any) => {
+    paidPayments.forEach((p) => {
       if (p.paid_at) {
         const month = p.paid_at.substring(0, 7);
         revenueByMonth[month] = (revenueByMonth[month] || 0) + (p.amount_cents || 0);
       }
     });
 
-    pendingOrOverduePayments.forEach((p: any) => {
+    pendingOrOverduePayments.forEach((p) => {
       const referenceDate = p.due_at || p.created_at;
       if (referenceDate) {
         const month = referenceDate.substring(0, 7);
@@ -277,14 +354,14 @@ export const paymentService = {
 
     // Enrollments by status
     const enrollmentsByStatus: Record<string, number> = {};
-    (enrollments || []).forEach((e: any) => {
+    ((enrollments || []) as EnrollmentStatusRow[]).forEach((e) => {
       enrollmentsByStatus[e.status] = (enrollmentsByStatus[e.status] || 0) + 1;
     });
 
     // Students per class
     const studentsByClass: Record<string, number> = {};
     const confirmedStudentsByClassId: Record<string, number> = {};
-    (classEnrollments || []).forEach((ce: any) => {
+    ((classEnrollments || []) as ClassEnrollmentRow[]).forEach((ce) => {
       const cls = Array.isArray(ce.classes) ? ce.classes[0] : ce.classes;
       if (cls) {
         studentsByClass[cls.name] = (studentsByClass[cls.name] || 0) + 1;
@@ -296,24 +373,24 @@ export const paymentService = {
 
     // Payment method distribution
     const methodDistribution: Record<string, number> = {};
-    (payments || []).forEach((p: any) => {
+    scopedPayments.forEach((p) => {
       const method = p.provider || "manual";
       methodDistribution[method] = (methodDistribution[method] || 0) + 1;
     });
 
-    const totalRevenueCents = paidPayments.reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0);
-    const pendingRevenueCents = (payments || [])
-      .filter((p: any) => p.status === "pending" || p.status === "overdue")
-      .reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0);
-    const overdueRevenueCents = (payments || [])
-      .filter((p: any) => p.status === "overdue")
-      .reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0);
+    const totalRevenueCents = paidPayments.reduce((sum: number, p) => sum + (p.amount_cents || 0), 0);
+    const pendingRevenueCents = scopedPayments
+      .filter((p) => p.status === "pending" || p.status === "overdue")
+      .reduce((sum: number, p) => sum + (p.amount_cents || 0), 0);
+    const overdueRevenueCents = scopedPayments
+      .filter((p) => p.status === "overdue")
+      .reduce((sum: number, p) => sum + (p.amount_cents || 0), 0);
 
-    const activeStudentsCount = (students || []).filter((student: any) => student.status === "active").length;
+    const activeStudentsCount = ((students || []) as ActiveStudentRow[]).filter((student) => student.status === "active").length;
     const paidStudentMap = new Map<string, { studentName: string; totalPaidCents: number; paymentsCount: number; lastPaymentAt: string | null }>();
     const pendingStudentMap = new Map<string, { studentName: string; pendingCents: number; itemsCount: number; latestDueAt: string | null }>();
 
-    (studentPayments || []).forEach((payment: AnalyticsStudentRow) => {
+    scopedStudentPayments.forEach((payment: AnalyticsStudentRow) => {
       if (!payment.student_id) {
         return;
       }
@@ -382,11 +459,12 @@ export const paymentService = {
     const overdueStudentsCount = Array.from(
       new Set(
         (studentPayments || [])
+          .filter((payment: AnalyticsStudentRow) => Boolean(payment.student_id && confirmedStudentIds.has(String(payment.student_id))))
           .filter((payment: AnalyticsStudentRow) => payment.status === "overdue" && Boolean(payment.student_id))
           .map((payment: AnalyticsStudentRow) => String(payment.student_id))
       )
     ).length;
-    const totalCapacity = (classes || []).reduce((sum: number, klass: any) => sum + Number(klass.capacity || 0), 0);
+    const totalCapacity = ((classes || []) as ActiveClassRow[]).reduce((sum: number, klass) => sum + Number(klass.capacity || 0), 0);
     const totalConfirmedEnrollments = Object.values(confirmedStudentsByClassId).reduce((sum, value) => sum + value, 0);
     const occupancyPct = totalCapacity > 0 ? Math.round((totalConfirmedEnrollments / totalCapacity) * 100) : 0;
     const revenuePerConfirmedEnrollment = totalConfirmedEnrollments > 0
@@ -411,7 +489,7 @@ export const paymentService = {
       payingStudentsPct: activeStudentsCount > 0 ? Math.round((payingStudentsCount / activeStudentsCount) * 100) : 0,
       potentialRevenue: Math.round(potentialRevenueCents / 100),
       potentialCollectionPct: potentialRevenueCents > 0 ? Math.round((totalRevenueCents / potentialRevenueCents) * 100) : 0,
-      overduePaymentsCount: (payments || []).filter((p: any) => p.status === "overdue").length,
+      overduePaymentsCount: scopedPayments.filter((p) => p.status === "overdue").length,
       overdueStudentsCount,
       overdueRevenue: Math.round(overdueRevenueCents / 100),
       occupancyPct,
@@ -428,8 +506,12 @@ export const paymentService = {
     studentId: string,
     amountCents: number,
     status: PaymentStatus = "paid",
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) {
+    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+      throw new InvalidPaymentAmountError();
+    }
+
     const { count: confirmedCount, error: enrollmentError } = await supabaseAdmin
       .from("enrollments")
       .select("id", { count: "exact", head: true })
@@ -482,13 +564,47 @@ export const paymentService = {
       linkedInvoice = invoiceData ?? null;
     }
 
-    const paymentMetadata: Record<string, any> = {
+    const paymentMetadata: Record<string, unknown> = {
       ...metadata,
     };
 
     if (linkedInvoice?.id) {
       paymentMetadata.invoice_id = linkedInvoice.id;
       paymentMetadata.invoice_number = linkedInvoice.invoice_number;
+    }
+
+    // Idempotency for non invoice-linked manual payments.
+    if (!linkedInvoice?.id && monthFromMetadata) {
+      const duplicateCandidates = await supabaseAdmin
+        .from("payments")
+        .select("id, status, metadata")
+        .eq("tenant_id", tenantId)
+        .eq("student_id", studentId)
+        .eq("amount_cents", amountCents)
+        .in("status", ["pending", "overdue", "paid"])
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      const targetConcept = normalizeConcept(paymentMetadata.concept);
+
+      const duplicated = (duplicateCandidates.data || []).some((candidate: { metadata: Record<string, unknown> | null }) => {
+        const candidateMetadata =
+          candidate.metadata && typeof candidate.metadata === "object"
+            ? (candidate.metadata as Record<string, unknown>)
+            : {};
+
+        const candidateMonth = typeof candidateMetadata.month === "string" ? candidateMetadata.month : null;
+        if (candidateMonth !== monthFromMetadata) {
+          return false;
+        }
+
+        const candidateConcept = normalizeConcept(candidateMetadata.concept);
+        return candidateConcept.length > 0 && candidateConcept === targetConcept;
+      });
+
+      if (duplicated) {
+        throw new DuplicatePaymentError();
+      }
     }
 
     // Idempotency for invoice-linked payments: reuse the existing payment row.
@@ -507,7 +623,7 @@ export const paymentService = {
       if (existingInvoicePayment?.id) {
         const existingMetadata =
           existingInvoicePayment.metadata && typeof existingInvoicePayment.metadata === "object"
-            ? (existingInvoicePayment.metadata as Record<string, any>)
+            ? (existingInvoicePayment.metadata as Record<string, unknown>)
             : {};
 
         const now = new Date().toISOString();

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useOutlet } from "react-router-dom";
-import { AdminSidebar } from "./AdminSidebar";
-import { Topbar } from "./Topbar";
+import { AdminShell } from "@/components/shell/AdminShell";
 import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedPage } from "@/components/ui/animated";
 import { PlanDevOverlay } from "@/components/dev/PlanDevOverlay";
@@ -13,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getSchoolSettings, syncTrialPaymentStatusFromStripe, updateSchoolSettings } from "@/lib/api/settings";
-import { redirectToBillingCheckout, redirectToExamSubscriptionCheckout } from "@/lib/api/stripe";
+import { redirectToBillingCheckout } from "@/lib/api/stripe";
 import { toast } from "sonner";
 import type { BillingCycle } from "@/lib/api/stripe";
 import { Check, CircleHelp, Copy } from "lucide-react";
@@ -29,7 +28,7 @@ const SECTION_INTRO_MODAL_DURATION_MS = 5200;
 const FIRST_LOGIN_GUIDE_PENDING_KEY = "nexa:first-login-guide-pending";
 const FIRST_LOGIN_GUIDE_SHOWN_KEY = "nexa:first-login-guide-shown:v1";
 const QUICK_HELP_HINT_AUTOHIDE_MS = 2600;
-const FREE_TRIAL_DAYS = 14;
+const FREE_TRIAL_DAYS = commercialCatalog.mvpOffer?.trialDays ?? 30;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const TRIAL_WARNING_DAYS = 3;
 const TRIAL_STRIPE_SYNC_TOAST_KEY = "nexa:trial-stripe-sync-toast:v1";
@@ -48,7 +47,7 @@ const COMMERCIAL_INCLUDED_ADDON_MONTHS = 3;
 
 type CheckoutPlanType = CatalogPlanType;
 type CheckoutAddonKey = SubscriptionAddonKey;
-type CheckoutFlowType = "nexa" | "certifier" | "certifierLite";
+type CheckoutFlowType = "nexa";
 type AnnualFinancingMonths = 3 | 6 | 12;
 type CheckoutPaymentMethod = "card" | "sepa" | "transfer";
 
@@ -83,8 +82,6 @@ function getAdvisorRecommendation(students: number): { recommendedPlan: Checkout
   return { recommendedPlan: "enterprise", recommendedTermMonths: 12, studentsHint: "700 alumnos o más" };
 }
 
-const CERTIFIER_ASSOCIATIONS_PLAN = commercialCatalog.examSuit?.plans?.associations;
-const CERTIFIER_SCHOOLS_PLAN = commercialCatalog.examSuit?.plans?.schools;
 
 function toCheckoutPlanType(value: string): CheckoutPlanType {
   if (value === "pro" || value === "enterprise") {
@@ -95,188 +92,143 @@ function toCheckoutPlanType(value: string): CheckoutPlanType {
 }
 
 function readRegisterDefaults() {
-  const defaults = {
-    planType: null as CheckoutPlanType | null,
-    addons: {
-      customDomain: false,
-      prioritySupport: false,
-      waitlistAutomation: false,
-      renewalAutomation: false,
-    },
-  };
+  return (
+    <AdminShell>
+      <div className="border-b border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground md:px-6">
+        <span className="font-medium text-foreground">Plan {planLabel}</span>
+        <span className="mx-2">·</span>
+        <span>Límite alumnos activos: {billing.maxActiveStudents}</span>
+        <span className="mx-2">·</span>
+        <span>Incluidos base: {billing.includedActiveStudents}</span>
+        {bannerTrialText ? (
+          <>
+            <span className="mx-2">·</span>
+            <span className={bannerTrialToneClass}>
+              {bannerTrialText}
+              {trialEndsAtLabel ? ` (fin: ${trialEndsAtLabel})` : ""}
+            </span>
+          </>
+        ) : null}
+      </div>
+      {isDemoSession ? (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 md:px-6">
+          Estás en el tenant demo de solo lectura. Puedes explorar el panel real, pero los cambios no se guardan.
+        </div>
+      ) : null}
+      {!isOnline ? (
+        <div className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-900 md:px-6">
+          Sin conexión. Mostramos los últimos datos disponibles y algunas acciones pueden fallar hasta reconectar.
+        </div>
+      ) : null}
+      <main className="relative flex-1 overflow-hidden p-4 md:p-6">
+        {!showTrialLockModal && !showTrialLoadingModal ? (
+          <AnimatedPage key={location.pathname} animateOnMount={!firstRenderRef.current}>
+            {outlet}
+          </AnimatedPage>
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-sm text-muted-foreground">
+              {showTrialLoadingModal
+                ? "Estamos preparando tu panel..."
+                : "Acceso bloqueado hasta completar el pago del plan."}
+            </p>
+          </div>
+        )}
 
-  try {
-    const rawPlan = window.localStorage.getItem("selected_plan");
-    if (rawPlan === "starter" || rawPlan === "pro" || rawPlan === "enterprise") {
-      defaults.planType = rawPlan;
-    }
+        {isRouteTransitioning && !showTrialLockModal && !showTrialLoadingModal ? (
+          <motion.div
+            key={`route-transition-${location.pathname}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: ROUTE_TRANSITION_BLOCK_MS / 1000, ease: "easeOut" }}
+            className="pointer-events-none absolute inset-0 z-30 bg-background/90 backdrop-blur-[1px]"
+          />
+        ) : null}
 
-    const rawAddons = window.localStorage.getItem("selected_addons");
-    if (!rawAddons) {
-      return defaults;
-    }
+        {showWelcomeOverlay && !showTrialLockModal && !showTrialLoadingModal ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 z-40 flex items-center justify-center bg-background/95"
+          >
+            <div className="rounded-xl border border-border bg-card px-6 py-5 shadow-medium">
+              <p className="text-base font-semibold text-foreground">Bienvenido a Nexa</p>
+              <p className="mt-1 text-sm text-muted-foreground">Preparando tus datos...</p>
+            </div>
+          </motion.div>
+        ) : null}
 
-    const parsed = JSON.parse(rawAddons);
-    if (!Array.isArray(parsed)) {
-      return defaults;
-    }
+        {activeSectionIntro && !showTrialLockModal && !showTrialLoadingModal ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 z-35 flex items-center justify-center bg-background/75 px-4"
+          >
+            <div className="w-full max-w-xl rounded-xl border border-border bg-card p-6 shadow-medium">
+              <p className="text-lg font-semibold text-foreground">{activeSectionIntro.title}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{activeSectionIntro.summary}</p>
+              <div className="mt-4 flex justify-end">
+                <Button size="sm" onClick={() => setActiveSectionIntro(null)}>
+                  Entendido
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
 
-    const selected = new Set(parsed.filter((item): item is string => typeof item === "string"));
+        {!showTrialLockModal && !showTrialLoadingModal ? (
+          <div className="pointer-events-none absolute bottom-20 right-4 z-[80] flex items-end gap-2 md:bottom-24 md:right-6">
+            <AnimatePresence>
+              {sectionIntroForPath && showQuickHelpHint ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.2 }}
+                  className="pointer-events-none hidden max-w-xs rounded-lg border border-border bg-card/95 px-3 py-2 text-left shadow-medium lg:block"
+                >
+                  <p className="text-xs font-semibold text-foreground">Guía rápida: {sectionIntroForPath.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{sectionIntroForPath.summary}</p>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
 
-    defaults.addons.customDomain = selected.has("customDomain");
-    defaults.addons.prioritySupport = selected.has("prioritySupport");
-    defaults.addons.waitlistAutomation = selected.has("waitlistAutomation");
-    defaults.addons.renewalAutomation = selected.has("renewalAutomation");
-  } catch {
-    return defaults;
-  }
-
-  return defaults;
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  className="pointer-events-auto h-12 w-12 rounded-full shadow-medium"
+                  aria-label={sectionIntroForPath ? `Mostrar guía de ${sectionIntroForPath.title}` : "Mostrar guía de inicio"}
+                  onClick={openContextualHelp}
+                  onMouseEnter={revealQuickHelpHint}
+                  onFocus={revealQuickHelpHint}
+                  onMouseLeave={hideQuickHelpHint}
+                  onBlur={hideQuickHelpHint}
+                >
+                  <CircleHelp className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                {sectionIntroForPath ? "Volver a ver ayuda de esta sección" : "Ver guía de inicio"}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        ) : null}
+      </main>
+      <PlanDevOverlay />
+    </AdminShell>
+  );
 }
 
-type SectionIntro = {
-  key: string;
-  title: string;
-  summary: string;
-};
+type SectionIntro = { key: string; title: string; summary: string };
 
 const SECTION_INTROS: Array<{ prefix: string; intro: SectionIntro }> = [
-  {
-    prefix: "/admin/form-builder",
-    intro: {
-      key: "form-builder",
-      title: "Formulario de inscripción",
-      summary: "Personaliza campos y orden del formulario público para captar datos sin errores.",
-    },
-  },
-  {
-    prefix: "/admin/course-clone",
-    intro: {
-      key: "course-clone",
-      title: "Duplicar cursos",
-      summary: "Copia estructura y horarios de un curso anterior para preparar el siguiente ciclo más rápido.",
-    },
-  },
-  {
-    prefix: "/admin/schedule",
-    intro: {
-      key: "schedule",
-      title: "Horarios",
-      summary: "Organiza clases por día, hora y aula para mantener una planificación clara.",
-    },
-  },
-  {
-    prefix: "/admin/classes",
-    intro: {
-      key: "classes",
-      title: "Clases",
-      summary: "Gestiona grupos, niveles y cupos disponibles de cada clase.",
-    },
-  },
-  {
-    prefix: "/admin/rooms",
-    intro: {
-      key: "rooms",
-      title: "Aulas",
-      summary: "Define aulas y su capacidad para evitar solapes y sobreocupaciones.",
-    },
-  },
-  {
-    prefix: "/admin/teachers",
-    intro: {
-      key: "teachers",
-      title: "Profesores",
-      summary: "Administra docentes, disponibilidad y asignaciones por clase.",
-    },
-  },
-  {
-    prefix: "/admin/students",
-    intro: {
-      key: "students",
-      title: "Alumnos",
-      summary: "Consulta fichas, estado y progreso académico de tu alumnado.",
-    },
-  },
-  {
-    prefix: "/admin/enrollments",
-    intro: {
-      key: "enrollments",
-      title: "Inscripciones",
-      summary: "Revisa y gestiona altas, cambios y estado de cada matrícula.",
-    },
-  },
-  {
-    prefix: "/admin/pricing",
-    intro: {
-      key: "pricing",
-      title: "Tarifas y bonos",
-      summary: "Configura precios, bonos y reglas de cobro según tu oferta.",
-    },
-  },
-  {
-    prefix: "/admin/payments",
-    intro: {
-      key: "payments",
-      title: "Pagos",
-      summary: "Controla cobros, pendientes y movimientos de caja desde un único lugar.",
-    },
-  },
-  {
-    prefix: "/admin/communications",
-    intro: {
-      key: "communications",
-      title: "Comunicación",
-      summary: "Envía mensajes segmentados a alumnos, familias o grupos concretos.",
-    },
-  },
-  {
-    prefix: "/admin/waitlist",
-    intro: {
-      key: "waitlist",
-      title: "Lista de espera",
-      summary: "Gestiona demanda cuando no hay plazas y activa avisos de disponibilidad.",
-    },
-  },
-  {
-    prefix: "/admin/renewals",
-    intro: {
-      key: "renewals",
-      title: "Renovaciones",
-      summary: "Automatiza confirmaciones para mantener continuidad de alumnado por curso.",
-    },
-  },
-  {
-    prefix: "/admin/reception",
-    intro: {
-      key: "reception",
-      title: "Recepción",
-      summary: "Registra gestiones diarias de atención y seguimiento rápido en mostrador.",
-    },
-  },
-  {
-    prefix: "/admin/branches",
-    intro: {
-      key: "branches",
-      title: "Sedes",
-      summary: "Centraliza métricas y configuración clave de todas las sedes desde un solo lugar.",
-    },
-  },
-  {
-    prefix: "/admin/exams",
-    intro: {
-      key: "exams",
-      title: "Certifier",
-      summary: "Gestiona certificaciones con Certifier y automatiza resultados.",
-    },
-  },
-  {
-    prefix: "/admin/school/settings",
-    intro: {
-      key: "school-settings",
-      title: "Perfil de escuela",
-      summary: "Actualiza la identidad pública y branding para el portal de alumnos.",
-    },
-  },
   {
     prefix: "/admin/school/analytics",
     intro: {
@@ -307,14 +259,6 @@ const SECTION_INTROS: Array<{ prefix: string; intro: SectionIntro }> = [
       key: "school-gallery",
       title: "Galería",
       summary: "Organiza álbumes y fotos para mostrar clases y eventos en el portal.",
-    },
-  },
-  {
-    prefix: "/admin/organization-access",
-    intro: {
-      key: "organization-access",
-      title: "Roles y escuelas",
-      summary: "Gestiona miembros, permisos y escuelas vinculadas dentro de una misma cuenta.",
     },
   },
   {
@@ -376,8 +320,6 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const outlet = useOutlet();
-  const [displayedPathname, setDisplayedPathname] = useState(location.pathname);
-  const [displayedOutlet, setDisplayedOutlet] = useState(outlet);
   const [isRouteTransitioning, setIsRouteTransitioning] = useState(false);
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
   const [showFirstLoginGuide, setShowFirstLoginGuide] = useState(false);
@@ -625,28 +567,12 @@ export function AdminLayout() {
   }, [isStarterCheckout]);
 
   const checkoutPlanMonthlyPrice = useMemo(() => {
-    if (isNexaCheckout) {
-      return CHECKOUT_PLANS[checkoutPlanType].monthlyPriceEur;
-    }
-
-    if (checkoutFlow === "certifier") {
-      return CERTIFIER_ASSOCIATIONS_PLAN?.billing.monthlyPriceEur ?? 299;
-    }
-
-    return CERTIFIER_SCHOOLS_PLAN?.billing.monthlyPriceEur ?? 129;
-  }, [checkoutFlow, checkoutPlanType, isNexaCheckout]);
+    return CHECKOUT_PLANS[checkoutPlanType].monthlyPriceEur;
+  }, [checkoutPlanType]);
 
   const checkoutPlanAnnualPrice = useMemo(() => {
-    if (isNexaCheckout) {
-      return planCatalog[checkoutPlanType].billing.annualTotalEur;
-    }
-
-    if (checkoutFlow === "certifier") {
-      return CERTIFIER_ASSOCIATIONS_PLAN?.billing.annualTotalEur ?? 2988;
-    }
-
-    return CERTIFIER_SCHOOLS_PLAN?.billing.annualTotalEur ?? 1188;
-  }, [checkoutFlow, checkoutPlanType, isNexaCheckout]);
+    return planCatalog[checkoutPlanType].billing.annualTotalEur;
+  }, [checkoutPlanType]);
 
   const checkoutAddonsMonthlyTotal = useMemo(() => {
     return selectableCheckoutAddons.reduce((sum, addon) => {
@@ -674,16 +600,8 @@ export function AdminLayout() {
   const proIsBetterDeal = isStarterCheckout && proMonthlyDelta === 0;
 
   const selectedOfferLabel = useMemo(() => {
-    if (isNexaCheckout) {
-      return CHECKOUT_PLANS[checkoutPlanType].label;
-    }
-
-    if (checkoutFlow === "certifier") {
-      return CERTIFIER_ASSOCIATIONS_PLAN?.name ?? "Certifier";
-    }
-
-    return CERTIFIER_SCHOOLS_PLAN?.name ?? "Certifier Lite";
-  }, [checkoutFlow, checkoutPlanType, isNexaCheckout]);
+    return CHECKOUT_PLANS[checkoutPlanType].label;
+  }, [checkoutPlanType]);
 
   const checkoutCycleTotalLabel = useMemo(() => {
     if (checkoutBillingCycle === "annual") {
@@ -784,7 +702,7 @@ export function AdminLayout() {
         usePromoInSimulator?: boolean;
       };
 
-      if (persisted.flow === "nexa" || persisted.flow === "certifier" || persisted.flow === "certifierLite") {
+      if (persisted.flow === "nexa") {
         setCheckoutFlow(persisted.flow);
       }
 
@@ -928,19 +846,6 @@ export function AdminLayout() {
         });
         return;
       }
-
-      const result = await redirectToExamSubscriptionCheckout({
-        plan: checkoutFlow === "certifier" ? "core" : "lite",
-        billingCycle: checkoutBillingCycle,
-        successUrl: `${window.location.origin}/admin/settings?tab=billing&stripe=success&module=examsuit`,
-        cancelUrl: `${window.location.origin}/admin/settings?tab=billing&stripe=cancel&module=examsuit`,
-      });
-
-      if (!result.checkoutUrl) {
-        toast.success("Solicitud de compra enviada. Te contactaremos para completar la activación.");
-        await refresh();
-        setCheckoutLoading(false);
-      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo iniciar el proceso de pago";
       toast.error(message);
@@ -1053,19 +958,17 @@ export function AdminLayout() {
   }, []);
 
   useEffect(() => {
-    if (location.pathname === displayedPathname) {
+    if (firstRenderRef.current) {
       return;
     }
 
     setIsRouteTransitioning(true);
     const timer = window.setTimeout(() => {
-      setDisplayedPathname(location.pathname);
-      setDisplayedOutlet(outlet);
       setIsRouteTransitioning(false);
     }, ROUTE_TRANSITION_BLOCK_MS);
 
     return () => window.clearTimeout(timer);
-  }, [displayedPathname, location.pathname, outlet]);
+  }, [location.pathname]);
 
   useEffect(() => {
     setShowQuickHelpHint(false);
@@ -1275,8 +1178,8 @@ export function AdminLayout() {
         ) : null}
         <main className="relative flex-1 overflow-hidden p-4 md:p-6">
           {!showTrialLockModal && !showTrialLoadingModal ? (
-            <AnimatedPage key={displayedPathname} animateOnMount={!firstRenderRef.current}>
-              {displayedOutlet}
+            <AnimatedPage key={location.pathname} animateOnMount={!firstRenderRef.current}>
+              {outlet}
             </AnimatedPage>
           ) : (
             <div className="flex h-full items-center justify-center">
@@ -1510,49 +1413,6 @@ export function AdminLayout() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">Certifier</p>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => setCheckoutFlow("certifier")}
-                      className={`rounded-lg border p-3 text-left transition ${
-                        checkoutFlow === "certifier" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <p className="font-semibold text-foreground">{CERTIFIER_ASSOCIATIONS_PLAN?.name ?? "Certifier (Asociaciones)"}</p>
-                      <p className="mt-2 text-base font-bold text-foreground">
-                        {checkoutBillingCycle === "annual"
-                          ? `${getInterestFreeInstallment(CERTIFIER_ASSOCIATIONS_PLAN?.billing.annualTotalEur ?? 2988, checkoutAnnualFinancingMonths)} EUR/mes`
-                          : `${CERTIFIER_ASSOCIATIONS_PLAN?.billing.monthlyPriceEur ?? 299} EUR/mes`}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {checkoutBillingCycle === "annual"
-                          ? `${CERTIFIER_ASSOCIATIONS_PLAN?.billing.annualTotalEur ?? 2988} EUR/año · ${checkoutAnnualFinancingMonths} cuotas sin interés`
-                          : `${CERTIFIER_ASSOCIATIONS_PLAN?.billing.annualTotalEur ?? 2988} EUR/año en anual`}
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCheckoutFlow("certifierLite")}
-                      className={`rounded-lg border p-3 text-left transition ${
-                        checkoutFlow === "certifierLite" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <p className="font-semibold text-foreground">{CERTIFIER_SCHOOLS_PLAN?.name ?? "Certifier Lite (Escuelas)"}</p>
-                      <p className="mt-2 text-base font-bold text-foreground">
-                        {checkoutBillingCycle === "annual"
-                          ? `${getInterestFreeInstallment(CERTIFIER_SCHOOLS_PLAN?.billing.annualTotalEur ?? 1188, checkoutAnnualFinancingMonths)} EUR/mes`
-                          : `${CERTIFIER_SCHOOLS_PLAN?.billing.monthlyPriceEur ?? 129} EUR/mes`}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {checkoutBillingCycle === "annual"
-                          ? `${CERTIFIER_SCHOOLS_PLAN?.billing.annualTotalEur ?? 1188} EUR/año · ${checkoutAnnualFinancingMonths} cuotas sin interés`
-                          : `${CERTIFIER_SCHOOLS_PLAN?.billing.annualTotalEur ?? 1188} EUR/año en anual`}
-                      </p>
-                    </button>
-                  </div>
-                </div>
 
                 <div className="rounded-lg border border-border bg-muted/30 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">

@@ -23,10 +23,10 @@ export function WeydiCreativeServices() {
         >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Diseño premium</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Dirección creativa por {creative.provider}
+            Branding opcional por {creative.provider}
           </h2>
           <p className="mt-4 text-muted-foreground">
-            {creative.providerDescription} Servicios opcionales para llevar la imagen de tu escuela al siguiente nivel.
+            {creative.providerDescription} Mejora la percepcion de tu academia y convierte mejor sin perder coherencia visual.
           </p>
         </motion.div>
 
@@ -41,7 +41,7 @@ export function WeydiCreativeServices() {
             >
               {identityReview.includedInBundle && (
                 <span className="absolute -top-3 left-6 rounded-full bg-success px-3 py-1 text-[10px] font-semibold text-white">
-                  Incluido en el Pack Pro
+                  Servicio recomendado
                 </span>
               )}
               <div className="flex items-center gap-3 mb-4 mt-1">
@@ -91,10 +91,10 @@ export function WeydiCreativeServices() {
           className="mt-8 text-center"
         >
           <p className="text-sm text-muted-foreground mb-4">
-            Estos servicios se pueden añadir a cualquier proyecto de web o modernización.
+            Servicios premium opcionales para reforzar posicionamiento y conversion comercial.
           </p>
           <Button variant="outline" size="lg" className="h-11" asChild>
-            <a href="mailto:hola@nexa.es?subject=Consulta%20servicios%20creativos%20Weydi">
+            <a href="mailto:hola@nexa.es?subject=Consulta%20branding%20Kaizenith">
               Consultar servicios creativos
               <ArrowRight className="ml-1 h-4 w-4" />
             </a>

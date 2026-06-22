@@ -2,10 +2,11 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { buildRegisterHref, freeTrialDays } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 import { activateDemoAdminSession, DEMO_ADMIN_SLUG } from "@/lib/demoAdmin";
 
-const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&trial=14d&source=hero";
+const PRIMARY_CTA_HREF = buildRegisterHref("hero");
 const HERO_DEMO_ADMIN_HREF = `/admin?demo=${DEMO_ADMIN_SLUG}`;
 
 export function Hero() {
@@ -13,7 +14,7 @@ export function Hero() {
     trackPortalEvent({
       eventName: "click_cta_primary",
       category: "funnel",
-      metadata: { section: "hero", ctaLabel: "Probar gratis", destination: PRO_ANNUAL_CTA_HREF },
+      metadata: { section: "hero", ctaLabel: "Probar gratis", destination: PRIMARY_CTA_HREF },
     });
   };
 
@@ -54,7 +55,7 @@ export function Hero() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" className="h-12 rounded-xl px-7 text-base font-semibold shadow-md hover:shadow-lg" asChild>
-                <Link to={PRO_ANNUAL_CTA_HREF} onClick={handlePrimaryClick}>
+                <Link to={PRIMARY_CTA_HREF} onClick={handlePrimaryClick}>
                   Probar gratis
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
@@ -67,7 +68,7 @@ export function Hero() {
             </div>
 
             <p className="mt-4 text-xs text-muted-foreground">
-              14 días gratis · Sin tarjeta · Sin compromiso
+              {freeTrialDays} días gratis · Sin tarjeta · Sin compromiso
             </p>
           </motion.div>
 

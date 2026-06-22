@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
 import { Globe, Calendar, GraduationCap, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { commercialCatalog } from "@/lib/commercialCatalog";
+import { buildRegisterHref, commercialCatalog } from "@/lib/commercialCatalog";
 import { Link } from "react-router-dom";
 
 const publicWeb = commercialCatalog.publicWeb;
-const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=web_included";
+const PRO_ANNUAL_CTA_HREF = buildRegisterHref("web_included", {
+  params: { focus: "integrated-web" },
+});
 
 const fallbackFeatures = [
   "Landing pública /s/:slug",

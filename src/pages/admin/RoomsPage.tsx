@@ -328,24 +328,20 @@ export default function RoomsPage() {
         </Button>
       }
     >
-      <section className="mb-4 rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Menos gestión. Más control.</p>
-        <p className="mt-1 text-xs text-muted-foreground">Mantén capacidad y disponibilidad claras para planificar mejor.</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Aulas activas</p>
-            <p className="text-lg font-semibold text-foreground">{activeCount}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Aulas totales</p>
-            <p className="text-lg font-semibold text-foreground">{rooms.length}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Capacidad total</p>
-            <p className="text-lg font-semibold text-foreground">{totalCapacity}</p>
-          </div>
+      <div className="mb-4 grid gap-2 sm:grid-cols-3">
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Aulas activas</p>
+          <p className="text-lg font-semibold text-foreground">{activeCount}</p>
         </div>
-      </section>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Aulas totales</p>
+          <p className="text-lg font-semibold text-foreground">{rooms.length}</p>
+        </div>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Capacidad total</p>
+          <p className="text-lg font-semibold text-foreground">{totalCapacity}</p>
+        </div>
+      </div>
 
       <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
         <Table>

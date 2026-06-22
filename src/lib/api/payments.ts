@@ -40,6 +40,10 @@ export async function recordPayment(data: {
     body: JSON.stringify(data),
   });
 
+  if (!response.success) {
+    throw new Error(response.error?.message || "No se pudo registrar el pago");
+  }
+
   return response.success && response.data ? response.data : null;
 }
 

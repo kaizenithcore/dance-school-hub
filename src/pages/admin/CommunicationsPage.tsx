@@ -22,6 +22,8 @@ import {
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
 import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
+import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
+import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
 import { toast } from "sonner";
 
 type ClassItem = { id: string; name: string };
@@ -115,6 +117,10 @@ export default function CommunicationsPage() {
   useEffect(() => {
     void loadMeta();
   }, []);
+
+  if (!isModuleVisible("communications")) {
+    return <ModuleDisabledPage moduleKey="communications" />;
+  }
 
   const handlePreview = async () => {
     if (communicationLocked) {
@@ -246,24 +252,20 @@ export default function CommunicationsPage() {
         />
       ) : null}
 
-      <section className="rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Todo conectado. Todo bajo control.</p>
-        <p className="mt-1 text-xs text-muted-foreground">Prepara campañas, valida audiencia y ejecuta envíos sin ruido operativo.</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Campañas activas</p>
-            <p className="text-lg font-semibold text-foreground">{activeCampaignsCount}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Mensajes enviados</p>
-            <p className="text-lg font-semibold text-foreground">{totalSentCount}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Errores acumulados</p>
-            <p className="text-lg font-semibold text-foreground">{totalFailedCount}</p>
-          </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Campañas activas</p>
+          <p className="text-lg font-semibold text-foreground">{activeCampaignsCount}</p>
         </div>
-      </section>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Mensajes enviados</p>
+          <p className="text-lg font-semibold text-foreground">{totalSentCount}</p>
+        </div>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Errores acumulados</p>
+          <p className="text-lg font-semibold text-foreground">{totalFailedCount}</p>
+        </div>
+      </div>
 
       <div className={communicationLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
 

@@ -14,6 +14,7 @@ import {
   Building2, Clock, CreditCard, Bell, Palette, Globe, Save, RotateCcw,
   Mail, Phone, MapPin, Instagram, Facebook, Music2, ShieldCheck, KeyRound, User, CheckCircle2,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getSchoolSettings, updateSchoolSettings, type SchoolSettingsPayload } from "@/lib/api/settings";
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
@@ -24,6 +25,7 @@ import { validateStrongPassword } from "@/lib/security";
 import type { AuthContextResponse } from "@/lib/api/auth";
 import { useSearchParams } from "react-router-dom";
 import { formatAnnualFinancingLabel, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType } from "@/lib/commercialCatalog";
+import { BrandingSettingsPanel } from "@/components/branding/BrandingSettingsPanel";
 
 interface SchoolInfo {
   name: string;
@@ -133,42 +135,30 @@ const HOURS = Array.from({ length: 17 }, (_, i) => {
   const h = i + 6;
   return `${String(h).padStart(2, "0")}:00`;
 });
+const DEFAULT_PLAN_TYPE: PlanType = planOrder[0] ?? "starter";
 
-const PLAN_CATALOG: Record<PlanType, PlanInfo> = {
-  starter: {
-    label: planCatalog.starter.name,
-    monthlyPriceEur: planCatalog.starter.billing.monthlyPriceEur,
-    annualEffectiveMonthlyPriceEur: planCatalog.starter.billing.annualEffectiveMonthlyPriceEur,
-    annualTotalEur: planCatalog.starter.billing.annualTotalEur,
-    includedActiveStudents: planCatalog.starter.limits.includedActiveStudents,
-    extraStudentsBlockSize: planCatalog.starter.extraStudentBlocks.size,
-    extraStudentsBlockPriceEur: planCatalog.starter.extraStudentBlocks.monthlyPriceEur,
-    highlights: planCatalog.starter.display.adminHighlights,
-  },
-  pro: {
-    label: planCatalog.pro.name,
-    monthlyPriceEur: planCatalog.pro.billing.monthlyPriceEur,
-    annualEffectiveMonthlyPriceEur: planCatalog.pro.billing.annualEffectiveMonthlyPriceEur,
-    annualTotalEur: planCatalog.pro.billing.annualTotalEur,
-    includedActiveStudents: planCatalog.pro.limits.includedActiveStudents,
-    extraStudentsBlockSize: planCatalog.pro.extraStudentBlocks.size,
-    extraStudentsBlockPriceEur: planCatalog.pro.extraStudentBlocks.monthlyPriceEur,
-    highlights: planCatalog.pro.display.adminHighlights,
-  },
-  enterprise: {
-    label: planCatalog.enterprise.name,
-    monthlyPriceEur: planCatalog.enterprise.billing.monthlyPriceEur,
-    annualEffectiveMonthlyPriceEur: planCatalog.enterprise.billing.annualEffectiveMonthlyPriceEur,
-    annualTotalEur: planCatalog.enterprise.billing.annualTotalEur,
-    includedActiveStudents: planCatalog.enterprise.limits.includedActiveStudents,
-    extraStudentsBlockSize: planCatalog.enterprise.extraStudentBlocks.size,
-    extraStudentsBlockPriceEur: planCatalog.enterprise.extraStudentBlocks.monthlyPriceEur,
-    highlights: planCatalog.enterprise.display.adminHighlights,
-  },
-};
+const PLAN_CATALOG = Object.fromEntries(
+  planOrder.map((planKey) => {
+    const plan = planCatalog[planKey];
+
+    return [
+      planKey,
+      {
+        label: plan.name,
+        monthlyPriceEur: plan.billing.monthlyPriceEur,
+        annualEffectiveMonthlyPriceEur: plan.billing.annualEffectiveMonthlyPriceEur,
+        annualTotalEur: plan.billing.annualTotalEur,
+        includedActiveStudents: plan.limits.includedActiveStudents,
+        extraStudentsBlockSize: plan.extraStudentBlocks.size,
+        extraStudentsBlockPriceEur: plan.extraStudentBlocks.monthlyPriceEur,
+        highlights: plan.display.adminHighlights,
+      } satisfies PlanInfo,
+    ];
+  })
+) as Record<PlanType, PlanInfo>;
 
 const DEFAULT_BILLING: BillingConfig = {
-  planType: "starter",
+  planType: DEFAULT_PLAN_TYPE,
   billingCycle: "annual",
   extraStudentBlocks: 0,
   addons: {
@@ -178,13 +168,13 @@ const DEFAULT_BILLING: BillingConfig = {
     renewalAutomation: false,
   },
   limits: {
-    includedActiveStudents: PLAN_CATALOG.starter.includedActiveStudents,
-    maxActiveStudents: PLAN_CATALOG.starter.includedActiveStudents,
+    includedActiveStudents: PLAN_CATALOG[DEFAULT_PLAN_TYPE].includedActiveStudents,
+    maxActiveStudents: PLAN_CATALOG[DEFAULT_PLAN_TYPE].includedActiveStudents,
   },
   pricing: {
-    monthlyPriceEur: PLAN_CATALOG.starter.monthlyPriceEur,
-    extraStudentsBlockSize: PLAN_CATALOG.starter.extraStudentsBlockSize,
-    extraStudentsBlockPriceEur: PLAN_CATALOG.starter.extraStudentsBlockPriceEur,
+    monthlyPriceEur: PLAN_CATALOG[DEFAULT_PLAN_TYPE].monthlyPriceEur,
+    extraStudentsBlockSize: PLAN_CATALOG[DEFAULT_PLAN_TYPE].extraStudentsBlockSize,
+    extraStudentsBlockPriceEur: PLAN_CATALOG[DEFAULT_PLAN_TYPE].extraStudentsBlockPriceEur,
     addons: {
       customDomain: subscriptionAddonCatalog.customDomain.monthlyPriceEur,
       prioritySupport: subscriptionAddonCatalog.prioritySupport.monthlyPriceEur,
@@ -209,16 +199,13 @@ const DEFAULT_BILLING: BillingConfig = {
 };
 
 function resolvePlanType(value: string): PlanType {
-  if (value === "pro" || value === "enterprise") {
-    return value;
-  }
-  return "starter";
+  return planOrder.includes(value as PlanType) ? (value as PlanType) : DEFAULT_PLAN_TYPE;
 }
 
 function calculateMonthlyAmount(config: BillingConfig): number {
   const planType = resolvePlanType(config.planType);
   const plan = PLAN_CATALOG[planType];
-  const effectiveBlocks = planType === "starter" ? 0 : config.extraStudentBlocks;
+  const effectiveBlocks = planType === DEFAULT_PLAN_TYPE ? 0 : config.extraStudentBlocks;
   const addonsTotal =
     (config.addons.customDomain ? config.pricing.addons.customDomain : 0)
     + (config.addons.prioritySupport ? config.pricing.addons.prioritySupport : 0);
@@ -355,7 +342,7 @@ export default function SettingsPage() {
   const [billing, setBilling] = useState<BillingConfig>(DEFAULT_BILLING);
   const [savedBillingSnapshot, setSavedBillingSnapshot] = useState<BillingConfig>(DEFAULT_BILLING);
   const [planModalOpen, setPlanModalOpen] = useState(false);
-  const [selectedPlanForModal, setSelectedPlanForModal] = useState<PlanType>("starter");
+  const [selectedPlanForModal, setSelectedPlanForModal] = useState<PlanType>(DEFAULT_PLAN_TYPE);
   const [authContext, setAuthContext] = useState<AuthContextResponse | null>(null);
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -467,7 +454,7 @@ export default function SettingsPage() {
       await redirectToBillingCheckout({
         planType: resolvePlanType(billing.planType),
         billingCycle: billing.billingCycle,
-        extraStudentBlocks: resolvePlanType(billing.planType) === "starter" ? 0 : billing.extraStudentBlocks,
+        extraStudentBlocks: resolvePlanType(billing.planType) === DEFAULT_PLAN_TYPE ? 0 : billing.extraStudentBlocks,
         addons: {
           customDomain: billing.addons.customDomain,
           prioritySupport: billing.addons.prioritySupport,
@@ -604,7 +591,7 @@ export default function SettingsPage() {
   }
 
   const selectedPlan = PLAN_CATALOG[resolvePlanType(billing.planType)];
-  const effectiveBlocks = billing.planType === "starter" ? 0 : billing.extraStudentBlocks;
+  const effectiveBlocks = resolvePlanType(billing.planType) === DEFAULT_PLAN_TYPE ? 0 : billing.extraStudentBlocks;
   const recalculatedIncludedStudents = selectedPlan.includedActiveStudents;
   const recalculatedMaxStudents = recalculatedIncludedStudents + effectiveBlocks * selectedPlan.extraStudentsBlockSize;
   const currentMonthlyAmount = calculateMonthlyAmount(savedBillingSnapshot);
@@ -616,13 +603,6 @@ export default function SettingsPage() {
 
   return (
     <PageContainer title="Configuración" description="Centro de control operativo de tu escuela">
-      <div className="rounded-lg border border-border bg-card p-4 shadow-soft">
-        <p className="text-sm font-medium text-foreground">Qué puedes resolver aquí</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Ajusta identidad de marca, horarios, cobros, seguridad y plan sin salir del panel.
-        </p>
-      </div>
-
       <Tabs defaultValue={searchParams.get("tab") === "billing" ? "billing" : "account"} className="space-y-4">
         <TabsList className="bg-muted/50 p-1">
           <TabsTrigger value="account" className="text-xs gap-1.5">
@@ -767,7 +747,17 @@ export default function SettingsPage() {
 
         {/* ─── School Info ─── */}
         <TabsContent value="school">
-          <div className="rounded-lg border border-border bg-card p-6 shadow-soft space-y-6">
+          <div className="rounded-lg border border-border bg-card p-6 shadow-soft space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Branding avanzado</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Ajusta logo, colores y tipografías desde Marca sin salir de Configuración.
+              </p>
+            </div>
+            <BrandingSettingsPanel />
+          </div>
+
+          <div className="mt-4 rounded-lg border border-border bg-card p-6 shadow-soft space-y-6">
             <div>
               <h3 className="text-sm font-semibold text-foreground">Información de la Escuela</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Datos principales que se mostrarán en tu página pública</p>
@@ -1141,7 +1131,7 @@ export default function SettingsPage() {
                         setBilling({
                           ...billing,
                           planType: planKey,
-                          extraStudentBlocks: planKey === "starter" ? 0 : billing.extraStudentBlocks,
+                          extraStudentBlocks: planKey === DEFAULT_PLAN_TYPE ? 0 : billing.extraStudentBlocks,
                           addons: {
                             ...billing.addons,
                             waitlistAutomation: false,
@@ -1183,12 +1173,12 @@ export default function SettingsPage() {
                   min="0"
                   value={billing.extraStudentBlocks}
                   onChange={(e) => setBilling({ ...billing, extraStudentBlocks: Math.max(0, Number(e.target.value) || 0) })}
-                  disabled={billing.planType === "starter"}
+                  disabled={resolvePlanType(billing.planType) === DEFAULT_PLAN_TYPE}
                   className="h-9 text-sm w-32"
                 />
                 <p className="mt-1 text-[10px] text-muted-foreground">
-                  {billing.planType === "starter"
-                    ? "Starter no admite bloques extra de alumnos."
+                  {resolvePlanType(billing.planType) === DEFAULT_PLAN_TYPE
+                    ? `${selectedPlan.label} no admite bloques extra de alumnos.`
                     : `Cada bloque anade ${selectedPlan.extraStudentsBlockSize} alumnos por ${selectedPlan.extraStudentsBlockPriceEur} EUR/mes.`}
                 </p>
               </FieldGroup>
@@ -1327,7 +1317,7 @@ export default function SettingsPage() {
 
 /* ── Helpers ── */
 
-function FieldGroup({ label, icon: Icon, children }: { label: string; icon?: any; children: React.ReactNode }) {
+function FieldGroup({ label, icon: Icon, children }: { label: string; icon?: LucideIcon; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs flex items-center gap-1.5">

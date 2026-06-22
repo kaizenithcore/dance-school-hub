@@ -19,6 +19,98 @@ type StudentClassUpdateInput = {
   _skipGroupPropagation?: boolean;
 };
 
+type ScheduleRow = {
+  id: string;
+  weekday?: string | null;
+  start_time: string | null;
+  end_time: string | null;
+};
+
+type EnrollmentClassRow = {
+  id: string;
+  name: string | null;
+  discipline_id: string | null;
+  price_cents: number | null;
+  class_schedules: ScheduleRow[] | ScheduleRow | null;
+};
+
+type EnrollmentRow = {
+  id: string;
+  class_id: string;
+  status: string;
+  joint_enrollment_group_id?: string | null;
+  student_snapshot?: {
+    selected_schedule_ids?: unknown;
+  } | null;
+  classes?: EnrollmentClassRow[] | EnrollmentClassRow | null;
+};
+
+type GuardianRow = {
+  name: string;
+  phone: string;
+  email: string | null;
+  is_primary?: boolean;
+};
+
+type StudentListRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string | null;
+  locality: string | null;
+  identity_document_type: string | null;
+  identity_document_number: string | null;
+  date_of_birth: string | null;
+  status: string;
+  payment_type: string;
+  payer_type: string | null;
+  payer_name: string | null;
+  payer_email: string | null;
+  payer_phone: string | null;
+  preferred_payment_method: string | null;
+  account_number: string | null;
+  join_date: string | null;
+  extra_data: unknown;
+  notes: string | null;
+  guardians: GuardianRow[];
+  enrollments: EnrollmentRow[];
+};
+
+export class DuplicateStudentEmailError extends Error {
+  constructor(email: string) {
+    super(`Ya existe un alumno con el email ${email} en esta escuela.`);
+    this.name = "DuplicateStudentEmailError";
+  }
+}
+
+export async function assertUniqueStudentEmail(tenantId: string, email: string, excludedStudentId?: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const { data, error } = await supabaseAdmin
+    .from("students")
+    .select("id, email")
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    throw new Error(`Failed to validate student email uniqueness: ${error.message}`);
+  }
+
+  const duplicate = (data || []).find((student) => {
+    const storedEmail = String(student.email || "").trim().toLowerCase();
+    if (storedEmail !== normalizedEmail) {
+      return false;
+    }
+
+    return !excludedStudentId || student.id !== excludedStudentId;
+  });
+
+  if (duplicate) {
+    throw new DuplicateStudentEmailError(normalizedEmail);
+  }
+
+  return normalizedEmail;
+}
+
 async function replaceGuardian(tenantId: string, studentId: string, guardian?: Guardian) {
   await supabaseAdmin.from("guardians").delete().eq("tenant_id", tenantId).eq("student_id", studentId);
 
@@ -155,9 +247,9 @@ export const studentService = {
 
     const groupPricingInput = new Map<string, { selections: ClassSelection[]; memberIds: Set<string> }>();
 
-    for (const studentRow of data || []) {
+    for (const studentRow of (data || []) as StudentListRow[]) {
       const activeEnrollments = (studentRow.enrollments || []).filter(
-        (enrollment: any) => enrollment.status === "pending" || enrollment.status === "confirmed"
+        (enrollment: EnrollmentRow) => enrollment.status === "pending" || enrollment.status === "confirmed"
       );
 
       for (const enrollment of activeEnrollments) {
@@ -168,7 +260,7 @@ export const studentService = {
         }
 
         const schedules = Array.isArray(cls.class_schedules) ? cls.class_schedules : [];
-        const totalClassHours = schedules.reduce((sum: number, schedule: any) => {
+        const totalClassHours = schedules.reduce((sum: number, schedule: ScheduleRow) => {
           const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
           const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
           const startTotal = startHour + startMinute / 60;
@@ -183,8 +275,8 @@ export const studentService = {
 
         const selectedHours = selectedScheduleIds.length > 0
           ? schedules
-              .filter((schedule: any) => selectedScheduleIds.includes(schedule.id))
-              .reduce((sum: number, schedule: any) => {
+              .filter((schedule: ScheduleRow) => selectedScheduleIds.includes(schedule.id))
+              .reduce((sum: number, schedule: ScheduleRow) => {
                 const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
                 const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
                 const startTotal = startHour + startMinute / 60;
@@ -217,9 +309,9 @@ export const studentService = {
 
     const studentPricingInput = new Map<string, ClassSelection[]>();
 
-    for (const studentRow of data || []) {
+    for (const studentRow of (data || []) as StudentListRow[]) {
       const activeEnrollments = (studentRow.enrollments || []).filter(
-        (enrollment: any) => enrollment.status === "pending" || enrollment.status === "confirmed"
+        (enrollment: EnrollmentRow) => enrollment.status === "pending" || enrollment.status === "confirmed"
       );
 
       const selections: ClassSelection[] = [];
@@ -230,7 +322,7 @@ export const studentService = {
         }
 
         const schedules = Array.isArray(cls.class_schedules) ? cls.class_schedules : [];
-        const totalClassHours = schedules.reduce((sum: number, schedule: any) => {
+        const totalClassHours = schedules.reduce((sum: number, schedule: ScheduleRow) => {
           const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
           const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
           const startTotal = startHour + startMinute / 60;
@@ -245,8 +337,8 @@ export const studentService = {
 
         const selectedHours = selectedScheduleIds.length > 0
           ? schedules
-              .filter((schedule: any) => selectedScheduleIds.includes(schedule.id))
-              .reduce((sum: number, schedule: any) => {
+              .filter((schedule: ScheduleRow) => selectedScheduleIds.includes(schedule.id))
+              .reduce((sum: number, schedule: ScheduleRow) => {
                 const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
                 const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
                 const startTotal = startHour + startMinute / 60;
@@ -305,14 +397,14 @@ export const studentService = {
       })
     );
 
-    return (data ?? []).map((student: any) => {
-      const primaryGuardian = (student.guardians || []).find((g: any) => g.is_primary) || student.guardians?.[0] || null;
+    return ((data ?? []) as StudentListRow[]).map((student) => {
+      const primaryGuardian = (student.guardians || []).find((g: GuardianRow) => g.is_primary) || student.guardians?.[0] || null;
       const activeEnrollments = (student.enrollments || []).filter(
-        (enrollment: any) => enrollment.status === "pending" || enrollment.status === "confirmed"
+        (enrollment: EnrollmentRow) => enrollment.status === "pending" || enrollment.status === "confirmed"
       );
 
       const enrolledClasses = activeEnrollments
-        .map((enrollment: any) => {
+        .map((enrollment: EnrollmentRow) => {
           const cls = Array.isArray(enrollment.classes) ? enrollment.classes[0] : enrollment.classes;
           if (!cls) return null;
 
@@ -359,9 +451,9 @@ export const studentService = {
         preferredPaymentMethod: student.preferred_payment_method || "cash",
         accountNumber: student.account_number || undefined,
         extraData: student.extra_data && typeof student.extra_data === "object" ? student.extra_data : {},
-        jointEnrollmentGroupId: activeEnrollments.find((enrollment: any) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id || null,
+        jointEnrollmentGroupId: activeEnrollments.find((enrollment: EnrollmentRow) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id || null,
         monthlyTotalOverride: (() => {
-          const groupId = activeEnrollments.find((enrollment: any) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id;
+          const groupId = activeEnrollments.find((enrollment: EnrollmentRow) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id;
           if (!groupId) {
             return studentPricingById.get(student.id);
           }
@@ -382,6 +474,7 @@ export const studentService = {
 
   async createStudent(tenantId: string, input: CreateStudentInput) {
     await studentQuotaService.assertCanAddStudents(tenantId, 1);
+    const normalizedEmail = await assertUniqueStudentEmail(tenantId, input.email);
 
     const normalizedExtraData = await studentFieldService.normalizeAndValidateExtraData(
       tenantId,
@@ -393,7 +486,7 @@ export const studentService = {
       .insert({
         tenant_id: tenantId,
         name: input.name,
-        email: input.email,
+        email: normalizedEmail,
         phone: input.phone,
         address: input.address ?? null,
         locality: input.locality ?? null,
@@ -461,7 +554,7 @@ export const studentService = {
     const payload: Record<string, unknown> = {};
 
     if (input.name !== undefined) payload.name = input.name;
-    if (input.email !== undefined) payload.email = input.email;
+    if (input.email !== undefined) payload.email = await assertUniqueStudentEmail(tenantId, input.email, studentId);
     if (input.phone !== undefined) payload.phone = input.phone;
     if (input.address !== undefined) payload.address = input.address ?? null;
     if (input.locality !== undefined) payload.locality = input.locality ?? null;
@@ -564,18 +657,18 @@ export const studentService = {
     }
 
     const currentList = currentEnrollments || [];
-    const previousGroupId = currentList.find((enrollment: any) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id || null;
-    const currentClassIds = new Set(currentList.map((enrollment: any) => enrollment.class_id));
+    const previousGroupId = currentList.find((enrollment: EnrollmentRow) => enrollment.joint_enrollment_group_id)?.joint_enrollment_group_id || null;
+    const currentClassIds = new Set(currentList.map((enrollment: EnrollmentRow) => enrollment.class_id));
     const targetClassIds = new Set(uniqueClassIds);
 
-    const toCancel = currentList.filter((enrollment: any) => !targetClassIds.has(enrollment.class_id));
+    const toCancel = currentList.filter((enrollment: EnrollmentRow) => !targetClassIds.has(enrollment.class_id));
     const toAdd = uniqueClassIds.filter((classId) => !currentClassIds.has(classId));
 
     if (toCancel.length > 0) {
       const { error: cancelError } = await supabaseAdmin
         .from("enrollments")
         .update({ status: "cancelled" })
-        .in("id", toCancel.map((enrollment: any) => enrollment.id));
+        .in("id", toCancel.map((enrollment: EnrollmentRow) => enrollment.id));
 
       if (cancelError) {
         throw new Error(`Failed to update enrollments: ${cancelError.message}`);
@@ -609,7 +702,7 @@ export const studentService = {
         );
       });
 
-      for (const selectedClass of classData as any[]) {
+      for (const selectedClass of classData as Array<{ id: string; capacity: number }>) {
         const enrolledCount = confirmedCountByClass.get(selectedClass.id) || 0;
         if (enrolledCount >= selectedClass.capacity) {
           throw new Error("Class is full");
@@ -633,8 +726,8 @@ export const studentService = {
 
       const reusableByClassId = new Map<string, string>(
         (reusableEnrollments || [])
-          .filter((row: any) => row?.id && row?.class_id)
-          .map((row: any) => [row.class_id as string, row.id as string])
+          .filter((row: { id?: string; class_id?: string }) => row?.id && row?.class_id)
+          .map((row: { class_id: string; id: string }) => [row.class_id, row.id])
       );
 
       for (const classId of toAdd.filter((id) => reusableByClassId.has(id))) {
@@ -702,8 +795,8 @@ export const studentService = {
       ? input.jointEnrollmentGroupId
       : previousGroupId;
 
-    if (currentList.some((item: any) => targetClassIds.has(item.class_id))) {
-      for (const enrollment of currentList.filter((item: any) => targetClassIds.has(item.class_id))) {
+    if (currentList.some((item: EnrollmentRow) => targetClassIds.has(item.class_id))) {
+      for (const enrollment of currentList.filter((item: EnrollmentRow) => targetClassIds.has(item.class_id))) {
         const selectedScheduleIds = selectionMap.get(enrollment.class_id) || [];
         const { error: updateEnrollmentError } = await supabaseAdmin
           .from("enrollments")
@@ -758,7 +851,7 @@ export const studentService = {
         throw new Error(`Failed to load joint group members: ${groupMembersError.message}`);
       }
 
-      const memberIds = Array.from(new Set((groupMembers || []).map((row: any) => row.student_id))).filter(
+      const memberIds = Array.from(new Set((groupMembers || []).map((row: { student_id: string }) => row.student_id))).filter(
         (id) => id && id !== studentId
       );
 
@@ -791,13 +884,13 @@ export const studentService = {
 
     const seen = new Set<string>();
     return (data || [])
-      .map((row: any) => Array.isArray(row.students) ? row.students[0] : row.students)
-      .filter((student: any) => {
+      .map((row: { students: { id: string; name: string; email: string } | Array<{ id: string; name: string; email: string }> | null }) => Array.isArray(row.students) ? row.students[0] : row.students)
+      .filter((student: { id: string; name: string; email: string } | null) => {
         if (!student?.id || seen.has(student.id)) return false;
         seen.add(student.id);
         return true;
       })
-      .map((student: any) => ({ id: student.id, name: student.name, email: student.email }));
+      .map((student) => ({ id: student!.id, name: student!.name, email: student!.email }));
   },
 
   async removeMemberFromJointGroup(tenantId: string, groupId: string, studentId: string) {
@@ -829,7 +922,7 @@ export const studentService = {
       throw new Error("Joint enrollment group not found");
     }
 
-    const classIds = Array.from(new Set(groupEnrollments.map((row: any) => row.class_id)));
+    const classIds = Array.from(new Set(groupEnrollments.map((row: { class_id: string }) => row.class_id)));
     await this.updateStudentClasses(tenantId, studentId, { classIds, jointEnrollmentGroupId: groupId });
     return { added: true };
   },

@@ -144,13 +144,6 @@ export default function AnalyticsPage() {
       title="Analíticas"
       description="Control financiero y comercial en tiempo real"
     >
-      <div className="rounded-lg border border-border bg-card p-4 shadow-soft">
-        <p className="text-sm font-medium text-foreground">Resumen ejecutivo</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Prioriza tres señales para decidir rápido: cobro efectivo, riesgo de impago y capacidad de crecimiento.
-        </p>
-      </div>
-
       <div className="mb-3">
         <h3 className="text-sm font-semibold text-foreground">1. Pulso de caja</h3>
       </div>

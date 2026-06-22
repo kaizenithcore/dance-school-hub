@@ -20,8 +20,10 @@ import { es } from "date-fns/locale";
 import { getDashboardMetrics, getAnalyticsData } from "@/lib/api/payments";
 import { getScheduleInsights, type ScheduleInsightsResult } from "@/lib/api/schedules";
 import { getEnrollments } from "@/lib/api/enrollments";
-import { getPayments } from "@/lib/api/payments";
+import { getPayments, type PaymentRecord } from "@/lib/api/payments";
 import { getTeachers } from "@/lib/api/teachers";
+import type { EnrollmentRecord } from "@/lib/data/mockEnrollments";
+import type { Teacher } from "@/lib/api/teachers";
 import { buildEconomySnapshot } from "@/lib/economy";
 import { ScheduleInsightsPanel } from "@/components/schedule/ScheduleInsightsPanel";
 import {
@@ -33,15 +35,16 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState<Awaited<ReturnType<typeof getDashboardMetrics>> | null>(null);
   const [analytics, setAnalytics] = useState<Awaited<ReturnType<typeof getAnalyticsData>> | null>(null);
   const [scheduleInsights, setScheduleInsights] = useState<ScheduleInsightsResult | null>(null);
-  const [enrollments, setEnrollments] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
-  const [teachers, setTeachers] = useState<any[]>([]);
+  const [enrollments, setEnrollments] = useState<EnrollmentRecord[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -181,26 +184,49 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Revenue chart + Financial status */}
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-medium text-foreground">Ingresos</h3>
-            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate("/admin/analytics")}>
-              Ver más <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
+      {/* Revenue chart + Financial status (analytics block hidden when module not MVP) */}
+      {isModuleVisible("analytics") ? (
+        <div className="grid gap-5 lg:grid-cols-3">
+          <div className="lg:col-span-2 rounded-xl border border-border bg-card p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-medium text-foreground">Ingresos</h3>
+              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate("/admin/analytics")}>
+                Ver más <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={revenueByMonth}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 92%)" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 50%)" />
+                <YAxis tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => `${v}€`} />
+                <Tooltip formatter={(v: number) => `${v.toLocaleString()}€`} />
+                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={revenueByMonth}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 92%)" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 50%)" />
-              <YAxis tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 50%)" tickFormatter={(v) => `${v}€`} />
-              <Tooltip formatter={(v: number) => `${v.toLocaleString()}€`} />
-              <Bar dataKey="total" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
 
+          <div className="rounded-xl border border-border bg-card p-6">
+            <h3 className="text-sm font-medium text-foreground mb-5">Balance mensual</h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Ingresos</p>
+                <p className="text-xl font-semibold text-foreground mt-0.5">{economy.monthlyIncome.toLocaleString()}€</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Gastos</p>
+                <p className="text-xl font-semibold text-foreground mt-0.5">{economy.monthlyExpenses.toLocaleString()}€</p>
+              </div>
+              <div className="pt-3 border-t border-border">
+                <p className="text-xs text-muted-foreground">Balance</p>
+                <p className={cn("text-xl font-semibold mt-0.5", economy.monthlyBalance >= 0 ? "text-success" : "text-destructive")}>
+                  {economy.monthlyBalance >= 0 ? "+" : ""}{economy.monthlyBalance.toLocaleString()}€
+                </p>
+              </div>
+              <Button className="w-full" variant="outline" size="sm" onClick={() => navigate("/admin/economia")}>Ver economía</Button>
+            </div>
+          </div>
+        </div>
+      ) : (
         <div className="rounded-xl border border-border bg-card p-6">
           <h3 className="text-sm font-medium text-foreground mb-5">Balance mensual</h3>
           <div className="space-y-4">
@@ -221,7 +247,7 @@ export default function DashboardPage() {
             <Button className="w-full" variant="outline" size="sm" onClick={() => navigate("/admin/economia")}>Ver economía</Button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Schedule insights */}
       <ScheduleInsightsPanel

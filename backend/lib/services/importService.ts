@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import { studentQuotaService } from "@/lib/services/studentQuotaService";
 import { studentFieldService } from "@/lib/services/studentFieldService";
+import { assertUniqueStudentEmail } from "@/lib/services/studentService";
 import type { ImportMapping, ImportStudentsInput } from "@/lib/validators/importSchemas";
 
 interface ImportRowError {
@@ -27,6 +28,7 @@ interface ImportJobResult {
 type CoreImportField = "name" | "firstName" | "lastName" | "email" | "phone" | "locality" | "identityDocumentNumber" | "birthdate" | "notes";
 
 const CORE_IMPORT_FIELDS: CoreImportField[] = ["name", "firstName", "lastName", "email", "phone", "locality", "identityDocumentNumber", "birthdate", "notes"];
+const DEFAULT_IMPORTED_PHONE = "000000000";
 
 function toSnakeCase(value: string): string {
   return value
@@ -242,6 +244,8 @@ export const importService = {
       }
 
       const normalizedExtraData = await studentFieldService.normalizeAndValidateExtraData(tenantId, extraDataPayload);
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedPhone = phone.trim() || DEFAULT_IMPORTED_PHONE;
 
       // Validate required fields
       const errors: ImportRowError[] = [];
@@ -250,8 +254,8 @@ export const importService = {
         errors.push({ field: "name", message: "Nombre requerido" });
       }
 
-      if (email && !isEmailValid(email)) {
-        errors.push({ field: "email", message: `Email inválido: ${email}` });
+      if (normalizedEmail && !isEmailValid(normalizedEmail)) {
+        errors.push({ field: "email", message: `Email inválido: ${normalizedEmail}` });
       }
 
       if (errors.length > 0) {
@@ -263,14 +267,17 @@ export const importService = {
       try {
         // Check quota before creating (throws StudentLimitError if exceeded)
         await studentQuotaService.assertCanAddStudents(tenantId, 1);
+        const uniqueEmail = normalizedEmail
+          ? await assertUniqueStudentEmail(tenantId, normalizedEmail)
+          : null;
 
         const { data: insertedStudent, error: insertError } = await supabaseAdmin
           .from("students")
           .insert({
             tenant_id: tenantId,
             name,
-            email: email || null,
-            phone: phone || null,
+            email: uniqueEmail,
+            phone: normalizedPhone,
             locality: locality || null,
             identity_document_type: identityDocumentNumber ? "dni" : null,
             identity_document_number: identityDocumentNumber || null,

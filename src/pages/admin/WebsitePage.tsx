@@ -1,9 +1,12 @@
-import { Globe, Rocket, Sparkles, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { Globe, Sparkles, ArrowRight, Palette } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { commercialCatalog, formatEuro } from "@/lib/commercialCatalog";
+import { BrandingSettingsPanel } from "@/components/branding/BrandingSettingsPanel";
+import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
 
 type IntegratedWebsiteCatalog = {
   label: string;
@@ -27,6 +30,7 @@ type StandaloneWebsiteCatalog = {
 };
 
 export default function WebsitePage() {
+  const [showBrandingEditor, setShowBrandingEditor] = useState(false);
   const webCatalog = commercialCatalog.professionalServices as Record<string, unknown>;
   const integratedWebsite = (webCatalog.integratedWebsite as IntegratedWebsiteCatalog | undefined) || null;
   const standaloneWebsite = (webCatalog.standaloneWebsite as StandaloneWebsiteCatalog | undefined) || null;
@@ -36,18 +40,6 @@ export default function WebsitePage() {
       title="Página web"
       description="Elige el formato web que mejor acompaña tu fase de crecimiento"
     >
-      <Card className="mb-4 border-primary/20 bg-primary/5">
-        <CardHeader>
-          <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Rocket className="h-5 w-5" />
-          </div>
-          <CardTitle>Convierte tu web en tu mejor canal de matrícula</CardTitle>
-          <CardDescription>
-            Prioriza una presencia digital con foco comercial: mejor mensaje, mejor estructura y más solicitudes cualificadas.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -63,7 +55,9 @@ export default function WebsitePage() {
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">Starter: {formatEuro(integratedWebsite?.pricingByPlanEur?.starter ?? 1490)}</Badge>
               <Badge variant="secondary">Pro: {formatEuro(integratedWebsite?.pricingByPlanEur?.pro ?? 1790)}</Badge>
-              <Badge variant="secondary">Enterprise: {formatEuro(integratedWebsite?.pricingByPlanEur?.enterprise ?? 2190)}</Badge>
+              {isModuleVisible("enterprise") ? (
+                <Badge variant="secondary">Enterprise: {formatEuro(integratedWebsite?.pricingByPlanEur?.enterprise ?? 2190)}</Badge>
+              ) : null}
             </div>
             <ul className="space-y-1.5 text-sm text-muted-foreground">
               {(integratedWebsite?.includes || []).slice(0, 4).map((item) => (
@@ -106,6 +100,28 @@ export default function WebsitePage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Palette className="h-5 w-5" />
+          </div>
+          <CardTitle>Identidad visual de tu web</CardTitle>
+          <CardDescription>
+            Personaliza logo, colores y tipografía directamente desde Página web.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            variant={showBrandingEditor ? "outline" : "default"}
+            onClick={() => setShowBrandingEditor((prev) => !prev)}
+          >
+            {showBrandingEditor ? "Ocultar branding avanzado" : "Editar branding avanzado"}
+          </Button>
+
+          {showBrandingEditor ? <BrandingSettingsPanel /> : null}
+        </CardContent>
+      </Card>
     </PageContainer>
   );
 }

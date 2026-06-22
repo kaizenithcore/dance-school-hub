@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import { featureEntitlementsService } from "@/lib/services/featureEntitlementsService";
+import { isBackendModuleEnabledByPolicy } from "@/lib/constants/moduleLifecyclePolicy";
 
 function asObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -7,6 +8,10 @@ function asObject(value: unknown): Record<string, unknown> {
 
 export const examSuiteFeatureService = {
   async isEnabledForTenant(tenantId: string): Promise<boolean> {
+    if (!isBackendModuleEnabledByPolicy("examSuite")) {
+      return false;
+    }
+
     const { data, error } = await supabaseAdmin
       .from("school_settings")
       .select("payment_config")

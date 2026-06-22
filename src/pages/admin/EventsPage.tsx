@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useEvents, useEvent } from "@/hooks/useEvents";
 import type { DanceEvent } from "@/lib/types/events";
+import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
+import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
 
 type ViewMode = "list" | "detail" | "create" | "edit";
 interface ViewState {
@@ -51,6 +53,10 @@ export default function EventsPage() {
     events,
     { addSession, updateSession, deleteSession }
   );
+
+  if (!isModuleVisible("events")) {
+    return <ModuleDisabledPage moduleKey="events" />;
+  }
 
   const handleCreate = async (data: Omit<DanceEvent, "id" | "createdAt" | "sessions">) => {
     const created = await createEvent(data);
@@ -183,24 +189,20 @@ export default function EventsPage() {
         </>
       }
     >
-      <section className="mb-4 rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Menos gestión. Más control.</p>
-        <p className="mt-1 text-xs text-muted-foreground">Concentra planificación, sesiones y ejecución de eventos en un panel único.</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Eventos totales</p>
-            <p className="text-lg font-semibold text-foreground">{events.length}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Eventos próximos</p>
-            <p className="text-lg font-semibold text-foreground">{upcomingEvents}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Sesiones planificadas</p>
-            <p className="text-lg font-semibold text-foreground">{totalSessions}</p>
-          </div>
+      <div className="mb-4 grid gap-2 sm:grid-cols-3">
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Eventos totales</p>
+          <p className="text-lg font-semibold text-foreground">{events.length}</p>
         </div>
-      </section>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Eventos próximos</p>
+          <p className="text-lg font-semibold text-foreground">{upcomingEvents}</p>
+        </div>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Sesiones planificadas</p>
+          <p className="text-lg font-semibold text-foreground">{totalSessions}</p>
+        </div>
+      </div>
 
       <EventsListView
         events={events}

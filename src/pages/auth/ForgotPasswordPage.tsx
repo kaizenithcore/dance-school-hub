@@ -6,24 +6,51 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
       toast.error("Introduce tu correo electrónico.");
       return;
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      toast.error("Introduce un correo electrónico válido.");
+      return;
+    }
+
+    if (!isSupabaseConfigured) {
+      toast.error("La recuperación no está disponible en este entorno.");
+      return;
+    }
+
     setIsLoading(true);
-    // TODO: Integrar con backend real
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      const redirectTo = `${window.location.origin}/auth/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo });
+
+      if (error) {
+        toast.error(error.message || "No se pudo enviar el enlace de recuperación.");
+        return;
+      }
+
       setSent(true);
-    }, 1500);
+      setEmail(normalizedEmail);
+    } catch {
+      toast.error("No se pudo enviar el enlace de recuperación.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

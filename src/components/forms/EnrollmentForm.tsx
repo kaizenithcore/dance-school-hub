@@ -8,18 +8,21 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, ArrowLeft, ArrowRight, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { submitPublicEnrollment } from "@/lib/api/publicEnrollment";
 
 interface EnrollmentFormProps {
   schema: FormSectionConfig[];
   selectedClasses: ClassCardData[];
   onRemoveClass: (id: string) => void;
+  tenantSlug?: string;
 }
 
-export function EnrollmentForm({ schema, selectedClasses, onRemoveClass }: EnrollmentFormProps) {
-  const [values, setValues] = useState<Record<string, any>>({});
+export function EnrollmentForm({ schema, selectedClasses, onRemoveClass, tenantSlug }: EnrollmentFormProps) {
+  const [values, setValues] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Steps: each form section + class summary as first step
   const allSteps = [
@@ -31,7 +34,7 @@ export function EnrollmentForm({ schema, selectedClasses, onRemoveClass }: Enrol
   const isLastStep = step === allSteps.length - 1;
   const isFirstStep = step === 0;
 
-  const setValue = useCallback((fieldId: string, value: any) => {
+  const setValue = useCallback((fieldId: string, value: unknown) => {
     setValues((prev) => ({ ...prev, [fieldId]: value }));
     setErrors((prev) => {
       const next = { ...prev };
@@ -87,14 +90,33 @@ export function EnrollmentForm({ schema, selectedClasses, onRemoveClass }: Enrol
     setStep((s) => Math.max(s - 1, 0));
   }, []);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (!validateCurrentStep()) return;
 
-    // TODO: call createEnrollment() API
-    console.log("Enrollment submitted:", { values, classIds: selectedClasses.map((c) => c.id) });
-    setSubmitted(true);
-    toast.success("¡Inscripción enviada exitosamente!");
-  }, [validateCurrentStep, values, selectedClasses]);
+    const classIds = selectedClasses.map((c) => c.id);
+    setIsSubmitting(true);
+
+    try {
+      if (tenantSlug) {
+        const response = await submitPublicEnrollment(tenantSlug, {
+          class_ids: classIds,
+          form_values: values,
+        });
+
+        if (!response?.success) {
+          throw new Error(response?.message || "No se pudo enviar la inscripción");
+        }
+      }
+
+      setSubmitted(true);
+      toast.success("¡Inscripción enviada exitosamente!");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo enviar la inscripción.";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [selectedClasses, tenantSlug, validateCurrentStep, values]);
 
   if (submitted) {
     return (
@@ -176,8 +198,8 @@ export function EnrollmentForm({ schema, selectedClasses, onRemoveClass }: Enrol
         </Button>
 
         {isLastStep ? (
-          <Button onClick={handleSubmit}>
-            <Send className="h-4 w-4 mr-1" />
+          <Button onClick={() => void handleSubmit()} disabled={isSubmitting}>
+            {isSubmitting ? <Send className="h-4 w-4 mr-1 animate-pulse" /> : <Send className="h-4 w-4 mr-1" />}
             Enviar Inscripción
           </Button>
         ) : (

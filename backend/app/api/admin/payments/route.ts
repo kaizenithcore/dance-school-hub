@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
-import { paymentService } from "@/lib/services/paymentService";
+import { DuplicatePaymentError, InvalidPaymentAmountError, paymentService } from "@/lib/services/paymentService";
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreFlight(request.headers.get("origin"));
@@ -36,19 +36,31 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { studentId, amount, status = "paid", metadata } = body;
+    const amountNumber = Number(amount);
 
-    if (!studentId || !amount) {
+    if (typeof studentId !== "string" || studentId.trim().length === 0) {
       return fail(
         {
           code: "invalid_request",
-          message: "Missing studentId or amount",
+          message: "Missing studentId",
         },
         400,
         origin
       );
     }
 
-    const amountCents = Math.round(amount * 100);
+    if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+      return fail(
+        {
+          code: "invalid_amount",
+          message: "Amount must be greater than zero",
+        },
+        400,
+        origin
+      );
+    }
+
+    const amountCents = Math.round(amountNumber * 100);
     const payment = await paymentService.recordPayment(
       auth.context.tenantId,
       studentId,
@@ -63,6 +75,15 @@ export async function POST(request: NextRequest) {
     if (message === "Student has no accepted enrollment") {
       return fail({ code: "enrollment_not_accepted", message }, 409, origin);
     }
+
+    if (error instanceof InvalidPaymentAmountError) {
+      return fail({ code: "invalid_amount", message: error.message }, 400, origin);
+    }
+
+    if (error instanceof DuplicatePaymentError) {
+      return fail({ code: "duplicate_payment", message: error.message }, 409, origin);
+    }
+
     return fail({ code: "create_failed", message }, 500, origin);
   }
 }

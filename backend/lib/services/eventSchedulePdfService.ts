@@ -1,6 +1,7 @@
 import { chromium } from "playwright";
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import type { FrontendScheduleItem } from "@/lib/services/eventScheduleItemService";
+import { brandingService } from "@/lib/services/brandingService";
 
 interface EventData {
   id: string;
@@ -22,9 +23,18 @@ interface TenantData {
   name: string;
   branding?: {
     primaryColor?: string;
+    secondaryColor?: string;
     accentColor?: string;
-    logoUrl?: string;
+    logoUrl?: string | null;
+    fontFamily?: "inter" | "poppins" | "montserrat" | "lato";
   };
+}
+
+function resolvePdfFontFamily(fontFamily?: "inter" | "poppins" | "montserrat" | "lato"): string {
+  if (fontFamily === "poppins") return "Poppins, Arial, sans-serif";
+  if (fontFamily === "montserrat") return "Montserrat, Arial, sans-serif";
+  if (fontFamily === "lato") return "Lato, Arial, sans-serif";
+  return "Inter, Segoe UI, Arial, sans-serif";
 }
 
 function normalizeText(value: unknown, fallback = ""): string {
@@ -67,12 +77,18 @@ function buildScheduleHtml(
 ): string {
   const primaryColor = normalizeText(
     tenant?.branding?.primaryColor,
-    "#8b5cf6"
+    "#7C3AED"
   );
   const accentColor = normalizeText(
     tenant?.branding?.accentColor,
-    "#a78bfa"
+    "#A78BFA"
   );
+  const secondaryColor = normalizeText(
+    tenant?.branding?.secondaryColor,
+    "#F1F5F9"
+  );
+  const fontFamily = resolvePdfFontFamily(tenant?.branding?.fontFamily);
+  const logoUrl = normalizeText(tenant?.branding?.logoUrl, "");
   const schoolName = escapeHtml(normalizeText(tenant?.name, "Escuela de Danza"));
   const eventName = escapeHtml(normalizeText(event.name, "Evento"));
   const location = escapeHtml(normalizeText(event.location, ""));
@@ -129,7 +145,7 @@ function buildScheduleHtml(
           
           body {
             margin: 0;
-            font-family: "Segoe UI", Arial, sans-serif;
+            font-family: ${fontFamily};
             color: #1f2937;
             background: white;
           }
@@ -237,7 +253,7 @@ function buildScheduleHtml(
           }
           
           tbody tr:nth-child(2n) {
-            background-color: #f9fafb;
+            background-color: ${secondaryColor};
           }
           
           .notes-row {
@@ -335,9 +351,12 @@ function buildScheduleHtml(
       <body>
         <div class="container">
           <div class="header">
-            <div class="header-title">
-              <h1>Escaleta del evento</h1>
-              <p class="school-name">${schoolName}</p>
+            <div class="header-top">
+              <div class="header-title">
+                <h1>Escaleta del evento</h1>
+                <p class="school-name">${schoolName}</p>
+              </div>
+              ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo ${schoolName}" style="height: 54px; max-width: 160px; object-fit: contain;" />` : ""}
             </div>
             
             <div class="meta-info">
@@ -407,21 +426,28 @@ function buildScheduleHtml(
 }
 
 async function resolveTenantData(tenantId: string): Promise<TenantData> {
-  const { data: tenantData } = await supabaseAdmin
-    .from("tenants")
-    .select("name, branding")
-    .eq("id", tenantId)
-    .maybeSingle();
+  const [branding, tenantRow] = await Promise.all([
+    brandingService.getTenantBranding(tenantId),
+    supabaseAdmin
+      .from("tenants")
+      .select("name")
+      .eq("id", tenantId)
+      .maybeSingle(),
+  ]);
 
-  if (!tenantData) {
+  if (!tenantRow.data) {
     return { name: "Escuela de Danza" };
   }
 
   return {
-    name: tenantData.name || "Escuela de Danza",
-    branding: tenantData.branding && typeof tenantData.branding === "object"
-      ? (tenantData.branding as TenantData["branding"])
-      : undefined,
+    name: tenantRow.data.name || "Escuela de Danza",
+    branding: {
+      primaryColor: branding.primary_color,
+      secondaryColor: branding.secondary_color,
+      accentColor: branding.accent_color || undefined,
+      logoUrl: branding.logo_url,
+      fontFamily: branding.font_family,
+    },
   };
 }
 

@@ -1,17 +1,24 @@
 {
-  "planOrder": ["starter", "pro", "enterprise"],
+  "planOrder": ["starter"],
+  "mvpOffer": {
+    "planType": "starter",
+    "monthlyPriceEur": 99,
+    "trialDays": 30,
+    "currency": "EUR",
+    "headline": "Plan unico MVP"
+  },
   "plans": {
     "starter": {
-      "name": "Starter",
-      "highlighted": false,
+      "name": "MVP",
+      "highlighted": true,
       "cta": {
-        "label": "Empezar",
+        "label": "Probar gratis 30 dias",
         "href": "/auth/register"
       },
       "billing": {
-        "monthlyPriceEur": 199,
-        "annualEffectiveMonthlyPriceEur": 165,
-        "annualTotalEur": 1990,
+        "monthlyPriceEur": 99,
+        "annualEffectiveMonthlyPriceEur": 83,
+        "annualTotalEur": 990,
         "annualSavingsLabel": "2 meses gratis"
       },
       "limits": {
@@ -65,9 +72,9 @@
         "href": "/auth/register"
       },
       "billing": {
-        "monthlyPriceEur": 649,
-        "annualEffectiveMonthlyPriceEur": 549,
-        "annualTotalEur": 6490,
+        "monthlyPriceEur": 349,
+        "annualEffectiveMonthlyPriceEur": 291,
+        "annualTotalEur": 3490,
         "annualSavingsLabel": "2 meses gratis"
       },
       "limits": {
@@ -96,22 +103,20 @@
       "display": {
         "features": [
           "Todo en Starter",
-          "Editor visual de horarios",
-          "Listas de espera automáticas",
-          "Renovaciones automáticas",
-          "Copia de curso anterior",
+          "Automatización de renovaciones",
+          "Listas de espera",
           "Comunicación masiva",
-          "Detección de problemas en horarios",
-          "Gestión completa de exámenes y certificaciones",
-          "Portal del alumno (app móvil incluida)",
-          "Pack de modernización incluido"
+          "Analítica clara de negocio",
+          "Portal del alumno completo (Nexa Club)",
+          "Certifier (exámenes y certificaciones)",
+          "Mejor experiencia de matrícula"
         ],
         "adminHighlights": [
-          "Todo Starter incluido",
+          "Escala y automatiza sin fricción",
           "Automatización de renovaciones",
-          "Clonado de cursos",
-          "Comunicación masiva por email",
-          "Implementación incluida (ahorra hasta 690€)"
+          "Certifier incluido",
+          "Analítica para decidir mejor",
+          "Más conversión en matrícula online"
         ]
       },
       "includedSubscriptionAddons": []
@@ -125,9 +130,9 @@
         "external": true
       },
       "billing": {
-        "monthlyPriceEur": 1149,
-        "annualEffectiveMonthlyPriceEur": 949,
-        "annualTotalEur": 11490,
+        "monthlyPriceEur": 649,
+        "annualEffectiveMonthlyPriceEur": 541,
+        "annualTotalEur": 6490,
         "annualSavingsLabel": "2 meses gratis"
       },
       "limits": {
@@ -159,15 +164,15 @@
           "Multi-sede",
           "Roles avanzados",
           "Analítica avanzada",
-          "Gestión completa de escuela",
+          "Control operativo completo",
           "Soporte prioritario",
           "Onboarding personalizado"
         ],
         "adminHighlights": [
-          "Todo Pro incluido",
-          "Roles personalizados (hasta 10)",
-          "Escala para academias multi-sede",
-          "Soporte prioritario incluido"
+          "Diseñado para academias en expansión",
+          "Escala multi-sede sin perder control",
+          "Gobierno con roles avanzados",
+          "Soporte prioritario + onboarding personalizado"
         ]
       },
       "includedSubscriptionAddons": ["prioritySupport"]
@@ -180,8 +185,8 @@
     },
     "branding": {
       "label": "Branding visual",
-      "monthlyPriceEur": 39,
-      "description": "Bloque mensual para mejoras de imagen y activos visuales"
+      "monthlyPriceEur": 0,
+      "description": "Integrado por defecto como base visual para mantener coherencia premium"
     },
     "prioritySupport": {
       "label": "Soporte prioritario",
@@ -193,23 +198,23 @@
       "description": "Precio por bloque de 5 roles personalizados adicionales (solo para Enterprise)"
     },
     "waitlistAutomation": {
-      "label": "Automatización lista de espera",
-      "monthlyPriceEur": 24,
+      "label": "Automatización lista de espera (incluida en Pro)",
+      "monthlyPriceEur": 0,
       "starterOnly": true,
       "upsellToPro": true
     },
     "renewalAutomation": {
-      "label": "Automatización renovaciones",
-      "monthlyPriceEur": 39,
+      "label": "Automatización renovaciones (incluida en Pro)",
+      "monthlyPriceEur": 0,
       "starterOnly": true,
       "upsellToPro": true
     }
   },
   "publicWeb": {
-    "label": "Web básica incluida",
+    "label": "Web preparada para captar",
     "includedInPlans": ["starter", "pro", "enterprise"],
     "positioning": "entry_level_acquisition_layer",
-    "description": "Landing pública automática con matrícula online y horarios básicos.",
+    "description": "Landing integrada en Nexa para arrancar captación y matrícula online desde el día 1.",
     "includes": [
       "Landing pública /s/:slug",
       "Formulario de matrícula online",
@@ -245,9 +250,9 @@
       "positioning": "core_offer"
     },
     "integratedWebsite": {
-      "label": "Web optimizada con Nexa",
+      "label": "Web integrada con Nexa",
       "serviceType": "one_time",
-      "shortDescription": "Web profesional diseñada para convertir visitas en matrículas, conectada con Nexa.",
+      "shortDescription": "Tu web deja de ser solo presencia: se convierte en parte de tu sistema de captacion y operacion.",
       "positioning": "conversion_upgrade",
       "upgradeFrom": "publicWeb",
       "includes": [
@@ -261,14 +266,18 @@
         "Adaptación a identidad visual"
       ],
       "notIncluded": [
-        "Rebranding completo (ver Weydi)",
+        "Rebranding completo (ver Kaizenith)",
         "SEO avanzado continuo"
       ],
-      "differentiator": "Convierte más alumnos con la misma base de Nexa",
+      "differentiator": "Menos trabajo manual, todo conectado",
+      "simplePricingEur": {
+        "landingBasic": 549,
+        "fullWebsite": 1090
+      },
       "pricingByPlanEur": {
-        "starter": 1490,
-        "pro": 1790,
-        "enterprise": 2190
+        "starter": 549,
+        "pro": 549,
+        "enterprise": 549
       },
       "installments": {
         "months": [3, 6],
@@ -282,17 +291,17 @@
         "enterprise": "discounted"
       },
       "bundleEligible": true,
-      "bundlePriceEur": 990
+      "bundlePriceEur": 549
     },
     "standaloneWebsite": {
       "label": "Web independiente",
       "serviceType": "one_time",
-      "shortDescription": "Web profesional sin conexion al sistema de gestion, ideal para presencia digital y captacion.",
+      "shortDescription": "Producto de entrada para captar alumnos sin cambiar tu sistema actual.",
       "positioning": "external_product",
       "target": "Escuelas que no usan Nexa",
       "warning": "No incluye sistema de gestión ni automatización",
       "strategicRole": "lead_generation_outside_saas",
-      "upsellPath": "Migración futura a Nexa con web integrada",
+      "upsellPath": "Empieza por presencia. Evoluciona a sistema.",
       "includes": [
         "Web corporativa profesional",
         "Enfoque captacion y presencia digital",
@@ -304,9 +313,9 @@
         "Portal del alumno integrado"
       ],
       "tierPricingEur": {
-        "basic": 890,
-        "standard": 1290,
-        "complete": 2490
+        "basic": 399,
+        "standard": 849,
+        "complete": 849
       },
       "installments": {
         "months": [3, 6],
@@ -351,16 +360,16 @@
     }
   },
   "creativeServices": {
-    "provider": "Weydi",
-    "providerDescription": "Bloque creativo premium con mas de una decada de experiencia en diseno grafico e identidad visual.",
-    "providerUrl": "https://weydi.com",
+    "provider": "Kaizenith",
+    "providerDescription": "Servicio creativo premium para elevar percepción de marca y mejorar conversión comercial.",
+    "providerUrl": "https://kaizenith.es",
     "positioning": "creative_premium_block",
     "services": {
       "identityReview": {
         "label": "Revision de identidad actual",
         "description": "Auditoria visual de logo, tipografia, paleta, coherencia de marca y guia breve de direccion visual.",
         "pricingEur": 390,
-        "includedInBundle": true
+        "includedInBundle": false
       },
       "rebranding": {
         "label": "Rebranding",
@@ -378,10 +387,9 @@
     "shortDescription": "App móvil para alumnos con horarios, progreso, eventos y perfil de bailarín."
   },
   "pricingNarrative": {
-    "anchor": "Con 5–15 alumnos cubres el coste completo del sistema",
-    "comparison": "Más barato que contratar a un administrativo",
-
-    "focus": "ahorro de tiempo y eficiencia operativa"
+    "anchor": "Ahorra horas cada semana y gana control sin añadir complejidad",
+    "comparison": "Es una inversión en profesionalización y crecimiento",
+    "focus": "modernizacion, eficiencia operativa y control del negocio"
   },
   "examSuit": {
     "label": "Certifier",

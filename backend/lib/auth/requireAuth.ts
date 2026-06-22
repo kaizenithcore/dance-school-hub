@@ -370,6 +370,7 @@ async function resolveDemoMembership(tenantSlug: string): Promise<TenantMembersh
 }
 
 export async function requireAuth(request: NextRequest): Promise<AuthResult> {
+  const origin = request.headers.get("origin");
   const demoTenantSlug = request.headers.get("x-demo-tenant") ?? request.nextUrl.searchParams.get("demo");
   if (isDemoTenantSlug(String(demoTenantSlug || ""))) {
     if (!["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())) {
@@ -380,7 +381,8 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
             code: "demo_mode",
             message: "Modo demo: las funciones de guardado están deshabilitadas.",
           },
-          403
+          403,
+          origin
         ),
       };
     }
@@ -394,7 +396,8 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
             code: "not_found",
             message: "Demo tenant no disponible.",
           },
-          404
+          404,
+          origin
         ),
       };
     }
@@ -440,7 +443,8 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
           code: "unauthorized",
           message: "Missing bearer token.",
         },
-        401
+        401,
+        origin
       ),
     };
   }
@@ -459,7 +463,8 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
           message: "Invalid or expired token.",
           details: userError?.message,
         },
-        401
+        401,
+        origin
       ),
     };
   }
@@ -479,7 +484,8 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
           code: "auth_context_failed",
           message,
         },
-        500
+        500,
+        origin
       ),
     };
   }
@@ -497,7 +503,8 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
           code: "auth_context_failed",
           message,
         },
-        500
+        500,
+        origin
       ),
     };
   }
@@ -510,7 +517,8 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
           code: "forbidden",
           message: "User has no active memberships for any tenant.",
         },
-        403
+        403,
+        origin
       ),
     };
   }
@@ -532,7 +540,8 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
           code: "forbidden",
           message: "Unable to determine active tenant for the selected organization.",
         },
-        403
+        403,
+        origin
       ),
     };
   }
@@ -546,7 +555,8 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
           code: "forbidden",
           message: "Requested tenant is not available for this user.",
         },
-        403
+        403,
+        origin
       ),
     };
   }

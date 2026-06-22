@@ -190,9 +190,22 @@ export const tenantService = {
       throw new Error(`Unable to create tenant settings: ${settingsError.message}`);
     }
 
+    const { error: brandingError } = await supabaseAdmin.from("tenant_branding").insert({
+      tenant_id: tenantId,
+    });
+
+    if (brandingError) {
+      await supabaseAdmin.from("school_settings").delete().eq("tenant_id", tenantId);
+      await supabaseAdmin.from("tenant_memberships").delete().eq("tenant_id", tenantId);
+      await supabaseAdmin.from("tenants").delete().eq("id", tenantId);
+      await supabaseAdmin.auth.admin.deleteUser(ownerUserId);
+      throw new Error(`Unable to create tenant branding: ${brandingError.message}`);
+    }
+
     try {
       await ensureDefaultSchoolOrganization(tenantId, input.tenantName, tenantRow.slug, ownerUserId);
     } catch (error) {
+      await supabaseAdmin.from("tenant_branding").delete().eq("tenant_id", tenantId);
       await supabaseAdmin.from("school_settings").delete().eq("tenant_id", tenantId);
       await supabaseAdmin.from("tenant_memberships").delete().eq("tenant_id", tenantId);
       await supabaseAdmin.from("organization_memberships").delete().eq("organization_id", tenantId);

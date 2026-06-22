@@ -9,7 +9,8 @@ interface FeatureFlags {
   attendanceSheetsPdf: boolean;
   quickIncidents: boolean;
   receptionMode: boolean;
-  examSuite: boolean;
+  examSuite?: boolean;
+  certifier?: boolean;
   waitlistAutomation: boolean;
   renewalAutomation: boolean;
   courseClone: boolean;
@@ -21,6 +22,14 @@ interface FeatureFlags {
 }
 
 interface CommercialCatalog {
+  planOrder?: PlanType[];
+  mvpOffer?: {
+    planType: PlanType;
+    monthlyPriceEur: number;
+    trialDays: number;
+    currency: "EUR";
+    headline?: string;
+  };
   plans: Record<PlanType, {
     billing: {
       monthlyPriceEur: number;

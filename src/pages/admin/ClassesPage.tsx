@@ -4,6 +4,9 @@ import { ClassesTable } from "@/components/tables/ClassesTable";
 import { ClassFormModal } from "@/components/tables/ClassFormModal";
 import { DeleteClassModal } from "@/components/tables/DeleteClassModal";
 import { ClassPreviewDrawer } from "@/components/tables/ClassPreviewDrawer";
+import { ScheduleEditor } from "@/components/schedule/ScheduleEditor";
+import { ScheduleInsightsPanel } from "@/components/schedule/ScheduleInsightsPanel";
+import { getScheduleInsights, type ScheduleInsightsResult } from "@/lib/api/schedules";
 import { ClassRecord } from "@/lib/data/mockClassRecords";
 import { createClass, deleteClass, getClasses, updateClass } from "@/lib/api/classes";
 import { getTeachers } from "@/lib/api/teachers";
@@ -12,9 +15,11 @@ import { getCategories } from "@/lib/api/categories";
 import { getRooms } from "@/lib/api/rooms";
 import { getSchedules } from "@/lib/api/schedules";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, Plus } from "lucide-react";
+import { LayoutList, CalendarDays, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
+
+const VIEW_PREF_KEY = "nexa:admin:classes-view:v1";
 
 export default function ClassesPage() {
   const [classes, setClasses] = useState<ClassRecord[]>([]);
@@ -27,6 +32,36 @@ export default function ClassesPage() {
   const [deletingClass, setDeletingClass] = useState<ClassRecord | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  // ── View toggle (list | schedule) ─────────────────────────────────────────
+  const [activeView, setActiveView] = useState<"list" | "schedule">(() => {
+    const fromUrl = searchParams.get("view");
+    if (fromUrl === "schedule") return "schedule";
+    const fromStorage = window.localStorage.getItem(VIEW_PREF_KEY);
+    return fromStorage === "schedule" ? "schedule" : "list";
+  });
+  const [scheduleInsights, setScheduleInsights] = useState<ScheduleInsightsResult | null>(null);
+  const [scheduleInsightsLoading, setScheduleInsightsLoading] = useState(false);
+  const [scheduleEditorVersion, setScheduleEditorVersion] = useState(0);
+
+  const switchView = useCallback((view: "list" | "schedule") => {
+    setActiveView(view);
+    window.localStorage.setItem(VIEW_PREF_KEY, view);
+    setSearchParams(view === "schedule" ? { view: "schedule" } : {}, { replace: true });
+  }, [setSearchParams]);
+
+  // Load schedule insights when schedule view is active
+  useEffect(() => {
+    if (activeView !== "schedule") return;
+    void (async () => {
+      setScheduleInsightsLoading(true);
+      try {
+        const data = await getScheduleInsights();
+        setScheduleInsights(data);
+      } catch { setScheduleInsights(null); }
+      finally { setScheduleInsightsLoading(false); }
+    })();
+  }, [activeView]);
   const activeClasses = classes.filter((cls) => cls.status === "active").length;
   const totalCapacity = classes.reduce((sum, cls) => sum + (cls.capacity || 0), 0);
   const totalEnrolled = classes.reduce((sum, cls) => sum + (cls.enrolled || 0), 0);
@@ -140,23 +175,57 @@ export default function ClassesPage() {
 
   return (
     <PageContainer
-      title="Clases"
-      description={`${activeClasses} activas · ${totalEnrolled}/${totalCapacity} alumnos`}
+      title="Clases y horarios"
+      description={activeView === "list"
+        ? `${activeClasses} activas · ${totalEnrolled}/${totalCapacity} alumnos`
+        : "Vista de horario semanal"
+      }
       actions={
         <>
-          <Button size="sm" variant="outline" onClick={() => navigate("/admin/reception")}>
-            <CalendarClock className="h-4 w-4 mr-1" /> Asistencia
-          </Button>
-          <Button size="sm" onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-1" /> Crear clase
-          </Button>
+          {/* View toggle */}
+          <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5 gap-0.5">
+            <Button
+              size="sm"
+              variant={activeView === "list" ? "default" : "ghost"}
+              className="h-7 px-2.5 text-xs"
+              onClick={() => switchView("list")}
+            >
+              <LayoutList className="h-3.5 w-3.5 mr-1" /> Lista
+            </Button>
+            <Button
+              size="sm"
+              variant={activeView === "schedule" ? "default" : "ghost"}
+              className="h-7 px-2.5 text-xs"
+              onClick={() => switchView("schedule")}
+            >
+              <CalendarDays className="h-3.5 w-3.5 mr-1" /> Horario
+            </Button>
+          </div>
+
+          {activeView === "list" && (
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-1" /> Crear clase
+            </Button>
+          )}
         </>
       }
     >
-      <ClassesTable classes={classes} isLoading={loading} onPreview={handlePreview} onEdit={handleEdit} onDelete={handleDelete} />
-      <ClassPreviewDrawer open={previewOpen} onOpenChange={setPreviewOpen} classData={selectedClass} />
-      <ClassFormModal open={formOpen} onOpenChange={setFormOpen} classData={editingClass} onSave={handleSave} />
-      <DeleteClassModal open={deleteOpen} onOpenChange={setDeleteOpen} classData={deletingClass} onConfirm={handleConfirmDelete} />
+      {activeView === "list" ? (
+        <>
+          <ClassesTable classes={classes} isLoading={loading} onPreview={handlePreview} onEdit={handleEdit} onDelete={handleDelete} />
+          <ClassPreviewDrawer open={previewOpen} onOpenChange={setPreviewOpen} classData={selectedClass} />
+          <ClassFormModal open={formOpen} onOpenChange={setFormOpen} classData={editingClass} onSave={handleSave} />
+          <DeleteClassModal open={deleteOpen} onOpenChange={setDeleteOpen} classData={deletingClass} onConfirm={handleConfirmDelete} />
+        </>
+      ) : (
+        <>
+          <ScheduleInsightsPanel insights={scheduleInsights} loading={scheduleInsightsLoading} />
+          <ScheduleEditor
+            key={scheduleEditorVersion}
+            onSaved={() => setScheduleEditorVersion((v) => v + 1)}
+          />
+        </>
+      )}
     </PageContainer>
   );
 }

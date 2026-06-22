@@ -45,7 +45,9 @@ interface TenantBranding {
   schoolName: string;
   logoUrl?: string;
   primaryColor?: string;
+  secondaryColor?: string;
   accentColor?: string;
+  fontFamily?: "inter" | "poppins" | "montserrat" | "lato";
   footerText?: string;
 }
 
@@ -138,10 +140,18 @@ function formatPaymentMethodLabel(value: string) {
 
 function buildHtml(receipts: ReceiptRecord[], branding: TenantBranding, month: string) {
   const primary = normalizeText(branding.primaryColor, "#0f172a");
+  const secondary = normalizeText(branding.secondaryColor, "#f8fafc");
   const accent = normalizeText(branding.accentColor, "#334155");
   const schoolName = escapeHtml(normalizeText(branding.schoolName, "Escuela de Danza"));
   const footer = escapeHtml(normalizeText(branding.footerText, "Gracias por confiar en nuestra escuela."));
   const logo = normalizeText(branding.logoUrl, "");
+  const fontFamily = branding.fontFamily === "poppins"
+    ? "Poppins, Arial, sans-serif"
+    : branding.fontFamily === "montserrat"
+      ? "Montserrat, Arial, sans-serif"
+      : branding.fontFamily === "lato"
+        ? "Lato, Arial, sans-serif"
+        : "Inter, Segoe UI, Arial, sans-serif";
 
   const pages = receipts
     .map((receipt) => {
@@ -193,7 +203,7 @@ function buildHtml(receipts: ReceiptRecord[], branding: TenantBranding, month: s
         <style>
           @page { size: A4; margin: 14mm; }
           * { box-sizing: border-box; }
-          body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: #111827; }
+          body { margin: 0; font-family: ${fontFamily}; color: #111827; }
           .receipt-page {
             min-height: 260mm;
             border: 1px solid #e5e7eb;
@@ -211,7 +221,7 @@ function buildHtml(receipts: ReceiptRecord[], branding: TenantBranding, month: s
           .brand p { margin: 2px 0 0; color: #4b5563; }
           .meta p { margin: 0 0 4px; font-size: 12px; text-align: right; }
           .receipt-body { margin-top: 18px; display: grid; gap: 10px; }
-          .row { display: flex; justify-content: space-between; padding: 9px 10px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 14px; }
+          .row { display: flex; justify-content: space-between; padding: 9px 10px; border-radius: 8px; background: ${secondary}; border: 1px solid #e2e8f0; font-size: 14px; }
           .row span { color: #475569; }
           .total { margin-top: 14px; display: flex; justify-content: space-between; padding: 12px 10px; border-top: 2px solid ${accent}; font-size: 19px; color: ${primary}; }
           .receipt-footer { margin-top: auto; padding-top: 18px; color: #6b7280; font-size: 12px; }
@@ -232,22 +242,26 @@ async function resolveBranding(tenantId: string): Promise<TenantBranding> {
     .eq("id", tenantId)
     .maybeSingle();
 
-  const { data: settingsData } = await supabaseAdmin
-    .from("school_settings")
-    .select("branding")
+  const { data: brandingData } = await supabaseAdmin
+    .from("tenant_branding")
+    .select("logo_url, primary_color, secondary_color, accent_color, font_family")
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
-  const branding = (settingsData?.branding && typeof settingsData.branding === "object")
-    ? (settingsData.branding as Record<string, unknown>)
-    : {};
-
   return {
     schoolName: normalizeText(tenantData?.name, "Escuela de Danza"),
-    logoUrl: normalizeText(branding.logoUrl || branding.logo_url, "") || undefined,
-    primaryColor: normalizeText(branding.primaryColor || branding.primary_color, "") || undefined,
-    accentColor: normalizeText(branding.accentColor || branding.accent_color, "") || undefined,
-    footerText: normalizeText(branding.receiptFooterText || branding.receipt_footer_text, "") || undefined,
+    logoUrl: normalizeText(brandingData?.logo_url, "") || undefined,
+    primaryColor: normalizeText(brandingData?.primary_color, "") || undefined,
+    secondaryColor: normalizeText(brandingData?.secondary_color, "") || undefined,
+    accentColor: normalizeText(brandingData?.accent_color, "") || undefined,
+    fontFamily:
+      brandingData?.font_family === "inter"
+      || brandingData?.font_family === "poppins"
+      || brandingData?.font_family === "montserrat"
+      || brandingData?.font_family === "lato"
+        ? brandingData.font_family
+        : undefined,
+    footerText: undefined,
   };
 }
 

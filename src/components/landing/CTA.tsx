@@ -2,16 +2,17 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { buildRegisterHref, freeTrialDays } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 
-const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&trial=14d&source=final_cta";
+const PRIMARY_CTA_HREF = buildRegisterHref("final_cta");
 
 export function CTA() {
   const handleClick = () => {
     trackPortalEvent({
       eventName: "click_cta_primary",
       category: "funnel",
-      metadata: { section: "final_cta", ctaLabel: "Probar Nexa gratis", destination: PRO_ANNUAL_CTA_HREF },
+      metadata: { section: "final_cta", ctaLabel: "Probar Nexa gratis", destination: PRIMARY_CTA_HREF },
     });
   };
 
@@ -30,11 +31,11 @@ export function CTA() {
               Empieza a gestionar tu academia como un sistema
             </h2>
             <p className="mt-5 text-lg text-muted-foreground max-w-md mx-auto">
-              14 días gratis. Sin tarjeta. Sin compromiso.
+              {freeTrialDays} días gratis. Sin tarjeta. Sin compromiso.
             </p>
             <div className="mt-10">
               <Button size="lg" className="h-13 rounded-xl px-10 text-base font-semibold shadow-md hover:shadow-lg" asChild>
-                <Link to={PRO_ANNUAL_CTA_HREF} onClick={handleClick}>
+                <Link to={PRIMARY_CTA_HREF} onClick={handleClick}>
                   Probar Nexa gratis
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

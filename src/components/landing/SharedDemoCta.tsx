@@ -16,7 +16,7 @@ interface SharedDemoCtaProps {
 
 export function SharedDemoCta({
   section,
-  subject = "Demo + prueba gratis Pro anual",
+  subject = "Demo + prueba gratis Nexa",
   label = "Ver demo + prueba gratis",
   variant = "outline",
   className,

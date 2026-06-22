@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Check, Sparkles, ArrowRight, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { commercialCatalog, formatAnnualFinancingLabel, formatEuro, getInterestFreeInstallment } from "@/lib/commercialCatalog";
+import { buildRegisterHref, commercialCatalog, formatAnnualFinancingLabel, formatEuro, getInterestFreeInstallment } from "@/lib/commercialCatalog";
 import { SharedDemoCta } from "@/components/landing/SharedDemoCta";
 
 interface ModernizationBundleCatalog {
@@ -81,7 +81,9 @@ const associatedProAnnualTotal = associatedDiscountPercent > 0
 const associatedFirstYearTotal = associatedProAnnualTotal !== null
   ? oneTimePackPayment + associatedProAnnualTotal
   : null;
-const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=modernization_pack";
+const PRO_ANNUAL_CTA_HREF = buildRegisterHref("modernization_pack", {
+  params: { focus: "integrated-web" },
+});
 const customDomainAnnual = commercialCatalog.subscriptionAddons.customDomain.monthlyPriceEur * 12;
 const prioritySupportAnnual = commercialCatalog.subscriptionAddons.prioritySupport.monthlyPriceEur * 12;
 const proAnnualFinancingLabel = formatAnnualFinancingLabel(proAnnualTotal);

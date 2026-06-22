@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DemoBanner } from "@/components/public/DemoBanner";
 import { DemoTourCard } from "@/components/public/DemoTourCard";
 import { activateDemoAdminSession, DEMO_ADMIN_SLUG } from "@/lib/demoAdmin";
+import { freeTrialDays } from "@/lib/commercialCatalog";
 
 const DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -167,7 +168,7 @@ export default function SchoolLandingPage() {
           <DialogHeader>
             <DialogTitle>Estás en el modo demo</DialogTitle>
             <DialogDescription className="pt-1">
-              Los datos de esta escuela son ficticios. Para gestionar matrículas reales, crea tu propia escuela — es gratis durante 14 días.
+              Los datos de esta escuela son ficticios. Para gestionar matrículas reales, crea tu propia escuela — es gratis durante {freeTrialDays} días.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2 pt-2">

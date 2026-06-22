@@ -30,6 +30,69 @@ interface InvoiceDetail extends Invoice {
   items: InvoiceItem[];
 }
 
+interface ScheduleRow {
+  id: string;
+  start_time: string | null;
+  end_time: string | null;
+}
+
+interface ClassRow {
+  id: string;
+  name: string | null;
+  discipline_id: string | null;
+  price_cents: number | null;
+  class_schedules: ScheduleRow[] | ScheduleRow | null;
+}
+
+interface StudentRow {
+  id: string;
+  name: string | null;
+  email: string | null;
+  status?: string | null;
+}
+
+interface EnrollmentRow {
+  id: string;
+  student_id: string;
+  classes: ClassRow[] | ClassRow | null;
+  students: StudentRow[] | StudentRow | null;
+  student_snapshot?: {
+    selected_schedule_ids?: unknown;
+  } | null;
+}
+
+interface InvoiceDbRow {
+  id: string;
+  student_id: string;
+  month: string;
+  status: InvoiceStatus;
+  total_amount_cents: number | null;
+  payment_method: string | null;
+  paid_date: string | null;
+  invoice_number: string;
+  notes: string | null;
+  created_at: string;
+  students: { name: string | null; email: string | null } | Array<{ name: string | null; email: string | null }> | null;
+}
+
+interface InvoiceItemDbRow {
+  id: string;
+  class_id: string;
+  amount_cents: number | null;
+  classes: { name: string | null } | Array<{ name: string | null }> | null;
+}
+
+interface InvoiceInsertRow {
+  id: string;
+  invoice_number: string;
+  created_at: string;
+}
+
+interface PaymentMonthLookupRow {
+  id: string;
+  metadata: Record<string, unknown> | null;
+}
+
 export const invoiceService = {
   /**
    * Generate monthly invoices for all active students in a given month
@@ -39,12 +102,12 @@ export const invoiceService = {
     tenantId: string,
     month: string // Format: "2026-03"
   ) {
-    const buildSelectionFromEnrollment = (enrollment: any): ClassSelection | null => {
+    const buildSelectionFromEnrollment = (enrollment: EnrollmentRow): ClassSelection | null => {
       const cls = Array.isArray(enrollment.classes) ? enrollment.classes[0] : enrollment.classes;
       if (!cls) return null;
 
       const schedules = Array.isArray(cls.class_schedules) ? cls.class_schedules : [];
-      const totalClassHours = schedules.reduce((sum: number, schedule: any) => {
+      const totalClassHours = schedules.reduce((sum: number, schedule: ScheduleRow) => {
         const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
         const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
         const startTotal = startHour + startMinute / 60;
@@ -59,8 +122,8 @@ export const invoiceService = {
 
       const selectedHours = selectedScheduleIds.length > 0
         ? schedules
-            .filter((schedule: any) => selectedScheduleIds.includes(schedule.id))
-            .reduce((sum: number, schedule: any) => {
+            .filter((schedule: ScheduleRow) => selectedScheduleIds.includes(schedule.id))
+            .reduce((sum: number, schedule: ScheduleRow) => {
               const [startHour = 0, startMinute = 0] = String(schedule.start_time || "").split(":").map((part: string) => Number(part));
               const [endHour = 0, endMinute = 0] = String(schedule.end_time || "").split(":").map((part: string) => Number(part));
               const startTotal = startHour + startMinute / 60;
@@ -198,13 +261,13 @@ export const invoiceService = {
 
     const paidStudentsForMonth = new Set(
       (paidPayments || [])
-        .filter((payment: any) => Boolean(payment.student_id) && isPaymentInMonth(payment))
-        .map((payment: any) => String(payment.student_id))
+        .filter((payment: { student_id: string | null; paid_at?: string | null; created_at?: string | null; metadata?: Record<string, unknown> | null }) => Boolean(payment.student_id) && isPaymentInMonth(payment))
+        .map((payment: { student_id: string | null }) => String(payment.student_id))
     );
 
     // Filter by active students (client-side)
     const filteredEnrollments = (enrollments ?? []).filter(
-      (enrollment: any) => {
+      (enrollment: EnrollmentRow) => {
         const student = Array.isArray(enrollment.students) 
           ? enrollment.students[0] 
           : enrollment.students;
@@ -217,7 +280,7 @@ export const invoiceService = {
       string,
       {
         student: { id: string; name: string; email: string };
-        enrollments: any[];
+        enrollments: EnrollmentRow[];
       }
     >();
 
@@ -248,11 +311,14 @@ export const invoiceService = {
       if (monthEnrollments.length === 0) continue;
 
       const selections = monthEnrollments
-        .map((enrollment: any) => buildSelectionFromEnrollment(enrollment))
+        .map((enrollment: EnrollmentRow) => buildSelectionFromEnrollment(enrollment))
         .filter((selection: ClassSelection | null): selection is ClassSelection => Boolean(selection));
 
       const fallbackTotalCents = monthEnrollments.reduce(
-        (sum: number, e: any) => sum + (e.classes?.price_cents || 0),
+        (sum: number, e: EnrollmentRow) => {
+          const cls = Array.isArray(e.classes) ? e.classes[0] : e.classes;
+          return sum + (cls?.price_cents || 0);
+        },
         0
       );
 
@@ -294,8 +360,8 @@ export const invoiceService = {
       const monthToken = month.replace("-", "");
       const studentSuffix = studentId.replace(/-/g, "").slice(-6).toUpperCase();
 
-      let invoice: any | null = null;
-      let lastInvoiceError: any = null;
+      let invoice: InvoiceInsertRow | null = null;
+      let lastInvoiceError: { code?: string } | null = null;
 
       // Retry with a deterministic suffix if a unique invoice_number collision happens.
       for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -402,7 +468,7 @@ export const invoiceService = {
       throw new Error(`Failed to fetch invoices: ${error.message}`);
     }
 
-    return (data ?? []).map((invoice: any) => {
+    return ((data ?? []) as InvoiceDbRow[]).map((invoice) => {
       const student = Array.isArray(invoice.students) ? invoice.students[0] : invoice.students;
       return {
         id: invoice.id,
@@ -480,10 +546,10 @@ export const invoiceService = {
       invoiceNumber: invoice.invoice_number,
       notes: invoice.notes,
       createdAt: invoice.created_at,
-      items: (items ?? []).map((item: any) => ({
+      items: ((items ?? []) as InvoiceItemDbRow[]).map((item) => ({
         id: item.id,
         classId: item.class_id,
-        className: item.classes?.name || "N/A",
+        className: (Array.isArray(item.classes) ? item.classes[0] : item.classes)?.name || "N/A",
         amount: Math.round((item.amount_cents || 0) / 100),
       })),
     };
@@ -533,7 +599,7 @@ export const invoiceService = {
     const detail = await this.getInvoiceDetail(tenantId, invoiceId);
 
     // Build payment metadata
-    const paymentMetadata: Record<string, any> = {
+    const paymentMetadata: Record<string, unknown> = {
       invoice_id: invoiceId,
       month: invoice.month,
       invoice_number: invoice.invoice_number,
@@ -579,7 +645,7 @@ export const invoiceService = {
     if (linkedPayment?.id) {
       const existingMetadata =
         linkedPayment.metadata && typeof linkedPayment.metadata === "object"
-          ? (linkedPayment.metadata as Record<string, any>)
+          ? (linkedPayment.metadata as Record<string, unknown>)
           : {};
 
       const { error: updateLinkedError } = await supabaseAdmin
@@ -613,9 +679,9 @@ export const invoiceService = {
         .order("created_at", { ascending: false })
         .limit(10);
 
-      const monthPayment = (monthPayments || []).find((item: any) => {
+      const monthPayment = ((monthPayments || []) as PaymentMonthLookupRow[]).find((item) => {
         const itemMetadata = item?.metadata && typeof item.metadata === "object"
-          ? (item.metadata as Record<string, any>)
+          ? (item.metadata as Record<string, unknown>)
           : {};
         return !itemMetadata.invoice_id;
       });
@@ -623,7 +689,7 @@ export const invoiceService = {
       if (monthPayment?.id) {
         const existingMetadata =
           monthPayment.metadata && typeof monthPayment.metadata === "object"
-            ? (monthPayment.metadata as Record<string, any>)
+            ? (monthPayment.metadata as Record<string, unknown>)
             : {};
 
         const { error: updateMonthError } = await supabaseAdmin

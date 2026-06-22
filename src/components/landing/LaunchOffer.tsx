@@ -3,8 +3,11 @@ import { Zap, ArrowRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { SharedDemoCta } from "@/components/landing/SharedDemoCta";
+import { buildRegisterHref } from "@/lib/commercialCatalog";
 
-const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=launch_offer";
+const PRO_ANNUAL_CTA_HREF = buildRegisterHref("launch_offer", {
+  params: { focus: "integrated-web" },
+});
 
 export function LaunchOffer() {
   return (

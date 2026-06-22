@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { BrandingProvider } from "@/providers/BrandingProvider";
 import Index from "@/pages/Index";
 
 const AdminLayout = lazy(() => import("@/components/layout/AdminLayout").then((module) => ({ default: module.AdminLayout })));
@@ -22,7 +23,16 @@ const ImportStudentsPage = lazy(() => import("@/pages/admin/ImportStudentsPage")
 const EnrollmentsPage = lazy(() => import("@/pages/admin/EnrollmentsPage"));
 const PaymentsPage = lazy(() => import("@/pages/admin/PaymentsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/admin/AnalyticsPage"));
-const SettingsPage = lazy(() => import("@/pages/admin/SettingsPage"));
+const SettingsLayout = lazy(() => import("@/pages/admin/settings/SettingsLayout"));
+const EscuelaPage = lazy(() => import("@/pages/admin/settings/EscuelaPage"));
+const AgendaPage = lazy(() => import("@/pages/admin/settings/AgendaPage"));
+const CobrosSettingsPage = lazy(() => import("@/pages/admin/settings/CobrosSettingsPage"));
+const AvisosPage = lazy(() => import("@/pages/admin/settings/AvisosPage"));
+const AccesoPage = lazy(() => import("@/pages/admin/settings/AccesoPage"));
+const PlanPage = lazy(() => import("@/pages/admin/settings/PlanPage"));
+const RecepcionPage = lazy(() => import("@/pages/admin/settings/RecepcionPage"));
+const PaginaWebPage = lazy(() => import("@/pages/admin/settings/PaginaWebPage"));
+const BrandingSettingsPage = lazy(() => import("@/pages/admin/BrandingSettingsPage"));
 const FormBuilderPage = lazy(() => import("@/pages/admin/FormBuilderPage"));
 const PricingManagement = lazy(() => import("@/pages/admin/PricingManagement").then((module) => ({ default: module.PricingManagement })));
 const CommunicationsPage = lazy(() => import("@/pages/admin/CommunicationsPage"));
@@ -30,9 +40,6 @@ const WaitlistPage = lazy(() => import("@/pages/admin/WaitlistPage"));
 const RenewalsPage = lazy(() => import("@/pages/admin/RenewalsPage"));
 const CourseClonePage = lazy(() => import("@/pages/admin/CourseClonePage"));
 const ReceptionPage = lazy(() => import("@/pages/admin/ReceptionPage"));
-const BranchesPage = lazy(() => import("@/pages/admin/BranchesPage"));
-const ExamsPage = lazy(() => import("@/pages/admin/ExamsPage"));
-const OrganizationAccessPage = lazy(() => import("@/pages/admin/OrganizationAccessPage"));
 const EventsPage = lazy(() => import("@/pages/admin/EventsPage"));
 const WebsitePage = lazy(() => import("@/pages/admin/WebsitePage"));
 const SchoolPortalHubScreen = lazy(() => import("@/pages/admin/SchoolPortalHubScreen"));
@@ -47,7 +54,6 @@ const EnrollPage = lazy(() => import("@/pages/public/EnrollPage"));
 const FullSchedulePage = lazy(() => import("@/pages/public/FullSchedulePage"));
 const StudentPortalLandingPage = lazy(() => import("@/pages/public/StudentPortalLandingPage"));
 const StudentPortalMockupPage = lazy(() => import("@/pages/public/StudentPortalMockupPage"));
-const SchoolExplorerPage = lazy(() => import("@/pages/public/SchoolExplorerPage"));
 
 const PortalAppShell = lazy(() => import("@/portal/screens/PortalAppShell"));
 const PortalOnboarding = lazy(() => import("@/portal/screens/OnboardingScreen"));
@@ -62,7 +68,6 @@ const PortalNotifications = lazy(() => import("@/portal/screens/NotificationsScr
 const PortalConnections = lazy(() => import("@/portal/screens/ConnectionsScreen"));
 const PortalSaved = lazy(() => import("@/portal/screens/SavedScreen"));
 const PortalGalleryView = lazy(() => import("@/portal/screens/GalleryViewScreen"));
-const SchoolComparerScreen = lazy(() => import("@/portal/screens/SchoolComparerScreen"));
 const PortalGlobalSearchScreen = lazy(() => import("@/portal/screens/GlobalSearchScreen"));
 const PortalPreferencesScreen = lazy(() => import("@/portal/screens/PortalPreferencesScreen"));
 const PortalFinanceScreen = lazy(() => import("@/portal/screens/PortalFinanceScreen"));
@@ -93,8 +98,19 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
+function FullScreenLoader({ message = "Cargando..." }: { message?: string }) {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center px-6">
+      <div className="text-center space-y-2">
+        <p className="text-sm font-medium text-foreground">{message}</p>
+        <p className="text-xs text-muted-foreground">Esto solo tarda unos segundos.</p>
+      </div>
+    </div>
+  );
+}
+
 function withSuspense(element: ReactElement) {
-  return <Suspense fallback={<div className="min-h-screen bg-background" />}>{element}</Suspense>;
+  return <Suspense fallback={<FullScreenLoader />}>{element}</Suspense>;
 }
 
 function RequireAdminAuth({ children }: { children: ReactElement }) {
@@ -102,7 +118,7 @@ function RequireAdminAuth({ children }: { children: ReactElement }) {
   const location = useLocation();
 
   if (isLoading) {
-    return <div className="min-h-screen bg-background" />;
+    return <FullScreenLoader message="Validando sesión..." />;
   }
 
   if (!isAuthenticated) {
@@ -119,12 +135,14 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
+        <BrandingProvider>
+          <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth/login" element={withSuspense(<LoginPage />)} />
           <Route path="/auth/register" element={withSuspense(<RegisterPage />)} />
           <Route path="/auth/forgot-password" element={withSuspense(<ForgotPasswordPage />)} />
           <Route path="/auth/reset-password" element={withSuspense(<ResetPasswordPage />)} />
+          <Route path="/settings/branding" element={<Navigate to="/admin/settings/branding" replace />} />
           <Route path="/legal" element={withSuspense(<LegalLayout />)}>
             <Route path="privacy" element={withSuspense(<PrivacyPolicyPage />)} />
             <Route path="cookies" element={withSuspense(<CookiePolicyPage />)} />
@@ -167,8 +185,6 @@ const App = () => (
             <Route path="renewals" element={withSuspense(<RenewalsPage />)} />
             <Route path="course-clone" element={withSuspense(<CourseClonePage />)} />
             <Route path="reception" element={withSuspense(<ReceptionPage />)} />
-            <Route path="branches" element={withSuspense(<BranchesPage />)} />
-            <Route path="exams" element={withSuspense(<ExamsPage />)} />
             <Route path="events" element={withSuspense(<EventsPage />)} />
             <Route path="website" element={withSuspense(<WebsitePage />)} />
             <Route path="school/portal" element={withSuspense(<SchoolPortalHubScreen />)} />
@@ -177,8 +193,18 @@ const App = () => (
             <Route path="school/posts" element={withSuspense(<SchoolPortalHubScreen />)} />
             <Route path="school/announcements" element={withSuspense(<SchoolPortalHubScreen />)} />
             <Route path="school/gallery" element={withSuspense(<SchoolPortalHubScreen />)} />
-            <Route path="organization-access" element={withSuspense(<OrganizationAccessPage />)} />
-            <Route path="settings" element={withSuspense(<SettingsPage />)} />
+            <Route path="settings" element={withSuspense(<SettingsLayout />)}>
+              <Route index element={<Navigate to="/admin/settings/escuela" replace />} />
+              <Route path="escuela" element={withSuspense(<EscuelaPage />)} />
+              <Route path="agenda" element={withSuspense(<AgendaPage />)} />
+              <Route path="cobros" element={withSuspense(<CobrosSettingsPage />)} />
+              <Route path="avisos" element={withSuspense(<AvisosPage />)} />
+              <Route path="acceso" element={withSuspense(<AccesoPage />)} />
+              <Route path="plan" element={withSuspense(<PlanPage />)} />
+              <Route path="recepcion" element={withSuspense(<RecepcionPage />)} />
+              <Route path="pagina-web" element={withSuspense(<PaginaWebPage />)} />
+              <Route path="branding" element={withSuspense(<BrandingSettingsPage />)} />
+            </Route>
           </Route>
           <Route path="/s/:schoolSlug" element={withSuspense(<PublicLayout />)}>
             <Route index element={withSuspense(<SchoolLandingPage />)} />
@@ -186,7 +212,6 @@ const App = () => (
             <Route path="schedule" element={withSuspense(<FullSchedulePage />)} />
           </Route>
           <Route path="/portal" element={withSuspense(<StudentPortalLandingPage />)} />
-          <Route path="/portal/explorer" element={withSuspense(<SchoolExplorerPage />)} />
           <Route path="/portal/mockup" element={withSuspense(<StudentPortalMockupPage />)} />
           <Route path="/dashboard/economia" element={<Navigate to="/admin/economia" replace />} />
           <Route path="/portal/onboarding" element={withSuspense(<PortalOnboarding />)} />
@@ -205,13 +230,13 @@ const App = () => (
             <Route path="search" element={withSuspense(<PortalGlobalSearchScreen />)} />
             <Route path="preferences" element={withSuspense(<PortalPreferencesScreen />)} />
             <Route path="finance" element={withSuspense(<PortalFinanceScreen />)} />
-            <Route path="schools/compare" element={withSuspense(<SchoolComparerScreen />)} />
             <Route path="teacher/schedule" element={withSuspense(<TeacherScheduleScreen />)} />
             <Route path="teacher/classes" element={withSuspense(<TeacherClassesScreen />)} />
             <Route path="teacher/posts/new" element={withSuspense(<TeacherCreatePostScreen />)} />
           </Route>
           <Route path="*" element={withSuspense(<NotFound />)} />
-        </Routes>
+          </Routes>
+        </BrandingProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

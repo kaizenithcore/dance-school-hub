@@ -1,16 +1,21 @@
 import { motion } from "framer-motion";
 import { Check, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { commercialCatalog } from "@/lib/commercialCatalog";
+import { buildRegisterHref, commercialCatalog } from "@/lib/commercialCatalog";
 import { Link } from "react-router-dom";
 
-const publicWeb = commercialCatalog.publicWeb;
-const PRO_ANNUAL_CTA_HREF = "/auth/register?plan=pro&billing=annual&focus=integrated-web&trial=14d&source=web_comparison";
-const integratedWebsite = (commercialCatalog.professionalServices as any)?.integratedWebsite as {
+interface IntegratedWebsiteCatalog {
   label?: string;
   includes?: string[];
   differentiator?: string;
-} | undefined;
+}
+
+const publicWeb = commercialCatalog.publicWeb;
+const PRO_ANNUAL_CTA_HREF = buildRegisterHref("web_comparison", {
+  params: { focus: "integrated-web" },
+});
+const integratedWebsite = (commercialCatalog.professionalServices as Record<string, unknown> | undefined)
+  ?.integratedWebsite as IntegratedWebsiteCatalog | undefined;
 
 const basicFeatures = publicWeb?.includes?.slice(0, 4) ?? [
   "Diseño estándar",

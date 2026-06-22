@@ -173,6 +173,18 @@ export const featureEntitlementsService = {
       commercialDefaults.includedActiveStudents
       + extraStudentBlocks * commercialDefaults.extraStudentsBlockSize;
 
+    const resolveAddonMonthlyPrice = (key: "customDomain" | "prioritySupport" | "waitlistAutomation" | "renewalAutomation") => {
+      const addon = getSubscriptionAddon(key);
+      if (!addon || typeof addon.monthlyPriceEur !== "number" || !Number.isFinite(addon.monthlyPriceEur)) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[featureEntitlementsService] Missing or invalid addon pricing, using 0", { key });
+        }
+        return 0;
+      }
+
+      return addon.monthlyPriceEur;
+    };
+
     return {
       planType,
       features: resolved,
@@ -187,10 +199,10 @@ export const featureEntitlementsService = {
         extraStudentsBlockSize: commercialDefaults.extraStudentsBlockSize,
         extraStudentsBlockPriceEur: commercialDefaults.extraStudentsBlockPriceEur,
         addons: {
-          customDomain: { monthlyPriceEur: getSubscriptionAddon("customDomain").monthlyPriceEur },
-          prioritySupport: { monthlyPriceEur: getSubscriptionAddon("prioritySupport").monthlyPriceEur },
-          waitlistAutomation: { monthlyPriceEur: getSubscriptionAddon("waitlistAutomation").monthlyPriceEur },
-          renewalAutomation: { monthlyPriceEur: getSubscriptionAddon("renewalAutomation").monthlyPriceEur },
+          customDomain: { monthlyPriceEur: resolveAddonMonthlyPrice("customDomain") },
+          prioritySupport: { monthlyPriceEur: resolveAddonMonthlyPrice("prioritySupport") },
+          waitlistAutomation: { monthlyPriceEur: resolveAddonMonthlyPrice("waitlistAutomation") },
+          renewalAutomation: { monthlyPriceEur: resolveAddonMonthlyPrice("renewalAutomation") },
         },
       },
     };

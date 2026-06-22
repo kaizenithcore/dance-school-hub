@@ -1,0 +1,4 @@
+name,email,phone,locality,date_of_birth
+Import Valido,import.valid.2@nexa.test,600111111,Madrid,2001-01-01
+Import Duplicado,qa.student.20260409.1.edit@nexa.test,600222222,Sevilla,2002-02-02
+,missing.name@nexa.test,600333333,Valencia,2003-03-03

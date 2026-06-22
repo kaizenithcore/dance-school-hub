@@ -47,34 +47,14 @@ export default function SchoolPortalHubScreen() {
       title="Nexa Crew"
       description="Centro editorial del portal del alumno para acelerar comunicación y marca"
     >
-      <Card className="mb-4 border-amber-300/40 bg-amber-50 dark:bg-amber-950/20">
-        <CardHeader>
-          <CardTitle className="text-amber-700 dark:text-amber-300">Nexa Crew en activación progresiva</CardTitle>
-          <CardDescription>
-            Ya puedes preparar la estructura del portal. Los módulos se irán habilitando por fases para asegurar una salida estable.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <Card className="mb-4 border-primary/20 bg-primary/5">
-        <CardHeader>
-          <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <CalendarPlus className="h-5 w-5" />
-          </div>
-          <CardTitle>Publicar eventos en el portal del alumno</CardTitle>
-          <CardDescription>
-            Próximamente podrás publicar eventos con control de visibilidad por fecha, estado y tipo de audiencia.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-2">
-          <Button type="button" disabled>
-            Activar publicación (Próximamente)
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Función en despliegue por lotes.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="outline" disabled>
+          <CalendarPlus className="mr-1 h-4 w-4" /> Publicación de eventos (Próximamente)
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          Nexa Crew se está habilitando por fases para asegurar un despliegue estable.
+        </p>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {sections.map((section) => (

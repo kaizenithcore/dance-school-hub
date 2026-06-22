@@ -315,25 +315,6 @@ export default function WaitlistPage() {
 
       <div className={waitlistLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
 
-      <section className="rounded-lg border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Menos gestión. Más control.</p>
-        <p className="mt-1 text-xs text-muted-foreground">Gestiona cola, ofertas y expiraciones sin perder ritmo operativo.</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Clases con cola</p>
-            <p className="text-lg font-semibold text-foreground">{classes.length}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Pendientes</p>
-            <p className="text-lg font-semibold text-foreground">{pendingEntriesCount}</p>
-          </div>
-          <div className="rounded-md border border-border px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">Ofertas activas</p>
-            <p className="text-lg font-semibold text-foreground">{offeredEntriesCount}</p>
-          </div>
-        </div>
-      </section>
-
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Lista de espera</h1>
@@ -348,6 +329,21 @@ export default function WaitlistPage() {
             {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Enviar propuesta de plaza
           </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Clases con cola</p>
+          <p className="text-lg font-semibold text-foreground">{classes.length}</p>
+        </div>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Pendientes</p>
+          <p className="text-lg font-semibold text-foreground">{pendingEntriesCount}</p>
+        </div>
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <p className="text-[11px] text-muted-foreground">Ofertas activas</p>
+          <p className="text-lg font-semibold text-foreground">{offeredEntriesCount}</p>
         </div>
       </div>
 

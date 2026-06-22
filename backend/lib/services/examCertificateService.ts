@@ -6,6 +6,7 @@ import { examSubscriptionService } from "@/lib/services/examSubscriptionService"
 import { examUsageBillingService } from "@/lib/services/examUsageBillingService";
 import { examAuditService } from "@/lib/services/examAuditService";
 import { examRoleService } from "@/lib/services/examRoleService";
+import { brandingService } from "@/lib/services/brandingService";
 import type {
   GenerateExamCertificateInput,
   ListExamCertificateJobsInput,
@@ -210,8 +211,11 @@ function getDefaultTemplateHtml(): string {
   return `
     <html>
       <body style="font-family: Arial, sans-serif; padding: 40px; color: #111827;">
-        <div style="border: 2px solid #111827; padding: 32px; border-radius: 12px;">
-          <h1 style="font-size: 34px; margin: 0 0 12px;">Certificado ExamSuit</h1>
+        <div style="border: 2px solid {{branding.primary_color}}; padding: 32px; border-radius: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 8px;">
+            <h1 style="font-size: 34px; margin: 0; color: {{branding.primary_color}};">Certificado ExamSuit</h1>
+            {{branding.logo_html}}
+          </div>
           <p style="font-size: 16px; margin: 0 0 20px;">Se certifica que</p>
           <h2 style="font-size: 28px; margin: 0 0 20px;">{{student.name}}</h2>
           <p style="font-size: 16px; margin: 0 0 10px;">ha completado la convocatoria</p>
@@ -276,6 +280,31 @@ function resolveStudentName(resultContext: EvaluationResultContext) {
 function resolveStudentEmail(resultContext: EvaluationResultContext) {
   const resolved = resolveStudentData(resultContext.exam_enrollments);
   return resolved.studentEmail;
+}
+
+async function loadSchoolBranding(schoolId: string | null | undefined) {
+  if (!schoolId) {
+    return {
+      logoUrl: null as string | null,
+      primaryColor: "#7C3AED",
+      fontFamily: "Arial, sans-serif",
+    };
+  }
+
+  const branding = await brandingService.getTenantBranding(schoolId);
+  const fontFamily = branding.font_family === "poppins"
+    ? "Poppins, Arial, sans-serif"
+    : branding.font_family === "montserrat"
+      ? "Montserrat, Arial, sans-serif"
+      : branding.font_family === "lato"
+        ? "Lato, Arial, sans-serif"
+        : "Inter, Arial, sans-serif";
+
+  return {
+    logoUrl: branding.logo_url,
+    primaryColor: branding.primary_color,
+    fontFamily,
+  };
 }
 
 async function ensureCertificatesBucket() {
@@ -639,6 +668,7 @@ export const examCertificateService = {
   async generateCertificate(userId: string, input: GenerateExamCertificateInput) {
     const resultContext = await loadEvaluationResultContext(input.result_id);
     const session = resultContext.exam_enrollments.exam_sessions;
+    const schoolBranding = await loadSchoolBranding(resultContext.exam_enrollments.school_id);
     await examSubscriptionService.requireExamFeature({ sessionId: session.id }, "certificates.generate");
     await examSubscriptionService.assertCanGenerateCertificateForSession(session.id);
 
@@ -675,6 +705,13 @@ export const examCertificateService = {
       },
       certificate: {
         issued_at: toIsoDate(now),
+      },
+      branding: {
+        primary_color: schoolBranding.primaryColor,
+        logo_url: schoolBranding.logoUrl || "",
+        logo_html: schoolBranding.logoUrl
+          ? `<img src="${schoolBranding.logoUrl}" alt="Logo" style="height: 56px; max-width: 160px; object-fit: contain;" />`
+          : "",
       },
     };
 

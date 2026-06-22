@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
+import { brandingService } from "@/lib/services/brandingService";
 
 interface ClassScheduleRow {
   weekday: number;
@@ -75,6 +76,10 @@ function buildHtml(input: {
   schedule: ClassScheduleRow[];
   studentNames: string[];
   sessionDates: Date[];
+  logoUrl: string | null;
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: "inter" | "poppins" | "montserrat" | "lato";
 }) {
   const className = escapeHtml(input.className);
   const teacherName = escapeHtml(input.teacherName);
@@ -105,6 +110,14 @@ function buildHtml(input: {
     })
     .join("\n");
 
+  const fontStack = input.fontFamily === "poppins"
+    ? "Poppins, Arial, sans-serif"
+    : input.fontFamily === "montserrat"
+      ? "Montserrat, Arial, sans-serif"
+      : input.fontFamily === "lato"
+        ? "Lato, Arial, sans-serif"
+        : "Inter, Segoe UI, Arial, sans-serif";
+
   return `
     <!doctype html>
     <html>
@@ -113,21 +126,26 @@ function buildHtml(input: {
         <style>
           @page { size: A4 landscape; margin: 10mm; }
           * { box-sizing: border-box; }
-          body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: #0f172a; }
+          body { margin: 0; font-family: ${fontStack}; color: #0f172a; }
           h1 { margin: 0 0 4px; font-size: 22px; }
           .meta { margin: 0; color: #475569; font-size: 12px; }
+          .header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+          .logo { height: 48px; max-width: 160px; object-fit: contain; }
           .sheet { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-top: 12px; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
-          thead th { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 7px 6px; text-align: center; }
+          thead th { background: ${input.secondaryColor}; border-bottom: 1px solid #e2e8f0; padding: 7px 6px; text-align: center; }
           tbody td { border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; height: 26px; text-align: center; }
           tbody tr:last-child td { border-bottom: none; }
           th:first-child, td:first-child { text-align: left; padding: 6px 8px; position: sticky; left: 0; background: #fff; }
-          thead th:first-child { background: #f8fafc; }
+          thead th:first-child { background: ${input.secondaryColor}; }
           .name { min-width: 240px; max-width: 240px; }
         </style>
       </head>
       <body>
-        <h1>Hoja de asistencia</h1>
+        <div class="header">
+          <h1 style="color: ${input.primaryColor};">Hoja de asistencia</h1>
+          ${input.logoUrl ? `<img class="logo" src="${escapeHtml(input.logoUrl)}" alt="Logo" />` : ""}
+        </div>
         <p class="meta"><strong>Clase:</strong> ${className}</p>
         <p class="meta"><strong>Profesor:</strong> ${teacherName}</p>
         <p class="meta"><strong>Mes:</strong> ${month}</p>
@@ -153,6 +171,7 @@ function buildHtml(input: {
 
 export const attendanceService = {
   async buildAttendanceSheetPdf(tenantId: string, classId: string, month: string): Promise<Buffer> {
+    const branding = await brandingService.getTenantBranding(tenantId);
     const { data: classData, error: classError } = await supabaseAdmin
       .from("classes")
       .select("id, name, teachers(name), class_schedules(weekday, start_time, end_time)")
@@ -206,6 +225,10 @@ export const attendanceService = {
       schedule,
       studentNames,
       sessionDates,
+      logoUrl: branding.logo_url,
+      primaryColor: branding.primary_color,
+      secondaryColor: branding.secondary_color,
+      fontFamily: branding.font_family,
     });
 
     const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;

@@ -4,8 +4,8 @@ import { ValuePillars } from "@/components/landing/ValuePillars";
 import { Results } from "@/components/landing/Results";
 import { DecisionCompare } from "@/components/landing/DecisionCompare";
 import { Pricing } from "@/components/landing/Pricing";
-import { ExamSuit } from "@/components/landing/ExamSuit";
 import { WebService } from "@/components/landing/WebService";
+import { WeydiCreativeServices } from "@/components/landing/WeydiCreativeServices";
 import { Credibility } from "@/components/landing/Credibility";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
@@ -21,11 +21,11 @@ const Index = () => (
     <div id="pricing">
       <Pricing />
     </div>
-    <div id="examsuit">
-      <ExamSuit />
-    </div>
     <div id="web-service">
       <WebService />
+    </div>
+    <div id="branding-service">
+      <WeydiCreativeServices />
     </div>
     <Credibility />
     <div id="faq">

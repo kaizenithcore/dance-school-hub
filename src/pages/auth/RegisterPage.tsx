@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { registerSchool } from "@/lib/auth";
-import { commercialCatalog, formatAnnualFinancingLabel, getInterestFreeInstallment, getSelectableSubscriptionAddons, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
+import { defaultPlanType, formatAnnualFinancingLabel, getInterestFreeInstallment, getSelectableSubscriptionAddons, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 
 const FOUNDERS_PROMO_CODE = "FOUNDERS";
@@ -20,10 +20,11 @@ const NET_ENROLLMENT_CONTRIBUTION_EUR = 55;
 const COMMERCIAL_GUARANTEE_DAYS = 30;
 const COMMERCIAL_INCLUDED_ADDON_MONTHS = 3;
 const REGISTER_CHECKOUT_SELECTION_KEY = "nexa:register:checkout-selection:v1";
+const PRIMARY_PLAN = defaultPlanType;
 
 type BillingCycle = "monthly" | "annual";
 type AnnualFinancingMonths = 3 | 6 | 12;
-type RegisterOfferId = PlanType | "certifier" | "certifierLite";
+type RegisterOfferId = PlanType;
 
 type SegmentCase = {
   key: "small" | "medium" | "multi";
@@ -34,25 +35,27 @@ type SegmentCase = {
 
 const SEGMENT_CASES: readonly SegmentCase[] = [
   { key: "small", title: "Escuela pequeña", activeStudents: 60, planType: "starter" },
-  { key: "medium", title: "Escuela mediana", activeStudents: 180, planType: "pro" },
-  { key: "multi", title: "Multi-sede", activeStudents: 420, planType: "enterprise" },
+  { key: "medium", title: "Escuela en crecimiento", activeStudents: 180, planType: PRIMARY_PLAN },
+  { key: "multi", title: "Escuela consolidada", activeStudents: 420, planType: PRIMARY_PLAN },
 ];
 
 function getAdvisorRecommendation(students: number): { recommendedPlan: PlanType; recommendedTermMonths: AnnualFinancingMonths; studentsHint: string } {
-  if (students < 200) {
-    return { recommendedPlan: "starter", recommendedTermMonths: 6, studentsHint: "Menos de 200 alumnos" };
-  }
+  const studentsHint = students < 200
+    ? "Menos de 200 alumnos"
+    : students < 700
+      ? "Entre 200 y 699 alumnos"
+      : "700 alumnos o más";
 
-  if (students < 700) {
-    return { recommendedPlan: "pro", recommendedTermMonths: 6, studentsHint: "Entre 200 y 699 alumnos" };
-  }
-
-  return { recommendedPlan: "enterprise", recommendedTermMonths: 12, studentsHint: "700 alumnos o más" };
+  return {
+    recommendedPlan: PRIMARY_PLAN,
+    recommendedTermMonths: students >= 700 ? 12 : 6,
+    studentsHint,
+  };
 }
 
 interface RegisterOffer {
   id: RegisterOfferId;
-  kind: "nexa" | "certifier" | "certifierLite";
+  kind: "nexa";
   name: string;
   description: string;
   studentsLabel: string;
@@ -64,7 +67,7 @@ interface RegisterOffer {
 }
 
 function isNexaPlan(value: RegisterOfferId): value is PlanType {
-  return value === "starter" || value === "pro" || value === "enterprise";
+  return planOrder.includes(value);
 }
 
 interface ValidationErrors {
@@ -90,7 +93,7 @@ export default function RegisterPage() {
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   // Step 3 - Plan selection
-  const [selectedPlan, setSelectedPlan] = useState<RegisterOfferId>("pro");
+  const [selectedPlan, setSelectedPlan] = useState<RegisterOfferId>(PRIMARY_PLAN);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
   const [annualFinancingMonths, setAnnualFinancingMonths] = useState<AnnualFinancingMonths>(6);
   const [foundersCodeCopied, setFoundersCodeCopied] = useState(false);
@@ -103,9 +106,6 @@ export default function RegisterPage() {
     waitlistAutomation: false,
     renewalAutomation: false,
   });
-
-  const certifierAssociationsPlan = commercialCatalog.examSuit?.plans?.associations;
-  const certifierSchoolsPlan = commercialCatalog.examSuit?.plans?.schools;
 
   useEffect(() => {
     const raw = window.localStorage.getItem(REGISTER_CHECKOUT_SELECTION_KEY);
@@ -171,34 +171,6 @@ export default function RegisterPage() {
       annualSavingsLabel: planCatalog[planType].billing.annualSavingsLabel,
       highlighted: planCatalog[planType].highlighted,
     })),
-    ...(certifierAssociationsPlan
-      ? [{
-          id: "certifier" as const,
-          kind: "certifier" as const,
-          name: certifierAssociationsPlan.name,
-          description: "Para asociaciones y entidades certificadoras.",
-          studentsLabel: "Gestión de convocatorias y exámenes",
-          monthlyPriceEur: certifierAssociationsPlan.billing.monthlyPriceEur,
-          annualEffectiveMonthlyPriceEur: certifierAssociationsPlan.billing.annualEffectiveMonthlyPriceEur,
-          annualTotalEur: certifierAssociationsPlan.billing.annualTotalEur,
-          annualSavingsLabel: certifierAssociationsPlan.billing.annualSavingsLabel,
-          highlighted: false,
-        }]
-      : []),
-    ...(certifierSchoolsPlan
-      ? [{
-          id: "certifierLite" as const,
-          kind: "certifierLite" as const,
-          name: certifierSchoolsPlan.name,
-          description: "Para escuelas que sólo necesitan gestión de exámenes y certificados.",
-          studentsLabel: "Escenario examen + certificación",
-          monthlyPriceEur: certifierSchoolsPlan.billing.monthlyPriceEur,
-          annualEffectiveMonthlyPriceEur: certifierSchoolsPlan.billing.annualEffectiveMonthlyPriceEur,
-          annualTotalEur: certifierSchoolsPlan.billing.annualTotalEur,
-          annualSavingsLabel: certifierSchoolsPlan.billing.annualSavingsLabel,
-          highlighted: false,
-        }]
-      : []),
   ];
 
   const selectedOffer = offers.find((offer) => offer.id === selectedPlan) ?? offers[0];
@@ -250,8 +222,9 @@ export default function RegisterPage() {
     return options[0].monthlyPriceEur >= options[1].monthlyPriceEur ? options[0] : options[1];
   })();
   const annualIncludedAddonSavings = annualIncentivesActive ? annualIncludedAddon.monthlyPriceEur * COMMERCIAL_INCLUDED_ADDON_MONTHS : 0;
+  const primaryPlanCatalog = planCatalog[PRIMARY_PLAN];
   const starterToProAnnualMonthlyDelta = getInterestFreeInstallment(
-    Math.max(0, planCatalog.pro.billing.annualTotalEur - planCatalog.starter.billing.annualTotalEur),
+    Math.max(0, primaryPlanCatalog.billing.annualTotalEur - planCatalog.starter.billing.annualTotalEur),
     12
   );
   const segmentMiniCases = SEGMENT_CASES.map((segment) => {
@@ -270,10 +243,10 @@ export default function RegisterPage() {
     };
   });
 
-  const proAnnualBase = planCatalog.pro.billing.annualTotalEur;
-  const proAnnualWithFounders = Math.max(0, proAnnualBase - Math.round(proAnnualBase * (FOUNDERS_ANNUAL_PROMO_PERCENT / 100)));
-  const proAnnualWithFoundersInstallment = getInterestFreeInstallment(proAnnualWithFounders, annualFinancingMonths);
-  const proAnnualSavingsVsMonthly = Math.max(0, planCatalog.pro.billing.monthlyPriceEur * 12 - planCatalog.pro.billing.annualTotalEur);
+  const primaryAnnualBase = primaryPlanCatalog.billing.annualTotalEur;
+  const primaryAnnualWithFounders = Math.max(0, primaryAnnualBase - Math.round(primaryAnnualBase * (FOUNDERS_ANNUAL_PROMO_PERCENT / 100)));
+  const primaryAnnualWithFoundersInstallment = getInterestFreeInstallment(primaryAnnualWithFounders, annualFinancingMonths);
+  const primaryAnnualSavingsVsMonthly = Math.max(0, primaryPlanCatalog.billing.monthlyPriceEur * 12 - primaryPlanCatalog.billing.annualTotalEur);
 
   const copyFoundersCode = async () => {
     try {
@@ -828,11 +801,11 @@ export default function RegisterPage() {
                   ) : null}
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  En Pro anual pagarías {proAnnualWithFoundersInstallment}€/mes ({annualFinancingMonths} cuotas) con FOUNDERS y ahorrarías {proAnnualSavingsVsMonthly}€ frente a Pro mensual.
+                  En {primaryPlanCatalog.name} anual pagarías {primaryAnnualWithFoundersInstallment}€/mes ({annualFinancingMonths} cuotas) con FOUNDERS y ahorrarías {primaryAnnualSavingsVsMonthly}€ frente a {primaryPlanCatalog.name} mensual.
                 </p>
                 {isAssociatedSchool ? (
                   <p className="mt-1 text-xs font-medium text-amber-800">
-                    Escuela asociada: recuerda aplicar también el código de {ASSOCIATED_PRO_ANNUAL_DISCOUNT_PERCENT}% para Pro anual.
+                    Escuela asociada: recuerda aplicar también el código de {ASSOCIATED_PRO_ANNUAL_DISCOUNT_PERCENT}% para tu plan anual.
                   </p>
                 ) : null}
               </div>
@@ -884,9 +857,9 @@ export default function RegisterPage() {
                     aria-label="Cantidad de alumnos de la escuela"
                   />
                   <div className="mt-2 flex justify-between text-[11px] text-indigo-900/80">
-                    <span>Starter &lt;200</span>
-                    <span>Pro 200-699</span>
-                    <span>Enterprise 700+</span>
+                    <span>50 alumnos</span>
+                    <span>600 alumnos</span>
+                    <span>1200 alumnos</span>
                   </div>
                 </div>
                 <div className="mt-3 rounded-md border border-indigo-200 bg-white p-3 text-sm text-indigo-950">
@@ -921,7 +894,7 @@ export default function RegisterPage() {
                     <li>• Add-on incluido {COMMERCIAL_INCLUDED_ADDON_MONTHS} meses: {annualIncludedAddon.label} (valor {annualIncludedAddonSavings}€).</li>
                   ) : null}
                   <li>
-                    • Upgrade sin penalización: empieza en Starter anual y sube a Pro con diferencia prorrateada
+                    • Ajuste sin penalización: puedes ampliar capacidades con diferencia prorrateada
                     (desde {starterToProAnnualMonthlyDelta}€/mes de diferencia anualizada).
                   </li>
                 </ul>

@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
-import { studentService } from "@/lib/services/studentService";
+import { DuplicateStudentEmailError, studentService } from "@/lib/services/studentService";
 import { updateStudentSchema } from "@/lib/validators/studentSchemas";
 
 export async function OPTIONS(request: NextRequest) {
@@ -37,6 +37,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     await studentService.updateStudent(auth.context.tenantId, id, parsed.data);
     return ok({ id, updated: true }, 200, origin);
   } catch (error) {
+    if (error instanceof DuplicateStudentEmailError) {
+      return fail({ code: "duplicate_email", message: error.message }, 409, origin);
+    }
+
     const message = error instanceof Error ? error.message : "Failed to update student";
     return fail({ code: "update_failed", message }, 500, origin);
   }

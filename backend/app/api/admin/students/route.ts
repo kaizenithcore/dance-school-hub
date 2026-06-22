@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
-import { studentService } from "@/lib/services/studentService";
+import { DuplicateStudentEmailError, studentService } from "@/lib/services/studentService";
 import { StudentLimitError } from "@/lib/services/studentQuotaService";
 import { createStudentSchema } from "@/lib/validators/studentSchemas";
 
@@ -64,6 +64,10 @@ export async function POST(request: NextRequest) {
         409,
         origin
       );
+    }
+
+    if (error instanceof DuplicateStudentEmailError) {
+      return fail({ code: "duplicate_email", message: error.message }, 409, origin);
     }
 
     const message = error instanceof Error ? error.message : "Failed to create student";

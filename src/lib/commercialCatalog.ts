@@ -23,6 +23,13 @@ interface PlanFeatureFlags {
 
 interface CommercialCatalog {
   planOrder: PlanType[];
+  mvpOffer?: {
+    planType: PlanType;
+    monthlyPriceEur: number;
+    trialDays: number;
+    currency: "EUR";
+    headline?: string;
+  };
   plans: Record<PlanType, {
     name: string;
     highlighted: boolean;
@@ -104,9 +111,38 @@ interface CommercialCatalog {
 export const commercialCatalog = commercialCatalogJson as CommercialCatalog;
 export const planOrder = commercialCatalog.planOrder;
 export const planCatalog = commercialCatalog.plans;
+export const mvpOffer = commercialCatalog.mvpOffer;
+export const defaultPlanType: PlanType = mvpOffer?.planType ?? planOrder[0] ?? "starter";
+export const freeTrialDays = mvpOffer?.trialDays ?? 30;
 export const subscriptionAddonCatalog = commercialCatalog.subscriptionAddons;
 export const professionalServicesCatalog = commercialCatalog.professionalServices;
 export const ANNUAL_FINANCING_TERMS = [3, 6] as const;
+
+export function buildRegisterHref(
+  source: string,
+  options?: {
+    planType?: PlanType;
+    billing?: "monthly" | "annual";
+    params?: Record<string, string | number | boolean | undefined>;
+  }
+) {
+  const query = new URLSearchParams({
+    plan: options?.planType ?? defaultPlanType,
+    billing: options?.billing ?? "annual",
+    trial: `${freeTrialDays}d`,
+    source,
+  });
+
+  for (const [key, value] of Object.entries(options?.params ?? {})) {
+    if (value === undefined) {
+      continue;
+    }
+
+    query.set(key, typeof value === "boolean" ? (value ? "1" : "0") : String(value));
+  }
+
+  return `/auth/register?${query.toString()}`;
+}
 
 function isSelectableSubscriptionAddonKey(
   key: SubscriptionAddonCatalogKey
@@ -154,6 +190,11 @@ export function getSelectableSubscriptionAddons(planType: PlanType) {
     .filter(([key, addon]) => {
       // Catalog-only addon shown in pricing docs, not selectable in self-serve checkout yet.
       if (!isSelectableSubscriptionAddonKey(key)) {
+        return false;
+      }
+
+      // Keep checkout simple: optional custom domain only.
+      if (key !== "customDomain") {
         return false;
       }
 

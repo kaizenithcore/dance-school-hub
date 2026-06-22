@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
 import { Award, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { commercialCatalog } from "@/lib/commercialCatalog";
+import { buildRegisterHref, commercialCatalog } from "@/lib/commercialCatalog";
 import { Link } from "react-router-dom";
 
-const examSuit = (commercialCatalog as any).examSuit;
-const CERTIFIER_CTA_HREF = "/auth/register?plan=pro&billing=annual&product=certifier&trial=14d&source=certifier";
+const examSuit = commercialCatalog.examSuit;
+const CERTIFIER_CTA_HREF = buildRegisterHref("certifier", {
+  params: { product: "certifier" },
+});
 
 export function ExamSuit() {
   if (!examSuit) return null;
