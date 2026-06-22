@@ -54,6 +54,7 @@ const EnrollPage = lazy(() => import("@/pages/public/EnrollPage"));
 const FullSchedulePage = lazy(() => import("@/pages/public/FullSchedulePage"));
 const StudentPortalLandingPage = lazy(() => import("@/pages/public/StudentPortalLandingPage"));
 const StudentPortalMockupPage = lazy(() => import("@/pages/public/StudentPortalMockupPage"));
+const LeadQualificationPage = lazy(() => import("@/pages/public/LeadQualificationPage"));
 
 const PortalAppShell = lazy(() => import("@/portal/screens/PortalAppShell"));
 const PortalOnboarding = lazy(() => import("@/portal/screens/OnboardingScreen"));
@@ -211,6 +212,7 @@ const App = () => (
             <Route path="enroll" element={withSuspense(<EnrollPage />)} />
             <Route path="schedule" element={withSuspense(<FullSchedulePage />)} />
           </Route>
+          <Route path="/cualificacion" element={withSuspense(<LeadQualificationPage />)} />
           <Route path="/portal" element={withSuspense(<StudentPortalLandingPage />)} />
           <Route path="/portal/mockup" element={withSuspense(<StudentPortalMockupPage />)} />
           <Route path="/dashboard/economia" element={<Navigate to="/admin/economia" replace />} />
