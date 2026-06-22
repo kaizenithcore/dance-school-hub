@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { createTenant, getAuthContext } from "@/lib/api/auth";
-import type { AuthContextResponse } from "@/lib/api/auth";
+import type { AuthContextResponse, TenantMembership } from "@/lib/api/auth";
 import { clearDemoAdminSession, getDemoAdminTenantSlug } from "@/lib/demoAdmin";
 import {
   clearSelectedAdminContext,
@@ -35,6 +35,68 @@ export interface AuthResult {
 export const REMEMBER_ME_STORAGE_KEY = "nexa:auth:remember-me";
 
 const AUTH_CONTEXT_TIMEOUT_MS = 10000;
+
+// ── Supabase-direct fallback ──────────────────────────────────────────────────
+// Used when the backend API is unreachable. Queries tenant_memberships directly
+// from Supabase so the user can access the app even if Next.js isn't running.
+
+interface TenantMembershipRow {
+  tenant_id: string;
+  role: "owner" | "admin" | "staff";
+  tenants: { id: string; name: string; slug: string; created_at: string } | Array<{ id: string; name: string; slug: string; created_at: string }> | null;
+}
+
+async function buildAuthContextFromSupabase(userId: string, email: string | null): Promise<AuthContextResponse | null> {
+  try {
+    const { data, error } = await supabase
+      .from("tenant_memberships")
+      .select("tenant_id, role, tenants(id, name, slug, created_at)")
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    if (error || !data || data.length === 0) return null;
+
+    const memberships: TenantMembership[] = (data as TenantMembershipRow[])
+      .map((row): TenantMembership | null => {
+        const tenant = Array.isArray(row.tenants) ? row.tenants[0] : row.tenants;
+        if (!tenant) return null;
+        return {
+          tenantId: row.tenant_id,
+          tenantName: tenant.name,
+          tenantSlug: tenant.slug,
+          tenantCreatedAt: tenant.created_at,
+          role: row.role,
+          organizationId: null,
+          organizationName: null,
+          organizationSlug: null,
+          organizationKind: null,
+          organizationRole: null,
+        };
+      })
+      .filter((m): m is TenantMembership => m !== null);
+
+    if (memberships.length === 0) return null;
+
+    const selectedTenantId = getSelectedAdminTenantId();
+    const activeMembership =
+      (selectedTenantId ? memberships.find((m) => m.tenantId === selectedTenantId) : null)
+      ?? memberships[0];
+
+    return {
+      user: { id: userId, email },
+      tenant: { id: activeMembership.tenantId, role: activeMembership.role, organizationId: null, organizationRole: null },
+      memberships,
+      organizations: [],
+      activeOrganization: null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function isNetworkOrTimeoutError(code?: string): boolean {
+  return code === "network_error" || code === "timeout";
+}
 
 async function getAuthContextWithTimeout(options?: {
   tenantId?: string;
@@ -135,18 +197,27 @@ export async function login(credentials: LoginCredentials): Promise<AuthResult> 
       organizationId: getSelectedAdminOrganizationId() ?? undefined,
     });
 
-    if (!contextResult.success || !contextResult.data) {
-      // Auth succeeded but no tenant membership found
-      await supabase.auth.signOut();
-      return {
-        success: false,
-        error: contextResult.error?.message || "No school associated with this account",
-      };
+    if (contextResult.success && contextResult.data) {
+      return { success: true, context: contextResult.data };
     }
 
+    // If the error is a network/timeout issue (backend not running), try Supabase fallback
+    if (isNetworkOrTimeoutError(contextResult.error?.code)) {
+      const fallback = await buildAuthContextFromSupabase(
+        authData.user.id,
+        authData.user.email ?? null,
+      );
+      if (fallback) {
+        syncSelectedAdminContext(fallback);
+        return { success: true, context: fallback };
+      }
+    }
+
+    // Auth succeeded in Supabase but no tenant membership found — sign out
+    await supabase.auth.signOut();
     return {
-      success: true,
-      context: contextResult.data,
+      success: false,
+      error: contextResult.error?.message || "No hay ninguna escuela asociada a esta cuenta",
     };
   } catch (error) {
     return {
@@ -212,11 +283,22 @@ export async function getCurrentAuthContext(): Promise<AuthContextResponse | nul
     organizationId: getSelectedAdminOrganizationId() ?? undefined,
   });
 
-  if (!contextResult.success || !contextResult.data) {
-    return null;
+  if (contextResult.success && contextResult.data) {
+    syncSelectedAdminContext(contextResult.data);
+    return contextResult.data;
   }
 
-  syncSelectedAdminContext(contextResult.data);
+  // Backend unavailable — build context from Supabase directly
+  if (isNetworkOrTimeoutError(contextResult.error?.code)) {
+    const fallback = await buildAuthContextFromSupabase(
+      session.user.id,
+      session.user.email ?? null,
+    );
+    if (fallback) {
+      syncSelectedAdminContext(fallback);
+      return fallback;
+    }
+  }
 
-  return contextResult.data;
+  return null;
 }

@@ -1,5 +1,6 @@
 const DEMO_ADMIN_STORAGE_KEY = "nexa:demo-admin-tenant";
-export const DEMO_ADMIN_SLUG = "escuela-demo-nexa";
+// Must match DEMO_TENANT_SLUG in backend/lib/constants/demoTenant.ts
+export const DEMO_ADMIN_SLUG = "escuela-demo-dancehub";
 
 function canUseWindow() {
   return typeof window !== "undefined";

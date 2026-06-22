@@ -6,6 +6,7 @@ import { AnimatedPage } from "@/components/ui/animated";
 import { PlanDevOverlay } from "@/components/dev/PlanDevOverlay";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
 import { useAuth } from "@/contexts/AuthContext";
+import { OnboardingPanel } from "@/components/onboarding/OnboardingPanel";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import { getSchoolSettings, syncTrialPaymentStatusFromStripe, updateSchoolSettin
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
 import { toast } from "sonner";
 import type { BillingCycle } from "@/lib/api/stripe";
-import { Check, CircleHelp, Copy } from "lucide-react";
+import { Check, CircleHelp, Copy, X } from "lucide-react";
 import { commercialCatalog, getInterestFreeInstallment, getSelectableSubscriptionAddons, planCatalog, planOrder, subscriptionAddonCatalog, type PlanType as CatalogPlanType, type SubscriptionAddonKey } from "@/lib/commercialCatalog";
 import { getSelectedAdminTenantId } from "@/lib/adminContextSelection";
 import { isDemoAdminSessionActive } from "@/lib/demoAdmin";
@@ -24,7 +25,7 @@ const LOGIN_WELCOME_KEY = "nexa:welcome-overlay-until";
 const LOGIN_WELCOME_DURATION_MS = 2000;
 const ROUTE_TRANSITION_BLOCK_MS = 260;
 const SECTION_INTRO_STORAGE_KEY = "nexa:admin-section-intros:v1";
-const SECTION_INTRO_MODAL_DURATION_MS = 5200;
+const SECTION_INTRO_MODAL_DURATION_MS = 3500;
 const FIRST_LOGIN_GUIDE_PENDING_KEY = "nexa:first-login-guide-pending";
 const FIRST_LOGIN_GUIDE_SHOWN_KEY = "nexa:first-login-guide-shown:v1";
 const QUICK_HELP_HINT_AUTOHIDE_MS = 2600;
@@ -170,13 +171,18 @@ function readRegisterDefaults() {
             className="absolute inset-0 z-35 flex items-center justify-center bg-background/75 px-4"
           >
             <div className="w-full max-w-xl rounded-xl border border-border bg-card p-6 shadow-medium">
-              <p className="text-lg font-semibold text-foreground">{activeSectionIntro.title}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{activeSectionIntro.summary}</p>
-              <div className="mt-4 flex justify-end">
-                <Button size="sm" onClick={() => setActiveSectionIntro(null)}>
-                  Entendido
-                </Button>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-lg font-semibold text-foreground">{activeSectionIntro.title}</p>
+                <button
+                  type="button"
+                  onClick={() => setActiveSectionIntro(null)}
+                  className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  aria-label="Cerrar"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
+              <p className="mt-2 text-sm text-muted-foreground">{activeSectionIntro.summary}</p>
             </div>
           </motion.div>
         ) : null}
@@ -228,61 +234,54 @@ function readRegisterDefaults() {
 
 type SectionIntro = { key: string; title: string; summary: string };
 
+// Ordered most-specific first so pathname.startsWith picks the right match.
 const SECTION_INTROS: Array<{ prefix: string; intro: SectionIntro }> = [
   {
-    prefix: "/admin/school/analytics",
+    prefix: "/admin/school",
     intro: {
-      key: "school-analytics",
-      title: "Analíticas de escuela",
-      summary: "Consulta alumnos, actividad y engagement del canal social de la escuela.",
+      key: "portal",
+      title: "Portal del alumno",
+      summary: "Gestiona el canal digital de tu escuela: publicaciones, avisos, galería y analíticas del portal.",
     },
   },
   {
-    prefix: "/admin/school/posts",
+    prefix: "/admin/renewals",
     intro: {
-      key: "school-posts",
-      title: "Publicaciones",
-      summary: "Gestiona el contenido de escuela y la aprobación de posts docentes.",
+      key: "renovaciones",
+      title: "Renovaciones",
+      summary: "Automatiza las renovaciones de matrícula y ahorra horas al inicio de cada curso.",
     },
   },
   {
-    prefix: "/admin/school/announcements",
+    prefix: "/admin/payments",
     intro: {
-      key: "school-announcements",
-      title: "Anuncios",
-      summary: "Publica avisos importantes y urgentes para alumnos en tiempo real.",
+      key: "cobros",
+      title: "Cobros",
+      summary: "Registra pagos, genera recibos y controla el estado de cobro de cada alumno.",
     },
   },
   {
-    prefix: "/admin/school/gallery",
+    prefix: "/admin/students",
     intro: {
-      key: "school-gallery",
-      title: "Galería",
-      summary: "Organiza álbumes y fotos para mostrar clases y eventos en el portal.",
-    },
-  },
-  {
-    prefix: "/admin/analytics",
-    intro: {
-      key: "analytics",
-      title: "Analíticas",
-      summary: "Visualiza métricas clave para tomar decisiones con datos reales.",
+      key: "alumnos",
+      title: "Alumnos",
+      summary: "Gestiona fichas, inscripciones y el historial completo de cada alumno.",
     },
   },
   {
     prefix: "/admin/settings",
     intro: {
-      key: "settings",
+      key: "configuracion",
       title: "Configuración",
-      summary: "Ajusta parámetros generales, integraciones y preferencias del centro.",
+      summary: "Ajusta los parámetros operativos de tu escuela: agenda, cobros, avisos y plan.",
     },
   },
   {
     prefix: "/admin",
     intro: {
-      key: "dashboard",
-      title: "Panel",
-      summary: "Vista general del estado de la escuela con accesos rápidos a tareas clave.",
+      key: "inicio",
+      title: "Inicio",
+      summary: "Vista general del estado de tu escuela con los accesos más importantes del día.",
     },
   },
 ];
@@ -323,6 +322,7 @@ export function AdminLayout() {
   const [isRouteTransitioning, setIsRouteTransitioning] = useState(false);
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
   const [showFirstLoginGuide, setShowFirstLoginGuide] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeSectionIntro, setActiveSectionIntro] = useState<SectionIntro | null>(null);
   const [checkoutFlow, setCheckoutFlow] = useState<CheckoutFlowType>("nexa");
   const [checkoutPlanType, setCheckoutPlanType] = useState<CheckoutPlanType>("starter");
@@ -1074,18 +1074,27 @@ export function AdminLayout() {
   useEffect(() => {
     const pending = window.sessionStorage.getItem(FIRST_LOGIN_GUIDE_PENDING_KEY) === "1";
     if (!pending) {
+      // Also show onboarding if the state key exists and isn't dismissed
+      const raw = window.localStorage.getItem("nexa:onboarding:state:v1");
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as { dismissed?: boolean };
+          if (!parsed.dismissed) setShowOnboarding(true);
+        } catch { /* ignore */ }
+      }
       return;
     }
 
     window.sessionStorage.removeItem(FIRST_LOGIN_GUIDE_PENDING_KEY);
 
     const alreadyShown = window.localStorage.getItem(FIRST_LOGIN_GUIDE_SHOWN_KEY) === "1";
-    if (alreadyShown) {
-      return;
+    if (!alreadyShown) {
+      // First real login: initialize onboarding state and show panel
+      window.localStorage.setItem(FIRST_LOGIN_GUIDE_SHOWN_KEY, "1");
+      // Don't pre-write onboarding state — OnboardingPanel reads defaults on mount
+      setShowOnboarding(true);
     }
-
-    window.localStorage.setItem(FIRST_LOGIN_GUIDE_SHOWN_KEY, "1");
-    setShowFirstLoginGuide(true);
+    setShowFirstLoginGuide(false);
   }, []);
 
   useEffect(() => {
@@ -1774,35 +1783,12 @@ export function AdminLayout() {
         </div>
       ) : null}
 
-      <Dialog open={showFirstLoginGuide} onOpenChange={setShowFirstLoginGuide}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Bienvenido a Nexa</DialogTitle>
-            <DialogDescription>
-              Gracias por confiar en nosotros. Estos son los primeros pasos para empezar.
-            </DialogDescription>
-          </DialogHeader>
-
-          <ol className="space-y-2 text-sm text-muted-foreground">
-            <li>
-              <span className="font-medium text-foreground">1.</span> Revisa <span className="font-medium text-foreground">Configuración</span> para datos de tu escuela.
-            </li>
-            <li>
-              <span className="font-medium text-foreground">2.</span> Crea <span className="font-medium text-foreground">Aulas</span>, <span className="font-medium text-foreground">Profesores</span> y <span className="font-medium text-foreground">Clases</span>.
-            </li>
-            <li>
-              <span className="font-medium text-foreground">3.</span> Organiza la semana en <span className="font-medium text-foreground">Horarios</span>.
-            </li>
-            <li>
-              <span className="font-medium text-foreground">4.</span> Publica tu <span className="font-medium text-foreground">Formulario de inscripción</span> y empieza a recibir alumnos.
-            </li>
-          </ol>
-
-          <DialogFooter>
-            <Button onClick={() => setShowFirstLoginGuide(false)}>Empezar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {showOnboarding && (
+        <OnboardingPanel
+          onDismiss={() => setShowOnboarding(false)}
+          schoolSlug={authContext?.memberships[0]?.tenantSlug}
+        />
+      )}
     </div>
   );
 }
