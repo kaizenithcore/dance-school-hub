@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useOutlet } from "react-router-dom";
 import { AdminShell } from "@/components/shell/AdminShell";
+import { AdminSidebar } from "@/components/layout/AdminSidebar";
+import { Topbar } from "@/components/layout/Topbar";
 import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedPage } from "@/components/ui/animated";
 import { PlanDevOverlay } from "@/components/dev/PlanDevOverlay";
@@ -457,7 +459,17 @@ export function AdminLayout() {
       return;
     }
 
-    setShowFirstLoginGuide(true);
+    // No section intro — open/reopen the onboarding panel instead
+    // Reset the dismissed flag so the panel shows again
+    try {
+      const raw = window.localStorage.getItem("nexa:onboarding:state:v1");
+      if (raw) {
+        const parsed = JSON.parse(raw) as { dismissed?: boolean };
+        parsed.dismissed = false;
+        window.localStorage.setItem("nexa:onboarding:state:v1", JSON.stringify(parsed));
+      }
+    } catch { /* ignore */ }
+    setShowOnboarding(true);
   }, [sectionIntroForPath, showTrialLoadingModal, showTrialLockModal]);
 
   const hideQuickHelpHint = useCallback(() => {
@@ -1269,7 +1281,7 @@ export function AdminLayout() {
                     type="button"
                     size="icon"
                     className="pointer-events-auto h-12 w-12 rounded-full shadow-medium"
-                    aria-label={sectionIntroForPath ? `Mostrar guía de ${sectionIntroForPath.title}` : "Mostrar guía de inicio"}
+                    aria-label={sectionIntroForPath ? `Ver ayuda de ${sectionIntroForPath.title}` : "Retomar configuración guiada"}
                     onClick={openContextualHelp}
                     onMouseEnter={revealQuickHelpHint}
                     onFocus={revealQuickHelpHint}
@@ -1280,7 +1292,7 @@ export function AdminLayout() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="left">
-                  {sectionIntroForPath ? "Volver a ver ayuda de esta sección" : "Ver guía de inicio"}
+                  {sectionIntroForPath ? "Ver ayuda de esta sección" : "Retomar configuración guiada"}
                 </TooltipContent>
               </Tooltip>
             </div>
