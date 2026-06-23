@@ -56,25 +56,18 @@ const StudentPortalLandingPage = lazy(() => import("@/pages/public/StudentPortal
 const StudentPortalMockupPage = lazy(() => import("@/pages/public/StudentPortalMockupPage"));
 const LeadQualificationPage = lazy(() => import("@/pages/public/LeadQualificationPage"));
 
+// ── Portal V1 — 7 operational screens ──────────────────────────────────────
 const PortalAppShell = lazy(() => import("@/portal/screens/PortalAppShell"));
 const PortalOnboarding = lazy(() => import("@/portal/screens/OnboardingScreen"));
 const PortalHome = lazy(() => import("@/portal/screens/HomeScreen"));
 const PortalClasses = lazy(() => import("@/portal/screens/ClassesScreen"));
-const PortalProgress = lazy(() => import("@/portal/screens/ProgressScreen"));
-const PortalEvents = lazy(() => import("@/portal/screens/EventsScreen"));
-const PortalCertifications = lazy(() => import("@/portal/screens/CertificationsScreen"));
-const PortalProfile = lazy(() => import("@/portal/screens/ProfileScreen"));
-const PortalFeed = lazy(() => import("@/portal/screens/FeedScreen"));
-const PortalNotifications = lazy(() => import("@/portal/screens/NotificationsScreen"));
-const PortalConnections = lazy(() => import("@/portal/screens/ConnectionsScreen"));
-const PortalSaved = lazy(() => import("@/portal/screens/SavedScreen"));
-const PortalGalleryView = lazy(() => import("@/portal/screens/GalleryViewScreen"));
-const PortalGlobalSearchScreen = lazy(() => import("@/portal/screens/GlobalSearchScreen"));
-const PortalPreferencesScreen = lazy(() => import("@/portal/screens/PortalPreferencesScreen"));
 const PortalFinanceScreen = lazy(() => import("@/portal/screens/PortalFinanceScreen"));
+const PortalNotifications = lazy(() => import("@/portal/screens/NotificationsScreen"));
+const PortalProfile = lazy(() => import("@/portal/screens/ProfileScreen"));
+const PortalPreferencesScreen = lazy(() => import("@/portal/screens/PortalPreferencesScreen"));
 const TeacherScheduleScreen = lazy(() => import("@/portal/screens/teacher/TeacherScheduleScreen"));
 const TeacherClassesScreen = lazy(() => import("@/portal/screens/teacher/TeacherClassesScreen"));
-const TeacherCreatePostScreen = lazy(() => import("@/portal/screens/teacher/TeacherCreatePostScreen"));
+// Social screens (Feed, Connections, Saved, Gallery, Progress, Certifications) deferred to V2
 
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
@@ -218,23 +211,23 @@ const App = () => (
           <Route path="/dashboard/economia" element={<Navigate to="/admin/economia" replace />} />
           <Route path="/portal/onboarding" element={withSuspense(<PortalOnboarding />)} />
           <Route path="/portal/app" element={withSuspense(<PortalAppShell />)}>
+            {/* V1 operational routes — Spanish slugs */}
             <Route index element={withSuspense(<PortalHome />)} />
-            <Route path="classes" element={withSuspense(<PortalClasses />)} />
-            <Route path="progress" element={withSuspense(<PortalProgress />)} />
-            <Route path="feed" element={withSuspense(<PortalFeed />)} />
-            <Route path="events" element={withSuspense(<PortalEvents />)} />
-            <Route path="certifications" element={withSuspense(<PortalCertifications />)} />
-            <Route path="profile" element={withSuspense(<PortalProfile />)} />
-            <Route path="notifications" element={withSuspense(<PortalNotifications />)} />
-            <Route path="connections" element={withSuspense(<PortalConnections />)} />
-            <Route path="saved" element={withSuspense(<PortalSaved />)} />
-            <Route path="gallery" element={withSuspense(<PortalGalleryView />)} />
-            <Route path="search" element={withSuspense(<PortalGlobalSearchScreen />)} />
-            <Route path="preferences" element={withSuspense(<PortalPreferencesScreen />)} />
-            <Route path="finance" element={withSuspense(<PortalFinanceScreen />)} />
-            <Route path="teacher/schedule" element={withSuspense(<TeacherScheduleScreen />)} />
-            <Route path="teacher/classes" element={withSuspense(<TeacherClassesScreen />)} />
-            <Route path="teacher/posts/new" element={withSuspense(<TeacherCreatePostScreen />)} />
+            <Route path="clases" element={withSuspense(<PortalClasses />)} />
+            <Route path="cobros" element={withSuspense(<PortalFinanceScreen />)} />
+            <Route path="avisos" element={withSuspense(<PortalNotifications />)} />
+            <Route path="perfil" element={withSuspense(<PortalProfile />)} />
+            <Route path="preferencias" element={withSuspense(<PortalPreferencesScreen />)} />
+            <Route path="profesor/horario" element={withSuspense(<TeacherScheduleScreen />)} />
+            <Route path="profesor/clases" element={withSuspense(<TeacherClassesScreen />)} />
+            {/* Legacy English redirects for backward compat */}
+            <Route path="classes" element={<Navigate to="/portal/app/clases" replace />} />
+            <Route path="finance" element={<Navigate to="/portal/app/cobros" replace />} />
+            <Route path="notifications" element={<Navigate to="/portal/app/avisos" replace />} />
+            <Route path="profile" element={<Navigate to="/portal/app/perfil" replace />} />
+            <Route path="preferences" element={<Navigate to="/portal/app/preferencias" replace />} />
+            {/* V2 social routes — not yet implemented */}
+            <Route path="*" element={<Navigate to="/portal/app" replace />} />
           </Route>
           <Route path="*" element={withSuspense(<NotFound />)} />
           </Routes>

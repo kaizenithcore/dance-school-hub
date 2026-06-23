@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { StudentRecord } from "@/lib/data/mockStudents";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { type LucideIcon, Mail, Phone, Calendar, GraduationCap, Clock, User, Shield, StickyNote, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { type LucideIcon, Mail, Phone, Calendar, GraduationCap, Clock, User, Shield, StickyNote, DollarSign, Send, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { SchoolStudentField } from "@/lib/api/studentFields";
+import { invitePortalStudents } from "@/lib/api/portalFoundation";
+import { toast } from "sonner";
 
 const PAYMENT_LABELS: Record<string, string> = {
   monthly: "Mensual",
@@ -29,6 +33,9 @@ function formatCustomFieldValue(value: unknown): string {
 }
 
 export function StudentProfileDrawer({ open, onOpenChange, student, customFields = [] }: StudentProfileDrawerProps) {
+  const [inviting, setInviting] = useState(false);
+  const [invited, setInvited] = useState(false);
+
   if (!student) return null;
 
   const age = new Date().getFullYear() - new Date(student.birthdate).getFullYear();
@@ -153,14 +160,53 @@ export function StudentProfileDrawer({ open, onOpenChange, student, customFields
 
           <Separator />
 
-          <section className="space-y-3">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <GraduationCap className="h-3 w-3" /> Certificaciones
-            </h4>
-            <p className="text-sm text-muted-foreground">
-              Las certificaciones de exámenes aprobados aparecerán aquí.
-            </p>
-          </section>
+          {/* Portal access invitation */}
+          {student.email && (
+            <section className="space-y-3">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Send className="h-3 w-3" /> Portal del alumno
+              </h4>
+              {invited ? (
+                <div className="flex items-center gap-2 rounded-lg bg-success/10 border border-success/20 px-3 py-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-success">Invitación enviada</p>
+                    <p className="text-xs text-muted-foreground truncate">a {student.email}</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Envía un magic link al alumno para que acceda al portal sin necesidad de contraseña.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={inviting}
+                    onClick={async () => {
+                      setInviting(true);
+                      try {
+                        await invitePortalStudents({ emails: [student.email], expiresInDays: 7 });
+                        setInvited(true);
+                        toast.success(`Invitación enviada a ${student.email}`);
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "No se pudo enviar la invitación");
+                      } finally {
+                        setInviting(false);
+                      }
+                    }}
+                  >
+                    {inviting ? (
+                      <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Enviando...</>
+                    ) : (
+                      <><Send className="mr-1.5 h-3.5 w-3.5" /> Enviar acceso al portal</>
+                    )}
+                  </Button>
+                </>
+              )}
+            </section>
+          )}
         </div>
       </SheetContent>
     </Sheet>

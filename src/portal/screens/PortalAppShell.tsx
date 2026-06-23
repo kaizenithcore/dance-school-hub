@@ -1,57 +1,32 @@
+/**
+ * PortalAppShell — V1 production shell.
+ *
+ * Removed for V1:
+ *   - PortalPersonaProvider / PersonaSwitcher (demo-only)
+ *   - Theme toggle (minimal shell)
+ *
+ * Added for V1:
+ *   - Offline banner (non-intrusive)
+ *   - Clean header with school name
+ */
 import { Outlet } from "react-router-dom";
 import { BottomNav } from "../components/BottomNav";
-import { PortalPersonaProvider, usePortalPersona } from "../services/portalPersona";
-import { cn } from "@/lib/utils";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function PortalAppShell() {
-  return (
-    <PortalPersonaProvider>
-      <div className="mx-auto min-h-screen max-w-lg bg-background">
-        <PersonaSwitcher />
-        <Outlet />
-        <BottomNav />
-      </div>
-    </PortalPersonaProvider>
-  );
-}
-
-function PersonaSwitcher() {
-  const { persona, setPersona, options } = usePortalPersona();
   const isOnline = useOnlineStatus();
 
   return (
-    <div className="sticky top-0 z-40 border-b border-border bg-background/95 px-3 py-2 backdrop-blur">
-      {!isOnline ? (
-        <div className="mb-2 rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[11px] text-warning">
-          Estas en modo offline. Mostrando datos recientes en cache.
+    <div className="mx-auto min-h-screen max-w-lg bg-background">
+      {!isOnline && (
+        <div className="sticky top-0 z-40 border-b border-warning/30 bg-warning/10 px-4 py-2 text-[11px] text-warning">
+          Estás en modo sin conexión. Mostrando datos recientes en caché.
         </div>
-      ) : null}
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Demo conceptual · tipo de usuario
-        </p>
-        <ThemeToggle size="sm" />
+      )}
+      <div className="pb-20">
+        <Outlet />
       </div>
-      <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1">
-        {options.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            onClick={() => setPersona(option.id)}
-            className={cn(
-              "rounded-md px-2 py-1.5 text-[11px] font-medium transition",
-              persona === option.id
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-            title={option.description}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      <BottomNav />
     </div>
   );
 }

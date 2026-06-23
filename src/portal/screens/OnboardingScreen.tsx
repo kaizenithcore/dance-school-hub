@@ -1,12 +1,24 @@
+/**
+ * OnboardingScreen V1 — simplified 3-step profile setup.
+ *
+ * Removed for V1:
+ *   - Step 4: City + bio + public profile toggle (not needed for operational access)
+ *   - Step 5: School discovery / follow (community feature, not operational)
+ *
+ * The student is already linked to a school via the invitation code.
+ * Onboarding just captures display name, styles, and level.
+ */
+
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Trophy, Award, Star } from "lucide-react";
-import { followPortalSchool, listPublicPortalSchools, updateOwnPortalProfile } from "@/lib/api/portalFoundation";
+import { ArrowRight, BookOpen, Music, Award, Loader2 } from "lucide-react";
+import { updateOwnPortalProfile } from "@/lib/api/portalFoundation";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 
-const levels = ["Principiante", "Intermedio", "Avanzado"];
-const styleOptions = ["Ballet", "Contemporaneo", "Jazz", "Hip Hop", "Salsa", "Flamenco"];
+const LEVELS = ["Principiante", "Intermedio", "Avanzado"];
+const STYLE_OPTIONS = ["Ballet", "Contemporáneo", "Jazz", "Hip Hop", "Salsa", "Flamenco"];
+const TOTAL_STEPS = 3;
 
 export default function OnboardingScreen() {
   const navigate = useNavigate();
@@ -14,26 +26,20 @@ export default function OnboardingScreen() {
   const [displayName, setDisplayName] = useState("");
   const [styles, setStyles] = useState<string[]>([]);
   const [level, setLevel] = useState("Intermedio");
-  const [city, setCity] = useState("");
-  const [bio, setBio] = useState("");
-  const [publicProfile, setPublicProfile] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [recommendedSchools, setRecommendedSchools] = useState<Array<{ tenantId: string; slug: string; name: string; location: string | null }>>([]);
-  const [selectedRecommendedSchoolIds, setSelectedRecommendedSchoolIds] = useState<string[]>([]);
 
   const canContinue = useMemo(() => {
     if (step === 1) return displayName.trim().length > 1;
     if (step === 2) return styles.length > 0;
-    if (step === 3) return level.length > 0;
-    return true;
+    return true; // step 3 always ok (default level pre-selected)
   }, [displayName, level, step, styles.length]);
 
-  const toggleStyle = (style: string) => {
-    setStyles((prev) => (prev.includes(style) ? prev.filter((item) => item !== style) : [...prev, style]));
-  };
+  const toggleStyle = (style: string) =>
+    setStyles((prev) => (prev.includes(style) ? prev.filter((s) => s !== style) : [...prev, style]));
 
-  const handleSave = async () => {
+  const handleComplete = async () => {
+    if (loading) return;
     setLoading(true);
     setError(null);
 
@@ -42,108 +48,107 @@ export default function OnboardingScreen() {
         displayName: displayName.trim(),
         styles,
         level,
-        city: city.trim() || null,
-        bio: bio.trim() || null,
-        publicProfile,
+        city: null,
+        bio: null,
+        publicProfile: false,
       });
-
-      const schools = await listPublicPortalSchools({ q: city.trim() || undefined, limit: 3, offset: 0 });
-      const nextRecommended = schools.items.map((school) => ({
-        tenantId: school.tenantId,
-        slug: school.slug,
-        name: school.name,
-        location: school.location,
-      }));
-      setRecommendedSchools(nextRecommended);
-      setSelectedRecommendedSchoolIds(nextRecommended.map((school) => school.tenantId));
-      setStep(5);
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "No se pudo guardar tu perfil");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleRecommendedSchool = (tenantId: string) => {
-    setSelectedRecommendedSchoolIds((prev) =>
-      prev.includes(tenantId) ? prev.filter((item) => item !== tenantId) : [...prev, tenantId]
-    );
-  };
-
-  const handleCompleteOnboarding = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (selectedRecommendedSchoolIds.length > 0) {
-        await Promise.all(
-          selectedRecommendedSchoolIds.map((tenantId) =>
-            followPortalSchool(tenantId).catch(() => false)
-          )
-        );
-      }
 
       trackPortalEvent({
         eventName: "onboarding_completed",
         category: "funnel",
-        metadata: {
-          selectedSchoolsCount: selectedRecommendedSchoolIds.length,
-          stylesCount: styles.length,
-          level,
-          profilePublic: publicProfile,
-        },
+        metadata: { stylesCount: styles.length, level },
       });
 
-      navigate("/portal/app");
-    } catch (completeError) {
-      setError(completeError instanceof Error ? completeError.message : "No se pudo completar el onboarding");
+      navigate("/portal/app", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar el perfil");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background px-6 pb-10 pt-16">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10 text-center">
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-          Dance<span className="text-primary">Hub</span>
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">Onboarding del Portal del Alumno</p>
+    <div className="flex min-h-screen flex-col bg-background px-6 pb-10 pt-14">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8 text-center"
+      >
+        <div className="flex justify-center mb-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+            <Music className="h-6 w-6 text-primary-foreground" />
+          </div>
+        </div>
+        <h1 className="text-2xl font-bold text-foreground">Bienvenido al portal</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Solo 3 pasos para empezar</p>
+
+        {/* Progress */}
+        <div className="mt-4 flex items-center justify-center gap-1.5">
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 rounded-full transition-all ${
+                i + 1 <= step ? "bg-primary w-8" : "bg-muted w-4"
+              }`}
+            />
+          ))}
+        </div>
       </motion.div>
 
+      {/* Step 1: Display name */}
       {step === 1 && (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-1 flex-col gap-4">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <BookOpen className="h-4 w-4 text-primary" /> Paso 1 de 4
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex flex-1 flex-col gap-4"
+        >
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <BookOpen className="h-4 w-4 text-primary" />
+              <span>Paso 1 de {TOTAL_STEPS} — ¿Cómo te llamamos?</span>
             </div>
-            <h3 className="font-semibold text-foreground">Como quieres aparecer en el portal</h3>
+            <p className="text-sm text-muted-foreground">
+              Este nombre aparecerá en tu perfil del portal.
+            </p>
             <input
+              autoFocus
               value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              className="mt-3 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-              placeholder="Nombre visible"
+              onChange={(e) => setDisplayName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && canContinue && setStep(2)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              placeholder="Tu nombre o apodo"
             />
           </div>
         </motion.div>
       )}
 
+      {/* Step 2: Dance styles */}
       {step === 2 && (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-1 flex-col gap-4">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Trophy className="h-4 w-4 text-primary" /> Paso 2 de 4
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex flex-1 flex-col gap-4"
+        >
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Music className="h-4 w-4 text-primary" />
+              <span>Paso 2 de {TOTAL_STEPS} — ¿Qué estilos practicas?</span>
             </div>
-            <h3 className="font-semibold text-foreground">Selecciona tus estilos</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {styleOptions.map((style) => {
+            <p className="text-sm text-muted-foreground">Selecciona los que quieras.</p>
+            <div className="flex flex-wrap gap-2">
+              {STYLE_OPTIONS.map((style) => {
                 const selected = styles.includes(style);
                 return (
                   <button
                     key={style}
                     type="button"
                     onClick={() => toggleStyle(style)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                      selected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                    }`}
                   >
                     {style}
                   </button>
@@ -154,78 +159,31 @@ export default function OnboardingScreen() {
         </motion.div>
       )}
 
+      {/* Step 3: Level */}
       {step === 3 && (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-1 flex-col gap-4">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Award className="h-4 w-4 text-primary" /> Paso 3 de 4
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex flex-1 flex-col gap-4"
+        >
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Award className="h-4 w-4 text-primary" />
+              <span>Paso 3 de {TOTAL_STEPS} — ¿Cuál es tu nivel?</span>
             </div>
-            <h3 className="font-semibold text-foreground">Cuentanos tu nivel actual</h3>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {levels.map((item) => (
+            <div className="grid grid-cols-3 gap-2">
+              {LEVELS.map((lvl) => (
                 <button
-                  key={item}
+                  key={lvl}
                   type="button"
-                  onClick={() => setLevel(item)}
-                  className={`rounded-lg px-3 py-2 text-xs font-medium ${level === item ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {step === 4 && (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-1 flex-col gap-4">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Star className="h-4 w-4 text-primary" /> Paso 4 de 4
-            </div>
-            <h3 className="font-semibold text-foreground">Ultimos detalles</h3>
-            <input
-              value={city}
-              onChange={(event) => setCity(event.target.value)}
-              className="mt-3 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-              placeholder="Ciudad"
-            />
-            <textarea
-              value={bio}
-              onChange={(event) => setBio(event.target.value)}
-              className="mt-3 h-24 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-              placeholder="Bio breve"
-            />
-            <button
-              type="button"
-              onClick={() => setPublicProfile((value) => !value)}
-              className="mt-3 w-full rounded-lg border border-border bg-muted px-3 py-2 text-xs font-medium text-foreground"
-            >
-              Perfil {publicProfile ? "publico" : "privado"}
-            </button>
-          </div>
-        </motion.div>
-      )}
-
-      {step === 5 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-1 flex-col gap-4">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="font-semibold text-foreground">Perfil completado</h3>
-            <p className="mt-1 text-sm text-muted-foreground">Selecciona escuelas para seguir desde el inicio:</p>
-            <div className="mt-3 space-y-2">
-              {recommendedSchools.map((school) => (
-                <button
-                  key={school.tenantId}
-                  type="button"
-                  onClick={() => toggleRecommendedSchool(school.tenantId)}
-                  className={`block w-full rounded-lg border px-3 py-2 text-left ${
-                    selectedRecommendedSchoolIds.includes(school.tenantId)
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-background"
+                  onClick={() => setLevel(lvl)}
+                  className={`rounded-lg px-3 py-3 text-sm font-medium transition ${
+                    level === lvl
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
                   }`}
                 >
-                  <p className="text-sm font-medium text-foreground">{school.name}</p>
-                  <p className="text-xs text-muted-foreground">{school.location ?? "Ubicacion no indicada"}</p>
+                  {lvl}
                 </button>
               ))}
             </div>
@@ -233,45 +191,45 @@ export default function OnboardingScreen() {
         </motion.div>
       )}
 
-      {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="mt-3 rounded-lg bg-destructive/5 border border-destructive/20 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
-      <div className="mt-8 flex flex-col gap-3">
-        {step < 4 && (
+      {/* Actions */}
+      <div className="mt-8 space-y-3">
+        {step < TOTAL_STEPS ? (
           <button
             type="button"
             disabled={!canContinue}
-            onClick={() => setStep((value) => value + 1)}
-            className="flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-md transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => setStep((s) => s + 1)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Continuar <ArrowRight className="h-4 w-4" />
           </button>
-        )}
-
-        {step === 4 && (
-          <button
-            type="button"
-            disabled={loading || !canContinue}
-            onClick={handleSave}
-            className="flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-md transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? "Guardando..." : "Guardar perfil"}
-          </button>
-        )}
-
-        {step === 5 && (
+        ) : (
           <button
             type="button"
             disabled={loading}
-            onClick={handleCompleteOnboarding}
-            className="flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-md transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => void handleComplete()}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Completando..." : "Seguir y entrar al portal"}
+            {loading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</>
+            ) : (
+              <>Entrar al portal <ArrowRight className="h-4 w-4" /></>
+            )}
           </button>
         )}
 
-        <Link to="/portal/app" className="flex items-center justify-center rounded-xl border border-border bg-card py-3.5 text-sm font-semibold text-foreground transition hover:bg-muted">
-          Ir al portal
-        </Link>
+        <button
+          type="button"
+          onClick={() => navigate("/portal/app", { replace: true })}
+          className="w-full rounded-xl border border-border bg-card py-3 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+        >
+          Omitir por ahora
+        </button>
       </div>
     </div>
   );
