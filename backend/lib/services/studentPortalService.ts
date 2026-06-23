@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
-import { examSuiteService } from "@/lib/services/examSuiteService";
-import { examCertificateService } from "@/lib/services/examCertificateService";
+// Exam/certification services removed — module discontinued in Sprint 0.
+// Certification calls below return empty arrays until the feature is re-introduced.
 import {
   createPortalNotification,
   PORTAL_NOTIFICATION_TYPES,
@@ -608,9 +608,8 @@ export const studentPortalService = {
 
   async getStudentProgress(userId: string) {
     const context = await resolveStudentContext(userId);
-    const certifications = await examSuiteService
-      .getStudentCertificationHistory(context.tenantId, context.studentId)
-      .catch(() => []);
+    // Certification history stubbed — exam module discontinued.
+    const certifications: never[] = [];
     const progress = await syncStudentGamificationState(context, certifications);
     const attendance = await this.getStudentAttendanceStats(userId);
 
@@ -630,11 +629,8 @@ export const studentPortalService = {
 
   async getStudentXpHistory(userId: string, input: ListPaginationInput) {
     const context = await resolveStudentContext(userId);
-
-    const certifications = await examSuiteService
-      .getStudentCertificationHistory(context.tenantId, context.studentId)
-      .catch(() => []);
-    await syncStudentGamificationState(context, certifications);
+    // Certification history stubbed — exam module discontinued.
+    await syncStudentGamificationState(context, []);
 
     const { data, error, count } = await supabaseAdmin
       .from("gamification_events")
@@ -676,84 +672,13 @@ export const studentPortalService = {
     };
   },
 
-  async getStudentCertifications(userId: string) {
-    const context = await resolveStudentContext(userId);
-    const history = await examSuiteService
-      .getStudentCertificationHistory(context.tenantId, context.studentId)
-      .catch(() => []);
-
-    const examSuitItems = await examCertificateService
-      .listStudentExams(context.tenantId, context.studentId)
-      .catch(() => []);
-
-    const legacyItems = history.map((item) => ({
-      candidateId: item.candidate_id,
-      examId: item.exam_id,
-      examName: item.exam_name,
-      discipline: item.discipline,
-      level: item.level,
-      examDate: item.exam_date,
-      finalGrade: item.final_grade,
-      comments: item.comments,
-      certificateUrl: item.certificate_file_url,
-      certificateGeneratedAt: item.generated_at,
-      status:
-        typeof item.final_grade === "number"
-          ? item.final_grade >= 60
-            ? "passed"
-            : "failed"
-          : "pending",
-    }));
-
-    const mappedExamSuitItems = examSuitItems.map((item) => ({
-      candidateId: item.enrollment_id,
-      examId: item.session_id,
-      examName: item.session_title,
-      discipline: null,
-      level: null,
-      examDate: item.session_end_date,
-      finalGrade: item.final_score,
-      comments: null,
-      certificateUrl: item.certificate_download_url || item.certificate_generated_pdf_url,
-      certificateGeneratedAt: item.certificate_created_at,
-      status:
-        item.result_status === "pass"
-          ? "passed"
-          : item.result_status === "fail"
-            ? "failed"
-            : "pending",
-    }));
-
-    const uniqueByKey = new Map<string, (typeof legacyItems)[number]>();
-    for (const item of [...legacyItems, ...mappedExamSuitItems]) {
-      uniqueByKey.set(`${item.examId}:${item.candidateId}`, item);
-    }
-
-    return Array.from(uniqueByKey.values()).sort((a, b) => String(b.certificateGeneratedAt || "").localeCompare(String(a.certificateGeneratedAt || "")));
+  // Certification/exam features discontinued — returns empty until re-introduced.
+  async getStudentCertifications(_userId: string) {
+    return [];
   },
 
-  async getStudentExams(userId: string) {
-    const context = await resolveStudentContext(userId);
-    const items = await examCertificateService.listStudentExams(context.tenantId, context.studentId);
-
-    return items.map((item) => ({
-      enrollmentId: item.enrollment_id,
-      sessionId: item.session_id,
-      sessionTitle: item.session_title,
-      sessionStartDate: item.session_start_date,
-      sessionEndDate: item.session_end_date,
-      enrollmentStatus: item.enrollment_status,
-      studentId: item.student_id,
-      studentName: item.student_name,
-      studentEmail: item.student_email,
-      finalScore: item.final_score,
-      resultStatus: item.result_status,
-      resultCreatedAt: item.result_created_at,
-      certificateId: item.certificate_id,
-      certificateUrl: item.certificate_download_url || item.certificate_generated_pdf_url,
-      certificateCreatedAt: item.certificate_created_at,
-      createdAt: item.created_at,
-    }));
+  async getStudentExams(_userId: string) {
+    return [];
   },
 
   async listStudentEvents(userId: string, input: ListStudentEventsInput) {

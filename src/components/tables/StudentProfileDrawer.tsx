@@ -2,7 +2,7 @@ import { StudentRecord } from "@/lib/data/mockStudents";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, Calendar, GraduationCap, Clock, User, Shield, StickyNote, DollarSign } from "lucide-react";
+import { type LucideIcon, Mail, Phone, Calendar, GraduationCap, Clock, User, Shield, StickyNote, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -167,7 +167,7 @@ export function StudentProfileDrawer({ open, onOpenChange, student, customFields
   );
 }
 
-function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function InfoRow({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="flex items-center gap-2.5">
       <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />

@@ -1,73 +1,105 @@
-# Welcome to your Lovable project
+# Nexa — Gestión para escuelas de danza
 
-## Project info
+SaaS de gestión operativa para academias de danza de 50 a 500 alumnos. Reemplaza Excel, WhatsApp y herramientas desconectadas con un sistema unificado pensado para directores de escuela.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Características principales
 
-## How can I edit this code?
+- **Alumnos** — fichas, historial, importación masiva desde Excel/CSV
+- **Clases y horarios** — creación de clases, editor de horario semanal con detección de solapamientos
+- **Matrícula online** — formulario público configurable con landing de escuela
+- **Pagos** — registro manual, generación de facturas y recibos PDF
+- **Renovaciones** — campañas automáticas de renovación de matrícula por curso
+- **Lista de espera** — gestión automática cuando las clases están completas
+- **Comunicaciones** — email masivo segmentado por clase, estado o categoría
+- **Portal del alumno** — horario personal, estado de pagos y avisos de la escuela
+- **Configuración completa** — branding, agenda, cobros, avisos, seguridad y plan
 
-There are several ways of editing your application.
+## Stack técnico
 
-**Use Lovable**
+| Capa | Tecnología |
+|------|------------|
+| Frontend | React 18 + TypeScript + Vite (puerto 8080) |
+| Estilos | Tailwind CSS + shadcn/ui |
+| Base de datos | Supabase (PostgreSQL + Auth + Storage + RLS) |
+| API backend | Next.js 16 API routes (puerto 3000) |
+| Pagos | Stripe |
+| Email | Resend |
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Arrancar en local
 
-Changes made via Lovable will be committed automatically to this repo.
+### Requisitos
+- Node.js 20+
+- Cuenta Supabase con proyecto configurado
+- (Opcional) Cuenta Stripe para pagos
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### Frontend
+```bash
+npm install
+cp .env.local.example .env.local   # rellenar variables
+npm run dev                         # http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+### Backend (necesario para datos reales)
+```bash
+cd backend
+npm install
+cp .env.local.example .env.local   # rellenar variables
+npm run dev                         # http://localhost:3000
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+El frontend proxea `/api/*` → `localhost:3000` automáticamente. Sin el backend, el admin carga en modo degradado (empty states).
 
-**Use GitHub Codespaces**
+## Variables de entorno
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Frontend (`.env.local`)
+```env
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+VITE_API_URL=http://localhost:3000
+```
 
-## What technologies are used for this project?
+### Backend (`backend/.env.local`)
+```env
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=hola@tudominio.com
+NODE_ENV=development
+```
 
-This project is built with:
+## Estructura del proyecto
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+/                     ← Frontend React
+├── src/
+│   ├── components/   ← Componentes UI por dominio
+│   ├── hooks/        ← Custom hooks de negocio
+│   ├── lib/          ← API clients, auth, catalog, constants
+│   ├── pages/
+│   │   ├── admin/    ← Panel de administración
+│   │   ├── auth/     ← Login, registro, recuperación
+│   │   └── public/   ← Formulario de matrícula, horario
+│   └── portal/       ← Portal del alumno (V1)
 
-## How can I deploy this project?
+/backend              ← API Next.js
+├── app/api/          ← Route handlers por dominio
+└── lib/
+    ├── auth/         ← Middleware de autenticación con tenant
+    └── services/     ← Lógica de negocio
+```
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Para documentación técnica detallada ver [CLAUDE.md](./CLAUDE.md).
 
-## Can I connect a custom domain to my Lovable project?
+## CI
 
-Yes, you can!
+GitHub Actions ejecuta en cada PR:
+1. `tsc --noEmit` — comprobación de tipos
+2. `vitest run` — tests
+3. `vite build` — build completo
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Licencia
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Propietario — todos los derechos reservados.

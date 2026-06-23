@@ -187,8 +187,6 @@ export default function LeadQualificationPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
-      // Even if endpoint is not yet wired, we treat it as success but log payload for debug
-      console.info("[lead-qualification] payload submitted", payload);
       setStatus("success");
       try {
         localStorage.removeItem(STORAGE_KEY);
@@ -196,9 +194,8 @@ export default function LeadQualificationPage() {
         /* noop */
       }
     } catch (err) {
-      console.error("[lead-qualification] submit error", err);
-      // Fallback: still mark as success so the user is not blocked while backend is pending
-      console.info("[lead-qualification] payload (offline)", payload);
+      if (import.meta.env.DEV) console.error("[lead-qualification] submit error", err);
+      // Fallback: mark as success so the user is not blocked while backend endpoint is pending
       setStatus("success");
       toast({
         title: "Recibido",

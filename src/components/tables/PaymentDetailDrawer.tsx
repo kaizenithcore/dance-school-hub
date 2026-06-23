@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Mail, User, Calendar, CreditCard, FileText, StickyNote, CheckCircle, RotateCcw, Receipt, FileCheck } from "lucide-react";
+import { type LucideIcon, Mail, User, Calendar, CreditCard, FileText, StickyNote, CheckCircle, RotateCcw, Receipt, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -155,7 +155,7 @@ export function PaymentDetailDrawer({ open, onOpenChange, payment, onMarkPaid, o
   );
 }
 
-function InfoRow({ icon: Icon, label, value, highlight }: { icon: any; label: string; value: string; highlight?: boolean }) {
+function InfoRow({ icon: Icon, label, value, highlight }: { icon: LucideIcon; label: string; value: string; highlight?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
       <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />

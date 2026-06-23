@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { getDemoAdminTenantSlug } from "@/lib/demoAdmin";
 import { getSelectedAdminOrganizationId, getSelectedAdminTenantId } from "@/lib/adminContextSelection";
+import { DEFAULT_API_BASE_URL } from "@/lib/constants";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -15,7 +16,7 @@ function buildApiBaseCandidates(): string[] {
     candidates.add(API_BASE_URL.trim().replace(/\/$/, ""));
   }
 
-  candidates.add("http://localhost:3000");
+  candidates.add(DEFAULT_API_BASE_URL);
   return Array.from(candidates);
 }
 

@@ -3,7 +3,11 @@ import { Palette, Sparkles, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { commercialCatalog, formatEuro } from "@/lib/commercialCatalog";
 
-const creative = (commercialCatalog as any).creativeServices;
+const creative = (commercialCatalog as Record<string, unknown>).creativeServices as {
+  provider?: string;
+  providerDescription?: string;
+  services?: Record<string, { label?: string; pricingEur?: number; description?: string; includedInBundle?: boolean }>;
+} | undefined;
 const services = creative?.services || {};
 
 const identityReview = services.identityReview;
