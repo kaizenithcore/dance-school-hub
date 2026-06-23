@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, ChevronLeft, ChevronRight, GraduationCap, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, Eye, ChevronLeft, ChevronRight, GraduationCap, Loader2, ArrowUpDown, ChevronUp, ChevronDown, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -23,6 +23,32 @@ const STATUS_CONFIG: Record<EnrollmentStatus, { label: string; className: string
 
 const PAGE_SIZE = 8;
 const PAGE_PREFS_KEY = "enrollments-table-page";
+const CLASSES_VIEW_KEY = "enrollments-table-classes-view";
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: "Efectivo",
+  transfer: "Transferencia",
+  bank_transfer: "Transferencia",
+  card: "Tarjeta",
+  mercadopago: "Mercado Pago",
+};
+
+function formatPaymentMethod(raw: string): string {
+  if (!raw) return "—";
+  const lower = raw.toLowerCase();
+  return PAYMENT_METHOD_LABELS[lower] ?? PAYMENT_METHOD_LABELS[lower.replace(/_/g, "")] ?? raw;
+}
+
+const WEEKDAY_SHORT: Record<string, string> = {
+  "0": "Dom", "1": "Lun", "2": "Mar", "3": "Mié",
+  "4": "Jue", "5": "Vie", "6": "Sáb",
+};
+
+function formatClassDay(day: string): string {
+  // If day is a weekday number (0-6), convert to name
+  if (/^[0-6]$/.test(day.trim())) return WEEKDAY_SHORT[day.trim()] ?? day;
+  return day;
+}
 
 type EnrollmentSortKey = "student" | "classes" | "total" | "paymentMethod" | "date" | "status";
 
@@ -35,6 +61,15 @@ interface EnrollmentsTableProps {
 export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail }: EnrollmentsTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [classesView, setClassesView] = useState<"count" | "list">(() => {
+    return (window.localStorage.getItem(CLASSES_VIEW_KEY) as "count" | "list") ?? "count";
+  });
+
+  const toggleClassesView = () => {
+    const next = classesView === "count" ? "list" : "count";
+    setClassesView(next);
+    window.localStorage.setItem(CLASSES_VIEW_KEY, next);
+  };
   const [sortKey, setSortKey] = useState<EnrollmentSortKey>("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(() => {
@@ -184,7 +219,12 @@ export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail 
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               {renderSortableHead("Alumno", "student")}
-              {renderSortableHead("Clases", "classes", undefined, "center")}
+              <TableHead className="text-xs text-center">
+                <button type="button" onClick={toggleClassesView} className="inline-flex items-center gap-1 hover:text-foreground text-muted-foreground transition-colors" title={classesView === "count" ? "Mostrar detalle de clases" : "Mostrar total de clases"}>
+                  Clases
+                  <List className="h-3 w-3" />
+                </button>
+              </TableHead>
               {renderSortableHead("Total", "total", undefined, "right")}
               {renderSortableHead("Método de Pago", "paymentMethod", "hidden md:table-cell")}
               {renderSortableHead("Fecha", "date", "hidden lg:table-cell")}
@@ -219,14 +259,29 @@ export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail 
                         <p className="text-[10px] text-muted-foreground">{enrollment.studentEmail}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <GraduationCap className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm font-medium">{enrollment.classes.length}</span>
-                      </div>
+                    <TableCell className={classesView === "list" ? "max-w-[200px]" : "text-center"}>
+                      {classesView === "count" ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <GraduationCap className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm font-medium">{enrollment.classes.length}</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-0.5">
+                          {enrollment.classes.map((cls) => (
+                            <p key={cls.id} className="text-xs text-foreground leading-snug">
+                              <span className="font-medium">{cls.name}</span>
+                              {cls.day || cls.time ? (
+                                <span className="text-muted-foreground">
+                                  {" "}({[formatClassDay(cls.day), cls.time].filter(Boolean).join(" · ")})
+                                </span>
+                              ) : null}
+                            </p>
+                          ))}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-right text-sm font-semibold text-foreground">€{enrollment.totalPrice}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{enrollment.paymentMethod}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{formatPaymentMethod(enrollment.paymentMethod)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
                       {format(new Date(enrollment.date), "d MMM yyyy", { locale: es })}
                     </TableCell>

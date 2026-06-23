@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { type LucideIcon, Mail, Phone, Calendar, CreditCard, Clock, FileText, StickyNote, CheckCircle, XCircle, Ban, UserRound, Users } from "lucide-react";
+import { type LucideIcon, Mail, Phone, Calendar, CreditCard, Clock, FileText, StickyNote, CheckCircle, XCircle, Ban, UserRound, Users, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -48,13 +48,28 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
     return format(parsed, "d MMM yyyy", { locale: es });
   };
 
+  const weekdayNames: Record<string, string> = {
+    "0": "Domingo", "1": "Lunes", "2": "Martes", "3": "Miércoles",
+    "4": "Jueves", "5": "Viernes", "6": "Sábado",
+  };
+
+  const formatDay = (day: string) => {
+    if (/^[0-6]$/.test(day.trim())) return weekdayNames[day.trim()] ?? day;
+    return day;
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg">Inscripción #{enrollment.id.replace("e", "")}</SheetTitle>
-            <Badge variant="outline" className={cn("text-[10px] font-medium", statusCfg.className)}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <SheetTitle className="text-lg">Matrícula de {enrollment.studentName}</SheetTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Recibida el {format(new Date(enrollment.date), "d MMM yyyy", { locale: es })}
+              </p>
+            </div>
+            <Badge variant="outline" className={cn("text-[10px] font-medium shrink-0 mt-0.5", statusCfg.className)}>
               {statusCfg.label}
             </Badge>
           </div>
@@ -69,7 +84,6 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
               <InfoRow icon={Mail} label="Email" value={enrollment.studentEmail} />
               <InfoRow icon={Phone} label="Teléfono" value={enrollment.studentPhone} />
               <InfoRow icon={Calendar} label="Fecha de nacimiento" value={formatMaybeDate(enrollment.studentBirthDate)} />
-              <InfoRow icon={Calendar} label="Fecha de solicitud" value={format(new Date(enrollment.date), "d MMM yyyy", { locale: es })} />
               <InfoRow icon={CreditCard} label="Método de pago" value={paymentMethodFormatted} />
               {isTransferPayment && (
                 <InfoRow icon={CreditCard} label="IBAN/CBU" value={enrollment.studentIban || "No disponible"} />
@@ -96,6 +110,20 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
             )}
           </section>
 
+          {/* Direct communication */}
+          {enrollment.studentEmail && (
+            <div>
+              <a
+                href={`mailto:${enrollment.studentEmail}?subject=${encodeURIComponent(`Matrícula — ${enrollment.classes.map((c) => c.name).join(", ")}`)}`}
+                className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+              >
+                <Send className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="flex-1 truncate">Contactar por email</span>
+                <span className="text-xs text-muted-foreground truncate max-w-[140px]">{enrollment.studentEmail}</span>
+              </a>
+            </div>
+          )}
+
           <Separator />
 
           {/* Classes */}
@@ -108,10 +136,12 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
                 <div key={cls.id} className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2.5">
                   <div>
                     <p className="text-sm font-medium text-foreground">{cls.name}</p>
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
-                      <Clock className="h-2.5 w-2.5" />
-                      <span>{cls.day} · {cls.time}</span>
-                    </div>
+                    {(cls.day || cls.time) && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
+                        <Clock className="h-2.5 w-2.5" />
+                        <span>{[formatDay(cls.day), cls.time].filter(Boolean).join(" · ")}</span>
+                      </div>
+                    )}
                   </div>
                   <span className="text-sm font-medium text-foreground">€{cls.price}</span>
                 </div>

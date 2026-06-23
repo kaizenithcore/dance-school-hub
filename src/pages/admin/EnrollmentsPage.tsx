@@ -66,8 +66,7 @@ export default function EnrollmentsPage() {
 
   return (
     <PageContainer
-      title="Inscripciones"
-      description={`${pendingCount} pendientes · ${confirmedCount} confirmadas`}
+      title="Matrículas"
       actions={
         <Button size="sm" onClick={() => navigate("/admin/form-builder")}>
           Configurar matrícula

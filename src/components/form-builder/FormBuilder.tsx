@@ -7,7 +7,7 @@ import { FormPreview } from "./FormPreview";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Eye, Pencil, CalendarDays, RotateCcw, Tags, LayoutGrid } from "lucide-react";
+import { Plus, CalendarDays, RotateCcw, Tags, LayoutGrid, Users, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { FormBuilderField, FormBuilderSection, FieldType } from "@/lib/types/formBuilder";
@@ -16,15 +16,19 @@ import { getEnrollmentFormConfig, saveEnrollmentFormConfig } from "@/lib/api/enr
 import { Badge } from "@/components/ui/badge";
 import { getStudentFields, type SchoolStudentField } from "@/lib/api/studentFields";
 
-type Mode = "edit" | "preview";
 const FORM_BUILDER_UNSAVED_KEY = "nexa:form-builder:unsaved";
 const FORM_BUILDER_SAVE_REQUEST_EVENT = "nexa:form-builder:request-save";
 const FORM_BUILDER_SAVE_RESULT_EVENT = "nexa:form-builder:save-result";
 
 export function FormBuilder() {
   const [config, setConfig] = useState<EnrollmentFormConfig>(getDefaultEnrollmentConfig);
-  const [mode, setMode] = useState<Mode>("edit");
   const [saving, setSaving] = useState(false);
+  // Collapsible panels state
+  const [scheduleOpen, setScheduleOpen] = useState(true);
+  const [pricingOpen, setPricingOpen] = useState(false);
+  const [scheduleConfigOpen, setScheduleConfigOpen] = useState(false);
+  const [jointOpen, setJointOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState(() => JSON.stringify(getDefaultEnrollmentConfig()));
   const [schoolStudentFields, setSchoolStudentFields] = useState<SchoolStudentField[]>([]);
 
@@ -313,308 +317,297 @@ export function FormBuilder() {
     toast.success(`Se agregaron ${requiredSchoolFieldsNotIncluded.length} campo(s) requeridos al formulario`);
   };
 
+  const scheduleSettings = config.scheduleSettings ?? {
+    preferredView: "calendar" as const,
+    recurringSelectionMode: "linked" as const,
+    recurringClassOverrides: [] as string[],
+    calendarFields: {
+      showDiscipline: true,
+      showCategory: false,
+      showRoom: true,
+      showCapacity: true,
+      showPrice: true,
+      showSelectedStudents: true,
+    },
+  };
+  const updateSchedule = (next: typeof scheduleSettings) =>
+    setConfig({ ...config, scheduleSettings: next });
+
+  function CollapsiblePanel({
+    icon: Icon,
+    title,
+    description,
+    open,
+    onToggle,
+    rightSlot,
+    children,
+  }: {
+    icon: React.ElementType;
+    title: string;
+    description: string;
+    open: boolean;
+    onToggle: () => void;
+    rightSlot?: React.ReactNode;
+    children?: React.ReactNode;
+  }) {
+    return (
+      <div className="rounded-xl border border-border bg-card shadow-soft overflow-hidden">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex w-full items-center gap-3 p-4 text-left hover:bg-accent/30 transition-colors"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent">
+            <Icon className="h-4 w-4 text-accent-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">{title}</p>
+            <p className="text-xs text-muted-foreground truncate">{description}</p>
+          </div>
+          {rightSlot && <div onClick={(e) => e.stopPropagation()}>{rightSlot}</div>}
+          {open ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
+        </button>
+        {open && children && (
+          <div className="border-t border-border p-4">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center rounded-lg border border-border bg-card p-0.5">
-          <button
-            onClick={() => setMode("edit")}
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors",
-              mode === "edit" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Editor
-          </button>
-          <button
-            onClick={() => setMode("preview")}
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors",
-              mode === "preview" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Eye className="h-3.5 w-3.5" />
-            Vista Previa
-          </button>
-        </div>
-
         <div className="flex items-center gap-2 ml-auto">
-          {hasUnsavedChanges ? (
+          {hasUnsavedChanges && (
             <span className="text-xs font-medium text-warning">Cambios sin guardar</span>
-          ) : null}
+          )}
           <Button variant="outline" size="sm" onClick={handleReset}>
             <RotateCcw className="h-3.5 w-3.5 mr-1" />
             Restaurar
           </Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>
-            Guardar Formulario
+            Guardar formulario
           </Button>
         </div>
       </div>
 
-      {mode === "edit" ? (
-        <div className="space-y-6">
-          {/* Schedule toggle */}
-          <div className="rounded-xl border border-border bg-card shadow-soft p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
-                <CalendarDays className="h-4.5 w-4.5 text-accent-foreground" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold text-foreground">Selección de Clases por Horario</h3>
-                <p className="text-xs text-muted-foreground">
-                  Incluir el horario semanal para que los alumnos seleccionen sus clases
-                </p>
-              </div>
+      {/* Side-by-side layout */}
+      <div className="flex gap-6 items-start">
+        {/* Left — Configuration */}
+        <div className="flex-1 min-w-0 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">Opciones del formulario</p>
+
+          {/* 1. Schedule toggle */}
+          <CollapsiblePanel
+            icon={CalendarDays}
+            title="Selección de Clases por Horario"
+            description="Muestra el horario semanal para que los alumnos elijan sus clases"
+            open={scheduleOpen}
+            onToggle={() => setScheduleOpen((v) => !v)}
+            rightSlot={
               <Switch
                 checked={config.includeSchedule}
                 onCheckedChange={(checked) => setConfig({ ...config, includeSchedule: checked })}
               />
-            </div>
-          </div>
+            }
+          />
 
-          {/* Pricing toggle */}
-          <div className="rounded-xl border border-border bg-card shadow-soft p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
-                <Tags className="h-4.5 w-4.5 text-accent-foreground" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold text-foreground">Mostrar Tarifas y Bonos</h3>
-                <p className="text-xs text-muted-foreground">
-                  Mostrar resumen dinámico de precio, ahorro y cercanía a bonos en la matrícula pública
-                </p>
-              </div>
+          {/* 2. Pricing toggle */}
+          <CollapsiblePanel
+            icon={Tags}
+            title="Mostrar Tarifas y Bonos"
+            description="Muestra el precio dinámico al seleccionar clases"
+            open={pricingOpen}
+            onToggle={() => setPricingOpen((v) => !v)}
+            rightSlot={
               <Switch
                 checked={config.includePricing ?? true}
                 onCheckedChange={(checked) => setConfig({ ...config, includePricing: checked })}
               />
+            }
+          />
+
+          {/* 3. Schedule config */}
+          <CollapsiblePanel
+            icon={LayoutGrid}
+            title="Configuración del horario"
+            description="Vista preferida, selección recurrente y campos visibles"
+            open={scheduleConfigOpen}
+            onToggle={() => setScheduleConfigOpen((v) => !v)}
+          >
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Vista preferida</Label>
+                  <div className="flex rounded-md border overflow-hidden">
+                    {["calendar", "list"].map((v) => (
+                      <button key={v} type="button"
+                        className={`flex-1 text-xs px-3 py-1.5 ${scheduleSettings.preferredView === v ? "bg-primary text-primary-foreground" : "bg-background text-foreground"}`}
+                        onClick={() => updateSchedule({ ...scheduleSettings, preferredView: v as "calendar" | "list" })}
+                      >
+                        {v === "calendar" ? "Calendario" : "Lista"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Clases recurrentes</Label>
+                  <div className="flex rounded-md border overflow-hidden">
+                    {([["linked", "Enlazadas"], ["single_day", "Por día"]] as const).map(([v, label]) => (
+                      <button key={v} type="button"
+                        className={`flex-1 text-xs px-3 py-1.5 ${scheduleSettings.recurringSelectionMode === v ? "bg-primary text-primary-foreground" : "bg-background text-foreground"}`}
+                        onClick={() => updateSchedule({ ...scheduleSettings, recurringSelectionMode: v })}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Campos visibles en tarjetas del calendario</Label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {([
+                    ["showDiscipline", "Disciplina"], ["showRoom", "Aula"],
+                    ["showCapacity", "Capacidad"], ["showPrice", "Precio"],
+                    ["showSelectedStudents", "Alumnos seleccionados"], ["showCategory", "Categoría"],
+                  ] as const).map(([key, label]) => (
+                    <div key={key} className="flex items-center justify-between rounded-md border px-3 py-1.5">
+                      <span className="text-xs">{label}</span>
+                      <Switch
+                        checked={Boolean(scheduleSettings.calendarFields[key])}
+                        onCheckedChange={(checked) =>
+                          updateSchedule({ ...scheduleSettings, calendarFields: { ...scheduleSettings.calendarFields, [key]: Boolean(checked) } })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          </CollapsiblePanel>
 
-          {/* Schedule display settings */}
-          {(() => {
-            const scheduleSettings = config.scheduleSettings ?? {
-              preferredView: "calendar" as const,
-              recurringSelectionMode: "linked" as const,
-              recurringClassOverrides: [] as string[],
-              calendarFields: {
-                showDiscipline: true,
-                showCategory: false,
-                showRoom: true,
-                showCapacity: true,
-                showPrice: true,
-                showSelectedStudents: true,
-              },
-            };
-            const updateSchedule = (next: typeof scheduleSettings) =>
-              setConfig({ ...config, scheduleSettings: next });
-            return (
-              <div className="rounded-xl border border-border bg-card shadow-soft p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
-                    <LayoutGrid className="h-4.5 w-4.5 text-accent-foreground" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-foreground">Configuración del Horario</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Vista por defecto, selección de clases recurrentes y campos visibles en tarjetas del calendario
-                    </p>
-                  </div>
-                </div>
+          {/* 4. Joint enrollment */}
+          <CollapsiblePanel
+            icon={Users}
+            title="Matrícula conjunta"
+            description="Permite inscribir a varios alumnos en el mismo formulario"
+            open={jointOpen}
+            onToggle={() => setJointOpen((v) => !v)}
+          >
+            <JointEnrollmentSettings
+              config={config.jointEnrollment}
+              onChange={(jointEnrollment) => setConfig({ ...config, jointEnrollment })}
+            />
+          </CollapsiblePanel>
 
-                <div className="grid gap-3 sm:grid-cols-2 pl-12">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Vista preferida</Label>
-                    <div className="flex rounded-md border overflow-hidden">
-                      <button
-                        type="button"
-                        className={`flex-1 text-xs px-3 py-2 ${scheduleSettings.preferredView === "calendar" ? "bg-primary text-primary-foreground" : "bg-background"}`}
-                        onClick={() => updateSchedule({ ...scheduleSettings, preferredView: "calendar" })}
-                      >
-                        Calendario
-                      </button>
-                      <button
-                        type="button"
-                        className={`flex-1 text-xs px-3 py-2 ${scheduleSettings.preferredView === "list" ? "bg-primary text-primary-foreground" : "bg-background"}`}
-                        onClick={() => updateSchedule({ ...scheduleSettings, preferredView: "list" })}
-                      >
-                        Lista
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Clases recurrentes</Label>
-                    <div className="flex rounded-md border overflow-hidden">
-                      <button
-                        type="button"
-                        className={`flex-1 text-xs px-3 py-2 ${scheduleSettings.recurringSelectionMode === "linked" ? "bg-primary text-primary-foreground" : "bg-background"}`}
-                        onClick={() => updateSchedule({ ...scheduleSettings, recurringSelectionMode: "linked" })}
-                      >
-                        Días enlazados
-                      </button>
-                      <button
-                        type="button"
-                        className={`flex-1 text-xs px-3 py-2 ${scheduleSettings.recurringSelectionMode === "single_day" ? "bg-primary text-primary-foreground" : "bg-background"}`}
-                        onClick={() => updateSchedule({ ...scheduleSettings, recurringSelectionMode: "single_day" })}
-                      >
-                        Día individual
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pl-12">
-                  <Label className="text-xs text-muted-foreground">
-                    IDs de clase para anular el modo por defecto (separados por coma)
-                  </Label>
+          {/* Advanced */}
+          <div className="rounded-xl border border-dashed border-border overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              <span className="font-medium">Configuración avanzada</span>
+              <span className="text-muted-foreground/60">· Campos personalizados, IDs de clase</span>
+              {advancedOpen ? <ChevronUp className="ml-auto h-3.5 w-3.5" /> : <ChevronDown className="ml-auto h-3.5 w-3.5" />}
+            </button>
+            {advancedOpen && (
+              <div className="border-t border-dashed border-border p-4 space-y-4">
+                {/* Class ID overrides */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">IDs de clase para anular modo recurrente (separados por coma)</Label>
                   <Textarea
                     rows={2}
                     className="text-xs"
                     placeholder="uuid-1, uuid-2"
                     value={scheduleSettings.recurringClassOverrides.join(", ")}
                     onChange={(e) => {
-                      const ids = e.target.value
-                        .split(",")
-                        .map((v) => v.trim())
-                        .filter(Boolean);
+                      const ids = e.target.value.split(",").map((v) => v.trim()).filter(Boolean);
                       updateSchedule({ ...scheduleSettings, recurringClassOverrides: ids });
                     }}
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Si el modo es "Días enlazados", estas clases permitirán selección por día individual. Si el modo es
-                    "Día individual", estas clases quedarán enlazadas.
+                    Anula el modo de selección para estas clases específicas.
                   </p>
                 </div>
 
-                <div className="space-y-2 pl-12">
-                  <Label className="text-xs text-muted-foreground">Campos visibles en tarjetas del calendario</Label>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {([
-                      ["showDiscipline", "Disciplina"],
-                      ["showCategory", "Categoría"],
-                      ["showRoom", "Aula"],
-                      ["showCapacity", "Capacidad"],
-                      ["showPrice", "Precio"],
-                      ["showSelectedStudents", "Alumnos seleccionados"],
-                    ] as const).map(([key, label]) => (
-                      <div key={key} className="flex items-center justify-between rounded-md border px-3 py-2">
-                        <span className="text-xs">{label}</span>
-                        <Switch
-                          checked={Boolean(scheduleSettings.calendarFields[key])}
-                          onCheckedChange={(checked) =>
-                            updateSchedule({
-                              ...scheduleSettings,
-                              calendarFields: {
-                                ...scheduleSettings.calendarFields,
-                                [key]: Boolean(checked),
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                    ))}
+                {/* Custom fields */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">Campos personalizados de la escuela</Label>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={addAllRequiredSchoolFieldsToForm} disabled={requiredSchoolFieldsNotIncluded.length === 0}>
+                      Añadir requeridos ({requiredSchoolFieldsNotIncluded.length})
+                    </Button>
                   </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Joint enrollment */}
-          <JointEnrollmentSettings
-            config={config.jointEnrollment}
-            onChange={(jointEnrollment) => setConfig({ ...config, jointEnrollment })}
-          />
-
-          <div className="rounded-xl border border-border bg-card shadow-soft p-5 space-y-3">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">Campos personalizados de alumnos (escuela)</h3>
-                <p className="text-xs text-muted-foreground">
-                  Estos campos vienen de la configuracion de tu escuela. Puedes agregarlos al formulario
-                  publico para pedirlos durante la inscripcion.
-                </p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={addAllRequiredSchoolFieldsToForm}
-                disabled={requiredSchoolFieldsNotIncluded.length === 0}
-              >
-                Agregar todos los requeridos
-              </Button>
-            </div>
-
-            {schoolStudentFields.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No hay campos personalizados configurados para esta escuela.</p>
-            ) : (
-              <div className="space-y-2">
-                {schoolStudentFields.map((field) => {
-                  const included = existingFieldIds.has(makeSchoolFieldFormId(field));
-                  return (
-                    <div key={field.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">
-                          {field.label}
-                          <span className="ml-1 text-xs text-muted-foreground">({field.key})</span>
-                        </p>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <Badge variant="outline" className="text-[10px]">{field.type}</Badge>
-                          {field.required ? <Badge variant="outline" className="text-[10px]">Requerido</Badge> : null}
-                          {field.visibleInTable ? <Badge variant="outline" className="text-[10px]">Visible en tabla</Badge> : null}
-                          {included ? <Badge className="text-[10px]">Incluido en formulario</Badge> : null}
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant={included ? "outline" : "default"}
-                        disabled={included}
-                        onClick={() => addSchoolFieldToForm(field)}
-                      >
-                        {included ? "Ya agregado" : "Agregar al formulario"}
-                      </Button>
+                  {schoolStudentFields.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No hay campos personalizados configurados.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {schoolStudentFields.map((field) => {
+                        const included = existingFieldIds.has(makeSchoolFieldFormId(field));
+                        return (
+                          <div key={field.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+                            <div>
+                              <span className="text-xs font-medium">{field.label}</span>
+                              <span className="ml-1 text-[10px] text-muted-foreground">({field.key})</span>
+                              {field.required && <Badge variant="outline" className="ml-1 text-[9px] h-4">Req.</Badge>}
+                            </div>
+                            <Button size="sm" className="h-6 text-[10px] px-2" variant={included ? "outline" : "default"} disabled={included} onClick={() => addSchoolFieldToForm(field)}>
+                              {included ? "Añadido" : "Añadir"}
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  )}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Sections */}
-          <div className="space-y-4">
-            {config.sections.map((section, i) => (
-              <SectionCard
-                key={section.id}
-                section={section}
-                index={i}
-                totalSections={config.sections.length}
-                allSections={config.sections}
-                onUpdate={(s) => updateSection(i, s)}
-                onDelete={() => deleteSection(i)}
-                onMove={(dir) => moveSection(i, dir)}
-              />
-            ))}
+          {/* Form sections editor */}
+          <div className="pt-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3 px-0.5">Secciones del formulario</p>
+            <div className="rounded-xl border-2 border-primary/20 bg-primary/[0.02] p-4 space-y-3">
+              {config.sections.map((section, i) => (
+                <SectionCard
+                  key={section.id}
+                  section={section}
+                  index={i}
+                  totalSections={config.sections.length}
+                  allSections={config.sections}
+                  onUpdate={(s) => updateSection(i, s)}
+                  onDelete={() => deleteSection(i)}
+                  onMove={(dir) => moveSection(i, dir)}
+                />
+              ))}
+              <Button variant="outline" className="w-full border-dashed" onClick={addSection}>
+                <Plus className="h-4 w-4 mr-2" />
+                Añadir sección
+              </Button>
+            </div>
           </div>
+        </div>
 
-          <Button variant="outline" className="w-full border-dashed" onClick={addSection}>
-            <Plus className="h-4 w-4 mr-2" />
-            Añadir Sección
-          </Button>
-        </div>
-      ) : (
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-4 rounded-lg bg-accent/50 border border-accent px-4 py-2.5">
-            <p className="text-xs text-accent-foreground">
-              <Eye className="inline h-3 w-3 mr-1 -mt-0.5" />
-              Vista previa del formulario tal como lo verán los alumnos. Las condiciones lógicas se evalúan en tiempo real.
-            </p>
+        {/* Right — Preview (sticky) */}
+        <div className="hidden xl:block w-[380px] shrink-0 sticky top-20">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3 px-0.5">Vista previa en tiempo real</p>
+          <div className="rounded-xl border border-border bg-card shadow-soft overflow-hidden">
+            <div className="border-b border-border bg-muted/30 px-4 py-2.5">
+              <p className="text-xs text-muted-foreground">Así lo verán tus alumnos al matricularse</p>
+            </div>
+            <div className="max-h-[calc(100vh-200px)] overflow-y-auto p-4">
+              <FormPreview config={config} />
+            </div>
           </div>
-          <FormPreview config={config} />
         </div>
-      )}
+      </div>
     </div>
   );
 }
