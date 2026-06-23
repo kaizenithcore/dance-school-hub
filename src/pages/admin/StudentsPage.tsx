@@ -19,13 +19,15 @@ import { getSchoolSettings } from "@/lib/api/settings";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { FileUp, Plus } from "lucide-react";
+import { FileUp, Plus, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
+import { useState as useCollapseState } from "react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { planCatalog, type PlanType } from "@/lib/commercialCatalog";
 
 export default function StudentsPage() {
   const navigate = useNavigate();
+  const [showCustomFields, setShowCustomFields] = useCollapseState(false);
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [studentFields, setStudentFields] = useState<SchoolStudentField[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,7 +177,6 @@ export default function StudentsPage() {
   return (
     <PageContainer
       title="Alumnos"
-      description={`${activeStudents} activos · ${remainingStudents} plazas disponibles`}
       actions={
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => navigate("/admin/students/import")}>
@@ -220,10 +221,40 @@ export default function StudentsPage() {
         onDelete={handleDelete}
       />
 
-      <StudentCustomFieldsManager fields={studentFields} onReload={loadStudentFields} />
+      {/* Configuración avanzada — campos personalizados (ocultos por defecto) */}
+      <div className="rounded-xl border border-border bg-card">
+        <button
+          type="button"
+          onClick={() => setShowCustomFields((v) => !v)}
+          className="flex w-full items-center justify-between px-5 py-3.5 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <Settings2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Configuración avanzada</span>
+            <span className="text-xs text-muted-foreground">· Campos personalizados</span>
+          </div>
+          {showCustomFields ? (
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          )}
+        </button>
+        {showCustomFields && (
+          <div className="border-t border-border p-5">
+            <StudentCustomFieldsManager fields={studentFields} onReload={loadStudentFields} />
+          </div>
+        )}
+      </div>
 
       <StudentProfileDrawer open={drawerOpen} onOpenChange={setDrawerOpen} student={selectedStudent} customFields={studentFields} />
-      <StudentFormModal open={formOpen} onOpenChange={setFormOpen} student={editingStudent} customFields={studentFields} onSave={handleSave} />
+      <StudentFormModal
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        student={editingStudent}
+        customFields={studentFields}
+        onSave={handleSave}
+        onManageClasses={handleManageClasses}
+      />
       <DeleteStudentModal open={deleteOpen} onOpenChange={setDeleteOpen} student={deletingStudent} onConfirm={handleConfirmDelete} />
       <StudentClassesModal open={classesModalOpen} onOpenChange={setClassesModalOpen} student={classesStudent} students={students} onUpdated={loadStudents} />
     </PageContainer>

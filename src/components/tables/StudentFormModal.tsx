@@ -15,6 +15,7 @@ interface StudentFormModalProps {
   student?: StudentRecord | null;
   customFields?: SchoolStudentField[];
   onSave: (data: Omit<StudentRecord, "id">) => Promise<boolean>;
+  onManageClasses?: (student: StudentRecord) => void;
 }
 
 const EMPTY: Omit<StudentRecord, "id"> = {
@@ -43,7 +44,7 @@ function isValidDate(value: string): boolean {
   return !Number.isNaN(date.getTime());
 }
 
-export function StudentFormModal({ open, onOpenChange, student, customFields = [], onSave }: StudentFormModalProps) {
+export function StudentFormModal({ open, onOpenChange, student, customFields = [], onSave, onManageClasses }: StudentFormModalProps) {
   const isEdit = !!student;
   const [form, setForm] = useState<Omit<StudentRecord, "id">>(EMPTY);
   const [hasGuardian, setHasGuardian] = useState(false);
@@ -566,7 +567,18 @@ export function StudentFormModal({ open, onOpenChange, student, customFields = [
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          {isEdit && onManageClasses && student && (
+            <Button
+              type="button"
+              variant="outline"
+              className="sm:mr-auto"
+              onClick={() => { onOpenChange(false); onManageClasses(student); }}
+              disabled={isLoading}
+            >
+              Gestionar clases y cuota
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancelar</Button>
           <Button onClick={handleSave} disabled={isLoading}>
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

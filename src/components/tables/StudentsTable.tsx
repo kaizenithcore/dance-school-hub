@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { StudentRecord } from "@/lib/data/mockStudents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +10,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, GraduationCap, DollarSign, SlidersHorizontal, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, GraduationCap, SlidersHorizontal, Loader2, ArrowUpDown, ChevronUp, ChevronDown, Filter, FilterX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -25,9 +27,11 @@ const PAYMENT_LABELS: Record<string, string> = {
   none: "—",
 };
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE_OPTIONS = [8, 15, 25, 50] as const;
+const DEFAULT_PAGE_SIZE = 8;
 const COLUMN_PREFS_KEY = "students-table-visible-columns";
 const PAGE_PREFS_KEY = "students-table-page";
+const PAGE_SIZE_KEY = "students-table-page-size";
 
 type StudentsVisibleColumns = {
   email: boolean;
@@ -37,7 +41,7 @@ type StudentsVisibleColumns = {
   address: boolean;
 };
 
-type StudentSortKey = "name" | "email" | "phone" | "locality" | "document" | "address" | "classes" | "monthlyTotal" | "status";
+type StudentSortKey = "name" | "email" | "phone" | "locality" | "document" | "address" | "classes" | "monthlyTotal" | "status" | "joinDate";
 
 const DEFAULT_VISIBLE_COLUMNS: StudentsVisibleColumns = {
   email: true,
@@ -66,12 +70,18 @@ function formatCustomFieldValue(value: unknown): string {
 
 export function StudentsTable({ students, customFields = [], isLoading = false, onViewProfile, onEdit, onManageClasses, onDelete }: StudentsTableProps) {
   const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [localityFilter, setLocalityFilter] = useState<string>("all");
   const [documentFilter, setDocumentFilter] = useState<string>("");
   const [addressFilter, setAddressFilter] = useState<string>("");
-  const [sortKey, setSortKey] = useState<StudentSortKey>("name");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortKey, setSortKey] = useState<StudentSortKey>("joinDate");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const raw = window.localStorage.getItem(PAGE_SIZE_KEY);
+    const parsed = Number(raw);
+    return PAGE_SIZE_OPTIONS.includes(parsed as typeof PAGE_SIZE_OPTIONS[number]) ? parsed : DEFAULT_PAGE_SIZE;
+  });
   const [visibleColumns, setVisibleColumns] = useState<StudentsVisibleColumns>(() => {
     if (typeof window === "undefined") return DEFAULT_VISIBLE_COLUMNS;
     const raw = window.localStorage.getItem(COLUMN_PREFS_KEY);
@@ -100,6 +110,10 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
   useEffect(() => {
     window.localStorage.setItem(COLUMN_PREFS_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
+
+  useEffect(() => {
+    window.localStorage.setItem(PAGE_SIZE_KEY, String(pageSize));
+  }, [pageSize]);
 
   const localityOptions = useMemo(() => {
     return Array.from(
@@ -173,6 +187,8 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
             return getMonthlyTotal(student) ?? -1;
           case "status":
             return STATUS_MAP[student.status]?.label || student.status;
+          case "joinDate":
+            return student.joinDate || "";
           default:
             return "";
         }
@@ -191,8 +207,8 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
     return rows;
   }, [filtered, sortKey, sortDirection]);
 
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(sorted.length / pageSize);
+  const paginated = sorted.slice(page * pageSize, (page + 1) * pageSize);
 
   useEffect(() => {
     if (totalPages === 0) {
@@ -256,10 +272,18 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
     </TableHead>
   );
 
+  const activeFilterCount = [
+    statusFilter !== "all",
+    localityFilter !== "all",
+    documentFilter.trim() !== "",
+    addressFilter.trim() !== "",
+  ].filter(Boolean).length;
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+    <div className="space-y-3">
+      {/* Search bar — always visible */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Buscar por nombre, email o teléfono..."
@@ -268,88 +292,123 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
             className="pl-9 h-9 text-sm"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
-          <SelectTrigger className="w-[130px] h-9">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="active">Activos</SelectItem>
-            <SelectItem value="inactive">Inactivos</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={localityFilter} onValueChange={(v) => { setLocalityFilter(v); setPage(0); }}>
-          <SelectTrigger className="w-[170px] h-9">
-            <SelectValue placeholder="Localidad" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las localidades</SelectItem>
-            {localityOptions.map((locality) => (
-              <SelectItem key={locality} value={locality}>{locality}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          placeholder="Filtrar por DNI/Pasaporte"
-          value={documentFilter}
-          onChange={(event) => {
-            setDocumentFilter(event.target.value);
-            setPage(0);
-          }}
-          className="h-9 w-[200px]"
-        />
-        <Input
-          placeholder="Filtrar por domicilio"
-          value={addressFilter}
-          onChange={(event) => {
-            setAddressFilter(event.target.value);
-            setPage(0);
-          }}
-          className="h-9 w-[210px]"
-        />
+
+        {/* Filter toggle */}
+        <Button
+          variant={filtersOpen || activeFilterCount > 0 ? "default" : "outline"}
+          size="sm"
+          className="h-9 shrink-0"
+          onClick={() => setFiltersOpen((o) => !o)}
+        >
+          {filtersOpen ? <FilterX className="h-3.5 w-3.5 mr-1.5" /> : <Filter className="h-3.5 w-3.5 mr-1.5" />}
+          Filtros
+          {activeFilterCount > 0 && (
+            <span className="ml-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary-foreground text-[10px] font-bold text-primary">
+              {activeFilterCount}
+            </span>
+          )}
+        </Button>
+
+        {/* Columns */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="h-9">
-              <SlidersHorizontal className="mr-2 h-3.5 w-3.5" />
+            <Button variant="outline" size="sm" className="h-9 shrink-0">
+              <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
               Columnas
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuLabel>Mostrar en resultados</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.email}
-              onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, email: checked === true }))}
-            >
-              Email
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.phone}
-              onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, phone: checked === true }))}
-            >
-              Teléfono
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.locality}
-              onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, locality: checked === true }))}
-            >
-              Localidad
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.document}
-              onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, document: checked === true }))}
-            >
-              DNI/Pasaporte
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.address}
-              onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, address: checked === true }))}
-            >
-              Domicilio
-            </DropdownMenuCheckboxItem>
+            {[
+              { key: "email" as const, label: "Email" },
+              { key: "phone" as const, label: "Teléfono" },
+              { key: "locality" as const, label: "Localidad" },
+              { key: "document" as const, label: "DNI/Pasaporte" },
+              { key: "address" as const, label: "Domicilio" },
+            ].map(({ key, label }) => (
+              <DropdownMenuCheckboxItem
+                key={key}
+                checked={visibleColumns[key]}
+                onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, [key]: checked === true }))}
+              >
+                {label}
+              </DropdownMenuCheckboxItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Page size */}
+        <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(0); }}>
+          <SelectTrigger className="w-[80px] h-9 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <SelectItem key={size} value={String(size)} className="text-xs">{size} / pág.</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      {/* Collapsible filters */}
+      {filtersOpen && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[130px] h-8 text-xs">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="active">Activos</SelectItem>
+              <SelectItem value="inactive">Inactivos</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={localityFilter} onValueChange={(v) => { setLocalityFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Localidad" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las localidades</SelectItem>
+              {localityOptions.map((locality) => (
+                <SelectItem key={locality} value={locality} className="text-xs">{locality}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Input
+            placeholder="DNI/Pasaporte"
+            value={documentFilter}
+            onChange={(e) => { setDocumentFilter(e.target.value); setPage(0); }}
+            className="h-8 w-[170px] text-xs"
+          />
+
+          <Input
+            placeholder="Domicilio"
+            value={addressFilter}
+            onChange={(e) => { setAddressFilter(e.target.value); setPage(0); }}
+            className="h-8 w-[170px] text-xs"
+          />
+
+          {activeFilterCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs text-muted-foreground"
+              onClick={() => {
+                setStatusFilter("all");
+                setLocalityFilter("all");
+                setDocumentFilter("");
+                setAddressFilter("");
+                setPage(0);
+              }}
+            >
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
         <Table className="min-w-[640px]">
@@ -364,6 +423,7 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
               {tableCustomFields.map((field) => (
                 <TableHead key={field.id} className="text-xs hidden xl:table-cell">{field.label}</TableHead>
               ))}
+              {renderSortableHead("Inscripción", "joinDate", "hidden md:table-cell")}
               {renderSortableHead("Clases", "classes", undefined, "center")}
               {renderSortableHead("Mensualidad", "monthlyTotal", undefined, "right")}
               {renderSortableHead("Estado", "status", undefined, "center")}
@@ -415,6 +475,9 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
                         {formatCustomFieldValue(student.extraData?.[field.key])}
                       </TableCell>
                     ))}
+                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
+                      {student.joinDate ? format(new Date(student.joinDate), "dd/MM/yy", { locale: es }) : "—"}
+                    </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
                         <GraduationCap className="h-3 w-3 text-muted-foreground" />
@@ -449,11 +512,6 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
                           </Button>
                         </TooltipTrigger><TooltipContent side="bottom"><p>Editar</p></TooltipContent></Tooltip>
                         <Tooltip><TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onManageClasses(student)}>
-                            <DollarSign className="h-3.5 w-3.5" />
-                          </Button>
-                        </TooltipTrigger><TooltipContent side="bottom"><p>Clases y cuota</p></TooltipContent></Tooltip>
-                        <Tooltip><TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(student)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -471,7 +529,7 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
       {!isLoading && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
+            Mostrando {page * pageSize + 1}–{Math.min((page + 1) * pageSize, filtered.length)} de {filtered.length}
           </p>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 0} onClick={() => setPage(page - 1)}>
