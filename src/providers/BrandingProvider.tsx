@@ -104,22 +104,38 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     [branding, previewBranding]
   );
 
-  const publicMatch =
-    matchPath("/s/:schoolSlug", location.pathname)
-    || matchPath("/s/:schoolSlug/*", location.pathname);
+  // ── Extract PRIMITIVE values from the location so useCallback deps are stable ──
+  //
+  // Bug (before): matchPath() returns a NEW object reference on every render even
+  // when the URL hasn't changed.  Putting that object in useCallback's dep array
+  // caused loadBranding to be recreated every render → useEffect fired every
+  // render → setIsLoading() → new render → infinite loop.
+  //
+  // Fix: derive string | null and boolean (primitives) once with useMemo so React
+  // can compare them by VALUE, not by reference.
 
-  const isAdminRoute = location.pathname.startsWith("/admin");
+  const schoolSlug = useMemo<string | null>(() => {
+    const m =
+      matchPath("/s/:schoolSlug", location.pathname) ||
+      matchPath("/s/:schoolSlug/*", location.pathname);
+    return m?.params.schoolSlug ?? null;
+  }, [location.pathname]);
+
+  const isAdminRoute = useMemo(
+    () => location.pathname.startsWith("/admin"),
+    [location.pathname]
+  );
 
   const loadBranding = useCallback(async () => {
-    if (!isAdminRoute && !publicMatch) {
+    if (!schoolSlug && !isAdminRoute) {
       setBranding(DEFAULT_BRANDING);
       return;
     }
 
     setIsLoading(true);
     try {
-      if (publicMatch?.params.schoolSlug) {
-        const publicBranding = await getPublicTenantBranding(publicMatch.params.schoolSlug);
+      if (schoolSlug) {
+        const publicBranding = await getPublicTenantBranding(schoolSlug);
         if (publicBranding?.branding) {
           setBranding(mapApiBrandingToTheme(publicBranding.branding));
           return;
@@ -138,7 +154,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [isAdminRoute, publicMatch]);
+  }, [schoolSlug, isAdminRoute]); // primitives — stable across renders at same URL
 
   useEffect(() => {
     void loadBranding();
