@@ -1,369 +1,210 @@
-import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { Settings, Award, CalendarDays, ChevronRight, LogOut, Users, Eye, EyeOff, Zap, Image, BookOpen, PencilLine, Search, ArrowLeftRight, Wallet } from "lucide-react";
-import { toast } from "sonner";
-import { CURRENT_STUDENT, MOCK_ACHIEVEMENTS, MOCK_CERTIFICATIONS, MOCK_PORTAL_EVENTS } from "../data/mockData";
-import { ProfileHeader } from "../components/ProfileHeader";
-import { AchievementBadge } from "../components/AchievementBadge";
-import { usePortalPersona } from "../services/portalPersona";
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+/**
+ * ProfileScreen V1 — operational profile.
+ *
+ * Shows:
+ *   - Display name + enrolled class names
+ *   - Dance styles + level
+ *   - Links to Payments and Preferences
+ *   - Sign out
+ *
+ * Removed for V1:
+ *   - Followers / following (social)
+ *   - XP / achievements / streaks (gamification)
+ *   - Certifications (exams discontinued)
+ *   - Public/private profile toggle (not relevant without community)
+ *   - All mock data usage
+ */
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  getOwnPortalProfile,
-  listSavedPortalItems,
-  updateOwnPortalProfile,
-  type PortalProfile,
-} from "@/lib/api/portalFoundation";
+  CreditCard, Settings, LogOut, ChevronRight,
+  User, Loader2, BookOpen,
+} from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { getOwnPortalProfile, type PortalProfile } from "@/lib/api/portalFoundation";
+import { getStudentPortalClasses } from "@/lib/api/studentPortal";
+import { supabase } from "@/lib/supabase";
+import { usePortalBranding } from "@/portal/services/portalBranding";
+
+const DANCE_STYLES = [
+  "Ballet", "Contemporáneo", "Jazz", "Hip Hop", "Salsa", "Flamenco",
+  "Tango", "Clásica", "Urbana", "Folclórica",
+];
 
 export default function ProfileScreen() {
-  const { persona } = usePortalPersona();
+  const navigate = useNavigate();
+  const { branding } = usePortalBranding();
   const [profile, setProfile] = useState<PortalProfile | null>(null);
-  const [savedCount, setSavedCount] = useState(0);
-  const isPublic = profile?.publicProfile ?? (CURRENT_STUDENT.isPublicProfile ?? true);
+  const [classNames, setClassNames] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
-    if (persona === "prospect") {
-      return;
-    }
-
-    let cancelled = false;
-
-    const load = async () => {
+    void (async () => {
+      setLoading(true);
       try {
-        const [ownProfile, saved] = await Promise.all([
+        const [ownProfile, classData] = await Promise.allSettled([
           getOwnPortalProfile(),
-          listSavedPortalItems({ limit: 1, offset: 0 }),
+          getStudentPortalClasses(),
         ]);
 
-        if (cancelled) return;
-        setProfile(ownProfile);
-        setSavedCount(saved.total);
-      } catch {
-        if (!cancelled) {
-          setProfile(null);
-          setSavedCount(0);
+        if (ownProfile.status === "fulfilled") setProfile(ownProfile.value);
+        if (classData.status === "fulfilled") {
+          const names = [...new Set(classData.value.classes.map((c) => c.name))];
+          setClassNames(names);
         }
+      } finally {
+        setLoading(false);
       }
-    };
+    })();
+  }, []);
 
-    void load();
+  const handleSignOut = useCallback(async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+      navigate("/portal", { replace: true });
+    } catch {
+      toast.error("No se pudo cerrar sesión. Inténtalo de nuevo.");
+    } finally {
+      setSigningOut(false);
+    }
+  }, [navigate, signingOut]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [persona]);
+  const displayName = profile?.displayName || branding.schoolName || "Mi perfil";
+  const styles = profile?.styles ?? [];
+  const level = profile?.level ?? "";
 
-  if (persona === "prospect") {
+  if (loading) {
     return (
-      <div className="px-4 pb-24 pt-6 space-y-4">
-        <h1 className="text-xl font-bold text-foreground">Perfil</h1>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-sm font-medium text-foreground">Perfil de bailarín en construcción</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Completa estilos, nivel y disponibilidad para recibir propuestas de escuelas.
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-            <StatBox value="40%" label="Completado" />
-            <StatBox value="0" label="Escuelas" />
-          </div>
-        </div>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  const earnedAchievements = MOCK_ACHIEVEMENTS.filter((a) => a.earned);
-  const passedCerts = MOCK_CERTIFICATIONS.filter((c) => c.status === "passed");
-  const xp = profile?.xp ?? (CURRENT_STUDENT.xp ?? 0);
-  const xpNext = 3000;
-  const xpPercent = Math.round((xp / xpNext) * 100);
-  const mappedStudent = useMemo(
-    () => ({
-      ...CURRENT_STUDENT,
-      name: profile?.displayName ?? CURRENT_STUDENT.name,
-      avatar: profile?.avatarUrl ?? CURRENT_STUDENT.avatar,
-      styles: profile?.styles?.length ? profile.styles : CURRENT_STUDENT.styles,
-      level: profile?.level ?? CURRENT_STUDENT.level,
-      yearsExperience: profile?.yearsExperience ?? CURRENT_STUDENT.yearsExperience,
-      followersCount: profile?.followersCount ?? CURRENT_STUDENT.followersCount,
-      followingCount: profile?.followingCount ?? CURRENT_STUDENT.followingCount,
-      isPublicProfile: profile?.publicProfile ?? CURRENT_STUDENT.isPublicProfile,
-      xp,
-      xpToNextLevel: xpNext,
-      currentStreak: profile?.streakCount ?? CURRENT_STUDENT.currentStreak,
-    }),
-    [profile, xp]
-  );
-
-  const togglePublicProfile = () => {
-    if (!profile) {
-      return;
-    }
-
-    const nextPublicValue = !profile.publicProfile;
-    const optimistic = { ...profile, publicProfile: nextPublicValue };
-    setProfile(optimistic);
-
-    void updateOwnPortalProfile({
-      displayName: profile.displayName,
-      stageName: profile.stageName,
-      bio: profile.bio,
-      avatarUrl: profile.avatarUrl,
-      city: profile.city,
-      styles: profile.styles,
-      level: profile.level,
-      yearsExperience: profile.yearsExperience,
-      publicProfile: nextPublicValue,
-    }).catch(() => {
-      setProfile(profile);
-    });
-  };
-
-  const shareProfileLink = async () => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const shareUrl = `${window.location.origin}/portal/app/profile`;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success("Enlace de perfil copiado");
-    } catch {
-      toast.error("No se pudo copiar el enlace");
-    }
-  };
-
   return (
-    <div className="px-4 pb-24 pt-6 space-y-6">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-        <ProfileHeader student={mappedStudent} large />
-      </motion.div>
-
-      {/* Followers / Following */}
-      <div className="flex items-center justify-center gap-6">
-        <div className="text-center">
-          <p className="text-lg font-bold text-foreground">{mappedStudent.followersCount ?? 0}</p>
-          <p className="text-[11px] text-muted-foreground">Seguidores</p>
+    <div className="space-y-4 px-4 pt-6 pb-4">
+      {/* Avatar + name */}
+      <div className="flex items-center gap-4">
+        <div
+          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-sm"
+          style={{ backgroundColor: branding.primaryColor }}
+        >
+          {displayName.slice(0, 1).toUpperCase()}
         </div>
-        <div className="h-6 w-px bg-border" />
-        <div className="text-center">
-          <p className="text-lg font-bold text-foreground">{mappedStudent.followingCount ?? 0}</p>
-          <p className="text-[11px] text-muted-foreground">Siguiendo</p>
+        <div className="min-w-0">
+          <p className="text-lg font-bold text-foreground truncate">{displayName}</p>
+          {level && (
+            <p className="text-sm text-muted-foreground">{level}</p>
+          )}
+          {classNames.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {classNames.slice(0, 2).join(" · ")}
+              {classNames.length > 2 ? ` · +${classNames.length - 2}` : ""}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Public/private toggle */}
-      <button
-        onClick={togglePublicProfile}
-        className={cn(
-          "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition",
-          isPublic
-            ? "border-primary/30 bg-primary/5 text-foreground"
-            : "border-border bg-card text-foreground"
-        )}
-      >
-        {isPublic ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
-        Perfil {isPublic ? "público" : "privado"}
-        <span className="ml-auto text-xs text-muted-foreground">
-          {isPublic ? "Visible para otros" : "Solo tú"}
-        </span>
-      </button>
-
-      <button
-        onClick={() => void shareProfileLink()}
-        className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-      >
-        <Users className="h-4 w-4 text-muted-foreground" /> Compartir perfil
-        <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-      </button>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <StatBox value={String(mappedStudent.classesCompleted)} label="Clases" />
-        <StatBox value={String(earnedAchievements.length)} label="Logros" />
-        <StatBox value={persona === "community" ? "Comunidad" : `${mappedStudent.yearsExperience} años`} label={persona === "community" ? "Modo" : "Experiencia"} />
-      </div>
-
-      <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
-        Guardados sincronizados: {savedCount}
-      </div>
-
-      {/* XP & Level */}
-      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
+      {/* Dance styles */}
+      {styles.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold text-foreground">Nivel {mappedStudent.level}</span>
+            <BookOpen className="h-4 w-4 text-primary" />
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Mis estilos
+            </p>
           </div>
-          <span className="text-xs text-muted-foreground">{xp} / {xpNext} XP</span>
+          <div className="flex flex-wrap gap-1.5">
+            {styles.map((s) => (
+              <span
+                key={s}
+                className="rounded-full px-2.5 py-1 text-xs font-medium"
+                style={{
+                  backgroundColor: `${branding.primaryColor}18`,
+                  color: branding.primaryColor,
+                }}
+              >
+                {s}
+              </span>
+            ))}
+          </div>
         </div>
-        <Progress value={xpPercent} className="h-2" />
-        <p className="text-[11px] text-muted-foreground">
-          Completa clases y misiones para subir de nivel
-        </p>
+      )}
+
+      {/* Quick actions */}
+      <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+        <ProfileAction
+          icon={CreditCard}
+          label="Mis cobros"
+          description="Pagos, facturas y recibos"
+          onClick={() => navigate("/portal/app/cobros")}
+        />
+        <ProfileAction
+          icon={Settings}
+          label="Preferencias"
+          description="Tema, privacidad y datos"
+          onClick={() => navigate("/portal/app/preferencias")}
+        />
       </div>
 
-      {persona === "community" ? (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-foreground">
-          Tienes habilitado el módulo social. Tu perfil también muestra publicaciones, comentarios y eventos colaborativos.
-        </div>
-      ) : null}
-
-      {/* Achievements preview */}
-      <Section title="Logros" linkTo="/portal/app/progress">
-        <div className="flex gap-3 overflow-x-auto pb-1">
-          {earnedAchievements.slice(0, 5).map((a) => (
-            <AchievementBadge key={a.id} achievement={a} size="sm" />
-          ))}
-        </div>
-      </Section>
-
-      {/* Certifications */}
-      <Section title="Certificaciones">
-        <div className="space-y-2">
-          {passedCerts.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2">
-              <Award className="h-4 w-4 text-success" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">{c.examName}</p>
-                <p className="text-[11px] text-muted-foreground">{c.discipline} · Nota {c.grade}/10</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Events participated */}
-      <Section title="Eventos">
-        <div className="space-y-2">
-          {MOCK_PORTAL_EVENTS.slice(0, 2).map((e) => (
-            <div key={e.id} className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">{e.name}</p>
-                <p className="text-[11px] text-muted-foreground">{e.school}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Actions */}
-      <div className="space-y-2 pt-2">
-        <Link
-          to="/portal/app/notifications"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
+      {/* Sign out */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <button
+          type="button"
+          onClick={() => void handleSignOut()}
+          disabled={signingOut}
+          className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/50 disabled:opacity-50"
         >
-          <Settings className="h-4 w-4 text-muted-foreground" /> Notificaciones
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/app/connections"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          <Users className="h-4 w-4 text-muted-foreground" /> Comunidad
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/app/saved"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          <Award className="h-4 w-4 text-muted-foreground" /> Guardados
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/app/gallery"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          <Image className="h-4 w-4 text-muted-foreground" /> Galería
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/explorer"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          <Search className="h-4 w-4 text-muted-foreground" /> Explorar escuelas
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/app/search"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          <Search className="h-4 w-4 text-muted-foreground" /> Busqueda global
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/app/schools/compare"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          <ArrowLeftRight className="h-4 w-4 text-muted-foreground" /> Comparar escuelas
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/app/finance"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          <Wallet className="h-4 w-4 text-muted-foreground" /> Finanzas y exportaciones
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/app/teacher/schedule"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          <CalendarDays className="h-4 w-4 text-muted-foreground" /> Profesor · Horario
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/app/teacher/classes"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          <BookOpen className="h-4 w-4 text-muted-foreground" /> Profesor · Clases
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/app/teacher/posts/new"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          <PencilLine className="h-4 w-4 text-muted-foreground" /> Profesor · Publicar
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link to="/portal/app/preferences" className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted">
-          <Settings className="h-4 w-4 text-muted-foreground" /> Ajustes
-          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-        <Link
-          to="/portal/onboarding"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-destructive transition hover:bg-muted"
-        >
-          <LogOut className="h-4 w-4" /> Cerrar sesión
-        </Link>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-destructive/10">
+            {signingOut ? (
+              <Loader2 className="h-4 w-4 animate-spin text-destructive" />
+            ) : (
+              <LogOut className="h-4 w-4 text-destructive" />
+            )}
+          </div>
+          <span className="flex-1 text-sm font-medium text-destructive">
+            {signingOut ? "Cerrando sesión..." : "Cerrar sesión"}
+          </span>
+        </button>
       </div>
+
+      {/* Update profile hint */}
+      <p className="text-center text-xs text-muted-foreground">
+        Para actualizar tus datos de perfil, contacta con tu escuela.
+      </p>
     </div>
   );
 }
 
-function StatBox({ value, label }: { value: string; label: string }) {
+function ProfileAction({
+  icon: Icon,
+  label,
+  description,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  description: string;
+  onClick: () => void;
+}) {
   return (
-    <div className="rounded-xl border border-border bg-card py-3">
-      <p className="text-lg font-bold text-foreground">{value}</p>
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-    </div>
-  );
-}
-
-function Section({ title, linkTo, children }: { title: string; linkTo?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {linkTo && (
-          <Link to={linkTo} className="flex items-center gap-0.5 text-xs font-medium text-primary">
-            Ver todo <ChevronRight className="h-3 w-3" />
-          </Link>
-        )}
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/50"
+    >
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+        <Icon className="h-4 w-4 text-muted-foreground" />
       </div>
-      {children}
-    </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </button>
   );
 }

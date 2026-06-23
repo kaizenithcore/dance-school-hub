@@ -5,6 +5,8 @@ import { readPortalCache, writePortalCache } from "@/lib/portalCache";
 export interface StudentPortalContext {
   userId: string;
   tenantId: string;
+  tenantSlug: string;
+  schoolName: string;
   studentId: string;
   studentName: string;
 }

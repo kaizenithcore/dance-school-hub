@@ -11,6 +11,8 @@ import type { ListPaginationInput, ListStudentEventsInput } from "@/lib/validato
 interface StudentContext {
   userId: string;
   tenantId: string;
+  tenantSlug: string;
+  schoolName: string;
   studentId: string;
   studentName: string;
 }
@@ -117,6 +119,15 @@ async function resolveDefaultTenantId(userId: string): Promise<string | null> {
   return data?.tenant_id ?? null;
 }
 
+async function resolveTenantMeta(tenantId: string): Promise<{ slug: string; name: string }> {
+  const { data } = await supabaseAdmin
+    .from("tenants")
+    .select("slug, name")
+    .eq("id", tenantId)
+    .maybeSingle();
+  return { slug: data?.slug ?? "", name: data?.name ?? "" };
+}
+
 async function resolveStudentContext(userId: string): Promise<StudentContext> {
   const { data: profile, error: profileError } = await supabaseAdmin
     .from("student_profiles")
@@ -143,9 +154,12 @@ async function resolveStudentContext(userId: string): Promise<StudentContext> {
     }
 
     if (studentRow) {
+      const tenantMeta = await resolveTenantMeta(studentProfile.tenant_id);
       return {
         userId,
         tenantId: studentProfile.tenant_id,
+        tenantSlug: tenantMeta.slug,
+        schoolName: tenantMeta.name,
         studentId: studentRow.id,
         studentName: studentRow.name || "Alumno",
       };
@@ -165,9 +179,12 @@ async function resolveStudentContext(userId: string): Promise<StudentContext> {
   }
 
   if (studentByUser) {
+    const tenantMeta = await resolveTenantMeta(studentByUser.tenant_id);
     return {
       userId,
       tenantId: studentByUser.tenant_id,
+      tenantSlug: tenantMeta.slug,
+      schoolName: tenantMeta.name,
       studentId: studentByUser.id,
       studentName: studentByUser.name || "Alumno",
     };
@@ -214,9 +231,12 @@ async function resolveStudentContext(userId: string): Promise<StudentContext> {
     })
     .eq("user_id", userId);
 
+  const tenantMetaFinal = await resolveTenantMeta(studentByEmail.tenant_id);
   return {
     userId,
     tenantId: studentByEmail.tenant_id,
+    tenantSlug: tenantMetaFinal.slug,
+    schoolName: tenantMetaFinal.name,
     studentId: studentByEmail.id,
     studentName: studentByEmail.name || "Alumno",
   };

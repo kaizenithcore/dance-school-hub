@@ -20,11 +20,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  getStudentPortalContext,
   getStudentPortalSchedule,
   listStudentPortalPayments,
 } from "@/lib/api/studentPortal";
 import { listPortalNotifications } from "@/lib/api/portalFoundation";
+import { usePortalBranding } from "@/portal/services/portalBranding";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -92,6 +92,7 @@ function greetingFor(name: string): string {
 
 export default function HomeScreen() {
   const navigate = useNavigate();
+  const { branding } = usePortalBranding();
 
   const [studentName, setStudentName] = useState("");
   const [classNames, setClassNames] = useState<string[]>([]);
@@ -104,19 +105,15 @@ export default function HomeScreen() {
     void (async () => {
       setLoading(true);
       try {
-        const [ctx, schedule, pays, notifs] = await Promise.allSettled([
-          getStudentPortalContext(),
+        const [schedule, pays, notifs] = await Promise.allSettled([
           getStudentPortalSchedule(),
           listStudentPortalPayments(5, 0),
           listPortalNotifications({ limit: 3 }),
         ]);
 
-        if (ctx.status === "fulfilled") {
-          setStudentName(ctx.value.studentName);
-        }
-
         if (schedule.status === "fulfilled") {
-          const ws = schedule.value.weeklySchedule;
+          const { student, weeklySchedule: ws } = schedule.value;
+          setStudentName(student?.name ?? "");
           setClassNames([...new Set(ws.map((s) => s.className))]);
           setNextClass(findNextClass(ws));
         }
