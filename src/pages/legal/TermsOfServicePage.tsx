@@ -73,9 +73,19 @@ export default function TermsOfServicePage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="8. Disponibilidad">
+      <LegalSection title="8. Disponibilidad del servicio (SLA)">
         <p>
-          No se garantiza disponibilidad continua. Puede haber interrupciones por mantenimiento o causas externas.
+          Nexa tiene como objetivo un tiempo de disponibilidad del <strong>99,5% mensual</strong>, excluyendo mantenimientos programados.
+          Los mantenimientos programados se comunicarán con al menos 24 horas de antelación por email.
+        </p>
+        <ul className="list-disc space-y-1 pl-6">
+          <li>Incidencias graves (caída total): tiempo de respuesta objetivo de 4 horas en horario laboral.</li>
+          <li>Incidencias menores: tiempo de respuesta objetivo de 48 horas.</li>
+          <li>El SLA no aplica a interrupciones causadas por terceros (Supabase, Stripe, etc.) o por el usuario.</li>
+        </ul>
+        <p>
+          Para notificar incidencias: <strong>hola@nexa.es</strong>. Kaizenith no garantiza disponibilidad en casos de fuerza mayor
+          (desastres naturales, ciberataques externos, fallos de infraestructura de terceros).
         </p>
       </LegalSection>
 
@@ -95,19 +105,20 @@ export default function TermsOfServicePage() {
 
       <LegalSection title="10. Pagos y facturación">
         <ul className="list-disc space-y-1 pl-6">
-          <li>El servicio funciona mediante suscripción.</li>
-          <li>Puede ser mensual o anual.</li>
-          <li>El pago es anticipado.</li>
-          <li>No se realizan devoluciones salvo obligación legal.</li>
-          <li>El impago puede implicar suspensión del servicio.</li>
+          <li>El servicio funciona mediante suscripción mensual o anual en Euros (EUR), IVA no incluido salvo indicación expresa.</li>
+          <li>El pago es anticipado y se procesa a través de Stripe.</li>
+          <li>Las facturas se emiten mensual o anualmente según el plan contratado.</li>
+          <li>El impago implica aviso por email; si no se regulariza en 10 días hábiles, el servicio puede suspenderse (modo solo lectura durante 15 días adicionales antes de cancelación definitiva).</li>
+          <li>No se realizan devoluciones por periodos ya facturados salvo obligación legal o error imputable a Kaizenith.</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="11. Cancelación">
+      <LegalSection title="11. Cancelación y portabilidad de datos">
         <ul className="list-disc space-y-1 pl-6">
-          <li>La escuela puede cancelar en cualquier momento.</li>
-          <li>La cancelación no implica devolución de importes ya abonados.</li>
-          <li>Kaizenith puede suspender cuentas por incumplimiento.</li>
+          <li>La escuela puede cancelar en cualquier momento desde el panel de administración o escribiendo a hola@nexa.es.</li>
+          <li>La cancelación no implica devolución de importes ya abonados, salvo en caso de garantía de satisfacción activa.</li>
+          <li>Tras la cancelación, los datos estarán disponibles para exportación durante 30 días en formato CSV/JSON. Pasado ese plazo, serán eliminados de forma irreversible.</li>
+          <li>Kaizenith puede suspender cuentas por incumplimiento grave de estos Términos con aviso previo de 48 horas salvo urgencia.</li>
         </ul>
       </LegalSection>
 
@@ -132,7 +143,7 @@ export default function TermsOfServicePage() {
       </LegalSection>
 
       <LegalSection title="15. Contacto">
-        <p>Para consultas: <strong>legal@kaizenith.es</strong></p>
+        <p>Para consultas: <strong>hola@nexa.es</strong></p>
       </LegalSection>
     </LegalPage>
   );

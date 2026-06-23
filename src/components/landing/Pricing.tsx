@@ -42,67 +42,75 @@ function getAdvisorRecommendation(students: number): { recommendedPlan: PlanType
 
 const comparisonRows: ComparisonRow[] = [
   {
-    label: "Rango recomendado de alumnos",
+    label: "Alumnos activos incluidos",
     values: {
-      starter: "Hasta 220",
-      pro: "221-900",
-      enterprise: "+900 o multi-sede",
+      starter: "Hasta 200",
+      pro: "Hasta 500",
+      enterprise: "Hasta 2.000",
     },
   },
   {
-    label: "Matrícula online y experiencia de captación",
+    label: "Matrícula online + landing pública",
     values: {
-      starter: "Landing basica + formulario",
-      pro: "Experiencia optimizada de matricula",
-      enterprise: "Experiencia optimizada + personalizacion",
+      starter: "✓ Incluida",
+      pro: "✓ Incluida",
+      enterprise: "✓ Incluida",
     },
   },
   {
-    label: "Automatizaciones operativas",
+    label: "Renovaciones automáticas de matrícula",
     values: {
-      starter: "No incluidas",
-      pro: "Renovaciones + lista de espera",
-      enterprise: "Automatizacion avanzada a escala",
+      starter: "✓ Incluida",
+      pro: "✓ Incluida",
+      enterprise: "✓ Incluida",
     },
   },
   {
-    label: "Comunicacion con alumnos",
+    label: "Lista de espera inteligente",
     values: {
-      starter: "Basica",
-      pro: "Masiva y segmentada",
-      enterprise: "Masiva + flujos avanzados",
+      starter: "✓ Incluida",
+      pro: "✓ Incluida",
+      enterprise: "✓ Incluida",
+    },
+  },
+  {
+    label: "Comunicación masiva por email",
+    values: {
+      starter: "✓ Incluida",
+      pro: "✓ Incluida",
+      enterprise: "✓ Incluida",
     },
   },
   {
     label: "Portal del alumno",
     values: {
-      starter: "Limitado",
-      pro: "Completo (Nexa Club)",
-      enterprise: "Completo + control avanzado",
+      starter: "✓ Completo",
+      pro: "✓ Completo",
+      enterprise: "✓ Completo",
     },
   },
   {
-    label: "Analitica de negocio",
+    label: "Analítica avanzada de negocio",
     values: {
-      starter: "Basica",
-      pro: "Clara para decisiones",
-      enterprise: "Avanzada y de control total",
+      starter: "Básica",
+      pro: "✓ Avanzada",
+      enterprise: "✓ Avanzada",
     },
   },
   {
-    label: "Estructura y gobierno",
+    label: "Dominio personalizado",
     values: {
-      starter: "Sede unica",
-      pro: "Sede unica optimizada",
-      enterprise: "Multi-sede + roles avanzados",
+      starter: "Add-on +19€/mes",
+      pro: "✓ Incluido",
+      enterprise: "✓ Incluido",
     },
   },
   {
-    label: "Acompañamiento",
+    label: "Soporte",
     values: {
-      starter: "Soporte estandar",
-      pro: "Soporte estandar + guidance",
-      enterprise: "Soporte prioritario + onboarding personalizado",
+      starter: "Estándar",
+      pro: "✓ Prioritario incluido",
+      enterprise: "✓ Prioritario + onboarding",
     },
   },
 ];
@@ -118,31 +126,33 @@ const plans: Plan[] = planOrder.map((planType) => {
     features: string[];
   }> = {
     starter: {
-      desc: "Digitaliza la operación y trabaja con orden desde el primer mes",
-      audience: "Academias que quieren operar con base sólida",
-      automationLevel: "Básico",
+      desc: "Todo lo que necesitas para operar tu academia sin caos desde el primer día",
+      audience: "Escuelas de hasta 200 alumnos",
+      automationLevel: "Completo",
       businessControl: "Operativo",
       scalability: "Preparada para crecer",
       features: [
-        "Gestión de alumnos y clases",
-        "Matrícula online con landing básica",
-        "Horarios y pagos básicos",
-        "Comunicación básica",
-        "Portal del alumno limitado",
+        "Alumnos, clases y horarios gestionados",
+        "Matrícula online con formulario configurable",
+        "Renovaciones y lista de espera automáticas",
+        "Comunicación masiva por email",
+        "Portal del alumno completo",
+        "Pagos, facturas y recibos",
       ],
     },
     pro: {
-      desc: "Escala con automatización y decisiones claras de negocio",
-      audience: "Academias medianas y grandes en crecimiento",
-      automationLevel: "Alto",
+      desc: "Escala sin límites y toma decisiones con datos reales de tu negocio",
+      audience: "Escuelas de hasta 500 alumnos",
+      automationLevel: "Completo",
       businessControl: "Estratégico",
       scalability: "Escala sin fricción",
       features: [
         "Todo en Starter",
-        "Automatización de renovaciones y listas de espera",
-        "Comunicación masiva",
-        "Analítica clara de negocio",
-        "Portal del alumno completo (Nexa Club)",
+        "Hasta 500 alumnos activos",
+        "Analítica avanzada de negocio",
+        "Dominio personalizado incluido",
+        "Soporte prioritario incluido",
+        "Onboarding personalizado",
       ],
     },
     enterprise: {
@@ -223,6 +233,49 @@ export function Pricing() {
           </p>
         </motion.div>
 
+        {/* Plan advisor — above plans */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-10 max-w-2xl mx-auto"
+        >
+          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Calculator className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold text-foreground">¿Cuántos alumnos tienes?</p>
+            </div>
+            <div className="rounded-xl bg-muted/50 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <Users className="h-4 w-4" /> Alumnos activos
+                </span>
+                <span className="text-lg font-bold text-primary">{advisorStudents}</span>
+              </div>
+              <input
+                type="range" min={50} max={600} step={10}
+                value={advisorStudents}
+                onChange={(e) => setAdvisorStudents(Number(e.target.value))}
+                className="w-full accent-primary h-2 cursor-pointer"
+                aria-label="Cantidad de alumnos"
+              />
+              <div className="flex justify-between text-[11px] text-muted-foreground mt-1">
+                <span>50</span><span>300</span><span>600+</span>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-4 text-center">
+              <div className="rounded-xl bg-primary/5 border border-primary/15 px-4 py-3">
+                <p className="text-xs text-muted-foreground">Plan recomendado</p>
+                <p className="text-lg font-bold text-primary mt-1">{advisorPlan.name}</p>
+              </div>
+              <div className="rounded-xl bg-muted/40 px-4 py-3">
+                <p className="text-xs text-muted-foreground">Coste por alumno</p>
+                <p className="text-lg font-bold text-foreground mt-1">{formatEuro(advisorCostPerStudent)}<span className="text-xs font-normal text-muted-foreground">/mes</span></p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Billing toggle */}
         <div className="flex items-center justify-center gap-3 mb-10">
           <button
@@ -246,8 +299,8 @@ export function Pricing() {
           </button>
         </div>
 
-        {/* Plan cards */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-start">
+        {/* Plan cards — 2 plans (Starter + Pro) */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto items-start">
           {plans.map((plan, i) => {
             const displayPrice = annual
               ? formatEuro(Math.round(plan.annualTotalEur / 12))
@@ -322,7 +375,7 @@ export function Pricing() {
             </div>
 
             <div className="overflow-x-auto">
-              <div className="grid grid-cols-4 text-sm min-w-[920px]">
+              <div className="grid grid-cols-3 text-sm min-w-[560px]">
                 <div className="p-4 font-semibold text-foreground border-b border-border">Criterio</div>
                 {plans.map((plan) => (
                   <div
@@ -380,57 +433,6 @@ export function Pricing() {
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-8 max-w-3xl mx-auto"
-        >
-          <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
-            <div className="flex items-center gap-2 mb-5">
-              <Calculator className="h-5 w-5 text-primary" />
-              <h3 className="text-base font-semibold text-foreground">Plan advisor por numero de alumnos</h3>
-            </div>
-
-            <div className="rounded-xl bg-muted/50 p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                  <Users className="h-4 w-4" />
-                  Alumnos activos
-                </span>
-                <span className="text-lg font-bold text-primary">{advisorStudents}</span>
-              </div>
-              <input
-                type="range"
-                min={50}
-                max={1500}
-                step={10}
-                value={advisorStudents}
-                onChange={(e) => setAdvisorStudents(Number(e.target.value))}
-                className="w-full accent-primary h-2 cursor-pointer"
-                aria-label="Cantidad de alumnos"
-              />
-            </div>
-
-            <div className="mt-5 grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-xs text-muted-foreground">Plan recomendado</p>
-                <p className="text-lg font-bold text-primary mt-1">{advisorPlan.name}</p>
-                <p className="text-[11px] text-muted-foreground mt-1">{advisor.studentsHint}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Inversion estimada</p>
-                <p className="text-lg font-bold text-foreground mt-1">{formatEuro(advisorMonthly)}/mes</p>
-                <p className="text-[11px] text-muted-foreground mt-1">{annual ? "Con anual (2 meses gratis)" : "Con mensual"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Coste por alumno</p>
-                <p className="text-lg font-bold text-foreground mt-1">{formatEuro(advisorCostPerStudent)}</p>
-                <p className="text-[11px] text-muted-foreground mt-1">Escalable y controlado</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );

@@ -2,7 +2,7 @@ import { LegalPage, LegalSection } from "@/pages/legal/LegalContent";
 
 export default function CookiePolicyPage() {
   return (
-    <LegalPage title="Política de Cookies" updatedAt="marzo 2026">
+    <LegalPage title="Política de Cookies" updatedAt="junio 2026">
       <LegalSection title="1. ¿Qué son las cookies?">
         <p>
           Las cookies son archivos que se descargan en tu dispositivo al acceder a determinadas páginas web. Permiten almacenar y
@@ -76,7 +76,7 @@ export default function CookiePolicyPage() {
 
       <LegalSection title="8. Contacto">
         <p>
-          Para consultas sobre cookies: <strong>legal@kaizenith.es</strong>
+          Para consultas sobre cookies: <strong>hola@nexa.es</strong>
         </p>
       </LegalSection>
     </LegalPage>

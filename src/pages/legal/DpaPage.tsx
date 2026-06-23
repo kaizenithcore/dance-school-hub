@@ -2,7 +2,7 @@ import { LegalPage, LegalSection } from "@/pages/legal/LegalContent";
 
 export default function DpaPage() {
   return (
-    <LegalPage title="Contrato de Encargado del Tratamiento (DPA)" updatedAt="marzo 2026">
+    <LegalPage title="Contrato de Encargado del Tratamiento (DPA)" updatedAt="junio 2026">
       <LegalSection title="Nexa - Kaizenith">
         <p>
           Documento contractual de encargo del tratamiento aplicable al uso de la plataforma Nexa por parte de escuelas,
@@ -220,7 +220,7 @@ export default function DpaPage() {
       </LegalSection>
 
       <LegalSection title="13. Contacto">
-        <p>Para cuestiones de protección de datos: <strong>legal@kaizenith.es</strong></p>
+        <p>Para cuestiones de protección de datos: <strong>hola@nexa.es</strong></p>
       </LegalSection>
     </LegalPage>
   );

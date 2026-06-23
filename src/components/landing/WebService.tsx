@@ -1,37 +1,11 @@
 import { motion } from "framer-motion";
-import { Globe, ArrowRight, Link2, Globe2 } from "lucide-react";
+import { Globe, ExternalLink, ArrowRight, Layout, MonitorSmartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { buildRegisterHref, commercialCatalog, formatEuro } from "@/lib/commercialCatalog";
 import { Link } from "react-router-dom";
 
-interface WebsiteTierPricingCatalog {
-  basic?: number;
-  standard?: number;
-}
-
-interface WebsiteSimplePricingCatalog {
-  landingBasic?: number;
-  fullWebsite?: number;
-}
-
-interface WebsiteServiceCatalog {
-  tierPricingEur?: WebsiteTierPricingCatalog;
-  simplePricingEur?: WebsiteSimplePricingCatalog;
-}
-
-const webCatalog = commercialCatalog.professionalServices as Record<string, WebsiteServiceCatalog>;
-const standaloneWeb = webCatalog?.standaloneWebsite;
-const integratedWeb = webCatalog?.integratedWebsite;
-const PRO_ANNUAL_CTA_HREF = buildRegisterHref("web_service");
-
 export function WebService() {
-  const integratedBasic = integratedWeb?.simplePricingEur?.landingBasic ?? 399;
-  const integratedFull = integratedWeb?.simplePricingEur?.fullWebsite ?? 849;
-  const standaloneBasic = standaloneWeb?.tierPricingEur?.basic ?? 399;
-  const standaloneFull = standaloneWeb?.tierPricingEur?.standard ?? 849;
-
   return (
-    <section id="web-service" className="py-24 sm:py-32">
+    <section id="web-service" className="py-24 sm:py-32 bg-muted/30">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -43,83 +17,68 @@ export function WebService() {
             <Globe className="h-6 w-6 text-primary" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
-            Web clara, profesional y orientada a conversion
+            ¿No tienes web? No hay problema.
           </h2>
-          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
-            Elige el nivel de integracion segun tu momento: presencia digital o sistema completo conectado a tu academia.
+          <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
+            Desde una landing básica integrada con Nexa hasta una web completa e independiente. Tú eliges con qué empezar.
           </p>
 
-          <div className="mt-10 grid lg:grid-cols-5 gap-6 max-w-5xl mx-auto">
-            <div className="lg:col-span-3 rounded-2xl border-2 border-primary/40 bg-card p-6 text-left relative shadow-lg">
-              <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-[10px] font-semibold text-primary-foreground">
-                Mejor opcion con Nexa
+          <div className="mt-10 grid sm:grid-cols-2 gap-5 max-w-2xl mx-auto text-left">
+            {/* Landing integrada */}
+            <div className="rounded-2xl border-2 border-primary/30 bg-card p-6 relative">
+              <span className="absolute -top-3 left-5 rounded-full bg-primary px-3 py-1 text-[10px] font-semibold text-primary-foreground">
+                Con Nexa
               </span>
-              <div className="flex items-center gap-2 mb-4 mt-2">
-                <Link2 className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold text-foreground">Web integrada (con Nexa)</p>
+              <div className="flex items-center gap-2 mb-3 mt-1">
+                <Layout className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold text-foreground">Landing integrada</p>
               </div>
-              <p className="text-sm text-muted-foreground mb-2">Tu web deja de ser solo una pagina: se convierte en parte de tu sistema.</p>
-              <p className="text-sm text-foreground mb-5">Captas, matriculas y gestionas desde un mismo flujo.</p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-border bg-background p-4 text-center">
-                  <p className="text-xs text-muted-foreground">Landing basica</p>
-                  <p className="text-xl font-bold text-foreground mt-1">{formatEuro(integratedBasic)}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">Pago unico</p>
-                </div>
-                <div className="rounded-xl border border-border bg-background p-4 text-center">
-                  <p className="text-xs text-muted-foreground">Web completa</p>
-                  <p className="text-xl font-bold text-foreground mt-1">{formatEuro(integratedFull)}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">Pago unico</p>
-                </div>
-              </div>
-
-              <div className="mt-5">
-                <Button size="lg" className="rounded-xl" asChild>
-                  <Link to={PRO_ANNUAL_CTA_HREF}>
-                    Quiero mi web conectada
-                    <ArrowRight className="ml-1 h-4 w-4" />
+              <p className="text-sm text-muted-foreground mb-4">
+                Captas alumnos y los matriculas directamente desde tu página. Todo conectado con Nexa desde el primer día.
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">Desde <span className="font-semibold text-foreground">490€</span> · Pago único</p>
+              <div className="flex flex-col gap-2">
+                <Button size="sm" className="w-full" asChild>
+                  <Link to="/landing-demo">
+                    Ver ejemplo <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
                   </Link>
+                </Button>
+                <Button size="sm" variant="outline" className="w-full" asChild>
+                  <a href="mailto:hola@nexa.es?subject=Quiero%20mi%20landing%20integrada">
+                    Contactar <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  </a>
                 </Button>
               </div>
             </div>
 
-            <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-6 text-left">
-              <div className="flex items-center gap-2 mb-4">
-                <Globe2 className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold text-foreground">Web independiente</p>
+            {/* Web independiente */}
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <MonitorSmartphone className="h-4 w-4 text-muted-foreground" />
+                <p className="text-sm font-semibold text-foreground">Web completa independiente</p>
               </div>
-              <p className="text-sm text-muted-foreground mb-5">Una web profesional para captar alumnos, sin necesidad de cambiar tu sistema actual.</p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-border bg-background p-4 text-center">
-                  <p className="text-xs text-muted-foreground">Landing basica</p>
-                  <p className="text-xl font-bold text-foreground mt-1">{formatEuro(standaloneBasic)}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">Pago unico</p>
-                </div>
-                <div className="rounded-xl border border-border bg-background p-4 text-center">
-                  <p className="text-xs text-muted-foreground">Web completa</p>
-                  <p className="text-xl font-bold text-foreground mt-1">{formatEuro(standaloneFull)}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">Pago unico</p>
-                </div>
-              </div>
-
-              <div className="mt-5">
-                <Button size="lg" variant="outline" className="rounded-xl" asChild>
-                  <a href="mailto:hola@nexa.es?subject=Consulta%20web%20independiente%20Nexa">
-                    Solo necesito una web
-                    <ArrowRight className="ml-1 h-4 w-4" />
+              <p className="text-sm text-muted-foreground mb-4">
+                Una web profesional y autónoma para tu academia, sin atarla a ningún sistema de gestión. Conecta con Nexa cuando quieras.
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">Desde <span className="font-semibold text-foreground">349€</span> · Pago único</p>
+              <div className="flex flex-col gap-2">
+                <Button size="sm" variant="outline" className="w-full" asChild>
+                  <a href="https://danzante.es" target="_blank" rel="noreferrer">
+                    Ver ejemplo real <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
                   </a>
                 </Button>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Podras conectarla a Nexa mas adelante sin rehacerla.
-                </p>
+                <Button size="sm" variant="outline" className="w-full" asChild>
+                  <a href="mailto:hola@nexa.es?subject=Quiero%20una%20web%20independiente">
+                    Contactar <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  </a>
+                </Button>
               </div>
             </div>
           </div>
 
-          <p className="mt-7 text-sm text-muted-foreground">Empieza por presencia. Evoluciona a sistema.</p>
-          <p className="mt-1 text-sm text-muted-foreground">Tu web puede crecer contigo sin empezar de cero.</p>
+          <p className="mt-8 text-sm text-muted-foreground">
+            Empieza por presencia. Evoluciona a sistema completo cuando estés listo.
+          </p>
         </motion.div>
       </div>
     </section>

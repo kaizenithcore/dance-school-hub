@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
             kaizenith.es
           </a>
           <br />
-          Email: <strong>legal@kaizenith.es</strong>
+          Email: <strong>hola@nexa.es</strong>
         </p>
         <p><strong>En el uso de Nexa:</strong></p>
         <ul className="list-disc space-y-1 pl-6">
@@ -147,26 +147,48 @@ export default function PrivacyPolicyPage() {
         </ul>
       </LegalSection>
 
-      <LegalSection title="11. Derechos">
+      <LegalSection title="11. Ejercicio de derechos">
         <p>
-          Ejercicio en: <strong>legal@kaizenith.es</strong>
+          Puede ejercer los derechos de acceso, rectificación, supresión, oposición, portabilidad y limitación del tratamiento
+          escribiendo a: <strong>hola@nexa.es</strong>. Responderemos en un plazo máximo de 30 días.
         </p>
         <ul className="list-disc space-y-1 pl-6">
-          <li>Usuarios finales: pueden dirigirse a su escuela.</li>
-          <li>Clientes (escuelas): directamente a Kaizenith.</li>
+          <li>Usuarios finales (alumnos): pueden dirigirse a su escuela, que es responsable del tratamiento.</li>
+          <li>Clientes (escuelas): directamente a Kaizenith en hola@nexa.es.</li>
         </ul>
+        <p>
+          Si no obtiene respuesta satisfactoria, puede presentar una reclamación ante la{" "}
+          <strong>Agencia Española de Protección de Datos (AEPD)</strong>:{" "}
+          <a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-2 hover:underline">
+            www.aepd.es
+          </a>
+          {" "}· C/ Jorge Juan, 6, 28001 Madrid.
+        </p>
       </LegalSection>
 
       <LegalSection title="12. Contenido y visibilidad">
         <ul className="list-disc space-y-1 pl-6">
-          <li>Perfiles de alumnos: sin fotos, con control de privacidad.</li>
-          <li>Publicaciones: solo escuelas/profesores.</li>
-          <li>El usuario puede gestionar visibilidad.</li>
+          <li>Perfiles de alumnos: sin fotos públicas, con control de privacidad individual.</li>
+          <li>Publicaciones en el portal: solo escuelas y profesores autorizados.</li>
+          <li>El alumno puede gestionar su visibilidad desde Preferencias del portal.</li>
+          <li>Los datos de menores de 14 años requieren consentimiento parental (LOPDGDD Art. 7).</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="13. Cambios">
-        <p>Se notifican cambios relevantes.</p>
+      <LegalSection title="13. Plazos de conservación">
+        <ul className="list-disc space-y-1 pl-6">
+          <li>Datos de la cuenta activa: durante la vigencia del contrato.</li>
+          <li>Datos de pagos y facturación: 6 años (obligación fiscal, Ley General Tributaria).</li>
+          <li>Datos de alumnos tras cancelación: 30 días en backup seguro; eliminación definitiva transcurrido ese plazo.</li>
+          <li>Logs de auditoría: 12 meses.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="14. Cambios en la política">
+        <p>
+          Kaizenith notificará cambios relevantes con al menos 15 días de antelación mediante email.
+          El uso continuado del servicio tras la notificación implica aceptación de los cambios.
+        </p>
       </LegalSection>
     </LegalPage>
   );

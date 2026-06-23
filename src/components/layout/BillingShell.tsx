@@ -592,231 +592,131 @@ export function BillingShell() {
         </div>
       ) : null}
 
-      {/* Trial lock / checkout modal */}
+      {/* Trial lock modal — simplified */}
       {showTrialLockModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 px-4 py-8">
-          <div className="w-full max-w-3xl rounded-xl border border-border bg-card p-6 shadow-medium md:p-8 overflow-y-auto max-h-[90vh]">
-            <h2 className="text-xl font-semibold text-foreground">Tu prueba gratuita finalizó</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Completa este checkout en menos de 2 minutos para mantener activo tu acceso.</p>
-
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Resumen + confirmación final</span>
-                <span>menos de 2 minutos</span>
-              </div>
-              <div className="mt-2 h-1.5 rounded-full bg-muted">
-                <div className="h-1.5 w-[88%] rounded-full bg-primary" />
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-xl overflow-y-auto max-h-[90vh]">
+            {/* Header */}
+            <div className="border-b border-border px-6 py-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tu prueba de {FREE_TRIAL_DAYS} días ha terminado</p>
+              <h2 className="mt-1 text-xl font-bold text-foreground">Elige tu plan para continuar</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Todos tus datos están guardados. Activa ahora y sigue donde lo dejaste.</p>
             </div>
 
-            <div className="mt-6 space-y-6">
-              {/* Quick summary */}
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Desde {checkoutFromSixInstallments} EUR/mes en 6 cuotas</p>
-                <p className="mt-1 text-xs text-muted-foreground">Financiación sin interés y activación inmediata.</p>
-              </div>
-              <div className="rounded-lg border border-primary/20 bg-primary/10 p-4">
-                <p className="text-xs text-muted-foreground">Resumen final claro</p>
-                <div className="mt-2 grid gap-2 text-sm text-foreground md:grid-cols-2">
-                  <div className="flex items-center justify-between"><span>Cuota hoy</span><span className="text-base font-bold text-emerald-700">{checkoutPrimaryTodayLabel}</span></div>
-                  <div className="flex items-center justify-between"><span>Plazo</span><span className="font-semibold">{checkoutTermLabel}</span></div>
-                  <div className="flex items-center justify-between"><span>Ahorro estimado</span><span className="font-semibold text-emerald-700">{checkoutSavings12Months} EUR / 12 meses</span></div>
-                  <div className="flex items-center justify-between"><span>Próxima fecha de cargo</span><span className="font-semibold">{checkoutNextChargeDateLabel}</span></div>
-                </div>
-              </div>
-
-              {/* Billing cycle + plans */}
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <p className="text-sm font-semibold text-foreground">Facturación visible desde el primer paso</p>
-                <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button type="button" variant={checkoutBillingCycle === "annual" ? "default" : "outline"} onClick={() => setCheckoutBillingCycle("annual")}>Financiación sin interés</Button>
-                    <Button type="button" variant={checkoutBillingCycle === "monthly" ? "default" : "outline"} onClick={() => setCheckoutBillingCycle("monthly")}>Mensual</Button>
-                  </div>
-                  {checkoutBillingCycle === "annual" ? (
-                    <div className="grid grid-cols-3 gap-2">
-                      {[3, 6, 12].map((months) => (
-                        <Button key={months} type="button" variant={checkoutAnnualFinancingMonths === months ? "default" : "outline"} onClick={() => setCheckoutAnnualFinancingMonths(months as AnnualFinancingMonths)}>{months} cuotas</Button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
+            <div className="p-6 space-y-5">
+              {/* Billing cycle toggle */}
+              <div className="flex items-center rounded-lg border border-border bg-muted/30 p-1 gap-0.5">
+                <button type="button"
+                  onClick={() => setCheckoutBillingCycle("monthly")}
+                  className={`flex-1 rounded-md py-2 text-sm font-medium transition ${checkoutBillingCycle === "monthly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  Mensual
+                </button>
+                <button type="button"
+                  onClick={() => setCheckoutBillingCycle("annual")}
+                  className={`flex-1 rounded-md py-2 text-sm font-medium transition ${checkoutBillingCycle === "annual" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  Anual <span className="ml-1 text-[10px] font-bold text-success">2 meses gratis</span>
+                </button>
               </div>
 
+              {/* Plan cards */}
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">Nexa School Hub</p>
-                <div className="grid gap-3 md:grid-cols-3">
-                  {planOrder.map((planKey) => {
-                    const plan = CHECKOUT_PLANS[planKey];
-                    const isSelected = isNexaCheckout && checkoutPlanType === planKey;
-                    return (
-                      <button key={planKey} type="button" onClick={() => { setCheckoutFlow("nexa"); setCheckoutPlanType(planKey); }}
-                        className={`rounded-lg border p-3 text-left transition ${isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                        <p className="font-semibold text-foreground">{plan.label}</p>
-                        <p className="text-xs text-muted-foreground">Hasta {plan.students} alumnos</p>
-                        <p className="mt-2 text-base font-bold text-foreground">
-                          {checkoutBillingCycle === "annual" ? `${getInterestFreeInstallment(planCatalog[planKey].billing.annualTotalEur, checkoutAnnualFinancingMonths)} EUR/mes` : `${plan.monthlyPriceEur} EUR/mes`}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                {planOrder.map((planKey) => {
+                  const plan = CHECKOUT_PLANS[planKey];
+                  const isSelected = checkoutPlanType === planKey;
+                  const displayPrice = checkoutBillingCycle === "annual"
+                    ? Math.round(planCatalog[planKey].billing.annualTotalEur / 12)
+                    : plan.monthlyPriceEur;
+                  const isPro = planKey === "pro";
 
-              {/* Simulator */}
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-foreground">Simulador instantáneo</p>
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Checkbox checked={usePromoInSimulator} onCheckedChange={(checked) => setUsePromoInSimulator(checked === true)} />
-                    Con promo FOUNDERS
-                  </label>
-                </div>
-                <div className="mt-3 space-y-1 text-sm text-foreground">
-                  <div className="flex items-center justify-between"><span>Producto</span><span className="font-semibold">{selectedOfferLabel}</span></div>
-                  <div className="flex items-center justify-between"><span>Add-ons</span><span>{checkoutAddonsMonthlyTotal} EUR/mes</span></div>
-                  <div className="flex items-center justify-between text-emerald-700"><span>Promo aplicada</span><span>-{checkoutSimulatorDiscountAmount} EUR</span></div>
-                  <div className="flex items-center justify-between border-t border-border pt-2 text-base font-bold">
-                    <span>{checkoutBillingCycle === "annual" ? "Cuota hoy" : "Pago hoy"}</span>
-                    <span>{checkoutBillingCycle === "annual" ? `${checkoutSimulatorTodayAmount} EUR/mes` : `${checkoutSimulatorTodayAmount} EUR`}</span>
-                  </div>
-                  {checkoutBillingCycle === "annual" ? <p className="text-xs text-muted-foreground">Total anual: {checkoutAnnualTotalLabel}</p> : null}
-                </div>
-              </div>
-            </div>
-
-            {/* Billing cycle */}
-            <div className="mt-6 space-y-6">
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-foreground">Ciclo de facturación</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button type="button" variant={checkoutBillingCycle === "annual" ? "default" : "outline"} onClick={() => setCheckoutBillingCycle("annual")}>Anual</Button>
-                  <Button type="button" variant={checkoutBillingCycle === "monthly" ? "default" : "outline"} onClick={() => setCheckoutBillingCycle("monthly")}>Mensual</Button>
-                </div>
-                <p className="text-[11px] text-muted-foreground">Recomendación: financiación sin interés para maximizar ahorro.</p>
-                {checkoutBillingCycle === "annual" ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {[3, 6, 12].map((months) => (
-                      <Button key={months} type="button" variant={checkoutAnnualFinancingMonths === months ? "default" : "outline"} onClick={() => setCheckoutAnnualFinancingMonths(months as AnnualFinancingMonths)}>{months} meses</Button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Add-ons for Starter */}
-              {isStarterCheckout ? (
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-foreground">Add-ons para Starter</p>
-                  {selectableCheckoutAddons.map((addon) => (
-                    <label key={addon.key} className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 text-sm">
-                      <Checkbox checked={checkoutAddons[addon.key]} onCheckedChange={(checked) => setCheckoutAddons((prev) => ({ ...prev, [addon.key]: checked === true }))} />
-                      <span className="flex-1 text-muted-foreground">{addon.label}</span>
-                      <span className="font-medium text-foreground">+{addon.monthlyPriceEur} EUR/mes</span>
-                    </label>
-                  ))}
-                </div>
-              ) : null}
-
-              {/* FOUNDERS discount */}
-              <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4">
-                <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Descuento óptimo autoaplicado</Badge>
-                <p className="mt-2 text-xs text-emerald-900">Aplicamos automáticamente el mejor descuento elegible: {checkoutBestDiscountLabel}</p>
-                <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold tracking-[0.2em] text-emerald-700">{checkoutBestDiscountLabel}</p>
-                  <Button type="button" variant="outline" className="gap-2" onClick={() => void copyFoundersCode()}>
-                    {foundersCodeCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {foundersCodeCopied ? "Copiado" : "Copiar etiqueta"}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Incentives */}
-              <div className="rounded-lg border border-sky-300 bg-sky-50 p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="bg-sky-600 text-white hover:bg-sky-600">Incentivos comerciales</Badge>
-                  {annualIncentivesActive ? (
-                    <span className="text-xs font-semibold text-sky-900">Precio protegido 12 meses si activas anual esta semana (hasta {annualPromoWeekDeadlineLabel})</span>
-                  ) : (
-                    <span className="text-xs font-semibold text-sky-900">Activa anual para desbloquear incentivos exclusivos</span>
-                  )}
-                </div>
-                <ul className="mt-3 space-y-1 text-sm text-sky-900">
-                  <li>• Garantía de satisfacción de {COMMERCIAL_GUARANTEE_DAYS} días.</li>
-                  {annualIncentivesActive ? <li>• Add-on incluido {COMMERCIAL_INCLUDED_ADDON_MONTHS} meses: {annualIncludedAddon.label} (valor {annualIncludedAddonSavings} EUR).</li> : null}
-                  <li>• Upgrade sin penalización (desde {starterToProAnnualMonthlyDelta} EUR/mes de diferencia anualizada).</li>
-                </ul>
+                  return (
+                    <button
+                      key={planKey}
+                      type="button"
+                      onClick={() => { setCheckoutFlow("nexa"); setCheckoutPlanType(planKey); }}
+                      className={`w-full rounded-xl border-2 p-4 text-left transition ${isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-foreground">{plan.label}</p>
+                            {isPro && (
+                              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">Recomendado</span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted-foreground">Hasta {plan.students} alumnos</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xl font-bold text-foreground">{displayPrice}€<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+                          {checkoutBillingCycle === "annual" && (
+                            <p className="text-[10px] text-success">{planCatalog[planKey].billing.annualSavingsLabel}</p>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Payment method */}
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <p className="text-sm font-semibold text-foreground">Método de pago</p>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  <Button type="button" variant={checkoutPaymentMethod === "card" ? "default" : "outline"} onClick={() => setCheckoutPaymentMethod("card")}>Tarjeta</Button>
-                  <Button type="button" variant={checkoutPaymentMethod === "sepa" ? "default" : "outline"} onClick={() => setCheckoutPaymentMethod("sepa")}>SEPA</Button>
-                  <Button type="button" variant={checkoutPaymentMethod === "transfer" ? "default" : "outline"} onClick={() => setCheckoutPaymentMethod("transfer")}>Transfer.</Button>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Método de pago</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <button type="button" onClick={() => setCheckoutPaymentMethod("card")}
+                    className={`rounded-lg border py-2 text-xs font-medium transition ${checkoutPaymentMethod === "card" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                    Tarjeta
+                  </button>
+                  <button type="button" onClick={() => setCheckoutPaymentMethod("sepa")}
+                    className={`rounded-lg border py-2 text-xs font-medium transition ${checkoutPaymentMethod === "sepa" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                    SEPA
+                  </button>
+                  <button type="button" onClick={() => setCheckoutPaymentMethod("transfer")}
+                    className={`rounded-lg border py-2 text-xs font-medium transition ${checkoutPaymentMethod === "transfer" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                    Transferencia
+                  </button>
                 </div>
-                <label className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Checkbox checked={allowChangePaymentLater} onCheckedChange={(checked) => setAllowChangePaymentLater(checked === true)} />
-                  Elegir ahora y cambiar luego
-                </label>
               </div>
 
-              {/* Fallback for Stripe failure */}
-              {checkoutStripeFailed ? (
-                <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
-                  <p className="text-sm font-semibold text-amber-900">Fallback activo: reserva plan en 2 clics</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" onClick={() => void handleReserveFallback()} disabled={reserveFallbackLoading}>
-                      {reserveFallbackLoading ? "Guardando reserva..." : "1) Reservar plan"}
+              {/* Stripe fallback */}
+              {checkoutStripeFailed && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+                  <p className="text-xs font-semibold text-amber-900 mb-2">El pago por Stripe no está disponible en este momento</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={() => void handleReserveFallback()} disabled={reserveFallbackLoading}>
+                      {reserveFallbackLoading ? "Guardando..." : "Reservar mi plan"}
                     </Button>
-                    <Button type="button" asChild disabled={!reserveFallbackSaved}>
-                      <a href={checkoutFallbackFollowupLink}>2) Abrir enlace posterior</a>
-                    </Button>
+                    {reserveFallbackSaved && (
+                      <Button type="button" size="sm" asChild>
+                        <a href={checkoutFallbackFollowupLink}>Enlace de pago posterior</a>
+                      </Button>
+                    )}
                   </div>
                 </div>
-              ) : null}
+              )}
 
-              {checkoutBillingCycle === "monthly" && annualUpsellSavings > 0 ? (
-                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                  Si cambias a anual, ahorras {annualUpsellSavings} EUR al año en este mismo plan.
-                </div>
-              ) : null}
-
-              {isStarterCheckout ? (
-                <div className="rounded-lg border border-violet-300 bg-violet-50 p-3 text-sm text-violet-900">
-                  {proIsBetterDeal ? "Con tu configuración actual, Pro anual te sale igual o mejor que Starter con add-ons."
-                    : `Por ${proMonthlyDelta} EUR/mes más puedes subir a Pro anual y desbloquear automatizaciones avanzadas.`}
-                </div>
-              ) : null}
-            </div>
-
-            {/* CTA */}
-            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div />
-              <Button onClick={() => void handleTrialCheckout()} disabled={checkoutLoading || !checkoutTermsAccepted}>
-                {checkoutLoading ? "Redirigiendo a pago..." : "Activar con cuota mensual"}
+              {/* CTA */}
+              <Button
+                className="w-full h-12 text-base"
+                onClick={() => void handleTrialCheckout()}
+                disabled={checkoutLoading || !checkoutTermsAccepted}
+              >
+                {checkoutLoading ? "Redirigiendo a Stripe..." : `Activar ${CHECKOUT_PLANS[checkoutPlanType]?.label ?? "plan"} ahora`}
               </Button>
+
+              <p className="text-center text-xs text-muted-foreground">
+                Sin permanencia · Sin interés · Cancela cuando quieras.
+                Al activar aceptas los <a href="/legal/terms" className="underline hover:text-foreground" target="_blank">términos</a>.
+              </p>
             </div>
 
-            <div className="mt-3 rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-              <p>Sin comisiones ocultas · Sin interés · Cambio de plan prorrateado</p>
-            </div>
-
-            <details className="mt-3 rounded-lg border border-border bg-background p-3 text-xs text-muted-foreground">
-              <summary className="cursor-pointer font-medium text-foreground">Ver condiciones de contratación</summary>
-              <div className="mt-2">
-                <label className="flex items-center gap-2">
-                  <Checkbox checked={checkoutTermsAccepted} onCheckedChange={(checked) => setCheckoutTermsAccepted(checked === true)} />
-                  No hay permanencia adicional fuera del periodo pagado.
-                </label>
+            {canDismissTrialLockInDev && (
+              <div className="border-t border-border px-6 py-3">
+                <Button type="button" variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => setTrialLockDismissed(true)}>
+                  Cerrar (solo desarrollo)
+                </Button>
               </div>
-            </details>
-
-            {canDismissTrialLockInDev ? (
-              <Button type="button" variant="outline" className="mt-2 w-full" onClick={() => setTrialLockDismissed(true)}>
-                Cerrar aviso (solo desarrollo)
-              </Button>
-            ) : null}
+            )}
           </div>
         </div>
       ) : null}

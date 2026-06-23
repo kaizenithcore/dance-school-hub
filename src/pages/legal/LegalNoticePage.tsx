@@ -2,22 +2,27 @@ import { LegalPage, LegalSection } from "@/pages/legal/LegalContent";
 
 export default function LegalNoticePage() {
   return (
-    <LegalPage title="Aviso Legal" updatedAt="marzo 2026">
+    <LegalPage title="Aviso Legal" updatedAt="junio 2026">
       <LegalSection title="1. Datos identificativos">
         <p>
-          En cumplimiento del artículo 10 de la Ley 34/2002 (LSSI-CE):
+          En cumplimiento del artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa:
         </p>
         <ul className="list-disc space-y-1 pl-6">
-          <li><strong>Titular:</strong> Kaizenith</li>
+          <li><strong>Titular:</strong> Kaizenith — [RAZÓN SOCIAL COMPLETA, S.L. / autónomo]</li>
+          <li><strong>NIF:</strong> [NÚMERO DE NIF — obligatorio LSSI-CE Art. 10]</li>
+          <li><strong>Domicilio social:</strong> [DIRECCIÓN FISCAL COMPLETA — obligatorio LSSI-CE Art. 10]</li>
           <li>
             <strong>Sitio web:</strong>{" "}
-            <a href="https://kaizenith.es" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-2 hover:underline">
-              kaizenith.es
+            <a href="https://nexa.es" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-2 hover:underline">
+              nexa.es
             </a>
           </li>
-          <li><strong>Correo electrónico:</strong> legal@kaizenith.es</li>
-          <li><strong>Actividad:</strong> Desarrollo de software, servicios SaaS y soluciones digitales</li>
+          <li><strong>Correo electrónico:</strong> hola@nexa.es</li>
+          <li><strong>Actividad:</strong> Prestación de Nexa, plataforma SaaS de gestión para escuelas de danza, y servicios digitales asociados</li>
         </ul>
+        <p className="mt-2 text-sm text-muted-foreground">
+          <em>Nota: Los campos entre corchetes [·] deben completarse con los datos reales del titular antes de publicar este documento.</em>
+        </p>
       </LegalSection>
 
       <LegalSection title="2. Objeto del sitio web">
@@ -102,18 +107,44 @@ export default function LegalNoticePage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="9. Protección de datos">
+      <LegalSection title="9. Protección de datos y Autoridad de Control">
         <p>
-          El tratamiento de datos personales se rige por la Política de Privacidad.
+          El tratamiento de datos personales se rige por la Política de Privacidad y el Acuerdo de Tratamiento de Datos.
+        </p>
+        <p>
+          Sin perjuicio de cualquier otro recurso administrativo o acción judicial, si considera que el tratamiento de sus datos
+          personales infringe el Reglamento General de Protección de Datos (RGPD) o la Ley Orgánica de Protección de Datos
+          (LOPDGDD), tiene derecho a presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD):
+        </p>
+        <ul className="list-disc space-y-1 pl-6">
+          <li><strong>Web:</strong>{" "}
+            <a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-2 hover:underline">
+              www.aepd.es
+            </a>
+          </li>
+          <li><strong>Dirección:</strong> C/ Jorge Juan, 6, 28001 Madrid</li>
+          <li><strong>Teléfono:</strong> 901 100 099 / 912 663 517</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="10. Reclamaciones y resolución de conflictos">
+        <p>
+          Para cualquier reclamación relacionada con nuestros servicios, puede dirigirse a <strong>hola@nexa.es</strong>.
+          Nos comprometemos a responder en un plazo máximo de 15 días hábiles.
+        </p>
+        <p>
+          En caso de no obtener respuesta satisfactoria, podrá acudir a los mecanismos de resolución alternativa de conflictos
+          disponibles en España antes de iniciar acciones judiciales.
         </p>
       </LegalSection>
 
-      <LegalSection title="10. Legislación y jurisdicción">
+      <LegalSection title="11. Legislación y jurisdicción">
         <p>
-          Legislación aplicable: española.
+          Legislación aplicable: española (LSSI-CE, RGPD, LOPDGDD y demás normativa vigente).
         </p>
         <p>
-          Jurisdicción: juzgados y tribunales competentes del domicilio del usuario, cuando proceda legalmente.
+          Jurisdicción: juzgados y tribunales competentes conforme a la normativa aplicable.
+          Cuando el usuario actúe como consumidor, será competente el tribunal de su domicilio.
         </p>
       </LegalSection>
     </LegalPage>
