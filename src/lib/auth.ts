@@ -94,8 +94,26 @@ async function buildAuthContextFromSupabase(userId: string, email: string | null
   }
 }
 
-function isNetworkOrTimeoutError(code?: string): boolean {
-  return code === "network_error" || code === "timeout";
+/**
+ * Returns true when the backend error is NOT a business-logic rejection
+ * (e.g. wrong credentials, no membership) and we should try the Supabase
+ * direct fallback instead.
+ *
+ * We bypass the backend when:
+ *   - network_error / timeout  → backend is unreachable
+ *   - unauthorized             → backend token validation failed (JWT config
+ *                                mismatch, stale token, etc.) even though
+ *                                Supabase auth itself succeeded
+ *
+ * We do NOT bypass on "forbidden" (no membership) — that's a real access
+ * denial that the Supabase query would also return null for.
+ */
+function shouldTrySupabaseFallback(code?: string): boolean {
+  return (
+    code === "network_error" ||
+    code === "timeout" ||
+    code === "unauthorized" // backend JWT validation failed; Supabase auth succeeded
+  );
 }
 
 async function getAuthContextWithTimeout(options?: {
@@ -201,8 +219,10 @@ export async function login(credentials: LoginCredentials): Promise<AuthResult> 
       return { success: true, context: contextResult.data };
     }
 
-    // If the error is a network/timeout issue (backend not running), try Supabase fallback
-    if (isNetworkOrTimeoutError(contextResult.error?.code)) {
+    // Backend failed — try Supabase direct fallback.
+    // Triggers for: network errors, timeouts, and backend JWT validation errors.
+    // Security: buildAuthContextFromSupabase checks tenant_memberships (RLS).
+    if (shouldTrySupabaseFallback(contextResult.error?.code)) {
       const fallback = await buildAuthContextFromSupabase(
         authData.user.id,
         authData.user.email ?? null,
@@ -213,11 +233,11 @@ export async function login(credentials: LoginCredentials): Promise<AuthResult> 
       }
     }
 
-    // Auth succeeded in Supabase but no tenant membership found — sign out
+    // Supabase auth succeeded but user has no tenant membership — sign out.
     await supabase.auth.signOut();
     return {
       success: false,
-      error: contextResult.error?.message || "No hay ninguna escuela asociada a esta cuenta",
+      error: "No hay ninguna escuela asociada a esta cuenta. Contacta con tu administrador.",
     };
   } catch (error) {
     return {
@@ -288,8 +308,9 @@ export async function getCurrentAuthContext(): Promise<AuthContextResponse | nul
     return contextResult.data;
   }
 
-  // Backend unavailable — build context from Supabase directly
-  if (isNetworkOrTimeoutError(contextResult.error?.code)) {
+  // Backend failed (unreachable, timeout, or JWT validation error) —
+  // build context from Supabase directly.
+  if (shouldTrySupabaseFallback(contextResult.error?.code)) {
     const fallback = await buildAuthContextFromSupabase(
       session.user.id,
       session.user.email ?? null,

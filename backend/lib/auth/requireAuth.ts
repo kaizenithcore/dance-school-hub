@@ -455,6 +455,9 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
   } = await supabaseAdmin.auth.getUser(accessToken);
 
   if (userError || !user) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[requireAuth] getUser failed:", userError?.message, userError?.status);
+    }
     return {
       authorized: false,
       response: fail(

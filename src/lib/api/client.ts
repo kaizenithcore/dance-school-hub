@@ -30,53 +30,21 @@ export interface ApiResponse<T> {
   };
 }
 
+/**
+ * Returns the current Supabase access token.
+ *
+ * Uses supabase.auth.getSession() exclusively — the in-memory session is
+ * updated immediately after signIn/signUp, so this is always fresh.
+ *
+ * Previous implementation read from localStorage, which caused "Invalid or
+ * expired token" 401 errors because an old or differently-formatted token
+ * could be returned instead of the one just issued by signInWithPassword.
+ */
 export async function resolveAccessToken(): Promise<string | null> {
-  if (typeof window === "undefined") {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session?.access_token || null;
-  }
-
-  const key = Object.keys(window.localStorage).find(
-    (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
-  );
-
-  if (!key) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session?.access_token || null;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as {
-      access_token?: string;
-      currentSession?: { access_token?: string };
-      session?: { access_token?: string };
-    };
-
-    const token =
-      parsed.access_token
-      || parsed.currentSession?.access_token
-      || parsed.session?.access_token;
-
-    if (token) {
-      return token;
-    }
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session?.access_token || null;
-  } catch {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session?.access_token || null;
-  }
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
 }
 
 export async function apiRequest<T>(
