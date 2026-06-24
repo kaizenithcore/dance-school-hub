@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { TablePagination, readPageSize, DEFAULT_PAGE_SIZE } from "@/components/tables/TablePagination";
+import { TablePagination, readPageSize, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/components/tables/TablePagination";
 import { StudentRecord } from "@/lib/data/mockStudents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -435,11 +435,11 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
                 </TableCell>
               </TableRow>
             ) : (
-              paginated.map((student) => {
+              paginated.map((student, rowIdx) => {
                 const status = STATUS_MAP[student.status];
                 const monthlyTotal = getMonthlyTotal(student);
                 return (
-                  <TableRow key={student.id} className="cursor-pointer hover:bg-accent/50 even:bg-muted/20" onClick={() => onViewProfile(student)}>
+                  <TableRow key={student.id} className={cn("cursor-pointer hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted/20")} onClick={() => onViewProfile(student)}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs font-semibold">

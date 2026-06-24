@@ -296,13 +296,13 @@ export function PaymentsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              paginated.map((payment) => {
+              paginated.map((payment, rowIdx) => {
                 const statusCfg = STATUS_CONFIG[payment.status];
                 const payerDiffers = payment.payerName !== payment.studentName;
                 const isReceiptGenerationBusy = Boolean(generatingReceiptPaymentId);
                 const isGeneratingReceipt = generatingReceiptPaymentId === payment.id;
                 return (
-                  <TableRow key={payment.id} className="cursor-pointer hover:bg-accent/50 even:bg-muted/20" onClick={() => onViewDetail(payment)}>
+                  <TableRow key={payment.id} className={cn("cursor-pointer hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted/20")} onClick={() => onViewDetail(payment)}>
                     <TableCell>
                       <div>
                         <p className="text-sm font-medium text-foreground">{payment.studentName}</p>

@@ -230,14 +230,14 @@ export function ClassesTable({ classes, isLoading = false, onPreview, onEdit, on
                 </TableCell>
               </TableRow>
             ) : (
-              paginated.map((cls) => {
+              paginated.map((cls, rowIdx) => {
                 const status = STATUS_MAP[cls.status];
                 const occupancy = cls.capacity > 0 ? Math.round((cls.enrolled / cls.capacity) * 100) : 0;
                 const targetFrequency = Math.max(cls.weeklyFrequency || 1, 1);
                 const scheduled = cls.scheduledCount || 0;
                 const remaining = Math.max(targetFrequency - scheduled, 0);
                 return (
-                  <TableRow key={cls.id} className="hover:bg-accent/50 even:bg-muted/20">
+                  <TableRow key={cls.id} className={cn("hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted/20")}>
                     <TableCell>
                       <div>
                         <p className="text-sm font-medium text-foreground">{cls.name}</p>
