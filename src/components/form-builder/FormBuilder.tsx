@@ -400,7 +400,8 @@ export function FormBuilder() {
         <div className="flex-1 min-w-0 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">Opciones del formulario</p>
 
-          {/* 1. Schedule toggle */}
+          <div className="rounded-xl border border-dashed border-border overflow-hidden space-y-3 p-4">
+            {/* 1. Schedule toggle */}
           <CollapsiblePanel
             icon={CalendarDays}
             title="Selección de Clases por Horario"
@@ -504,6 +505,7 @@ export function FormBuilder() {
               onChange={(jointEnrollment) => setConfig({ ...config, jointEnrollment })}
             />
           </CollapsiblePanel>
+          </div>
 
           {/* Advanced */}
           <div className="rounded-xl border border-dashed border-border overflow-hidden">

@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Eye, Pencil, Trash2, Search, Users, ChevronLeft, ChevronRight, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Eye, Pencil, Trash2, Users, ChevronLeft, ChevronRight, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { TableToolbar } from "@/components/tables/TableToolbar";
+import { TablePagination, readPageSize, DEFAULT_PAGE_SIZE } from "@/components/tables/TablePagination";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,8 +20,10 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   draft: { label: "Borrador", className: "bg-warning/15 text-warning border-warning/20" },
 };
 
-const PAGE_SIZE = 8;
 const PAGE_PREFS_KEY = "classes-table-page";
+const PAGE_SIZE_KEY = "classes-table-page-size";
+const COLUMN_KEY = "classes-table-columns";
+const DEFAULT_COLUMNS = { teacher: true, discipline: true, category: true, price: true, frequency: true };
 
 type ClassSortKey = "name" | "teacher" | "discipline" | "category" | "frequency" | "price" | "occupancy" | "status";
 
@@ -34,8 +38,13 @@ interface ClassesTableProps {
 export function ClassesTable({ classes, isLoading = false, onPreview, onEdit, onDelete }: ClassesTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortKey, setSortKey] = useState<ClassSortKey>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [pageSize, setPageSize] = useState(() => readPageSize(PAGE_SIZE_KEY));
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    try { const r = window.localStorage.getItem(COLUMN_KEY); return r ? JSON.parse(r) as Record<string, boolean> : DEFAULT_COLUMNS; } catch { return DEFAULT_COLUMNS; }
+  });
   const [page, setPage] = useState(() => {
     if (typeof window === "undefined") return 0;
     const raw = window.localStorage.getItem(PAGE_PREFS_KEY);
@@ -95,8 +104,8 @@ export function ClassesTable({ classes, isLoading = false, onPreview, onEdit, on
     return rows;
   }, [filtered, sortKey, sortDirection]);
 
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(sorted.length / pageSize);
+  const paginated = sorted.slice(page * pageSize, (page + 1) * pageSize);
 
   useEffect(() => {
     window.localStorage.setItem(PAGE_PREFS_KEY, String(page));
@@ -140,31 +149,53 @@ export function ClassesTable({ classes, isLoading = false, onPreview, onEdit, on
     </TableHead>
   );
 
+  const activeFilterCount = statusFilter !== "all" ? 1 : 0;
+
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre, profesor o disciplina..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-            className="pl-9 h-9 text-sm"
-          />
+    <div className="space-y-3">
+      <TableToolbar
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setPage(0); }}
+        searchPlaceholder="Buscar por nombre, profesor o disciplina..."
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+        activeFilterCount={activeFilterCount}
+        columns={[
+          { key: "teacher", label: "Profesor" },
+          { key: "discipline", label: "Disciplina" },
+          { key: "category", label: "Categoría" },
+          { key: "price", label: "Precio" },
+          { key: "frequency", label: "Frecuencia" },
+        ]}
+        visibleColumns={visibleColumns}
+        onColumnToggle={(key, v) => {
+          const next = { ...visibleColumns, [key]: v };
+          setVisibleColumns(next);
+          window.localStorage.setItem(COLUMN_KEY, JSON.stringify(next));
+        }}
+      />
+
+      {filtersOpen && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="active">Activas</SelectItem>
+              <SelectItem value="inactive">Inactivas</SelectItem>
+              <SelectItem value="draft">Borrador</SelectItem>
+            </SelectContent>
+          </Select>
+          {activeFilterCount > 0 && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground"
+              onClick={() => { setStatusFilter("all"); setPage(0); }}>
+              Limpiar filtros
+            </Button>
+          )}
         </div>
-        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
-          <SelectTrigger className="w-[140px] h-9">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="active">Activas</SelectItem>
-            <SelectItem value="inactive">Inactivas</SelectItem>
-            <SelectItem value="draft">Borrador</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      )}
 
       {/* Table */}
       <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
@@ -172,11 +203,11 @@ export function ClassesTable({ classes, isLoading = false, onPreview, onEdit, on
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               {renderSortableHead("Nombre", "name")}
-              {renderSortableHead("Profesor", "teacher")}
-              {renderSortableHead("Disciplina", "discipline", "hidden md:table-cell")}
-              {renderSortableHead("Categoría", "category", "hidden lg:table-cell")}
-              {renderSortableHead("Frecuencia", "frequency", undefined, "center")}
-              {renderSortableHead("Precio", "price", undefined, "right")}
+              {visibleColumns.teacher !== false && renderSortableHead("Profesor", "teacher")}
+              {visibleColumns.discipline !== false && renderSortableHead("Disciplina", "discipline", "hidden md:table-cell")}
+              {visibleColumns.category !== false && renderSortableHead("Categoría", "category", "hidden lg:table-cell")}
+              {visibleColumns.frequency !== false && renderSortableHead("Frecuencia", "frequency", undefined, "center")}
+              {visibleColumns.price !== false && renderSortableHead("Precio", "price", undefined, "right")}
               {renderSortableHead("Ocupación", "occupancy", "text-center hidden sm:table-cell", "center")}
               {renderSortableHead("Estado", "status", undefined, "center")}
               <TableHead className="text-xs text-right">Acciones</TableHead>
@@ -206,34 +237,27 @@ export function ClassesTable({ classes, isLoading = false, onPreview, onEdit, on
                 const scheduled = cls.scheduledCount || 0;
                 const remaining = Math.max(targetFrequency - scheduled, 0);
                 return (
-                  <TableRow key={cls.id}>
+                  <TableRow key={cls.id} className="hover:bg-accent/50 even:bg-muted/20">
                     <TableCell>
                       <div>
                         <p className="text-sm font-medium text-foreground">{cls.name}</p>
                         <p className="text-[10px] text-muted-foreground">{cls.room}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{cls.teacher}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{cls.discipline}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{cls.category}</TableCell>
-                    <TableCell className="text-center">
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5">
-                        <span className="text-xs font-medium text-foreground">{scheduled}/{targetFrequency}</span>
-                        <span
-                          className={cn(
-                            "text-[10px]",
-                            scheduled > targetFrequency
-                              ? "text-destructive"
-                              : remaining === 0
-                                ? "text-success"
-                                : "text-warning"
-                          )}
-                        >
-                          {scheduled > targetFrequency ? "exceso" : remaining === 0 ? "ok" : `faltan ${remaining}`}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm font-medium text-foreground text-right">€{cls.price}</TableCell>
+                    {visibleColumns.teacher !== false && <TableCell className="text-sm text-muted-foreground">{cls.teacher}</TableCell>}
+                    {visibleColumns.discipline !== false && <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{cls.discipline}</TableCell>}
+                    {visibleColumns.category !== false && <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{cls.category}</TableCell>}
+                    {visibleColumns.frequency !== false && (
+                      <TableCell className="text-center">
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5">
+                          <span className="text-xs font-medium text-foreground">{scheduled}/{targetFrequency}</span>
+                          <span className={cn("text-[10px]", scheduled > targetFrequency ? "text-destructive" : remaining === 0 ? "text-success" : "text-warning")}>
+                            {scheduled > targetFrequency ? "exceso" : remaining === 0 ? "ok" : `faltan ${remaining}`}
+                          </span>
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.price !== false && <TableCell className="text-sm font-medium text-foreground text-right">€{cls.price}</TableCell>}
                     <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center justify-center gap-1.5">
                         <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -282,48 +306,16 @@ export function ClassesTable({ classes, isLoading = false, onPreview, onEdit, on
         </Table>
       </div>
 
-      {/* Pagination */}
-      {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
-          </p>
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7"
-                  aria-label="Página anterior"
-                  disabled={page === 0}
-                  onClick={() => setPage(page - 1)}
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Página anterior</TooltipContent>
-            </Tooltip>
-            <span className="text-xs text-muted-foreground px-2">
-              {page + 1} / {totalPages}
-            </span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7"
-                  aria-label="Página siguiente"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage(page + 1)}
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Página siguiente</TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
+      {!isLoading && filtered.length > 0 && (
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(0); window.localStorage.setItem(PAGE_SIZE_KEY, String(s)); }}
+          itemLabel="clases"
+        />
       )}
     </div>
   );

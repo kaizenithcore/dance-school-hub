@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, ChevronLeft, ChevronRight, Plus, Receipt, FileCheck, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Eye, ChevronLeft, ChevronRight, Plus, Receipt, FileCheck, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { TableToolbar } from "@/components/tables/TableToolbar";
+import { TablePagination, readPageSize } from "@/components/tables/TablePagination";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -21,8 +23,10 @@ const STATUS_CONFIG: Record<PaymentStatus, { label: string; className: string }>
   refunded: { label: "Reembolsado", className: "bg-info/15 text-info border-info/20" },
 };
 
-const PAGE_SIZE = 8;
 const PAGE_PREFS_KEY = "payments-table-page";
+const PAGE_SIZE_KEY = "payments-table-page-size";
+const COLUMN_KEY = "payments-table-columns";
+const DEFAULT_COLS_PAY = { concept: true, month: true, method: true };
 
 type PaymentSortKey = "student" | "concept" | "month" | "amount" | "method" | "status";
 
@@ -47,6 +51,11 @@ export function PaymentsTable({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [pageSize, setPageSize] = useState(() => readPageSize(PAGE_SIZE_KEY));
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    try { const r = window.localStorage.getItem(COLUMN_KEY); return r ? JSON.parse(r) as Record<string, boolean> : DEFAULT_COLS_PAY; } catch { return DEFAULT_COLS_PAY; }
+  });
   const [sortKey, setSortKey] = useState<PaymentSortKey>("month");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(() => {
@@ -116,8 +125,8 @@ export function PaymentsTable({
     return rows;
   }, [filtered, sortKey, sortDirection]);
 
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(sorted.length / pageSize);
+  const paginated = sorted.slice(page * pageSize, (page + 1) * pageSize);
 
   useEffect(() => {
     window.localStorage.setItem(PAGE_PREFS_KEY, String(page));
@@ -199,69 +208,61 @@ export function PaymentsTable({
         </div>
       </div>
 
-      {/* Status chips + Add button */}
-      <div className="flex flex-wrap items-center gap-2 justify-between">
-        <div className="flex flex-wrap gap-2">
-          {(Object.keys(STATUS_CONFIG) as PaymentStatus[]).map((status) => {
-            const config = STATUS_CONFIG[status];
-            return (
-              <button
-                key={status}
-                onClick={() => { setStatusFilter(statusFilter === status ? "all" : status); setPage(0); }}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border transition-colors",
-                  statusFilter === status ? config.className : "border-border text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {config.label}
-                <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-background/50 px-1 text-[10px]">
-                  {counts[status]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <Button size="sm" onClick={onAddPayment}>
-          <Plus className="h-3.5 w-3.5 mr-1" />
-          Registrar Pago
-        </Button>
-      </div>
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3">
+        <TableToolbar
+          search={search}
+          onSearchChange={(v) => { setSearch(v); setPage(0); }}
+          searchPlaceholder="Buscar por alumno, pagador o concepto..."
+          filtersOpen={filtersOpen}
+          onFiltersOpenChange={setFiltersOpen}
+          activeFilterCount={[statusFilter !== "all", methodFilter !== "all", monthFilter !== "all"].filter(Boolean).length}
+          columns={[{ key: "concept", label: "Concepto" }, { key: "month", label: "Mes" }, { key: "method", label: "Método" }]}
+          visibleColumns={visibleColumns}
+          onColumnToggle={(key, v) => { const n = { ...visibleColumns, [key]: v }; setVisibleColumns(n); window.localStorage.setItem(COLUMN_KEY, JSON.stringify(n)); }}
+          extra={
+            <Button size="sm" onClick={onAddPayment} className="shrink-0">
+              <Plus className="h-3.5 w-3.5 mr-1" /> Registrar Pago
+            </Button>
+          }
+        />
 
-      {/* Filters row: search + method + month */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por alumno, pagador o concepto..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-            className="pl-9 h-9 text-sm"
-          />
-        </div>
-        <Select value={methodFilter} onValueChange={(v) => { setMethodFilter(v); setPage(0); }}>
-          <SelectTrigger className="h-9 w-[180px] text-sm">
-            <SelectValue placeholder="Método de pago" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los métodos</SelectItem>
-            {PAYMENT_METHODS.map((m) => (
-              <SelectItem key={m} value={m}>{m}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={monthFilter} onValueChange={(v) => { setMonthFilter(v); setPage(0); }}>
-          <SelectTrigger className="h-9 w-[160px] text-sm">
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los meses</SelectItem>
-            {availableMonths.map((m) => (
-              <SelectItem key={m} value={m}>
-                {format(new Date(m + "-01"), "MMM yyyy", { locale: es })}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {filtersOpen && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
+            {/* Status chips */}
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(STATUS_CONFIG) as PaymentStatus[]).map((status) => {
+                const cfg = STATUS_CONFIG[status];
+                return (
+                  <button key={status} onClick={() => { setStatusFilter(statusFilter === status ? "all" : status); setPage(0); }}
+                    className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-colors",
+                      statusFilter === status ? cfg.className : "border-border text-muted-foreground hover:text-foreground")}>
+                    {cfg.label}
+                    <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-background/50 px-1 text-[10px]">{counts[status]}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <Select value={methodFilter} onValueChange={(v) => { setMethodFilter(v); setPage(0); }}>
+              <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Método" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los métodos</SelectItem>
+                {PAYMENT_METHODS.map((m) => (<SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>))}
+              </SelectContent>
+            </Select>
+            <Select value={monthFilter} onValueChange={(v) => { setMonthFilter(v); setPage(0); }}>
+              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Período" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los meses</SelectItem>
+                {availableMonths.map((m) => (<SelectItem key={m} value={m} className="text-xs">{format(new Date(m + "-01"), "MMM yyyy", { locale: es })}</SelectItem>))}
+              </SelectContent>
+            </Select>
+            {[statusFilter !== "all", methodFilter !== "all", monthFilter !== "all"].some(Boolean) && (
+              <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground"
+                onClick={() => { setStatusFilter("all"); setMethodFilter("all"); setMonthFilter("all"); setPage(0); }}>Limpiar</Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -270,10 +271,10 @@ export function PaymentsTable({
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               {renderSortableHead("Alumno / Pagador", "student")}
-              {renderSortableHead("Concepto", "concept", "hidden md:table-cell")}
-              {renderSortableHead("Mes", "month", "hidden lg:table-cell")}
+              {visibleColumns.concept !== false && renderSortableHead("Concepto", "concept", "hidden md:table-cell")}
+              {visibleColumns.month !== false && renderSortableHead("Mes", "month", "hidden lg:table-cell")}
               {renderSortableHead("Monto", "amount", undefined, "right")}
-              {renderSortableHead("Método", "method", "hidden md:table-cell")}
+              {visibleColumns.method !== false && renderSortableHead("Método", "method", "hidden md:table-cell")}
               {renderSortableHead("Estado", "status", undefined, "center")}
               <TableHead className="text-xs text-right">Acciones</TableHead>
             </TableRow>
@@ -301,7 +302,7 @@ export function PaymentsTable({
                 const isReceiptGenerationBusy = Boolean(generatingReceiptPaymentId);
                 const isGeneratingReceipt = generatingReceiptPaymentId === payment.id;
                 return (
-                  <TableRow key={payment.id} className="cursor-pointer" onClick={() => onViewDetail(payment)}>
+                  <TableRow key={payment.id} className="cursor-pointer hover:bg-accent/50 even:bg-muted/20" onClick={() => onViewDetail(payment)}>
                     <TableCell>
                       <div>
                         <p className="text-sm font-medium text-foreground">{payment.studentName}</p>
@@ -312,33 +313,31 @@ export function PaymentsTable({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell max-w-[200px] truncate">
-                      <div className="flex items-center gap-1">
-                        {payment.concept}
-                        {payment.accountNumber && (
-                          <span className="text-[10px] text-muted-foreground ml-1">
-                            (****{payment.accountNumber.slice(-4)})
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
-                      {format(new Date(payment.month + "-01"), "MMM yyyy", { locale: es })}
-                    </TableCell>
+                    {visibleColumns.concept !== false && (
+                      <TableCell className="text-sm text-muted-foreground hidden md:table-cell max-w-[200px] truncate">
+                        <div className="flex items-center gap-1">
+                          {payment.concept}
+                          {payment.accountNumber && <span className="text-[10px] text-muted-foreground ml-1">(****{payment.accountNumber.slice(-4)})</span>}
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.month !== false && (
+                      <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
+                        {format(new Date(payment.month + "-01"), "MMM yyyy", { locale: es })}
+                      </TableCell>
+                    )}
                     <TableCell className="text-right text-sm font-semibold text-foreground">
                       <div className="flex items-center justify-end gap-1">
                         €{payment.amount.toLocaleString()}
-                        {payment.amountChanged && (
-                          <span className="text-[10px] text-warning">⚠</span>
-                        )}
+                        {payment.amountChanged && <span className="text-[10px] text-warning">⚠</span>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
-                      {payment.method}
-                      {payment.accountNumber && payment.method.toLowerCase().includes("transfer") ? (
-                        <span className="ml-1 text-[10px]">(****{payment.accountNumber.slice(-4)})</span>
-                      ) : null}
-                    </TableCell>
+                    {visibleColumns.method !== false && (
+                      <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
+                        {payment.method}
+                        {payment.accountNumber && payment.method.toLowerCase().includes("transfer") && <span className="ml-1 text-[10px]">(****{payment.accountNumber.slice(-4)})</span>}
+                      </TableCell>
+                    )}
                     <TableCell className="text-center">
                       <Badge variant="outline" className={cn("text-[10px] font-medium", statusCfg.className)}>
                         {statusCfg.label}
@@ -377,21 +376,13 @@ export function PaymentsTable({
         </Table>
       </div>
 
-      {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
-          </p>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 0} onClick={() => setPage(page - 1)}>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <span className="text-xs text-muted-foreground px-2">{page + 1} / {totalPages}</span>
-            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
+      {!isLoading && filtered.length > 0 && (
+        <TablePagination
+          page={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(0); window.localStorage.setItem(PAGE_SIZE_KEY, String(s)); }}
+          itemLabel="pagos"
+        />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { TablePagination, readPageSize, DEFAULT_PAGE_SIZE } from "@/components/tables/TablePagination";
 import { StudentRecord } from "@/lib/data/mockStudents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,6 @@ const PAYMENT_LABELS: Record<string, string> = {
   none: "—",
 };
 
-const PAGE_SIZE_OPTIONS = [8, 15, 25, 50] as const;
-const DEFAULT_PAGE_SIZE = 8;
 const COLUMN_PREFS_KEY = "students-table-visible-columns";
 const PAGE_PREFS_KEY = "students-table-page";
 const PAGE_SIZE_KEY = "students-table-page-size";
@@ -338,17 +337,6 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Page size */}
-        <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(0); }}>
-          <SelectTrigger className="w-[80px] h-9 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PAGE_SIZE_OPTIONS.map((size) => (
-              <SelectItem key={size} value={String(size)} className="text-xs">{size} / pág.</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Collapsible filters */}
@@ -451,7 +439,7 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
                 const status = STATUS_MAP[student.status];
                 const monthlyTotal = getMonthlyTotal(student);
                 return (
-                  <TableRow key={student.id} className="cursor-pointer" onClick={() => onViewProfile(student)}>
+                  <TableRow key={student.id} className="cursor-pointer hover:bg-accent/50 even:bg-muted/20" onClick={() => onViewProfile(student)}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs font-semibold">
@@ -526,21 +514,16 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
         </Table>
       </div>
 
-      {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Mostrando {page * pageSize + 1}–{Math.min((page + 1) * pageSize, filtered.length)} de {filtered.length}
-          </p>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 0} onClick={() => setPage(page - 1)}>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <span className="text-xs text-muted-foreground px-2">{page + 1} / {totalPages}</span>
-            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
+      {!isLoading && filtered.length > 0 && (
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(0); window.localStorage.setItem(PAGE_SIZE_KEY, String(s)); }}
+          itemLabel="alumnos"
+        />
       )}
     </div>
   );

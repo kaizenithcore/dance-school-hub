@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, Book, DollarSign, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Eye, Pencil, Trash2, ChevronLeft, ChevronRight, Book, DollarSign, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { TableToolbar } from "@/components/tables/TableToolbar";
+import { TablePagination, readPageSize } from "@/components/tables/TablePagination";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -17,8 +19,10 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   inactive: { label: "Inactivo", className: "bg-muted text-muted-foreground border-border" },
 };
 
-const PAGE_SIZE = 8;
 const PAGE_PREFS_KEY = "teachers-table-page";
+const PAGE_SIZE_KEY = "teachers-table-page-size";
+const COLUMN_KEY = "teachers-table-columns";
+const DEFAULT_COLS = { email: true, phone: true, salary: true };
 
 function teacherSalaryValue(teacher: TeacherRecord): number {
   return Number((teacher as { salay?: number; aulary?: number }).salay ?? (teacher as { salay?: number; aulary?: number }).aulary ?? 0) || 0;
@@ -45,6 +49,11 @@ export function TeachersTable({
 }: TeachersTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [pageSize, setPageSize] = useState(() => readPageSize(PAGE_SIZE_KEY));
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    try { const r = window.localStorage.getItem(COLUMN_KEY); return r ? JSON.parse(r) as Record<string, boolean> : DEFAULT_COLS; } catch { return DEFAULT_COLS; }
+  });
   const [sortKey, setSortKey] = useState<TeacherSortKey>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(() => {
@@ -106,8 +115,8 @@ export function TeachersTable({
     return filtered.reduce((sum, teacher) => sum + teacherSalaryValue(teacher), 0);
   }, [filtered]);
 
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(sorted.length / pageSize);
+  const paginated = sorted.slice(page * pageSize, (page + 1) * pageSize);
 
   useEffect(() => {
     window.localStorage.setItem(PAGE_PREFS_KEY, String(page));
@@ -152,44 +161,50 @@ export function TeachersTable({
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre, email o teléfono..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-            className="pl-9 h-9 text-sm"
-          />
+    <div className="space-y-3">
+      <TableToolbar
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setPage(0); }}
+        searchPlaceholder="Buscar por nombre, email o teléfono..."
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+        activeFilterCount={statusFilter !== "all" ? 1 : 0}
+        columns={[{ key: "email", label: "Email" }, { key: "phone", label: "Teléfono" }, { key: "salary", label: "Salario" }]}
+        visibleColumns={visibleColumns}
+        onColumnToggle={(key, v) => { const n = { ...visibleColumns, [key]: v }; setVisibleColumns(n); window.localStorage.setItem(COLUMN_KEY, JSON.stringify(n)); }}
+        extra={
+          <div className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3 ml-auto shrink-0">
+            <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Salarios:</span>
+            <span className="text-sm font-semibold text-foreground">${totalSalary}/mes</span>
+          </div>
+        }
+      />
+      {filtersOpen && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue placeholder="Estado" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="active">Activos</SelectItem>
+              <SelectItem value="inactive">Inactivos</SelectItem>
+            </SelectContent>
+          </Select>
+          {statusFilter !== "all" && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setStatusFilter("all"); setPage(0); }}>Limpiar</Button>
+          )}
         </div>
-        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
-          <SelectTrigger className="w-[130px] h-9">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="active">Activos</SelectItem>
-            <SelectItem value="inactive">Inactivos</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3">
-          <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Total salarios:</span>
-          <span className="text-sm font-semibold text-foreground">${totalSalary}</span>
-          <span className="text-[10px] text-muted-foreground">/mes</span>
-        </div>
-      </div>
+      )}
 
       <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
         <Table className="min-w-[640px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               {renderSortableHead("Nombre", "name")}
-              {renderSortableHead("Email", "email", "hidden md:table-cell")}
-              {renderSortableHead("Teléfono", "phone", "hidden lg:table-cell")}
+              {visibleColumns.email !== false && renderSortableHead("Email", "email", "hidden md:table-cell")}
+              {visibleColumns.phone !== false && renderSortableHead("Teléfono", "phone", "hidden lg:table-cell")}
               {renderSortableHead("Clases", "classes", undefined, "center")}
-              {renderSortableHead("Salario", "salary", undefined, "right")}
+              {visibleColumns.salary !== false && renderSortableHead("Salario", "salary", undefined, "right")}
               {renderSortableHead("Estado", "status", undefined, "center")}
               <TableHead className="text-xs text-right">Acciones</TableHead>
             </TableRow>
@@ -214,7 +229,7 @@ export function TeachersTable({
               paginated.map((teacher) => {
                 const status = STATUS_MAP[teacher.status];
                 return (
-                  <TableRow key={teacher.id} className="cursor-pointer" onClick={() => onViewProfile(teacher)}>
+                  <TableRow key={teacher.id} className="cursor-pointer hover:bg-accent/50 even:bg-muted/20" onClick={() => onViewProfile(teacher)}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
@@ -226,20 +241,22 @@ export function TeachersTable({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{teacher.email}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{teacher.phone}</TableCell>
+                    {visibleColumns.email !== false && <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{teacher.email}</TableCell>}
+                    {visibleColumns.phone !== false && <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{teacher.phone}</TableCell>}
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
                         <Book className="h-3 w-3 text-muted-foreground" />
                         <span className="text-sm text-foreground font-medium">{teacher.assignedClasses.length}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <span className="text-sm font-semibold text-foreground">${teacherSalaryValue(teacher)}</span>
-                        <span className="text-[10px] text-muted-foreground">/mes</span>
-                      </div>
-                    </TableCell>
+                    {visibleColumns.salary !== false && (
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="text-sm font-semibold text-foreground">${teacherSalaryValue(teacher)}</span>
+                          <span className="text-[10px] text-muted-foreground">/mes</span>
+                        </div>
+                      </TableCell>
+                    )}
                     <TableCell className="text-center">
                       <Badge variant="outline" className={cn("text-[10px] font-medium", status.className)}>
                         {status.label}
@@ -289,21 +306,13 @@ export function TeachersTable({
         </Table>
       </div>
 
-      {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
-          </p>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 0} onClick={() => setPage(page - 1)}>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <span className="text-xs text-muted-foreground px-2">{page + 1} / {totalPages}</span>
-            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
+      {!isLoading && filtered.length > 0 && (
+        <TablePagination
+          page={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(0); window.localStorage.setItem(PAGE_SIZE_KEY, String(s)); }}
+          itemLabel="profesores"
+        />
       )}
     </div>
   );

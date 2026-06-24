@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, ChevronLeft, ChevronRight, GraduationCap, Loader2, ArrowUpDown, ChevronUp, ChevronDown, List } from "lucide-react";
+import { Eye, ChevronLeft, ChevronRight, GraduationCap, Loader2, ArrowUpDown, ChevronUp, ChevronDown, List } from "lucide-react";
+import { TableToolbar } from "@/components/tables/TableToolbar";
+import { TablePagination, readPageSize } from "@/components/tables/TablePagination";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -21,9 +23,11 @@ const STATUS_CONFIG: Record<EnrollmentStatus, { label: string; className: string
   cancelled: { label: "Cancelada", className: "bg-muted text-muted-foreground border-border" },
 };
 
-const PAGE_SIZE = 8;
 const PAGE_PREFS_KEY = "enrollments-table-page";
+const PAGE_SIZE_KEY = "enrollments-table-page-size";
 const CLASSES_VIEW_KEY = "enrollments-table-classes-view";
+const COLUMN_KEY = "enrollments-table-columns";
+const DEFAULT_COLS_ENR = { paymentMethod: true, date: true };
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   cash: "Efectivo",
@@ -61,6 +65,11 @@ interface EnrollmentsTableProps {
 export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail }: EnrollmentsTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [pageSize, setPageSize] = useState(() => readPageSize(PAGE_SIZE_KEY));
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    try { const r = window.localStorage.getItem(COLUMN_KEY); return r ? JSON.parse(r) as Record<string, boolean> : DEFAULT_COLS_ENR; } catch { return DEFAULT_COLS_ENR; }
+  });
   const [classesView, setClassesView] = useState<"count" | "list">(() => {
     return (window.localStorage.getItem(CLASSES_VIEW_KEY) as "count" | "list") ?? "count";
   });
@@ -126,8 +135,8 @@ export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail 
     return rows;
   }, [filtered, sortKey, sortDirection]);
 
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(sorted.length / pageSize);
+  const paginated = sorted.slice(page * pageSize, (page + 1) * pageSize);
 
   useEffect(() => {
     window.localStorage.setItem(PAGE_PREFS_KEY, String(page));
@@ -179,39 +188,43 @@ export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail 
   }, [enrollments]);
 
   return (
-    <div className="space-y-4">
-      {/* Quick stats */}
-      <div className="flex flex-wrap gap-2">
-        {(Object.keys(STATUS_CONFIG) as EnrollmentStatus[]).map((status) => {
-          const config = STATUS_CONFIG[status];
-          return (
-            <button
-              key={status}
-              onClick={() => { setStatusFilter(statusFilter === status ? "all" : status); setPage(0); }}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border transition-colors",
-                statusFilter === status ? config.className : "border-border text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {config.label}
-              <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-background/50 px-1 text-[10px]">
-                {counts[status]}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+    <div className="space-y-3">
+      <TableToolbar
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setPage(0); }}
+        searchPlaceholder="Buscar por nombre o email..."
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+        activeFilterCount={statusFilter !== "all" ? 1 : 0}
+        columns={[{ key: "paymentMethod", label: "Método de pago" }, { key: "date", label: "Fecha" }]}
+        visibleColumns={visibleColumns}
+        onColumnToggle={(key, v) => { const n = { ...visibleColumns, [key]: v }; setVisibleColumns(n); window.localStorage.setItem(COLUMN_KEY, JSON.stringify(n)); }}
+      />
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nombre o email..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          className="pl-9 h-9 text-sm"
-        />
-      </div>
+      {filtersOpen && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
+          {/* Quick stats chips */}
+          <div className="flex flex-wrap gap-1.5">
+            {(Object.keys(STATUS_CONFIG) as EnrollmentStatus[]).map((status) => {
+              const cfg = STATUS_CONFIG[status];
+              return (
+                <button
+                  key={status}
+                  onClick={() => { setStatusFilter(statusFilter === status ? "all" : status); setPage(0); }}
+                  className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-colors",
+                    statusFilter === status ? cfg.className : "border-border text-muted-foreground hover:text-foreground")}
+                >
+                  {cfg.label}
+                  <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-background/50 px-1 text-[10px]">{counts[status]}</span>
+                </button>
+              );
+            })}
+          </div>
+          {statusFilter !== "all" && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => { setStatusFilter("all"); setPage(0); }}>Limpiar</Button>
+          )}
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
@@ -226,8 +239,8 @@ export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail 
                 </button>
               </TableHead>
               {renderSortableHead("Total", "total", undefined, "right")}
-              {renderSortableHead("Método de Pago", "paymentMethod", "hidden md:table-cell")}
-              {renderSortableHead("Fecha", "date", "hidden lg:table-cell")}
+              {visibleColumns.paymentMethod !== false && renderSortableHead("Método de Pago", "paymentMethod", "hidden md:table-cell")}
+              {visibleColumns.date !== false && renderSortableHead("Fecha", "date", "hidden lg:table-cell")}
               {renderSortableHead("Estado", "status", undefined, "center")}
               <TableHead className="text-xs text-right">Acciones</TableHead>
             </TableRow>
@@ -252,7 +265,7 @@ export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail 
               paginated.map((enrollment) => {
                 const statusCfg = STATUS_CONFIG[enrollment.status];
                 return (
-                  <TableRow key={enrollment.id} className="cursor-pointer" onClick={() => onViewDetail(enrollment)}>
+                  <TableRow key={enrollment.id} className="cursor-pointer hover:bg-accent/50 even:bg-muted/20" onClick={() => onViewDetail(enrollment)}>
                     <TableCell>
                       <div>
                         <p className="text-sm font-medium text-foreground">{enrollment.studentName}</p>
@@ -281,10 +294,8 @@ export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail 
                       )}
                     </TableCell>
                     <TableCell className="text-right text-sm font-semibold text-foreground">€{enrollment.totalPrice}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{formatPaymentMethod(enrollment.paymentMethod)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
-                      {format(new Date(enrollment.date), "d MMM yyyy", { locale: es })}
-                    </TableCell>
+                    {visibleColumns.paymentMethod !== false && <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{formatPaymentMethod(enrollment.paymentMethod)}</TableCell>}
+                    {visibleColumns.date !== false && <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{format(new Date(enrollment.date), "d MMM yyyy", { locale: es })}</TableCell>}
                     <TableCell className="text-center">
                       <Badge variant="outline" className={cn("text-[10px] font-medium", statusCfg.className)}>
                         {statusCfg.label}
@@ -305,45 +316,13 @@ export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail 
         </Table>
       </div>
 
-      {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
-          </p>
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7"
-                  aria-label="Página anterior"
-                  disabled={page === 0}
-                  onClick={() => setPage(page - 1)}
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Página anterior</TooltipContent>
-            </Tooltip>
-            <span className="text-xs text-muted-foreground px-2">{page + 1} / {totalPages}</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7"
-                  aria-label="Página siguiente"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage(page + 1)}
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Página siguiente</TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
+      {!isLoading && filtered.length > 0 && (
+        <TablePagination
+          page={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(0); window.localStorage.setItem(PAGE_SIZE_KEY, String(s)); }}
+          itemLabel="matrículas"
+        />
       )}
     </div>
   );
