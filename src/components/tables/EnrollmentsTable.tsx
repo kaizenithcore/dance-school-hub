@@ -265,7 +265,7 @@ export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail 
               paginated.map((enrollment, rowIdx) => {
                 const statusCfg = STATUS_CONFIG[enrollment.status];
                 return (
-                  <TableRow key={enrollment.id} className={cn("cursor-pointer hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted/20")} onClick={() => onViewDetail(enrollment)}>
+                  <TableRow key={enrollment.id} className={cn("cursor-pointer hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted")} onClick={() => onViewDetail(enrollment)}>
                     <TableCell>
                       <div>
                         <p className="text-sm font-medium text-foreground">{enrollment.studentName}</p>

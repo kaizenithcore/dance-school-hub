@@ -439,7 +439,7 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
                 const status = STATUS_MAP[student.status];
                 const monthlyTotal = getMonthlyTotal(student);
                 return (
-                  <TableRow key={student.id} className={cn("cursor-pointer hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted/20")} onClick={() => onViewProfile(student)}>
+                  <TableRow key={student.id} className={cn("cursor-pointer hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted")} onClick={() => onViewProfile(student)}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs font-semibold">

@@ -237,7 +237,7 @@ export function ClassesTable({ classes, isLoading = false, onPreview, onEdit, on
                 const scheduled = cls.scheduledCount || 0;
                 const remaining = Math.max(targetFrequency - scheduled, 0);
                 return (
-                  <TableRow key={cls.id} className={cn("hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted/20")}>
+                  <TableRow key={cls.id} className={cn("hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted")}>
                     <TableCell>
                       <div>
                         <p className="text-sm font-medium text-foreground">{cls.name}</p>

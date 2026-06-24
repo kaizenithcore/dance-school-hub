@@ -659,23 +659,12 @@ export function BillingShell() {
                 })}
               </div>
 
-              {/* Payment method */}
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Método de pago</p>
-                <div className="grid grid-cols-3 gap-2">
-                  <button type="button" onClick={() => setCheckoutPaymentMethod("card")}
-                    className={`rounded-lg border py-2 text-xs font-medium transition ${checkoutPaymentMethod === "card" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-                    Tarjeta
-                  </button>
-                  <button type="button" onClick={() => setCheckoutPaymentMethod("sepa")}
-                    className={`rounded-lg border py-2 text-xs font-medium transition ${checkoutPaymentMethod === "sepa" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-                    SEPA
-                  </button>
-                  <button type="button" onClick={() => setCheckoutPaymentMethod("transfer")}
-                    className={`rounded-lg border py-2 text-xs font-medium transition ${checkoutPaymentMethod === "transfer" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-                    Transferencia
-                  </button>
-                </div>
+              {/* Payment — Stripe only */}
+              <div className="flex items-center gap-2.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+                <svg viewBox="0 0 60 25" className="h-4 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Stripe">
+                  <path d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a10.77 10.77 0 01-4.56.94c-4.01 0-6.83-2.5-6.83-7.48 0-4.19 2.39-7.52 6.3-7.52 3.92 0 5.96 3.28 5.96 7.5 0 .4-.04 1.25-.06 1.64zm-5.92-5.15c-1.03 0-2.17.73-2.17 2.58h4.25c0-1.85-1.07-2.58-2.08-2.58zM40.95 20.14c-2.01 0-3.3-.94-4.12-1.61l-.02 7.33-4.19.89V5.53h3.7l.24 1.59c.82-.94 2.19-1.97 4.36-1.97 3.94 0 6.67 3.29 6.67 7.48 0 4.71-2.68 7.51-6.64 7.51zm-1.15-11.47c-1.25 0-2.01.52-2.52 1.19l.03 5.92c.49.56 1.24 1.12 2.49 1.12 1.93 0 3.24-2.11 3.24-4.12 0-2.06-1.35-4.11-3.24-4.11zM26.95 4.01c-1.42 0-2.38-1.02-2.38-2.3 0-1.28.97-2.3 2.38-2.3 1.42 0 2.38 1.02 2.38 2.3 0 1.28-.96 2.3-2.38 2.3zm-2.1 15.74V5.53h4.21v14.22h-4.21zM17.96 20.14c-1.85 0-3.96-.82-3.96-.82l.01-3.57s2.01.83 3.96.83c.81 0 1.39-.33 1.39-.94 0-1.83-5.56-1.14-5.56-5.92 0-2.78 2.17-4.59 5.36-4.59 1.54 0 3.09.42 3.09.42v3.5s-1.55-.41-3.09-.41c-.77 0-1.31.3-1.31.88 0 1.66 5.64.97 5.64 5.88 0 3.06-2.32 4.74-5.53 4.74zM7.48 20.14c-4.13 0-7.48-3.32-7.48-7.48 0-4.17 3.35-7.52 7.48-7.52 2.04 0 3.89.82 5.24 2.14l-2.68 2.93c-.72-.69-1.62-1.1-2.56-1.1-2.04 0-3.29 1.71-3.29 3.55 0 1.84 1.25 3.51 3.29 3.51.94 0 1.84-.41 2.56-1.1l2.68 2.93A7.34 7.34 0 017.48 20.14z" fill="currentColor"/>
+                </svg>
+                <p className="text-xs text-foreground font-medium">Pago seguro con Stripe — tarjeta</p>
               </div>
 
               {/* Stripe fallback */}

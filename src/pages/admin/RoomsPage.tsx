@@ -461,7 +461,7 @@ export default function RoomsPage() {
                 </TableRow>
               ) : (
                 paginated.map((room, rowIdx) => (
-                  <TableRow key={room.id} className={cn("hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted/20")}>
+                  <TableRow key={room.id} className={cn("hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted")}>
                     <TableCell className="font-medium text-sm">{room.name}</TableCell>
                     {visibleColumns.capacity !== false && <TableCell className="text-sm">{room.capacity}</TableCell>}
                     {visibleColumns.description !== false && <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{room.description || "—"}</TableCell>}

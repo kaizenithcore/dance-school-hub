@@ -229,7 +229,7 @@ export function TeachersTable({
               paginated.map((teacher, rowIdx) => {
                 const status = STATUS_MAP[teacher.status];
                 return (
-                  <TableRow key={teacher.id} className={cn("cursor-pointer hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted/20")} onClick={() => onViewProfile(teacher)}>
+                  <TableRow key={teacher.id} className={cn("cursor-pointer hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted")} onClick={() => onViewProfile(teacher)}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">

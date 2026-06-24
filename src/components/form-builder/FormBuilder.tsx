@@ -7,7 +7,7 @@ import { FormPreview } from "./FormPreview";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, CalendarDays, RotateCcw, Tags, LayoutGrid, Users, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
+import { Plus, CalendarDays, RotateCcw, Tags, LayoutGrid, Users, ChevronDown, ChevronUp, Settings2, Bookmark, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { FormBuilderField, FormBuilderSection, FieldType } from "@/lib/types/formBuilder";
@@ -23,12 +23,18 @@ const FORM_BUILDER_SAVE_RESULT_EVENT = "nexa:form-builder:save-result";
 export function FormBuilder() {
   const [config, setConfig] = useState<EnrollmentFormConfig>(getDefaultEnrollmentConfig);
   const [saving, setSaving] = useState(false);
-  // Collapsible panels state
-  const [scheduleOpen, setScheduleOpen] = useState(true);
-  const [pricingOpen, setPricingOpen] = useState(false);
+  // Panel state — only the schedule config panel expands
   const [scheduleConfigOpen, setScheduleConfigOpen] = useState(false);
-  const [jointOpen, setJointOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Preset system
+  const [presets, setPresets] = useState<Array<{name: string; config: EnrollmentFormConfig; savedAt: string}>>(() => {
+    try {
+      const raw = window.localStorage.getItem("nexa:form-builder:presets");
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
+  const [presetName, setPresetName] = useState("");
+  const [presetsOpen, setPresetsOpen] = useState(false);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState(() => JSON.stringify(getDefaultEnrollmentConfig()));
   const [schoolStudentFields, setSchoolStudentFields] = useState<SchoolStudentField[]>([]);
 
@@ -224,6 +230,32 @@ export function FormBuilder() {
     toast.info("Formulario restaurado a valores por defecto");
   };
 
+  const savePreset = () => {
+    const name = presetName.trim();
+    if (!name) { toast.error("Escribe un nombre para el preset"); return; }
+    const next = [
+      { name, config: JSON.parse(JSON.stringify(config)) as EnrollmentFormConfig, savedAt: new Date().toISOString() },
+      ...presets.filter((p) => p.name !== name),
+    ];
+    setPresets(next);
+    window.localStorage.setItem("nexa:form-builder:presets", JSON.stringify(next));
+    setPresetName("");
+    toast.success(`Preset "${name}" guardado`);
+  };
+
+  const loadPreset = (preset: typeof presets[number]) => {
+    setConfig(preset.config);
+    setPresetsOpen(false);
+    toast.success(`Preset "${preset.name}" cargado`);
+  };
+
+  const deletePreset = (name: string) => {
+    const next = presets.filter((p) => p.name !== name);
+    setPresets(next);
+    window.localStorage.setItem("nexa:form-builder:presets", JSON.stringify(next));
+    toast.info(`Preset "${name}" eliminado`);
+  };
+
   const sectionIndexForStudentData = useMemo(() => {
     const byId = config.sections.findIndex((section) => section.id.toLowerCase().includes("student"));
     if (byId >= 0) return byId;
@@ -379,19 +411,62 @@ export function FormBuilder() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 ml-auto">
-          {hasUnsavedChanges && (
-            <span className="text-xs font-medium text-warning">Cambios sin guardar</span>
+      <div className="flex flex-wrap items-center gap-2">
+        {hasUnsavedChanges && (
+          <span className="text-xs font-medium text-warning">Cambios sin guardar</span>
+        )}
+        {/* Preset system */}
+        <div className="relative ml-auto">
+          <Button variant="outline" size="sm" onClick={() => setPresetsOpen((v) => !v)}>
+            <Bookmark className="h-3.5 w-3.5 mr-1.5" />
+            Presets{presets.length > 0 && ` (${presets.length})`}
+            <ChevronDown className="ml-1.5 h-3 w-3" />
+          </Button>
+          {presetsOpen && (
+            <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-xl border border-border bg-card shadow-xl p-3 space-y-3">
+              {/* Save current as preset */}
+              <div className="flex gap-2">
+                <input
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && savePreset()}
+                  placeholder="Nombre del preset..."
+                  className="flex-1 h-8 rounded-md border border-border bg-background px-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <Button size="sm" className="h-8 text-xs" onClick={savePreset}>
+                  Guardar
+                </Button>
+              </div>
+              {/* Preset list */}
+              {presets.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">Sin presets guardados</p>
+              ) : (
+                <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                  {presets.map((p) => (
+                    <div key={p.name} className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-2 hover:bg-accent/50 transition-colors">
+                      <button type="button" onClick={() => loadPreset(p)} className="flex-1 text-left">
+                        <p className="text-xs font-medium text-foreground">{p.name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(p.savedAt).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </button>
+                      <button type="button" onClick={() => deletePreset(p.name)} className="text-muted-foreground hover:text-destructive transition-colors p-1">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
-          <Button variant="outline" size="sm" onClick={handleReset}>
-            <RotateCcw className="h-3.5 w-3.5 mr-1" />
-            Restaurar
-          </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving}>
-            Guardar formulario
-          </Button>
         </div>
+        <Button variant="outline" size="sm" onClick={handleReset}>
+          <RotateCcw className="h-3.5 w-3.5 mr-1" />
+          Restaurar
+        </Button>
+        <Button size="sm" onClick={handleSave} disabled={saving}>
+          Guardar formulario
+        </Button>
       </div>
 
       {/* Side-by-side layout */}
@@ -400,45 +475,102 @@ export function FormBuilder() {
         <div className="flex-1 min-w-0 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">Opciones del formulario</p>
 
-          <div className="rounded-xl border border-dashed border-border overflow-hidden space-y-3 p-4">
-            {/* 1. Schedule toggle */}
-          <CollapsiblePanel
-            icon={CalendarDays}
-            title="Selección de Clases por Horario"
-            description="Muestra el horario semanal para que los alumnos elijan sus clases"
-            open={scheduleOpen}
-            onToggle={() => setScheduleOpen((v) => !v)}
-            rightSlot={
+          {/* 4 options in a single flex row */}
+          <div className="flex flex-wrap gap-2">
+            {/* 1. Selección de clases — toggle only */}
+            <button
+              type="button"
+              onClick={() => setConfig({ ...config, includeSchedule: !config.includeSchedule })}
+              className={cn(
+                "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                config.includeSchedule
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
+              )}
+            >
+              <CalendarDays className="h-4 w-4 shrink-0" />
+              <span className="text-xs">Clases por horario</span>
               <Switch
                 checked={config.includeSchedule}
-                onCheckedChange={(checked) => setConfig({ ...config, includeSchedule: checked })}
+                onCheckedChange={(checked) => { setConfig({ ...config, includeSchedule: checked }); }}
+                onClick={(e) => e.stopPropagation()}
+                className="scale-75 origin-right"
               />
-            }
-          />
+            </button>
 
-          {/* 2. Pricing toggle */}
-          <CollapsiblePanel
-            icon={Tags}
-            title="Mostrar Tarifas y Bonos"
-            description="Muestra el precio dinámico al seleccionar clases"
-            open={pricingOpen}
-            onToggle={() => setPricingOpen((v) => !v)}
-            rightSlot={
+            {/* 2. Tarifas — toggle only */}
+            <button
+              type="button"
+              onClick={() => setConfig({ ...config, includePricing: !(config.includePricing ?? true) })}
+              className={cn(
+                "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                (config.includePricing ?? true)
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
+              )}
+            >
+              <Tags className="h-4 w-4 shrink-0" />
+              <span className="text-xs">Tarifas y bonos</span>
               <Switch
                 checked={config.includePricing ?? true}
-                onCheckedChange={(checked) => setConfig({ ...config, includePricing: checked })}
+                onCheckedChange={(checked) => { setConfig({ ...config, includePricing: checked }); }}
+                onClick={(e) => e.stopPropagation()}
+                className="scale-75 origin-right"
               />
-            }
-          />
+            </button>
 
-          {/* 3. Schedule config */}
-          <CollapsiblePanel
-            icon={LayoutGrid}
-            title="Configuración del horario"
-            description="Vista preferida, selección recurrente y campos visibles"
-            open={scheduleConfigOpen}
-            onToggle={() => setScheduleConfigOpen((v) => !v)}
-          >
+            {/* 3. Matrícula conjunta — toggle only (maxStudents inline when enabled) */}
+            <button
+              type="button"
+              onClick={() => setConfig({ ...config, jointEnrollment: { ...config.jointEnrollment, enabled: !config.jointEnrollment?.enabled } })}
+              className={cn(
+                "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                config.jointEnrollment?.enabled
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
+              )}
+            >
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="text-xs">Matrícula conjunta</span>
+              {config.jointEnrollment?.enabled && (
+                <span className="text-[10px] text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+                  · máx{" "}
+                  <input
+                    type="number" min={2} max={20}
+                    value={config.jointEnrollment?.maxStudents ?? 5}
+                    onChange={(e) => setConfig({ ...config, jointEnrollment: { ...config.jointEnrollment, maxStudents: Math.max(2, Math.min(20, parseInt(e.target.value) || 2)) } })}
+                    className="w-10 h-5 rounded border border-border bg-background text-center text-[10px] px-1 inline-block"
+                  />
+                </span>
+              )}
+              <Switch
+                checked={Boolean(config.jointEnrollment?.enabled)}
+                onCheckedChange={(checked) => { setConfig({ ...config, jointEnrollment: { ...config.jointEnrollment, enabled: checked } }); }}
+                onClick={(e) => e.stopPropagation()}
+                className="scale-75 origin-right"
+              />
+            </button>
+
+            {/* 4. Configuración del horario — expandable (last) */}
+            <button
+              type="button"
+              onClick={() => setScheduleConfigOpen((v) => !v)}
+              className={cn(
+                "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                scheduleConfigOpen
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
+              )}
+            >
+              <LayoutGrid className="h-4 w-4 shrink-0" />
+              <span className="text-xs">Configuración del horario</span>
+              {scheduleConfigOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+          </div>
+
+          {/* Configuración del horario — expanded panel */}
+          {scheduleConfigOpen && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-4">
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
@@ -490,22 +622,8 @@ export function FormBuilder() {
                 </div>
               </div>
             </div>
-          </CollapsiblePanel>
-
-          {/* 4. Joint enrollment */}
-          <CollapsiblePanel
-            icon={Users}
-            title="Matrícula conjunta"
-            description="Permite inscribir a varios alumnos en el mismo formulario"
-            open={jointOpen}
-            onToggle={() => setJointOpen((v) => !v)}
-          >
-            <JointEnrollmentSettings
-              config={config.jointEnrollment}
-              onChange={(jointEnrollment) => setConfig({ ...config, jointEnrollment })}
-            />
-          </CollapsiblePanel>
-          </div>
+            </div>
+          )}
 
           {/* Advanced */}
           <div className="rounded-xl border border-dashed border-border overflow-hidden">
