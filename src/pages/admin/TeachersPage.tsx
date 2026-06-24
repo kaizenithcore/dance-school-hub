@@ -356,28 +356,12 @@ export default function TeachersPage() {
   return (
     <PageContainer
       title="Profesores"
-      description="Equipo docente ordenado, disponible y bien asignado"
       actions={
         <Button size="sm" onClick={handleCreate}>
           <Plus className="h-4 w-4 mr-1" /> Añadir profesor
         </Button>
       }
     >
-      <div className="grid gap-2 sm:grid-cols-3">
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Profesores activos</p>
-          <p className="text-lg font-semibold text-foreground">{activeTeachers}</p>
-        </div>
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Clases asignadas</p>
-          <p className="text-lg font-semibold text-foreground">{totalAssignedClasses}</p>
-        </div>
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Cobertura catálogo</p>
-          <p className="text-lg font-semibold text-foreground">{classesCatalog.length}</p>
-        </div>
-      </div>
-
       <TeachersTable
         teachers={teachers}
         isLoading={loading}
@@ -398,6 +382,7 @@ export default function TeachersPage() {
         onOpenChange={setFormOpen}
         teacher={editingTeacher}
         onSave={handleSave}
+        onManageClasses={(teacher) => { setFormOpen(false); handleEditClasses(teacher); }}
       />
 
       <DeleteTeacherModal

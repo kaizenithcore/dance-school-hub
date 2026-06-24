@@ -219,11 +219,11 @@ export default function ClassesPage() {
         </>
       ) : (
         <>
-          <ScheduleInsightsPanel insights={scheduleInsights} loading={scheduleInsightsLoading} />
           <ScheduleEditor
             key={scheduleEditorVersion}
             onSaved={() => setScheduleEditorVersion((v) => v + 1)}
           />
+          <ScheduleInsightsPanel insights={scheduleInsights} loading={scheduleInsightsLoading} />
         </>
       )}
     </PageContainer>

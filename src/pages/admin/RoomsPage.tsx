@@ -381,27 +381,12 @@ export default function RoomsPage() {
   return (
     <PageContainer
       title="Aulas"
-      description="Espacios listos para operar clases sin fricción"
       actions={
         <Button size="sm" onClick={openCreate}>
           <Plus className="mr-1 h-4 w-4" /> Nueva aula
         </Button>
       }
     >
-      <div className="mb-4 grid gap-2 sm:grid-cols-3">
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Aulas activas</p>
-          <p className="text-lg font-semibold text-foreground">{activeCount}</p>
-        </div>
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Aulas totales</p>
-          <p className="text-lg font-semibold text-foreground">{rooms.length}</p>
-        </div>
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Capacidad total</p>
-          <p className="text-lg font-semibold text-foreground">{totalCapacity}</p>
-        </div>
-      </div>
 
       <div className="space-y-3">
         <TableToolbar
@@ -466,7 +451,14 @@ export default function RoomsPage() {
                     {visibleColumns.capacity !== false && <TableCell className="text-sm">{room.capacity}</TableCell>}
                     {visibleColumns.description !== false && <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{room.description || "—"}</TableCell>}
                     <TableCell>
-                      <Badge variant={room.isActive ? "default" : "secondary"} className="text-[10px]">
+                      <Badge
+                        variant="outline"
+                        className={cn("text-[10px] font-medium",
+                          room.isActive
+                            ? "bg-success/15 text-success border-success/20"
+                            : "bg-muted text-muted-foreground border-border"
+                        )}
+                      >
                         {room.isActive ? "Activa" : "Inactiva"}
                       </Badge>
                     </TableCell>

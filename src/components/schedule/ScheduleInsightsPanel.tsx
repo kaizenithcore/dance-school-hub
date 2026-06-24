@@ -40,7 +40,7 @@ export function ScheduleInsightsPanel({
   compact = false,
   onViewSchedule,
 }: ScheduleInsightsPanelProps) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   if (loading) {
     return (

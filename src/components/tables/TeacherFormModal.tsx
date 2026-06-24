@@ -1,20 +1,22 @@
 import { useCallback, useState, useEffect } from "react";
 import { TeacherRecord } from "@/lib/data/mockTeachers";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Book } from "lucide-react";
 
 interface TeacherFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   teacher: TeacherRecord | null;
   onSave: (data: Omit<TeacherRecord, "id">) => Promise<boolean>;
+  onManageClasses?: (teacher: TeacherRecord) => void;
 }
 
-export function TeacherFormModal({ open, onOpenChange, teacher, onSave }: TeacherFormModalProps) {
+export function TeacherFormModal({ open, onOpenChange, teacher, onSave, onManageClasses }: TeacherFormModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<Omit<TeacherRecord, "id">>({
     name: "",
@@ -163,6 +165,25 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave }: Teache
           </div>
 
           <div>
+            <Label htmlFor="status" className="text-xs font-semibold">
+              Estado
+            </Label>
+            <Select
+              value={formData.status}
+              onValueChange={(v) => setFormData({ ...formData, status: v as "active" | "inactive" })}
+              disabled={isLoading}
+            >
+              <SelectTrigger id="status" className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Activo</SelectItem>
+                <SelectItem value="inactive">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label htmlFor="bio" className="text-xs font-semibold">
               Biografía
             </Label>
@@ -192,20 +213,27 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave }: Teache
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+            {teacher && onManageClasses && (
+              <Button
+                type="button"
+                variant="outline"
+                className="sm:mr-auto"
+                onClick={() => { onOpenChange(false); onManageClasses(teacher); }}
+                disabled={isLoading}
+              >
+                <Book className="h-3.5 w-3.5 mr-1.5" />
+                Gestionar clases
+              </Button>
+            )}
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {teacher ? "Actualizar" : "Crear"}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

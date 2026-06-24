@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Eye, Pencil, Trash2, ChevronLeft, ChevronRight, Book, DollarSign, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Eye, Pencil, Trash2, ChevronLeft, ChevronRight, Book, DollarSign, Loader2, ArrowUpDown, ChevronUp, ChevronDown, List } from "lucide-react";
 import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TablePagination, readPageSize } from "@/components/tables/TablePagination";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ const PAGE_PREFS_KEY = "teachers-table-page";
 const PAGE_SIZE_KEY = "teachers-table-page-size";
 const COLUMN_KEY = "teachers-table-columns";
 const DEFAULT_COLS = { email: true, phone: true, salary: true };
+const CLASSES_VIEW_KEY = "teachers-table-classes-view";
 
 function teacherSalaryValue(teacher: TeacherRecord): number {
   return Number((teacher as { salay?: number; aulary?: number }).salay ?? (teacher as { salay?: number; aulary?: number }).aulary ?? 0) || 0;
@@ -51,6 +52,9 @@ export function TeachersTable({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [pageSize, setPageSize] = useState(() => readPageSize(PAGE_SIZE_KEY));
+  const [classesView, setClassesView] = useState<"count" | "list">(() =>
+    (window.localStorage.getItem(CLASSES_VIEW_KEY) as "count" | "list") ?? "count"
+  );
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
     try { const r = window.localStorage.getItem(COLUMN_KEY); return r ? JSON.parse(r) as Record<string, boolean> : DEFAULT_COLS; } catch { return DEFAULT_COLS; }
   });
@@ -203,7 +207,14 @@ export function TeachersTable({
               {renderSortableHead("Nombre", "name")}
               {visibleColumns.email !== false && renderSortableHead("Email", "email", "hidden md:table-cell")}
               {visibleColumns.phone !== false && renderSortableHead("Teléfono", "phone", "hidden lg:table-cell")}
-              {renderSortableHead("Clases", "classes", undefined, "center")}
+              <TableHead className="text-xs text-center">
+                <button type="button"
+                  onClick={() => { const n = classesView === "count" ? "list" : "count"; setClassesView(n); window.localStorage.setItem(CLASSES_VIEW_KEY, n); }}
+                  className="inline-flex items-center gap-1 hover:text-foreground text-muted-foreground transition-colors"
+                  title={classesView === "count" ? "Mostrar nombres de clases" : "Mostrar total de clases"}>
+                  Clases <List className="h-3 w-3" />
+                </button>
+              </TableHead>
               {visibleColumns.salary !== false && renderSortableHead("Salario", "salary", undefined, "right")}
               {renderSortableHead("Estado", "status", undefined, "center")}
               <TableHead className="text-xs text-right">Acciones</TableHead>
@@ -229,7 +240,7 @@ export function TeachersTable({
               paginated.map((teacher, rowIdx) => {
                 const status = STATUS_MAP[teacher.status];
                 return (
-                  <TableRow key={teacher.id} className={cn("cursor-pointer hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted")} onClick={() => onViewProfile(teacher)}>
+                  <TableRow key={teacher.id} className={cn("cursor-pointer hover:bg-accent/50", rowIdx % 2 !== 0 && "bg-muted/20")} onClick={() => onViewProfile(teacher)}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
@@ -243,11 +254,24 @@ export function TeachersTable({
                     </TableCell>
                     {visibleColumns.email !== false && <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{teacher.email}</TableCell>}
                     {visibleColumns.phone !== false && <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{teacher.phone}</TableCell>}
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Book className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm text-foreground font-medium">{teacher.assignedClasses.length}</span>
-                      </div>
+                    <TableCell className={classesView === "list" ? "max-w-[200px]" : "text-center"}>
+                      {classesView === "count" ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <Book className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm text-foreground font-medium">{teacher.assignedClasses.length}</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-0.5">
+                          {teacher.assignedClasses.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">Sin clases</span>
+                          ) : teacher.assignedClasses.slice(0, 3).map((cls) => (
+                            <p key={cls.id} className="text-xs text-foreground leading-snug truncate">{cls.name}</p>
+                          ))}
+                          {teacher.assignedClasses.length > 3 && (
+                            <p className="text-[10px] text-muted-foreground">+{teacher.assignedClasses.length - 3} más</p>
+                          )}
+                        </div>
+                      )}
                     </TableCell>
                     {visibleColumns.salary !== false && (
                       <TableCell className="text-right">
@@ -271,14 +295,6 @@ export function TeachersTable({
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side="bottom"><p>Ver perfil</p></TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEditClasses(teacher)}>
-                              <Book className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom"><p>Editar clases</p></TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
