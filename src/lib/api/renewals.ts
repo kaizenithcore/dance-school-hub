@@ -96,3 +96,35 @@ export async function updateRenewalOffer(payload: {
 
   return response.data;
 }
+
+export async function sendRenewalNotifications(payload: {
+  campaignId: string;
+  offerIds?: string[];
+  scheduledAt?: string;
+}): Promise<{ sent: number; failed: number; skipped: number; scheduledAt?: string }> {
+  const response = await apiRequest<{ sent: number; failed: number; skipped: number; scheduledAt?: string }>(
+    "/api/admin/renewals/notify",
+    { method: "POST", body: JSON.stringify(payload) }
+  );
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || "No se pudieron enviar las notificaciones");
+  }
+  return response.data;
+}
+
+export async function respondToRenewalOffer(payload: {
+  offerId: string;
+  action: "confirm" | "reject";
+}): Promise<{ studentName: string; status: string }> {
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const response = await fetch(`${apiUrl}/api/public/renewals/respond`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error((body as { error?: { message?: string } })?.error?.message || "No se pudo procesar la respuesta");
+  }
+  return response.json() as Promise<{ studentName: string; status: string }>;
+}

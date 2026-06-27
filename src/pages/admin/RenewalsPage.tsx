@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Mail, Calendar, CheckCircle2, XCircle, Clock, Send } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { ModuleHelpShortcut } from "@/components/layout/ModuleHelpShortcut";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { cn } from "@/lib/utils";
 import {
   createRenewalCampaign,
   getRenewalCampaigns,
   getRenewalOffers,
+  sendRenewalNotifications,
   updateRenewalOffer,
   type RenewalCampaign,
   type RenewalOffer,
@@ -25,586 +25,405 @@ import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
 import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
 
-const OFFER_STATUS_FILTERS: Array<{ value: "all" | RenewalOfferStatus; label: string }> = [
-  { value: "all", label: "Todas" },
-  { value: "pending", label: "Pendientes" },
-  { value: "confirmed", label: "Confirmadas" },
-  { value: "changed", label: "Con cambios" },
-  { value: "released", label: "Liberadas" },
-];
-
-const OFFER_STATUS_LABELS: Record<RenewalOfferStatus, string> = {
-  pending: "Pendiente",
-  confirmed: "Confirmada",
-  changed: "Con cambios",
-  released: "Plaza liberada",
+const STATUS_MAP: Record<RenewalOfferStatus, { label: string; className: string; icon: React.ComponentType<{ className?: string }> }> = {
+  pending:   { label: "Pendiente",      className: "bg-amber-500/10 text-amber-700 border-amber-400/30 dark:text-amber-400", icon: Clock },
+  confirmed: { label: "Confirmada",     className: "bg-success/15 text-success border-success/20",                          icon: CheckCircle2 },
+  changed:   { label: "Con cambios",    className: "bg-primary/10 text-primary border-primary/20",                          icon: CheckCircle2 },
+  released:  { label: "No renueva",     className: "bg-muted text-muted-foreground border-border",                          icon: XCircle },
 };
 
-const RENEWALS_SELECTED_CAMPAIGN_KEY = "nexa:renewals:selected-campaign";
-const RENEWALS_STATUS_FILTER_KEY = "nexa:renewals:status-filter";
-const RENEWALS_CAMPAIGNS_CACHE_KEY = "nexa:renewals:campaigns-cache";
-
-function readStoredString(key: string): string {
-  if (typeof window === "undefined") return "";
-  return window.localStorage.getItem(key) || "";
+function getCurrentPeriod() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
-
-function readStoredStatusFilter(): "all" | RenewalOfferStatus {
-  const stored = readStoredString(RENEWALS_STATUS_FILTER_KEY);
-  return stored === "pending" || stored === "confirmed" || stored === "changed" || stored === "released" ? stored : "all";
+function getNextPeriod() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
 }
-
-function readStoredCampaignsCache(): RenewalCampaign[] {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const raw = window.localStorage.getItem(RENEWALS_CAMPAIGNS_CACHE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as RenewalCampaign[]) : [];
-  } catch {
-    return [];
-  }
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
 }
-
-function persistString(key: string, value: string): void {
-  if (typeof window === "undefined") return;
-
-  if (!value) {
-    window.localStorage.removeItem(key);
-    return;
-  }
-
-  window.localStorage.setItem(key, value);
-}
-
-function persistCampaignsCache(campaigns: RenewalCampaign[]): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(RENEWALS_CAMPAIGNS_CACHE_KEY, JSON.stringify(campaigns));
-}
-
-function isValidPeriodCode(value: string): boolean {
-  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+function formatDateTime(iso: string | null | undefined) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 export default function RenewalsPage() {
   const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
-  const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+  const renewalsLocked = !billingLoading && !billing.features.renewalAutomation;
+  const [lockOpen, setLockOpen] = useState(false);
+
+  // Data
+  const [campaigns, setCampaigns] = useState<RenewalCampaign[]>([]);
+  const [offers, setOffers] = useState<RenewalOffer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadingOffers, setLoadingOffers] = useState(false);
   const [mutating, setMutating] = useState(false);
-  const [lockOpen, setLockOpen] = useState(false);
-  const [campaignsError, setCampaignsError] = useState<string | null>(null);
-  const [offersError, setOffersError] = useState<string | null>(null);
-  const [campaigns, setCampaigns] = useState<RenewalCampaign[]>(() => readStoredCampaignsCache());
-  const [offers, setOffers] = useState<RenewalOffer[]>([]);
-  const [selectedCampaignId, setSelectedCampaignId] = useState(() => readStoredString(RENEWALS_SELECTED_CAMPAIGN_KEY));
-  const [statusFilter, setStatusFilter] = useState<"all" | RenewalOfferStatus>(() => readStoredStatusFilter());
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null); // offerId or "bulk"
 
-  const [campaignName, setCampaignName] = useState("");
-  const [fromPeriod, setFromPeriod] = useState("");
-  const [toPeriod, setToPeriod] = useState("");
+  // Setup form (new renewal)
   const [expiresAt, setExpiresAt] = useState("");
-  const [createError, setCreateError] = useState<string | null>(null);
-  const renewalsLocked = !billingLoading && !billing.features.renewalAutomation;
+  const [scheduleSendAt, setScheduleSendAt] = useState("");
+  const [showSchedule, setShowSchedule] = useState(false);
 
-  const campaignNameTrimmed = campaignName.trim();
-  const fromPeriodTrimmed = fromPeriod.trim();
-  const toPeriodTrimmed = toPeriod.trim();
+  // Filter
+  const [statusFilter, setStatusFilter] = useState<"all" | RenewalOfferStatus>("all");
 
-  const createValidationError = useMemo(() => {
-    if (!campaignNameTrimmed) {
-      return "El nombre de la campaña es obligatorio.";
-    }
-
-    if (!fromPeriodTrimmed || !toPeriodTrimmed) {
-      return "Periodo origen y periodo destino son obligatorios.";
-    }
-
-    if (!isValidPeriodCode(fromPeriodTrimmed) || !isValidPeriodCode(toPeriodTrimmed)) {
-      return "Usa formato AAAA-MM en ambos periodos.";
-    }
-
-    if (fromPeriodTrimmed === toPeriodTrimmed) {
-      return "El periodo destino debe ser distinto del periodo origen.";
-    }
-
-    if (fromPeriodTrimmed > toPeriodTrimmed) {
-      return "El periodo destino debe ser posterior al periodo origen.";
-    }
-
-    return null;
-  }, [campaignNameTrimmed, fromPeriodTrimmed, toPeriodTrimmed]);
-
-  const canCreateCampaign = !mutating && !loadingCampaigns && !renewalsLocked && !createValidationError;
-
-  const setCampaignsPersisted = (nextCampaigns: RenewalCampaign[]) => {
-    setCampaigns(nextCampaigns);
-    persistCampaignsCache(nextCampaigns);
-  };
-
-  const setSelectedCampaignIdPersisted = (campaignId: string) => {
-    setSelectedCampaignId(campaignId);
-    persistString(RENEWALS_SELECTED_CAMPAIGN_KEY, campaignId);
-  };
-
-  const selectedCampaign = useMemo(
-    () => campaigns.find((campaign) => campaign.id === selectedCampaignId) || null,
-    [campaigns, selectedCampaignId]
+  const activeCampaign = useMemo(
+    () => campaigns.find((c) => c.status === "active") ?? campaigns[0] ?? null,
+    [campaigns]
   );
 
-  const loadCampaigns = async () => {
-    setLoadingCampaigns(true);
-    setCampaignsError(null);
+  const filteredOffers = useMemo(() => {
+    if (statusFilter === "all") return offers;
+    return offers.filter((o) => o.status === statusFilter);
+  }, [offers, statusFilter]);
+
+  const counts = useMemo(() => ({
+    total:     offers.length,
+    pending:   offers.filter((o) => o.status === "pending").length,
+    confirmed: offers.filter((o) => o.status === "confirmed" || o.status === "changed").length,
+    released:  offers.filter((o) => o.status === "released").length,
+    emailSent: offers.filter((o) => !!(o.metadata as Record<string, unknown>)?.emailSentAt).length,
+  }), [offers]);
+
+  const load = async () => {
+    setLoading(true);
     try {
       const data = await getRenewalCampaigns();
-      setCampaignsPersisted(data);
-
-      setSelectedCampaignId((previous) => {
-        if (previous && data.some((campaign) => campaign.id === previous)) {
-          return previous;
-        }
-
-        const storedCampaignId = readStoredString(RENEWALS_SELECTED_CAMPAIGN_KEY);
-        if (storedCampaignId && data.some((campaign) => campaign.id === storedCampaignId)) {
-          return storedCampaignId;
-        }
-
-        return data[0]?.id || "";
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudieron cargar las campañas";
-      setCampaignsError(message);
-      toast.error(message);
-
-      const cached = readStoredCampaignsCache();
-      if (cached.length > 0) {
-        setCampaigns((previous) => previous.length > 0 ? previous : cached);
-        setSelectedCampaignId((previous) => {
-          if (previous && cached.some((campaign) => campaign.id === previous)) {
-            return previous;
-          }
-
-          const storedCampaignId = readStoredString(RENEWALS_SELECTED_CAMPAIGN_KEY);
-          if (storedCampaignId && cached.some((campaign) => campaign.id === storedCampaignId)) {
-            return storedCampaignId;
-          }
-
-          return cached[0]?.id || previous;
-        });
-      }
+      setCampaigns(data);
+      const active = data.find((c) => c.status === "active") ?? data[0];
+      if (active) await loadOffers(active.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo cargar la renovación");
     } finally {
-      setLoadingCampaigns(false);
+      setLoading(false);
     }
   };
 
-  const loadOffers = async (campaignId: string, filter: "all" | RenewalOfferStatus) => {
-    if (!campaignId) {
-      setOffers([]);
-      return;
-    }
-
+  const loadOffers = async (campaignId: string) => {
     setLoadingOffers(true);
-    setOffersError(null);
     try {
-      const data = await getRenewalOffers(campaignId, filter === "all" ? undefined : filter);
+      const data = await getRenewalOffers(campaignId);
       setOffers(data);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudieron cargar las ofertas";
-      setOffersError(message);
-      toast.error(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudieron cargar los alumnos");
     } finally {
       setLoadingOffers(false);
     }
   };
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!selectedCampaignId) {
-      window.localStorage.removeItem(RENEWALS_SELECTED_CAMPAIGN_KEY);
-      return;
-    }
-    window.localStorage.setItem(RENEWALS_SELECTED_CAMPAIGN_KEY, selectedCampaignId);
-  }, [selectedCampaignId]);
+  useEffect(() => { void load(); }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(RENEWALS_STATUS_FILTER_KEY, statusFilter);
-  }, [statusFilter]);
+  if (!isModuleVisible("renewals")) return <ModuleDisabledPage moduleKey="renewals" />;
 
-  useEffect(() => {
-    void loadCampaigns();
-  }, []);
-
-  useEffect(() => {
-    void loadOffers(selectedCampaignId, statusFilter);
-  }, [selectedCampaignId, statusFilter]);
-
-  useEffect(() => {
-    if (campaigns.length === 0) {
-      if (selectedCampaignId) {
-        setSelectedCampaignId("");
-      }
-      return;
-    }
-
-    if (selectedCampaignId && campaigns.some((campaign) => campaign.id === selectedCampaignId)) {
-      return;
-    }
-
-    const storedCampaignId = readStoredString(RENEWALS_SELECTED_CAMPAIGN_KEY);
-    if (storedCampaignId && campaigns.some((campaign) => campaign.id === storedCampaignId)) {
-      setSelectedCampaignId(storedCampaignId);
-      return;
-    }
-
-    setSelectedCampaignId(campaigns[0]?.id || "");
-  }, [campaigns, selectedCampaignId]);
-
-  if (!isModuleVisible("renewals")) {
-    return <ModuleDisabledPage moduleKey="renewals" />;
-  }
-
-  const handleCreateCampaign = async () => {
-    if (renewalsLocked) {
-      setLockOpen(true);
-      return;
-    }
-
-    if (createValidationError) {
-      setCreateError(createValidationError);
-      toast.error(createValidationError);
-      return;
-    }
-
+  const handleCreate = async () => {
+    if (renewalsLocked) { setLockOpen(true); return; }
     setMutating(true);
-    setCreateError(null);
     try {
+      const name = `Renovación ${getNextPeriod()}`;
       const result = await createRenewalCampaign({
-        name: campaignNameTrimmed,
-        fromPeriod: fromPeriodTrimmed,
-        toPeriod: toPeriodTrimmed,
+        name,
+        fromPeriod: getCurrentPeriod(),
+        toPeriod: getNextPeriod(),
         expiresAt: expiresAt || undefined,
       });
-
-      toast.success(`Campaña creada con ${result.offersCount} propuesta(s)`);
-      setCampaignName("");
-      setFromPeriod("");
-      setToPeriod("");
+      toast.success(`Renovación creada con ${result.offersCount} alumno(s)`);
       setExpiresAt("");
-
-      const refreshedCampaigns = await runWithRetry(async () => {
+      const refreshed = await runWithRetry(async () => {
         const data = await getRenewalCampaigns();
-        if (!data.some((campaign) => campaign.id === result.campaignId)) {
-          throw new Error("La campaña aún se está sincronizando");
-        }
+        if (!data.some((c) => c.id === result.campaignId)) throw new Error("Sincronizando…");
         return data;
-      }, { retries: 2, delayMs: 350 });
-
-      setCampaignsPersisted(refreshedCampaigns);
-      setSelectedCampaignIdPersisted(result.campaignId);
-      await loadOffers(result.campaignId, statusFilter);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo crear la campaña";
-      setCreateError(message);
-      toast.error(message);
+      }, { retries: 3, delayMs: 400 });
+      setCampaigns(refreshed);
+      await loadOffers(result.campaignId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo crear la renovación");
     } finally {
       setMutating(false);
     }
   };
 
   const handleOfferAction = async (offerId: string, action: "confirm" | "release") => {
-    if (renewalsLocked) {
-      setLockOpen(true);
-      return;
-    }
-
-    if (!selectedCampaignId) {
-      return;
-    }
-
+    if (!activeCampaign) return;
     setMutating(true);
     try {
-      await updateRenewalOffer({
-        campaignId: selectedCampaignId,
-        offerId,
-        action,
-      });
-      toast.success(action === "confirm" ? "Renovación confirmada" : "Plaza liberada");
-      await loadOffers(selectedCampaignId, statusFilter);
-      await loadCampaigns();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo actualizar la oferta");
+      await updateRenewalOffer({ campaignId: activeCampaign.id, offerId, action });
+      toast.success(action === "confirm" ? "Plaza confirmada" : "Plaza liberada");
+      await loadOffers(activeCampaign.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo actualizar");
     } finally {
       setMutating(false);
+    }
+  };
+
+  const handleSendEmail = async (offerId?: string) => {
+    if (!activeCampaign) return;
+    if (renewalsLocked) { setLockOpen(true); return; }
+    const key = offerId ?? "bulk";
+    setSendingEmail(key);
+    try {
+      const payload = {
+        campaignId: activeCampaign.id,
+        offerIds: offerId ? [offerId] : undefined,
+        scheduledAt: !offerId && showSchedule && scheduleSendAt ? scheduleSendAt : undefined,
+      };
+      const result = await sendRenewalNotifications(payload);
+      if (result.scheduledAt) {
+        toast.success(`Email programado para el ${formatDateTime(result.scheduledAt)}`);
+        setShowSchedule(false);
+        setScheduleSendAt("");
+      } else {
+        toast.success(`${result.sent} email(s) enviado(s)${result.failed ? `, ${result.failed} con error` : ""}${result.skipped ? `, ${result.skipped} sin email` : ""}`);
+      }
+      await loadOffers(activeCampaign.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo enviar el email");
+    } finally {
+      setSendingEmail(null);
     }
   };
 
   return (
     <PageContainer
       title="Renovación de alumnos"
-      description="Continuidad de alumnado con flujo claro y accionable"
       actions={
-        <>
-          <ModuleHelpShortcut module="renewals" />
-          <Button variant="outline" onClick={() => void loadCampaigns()} disabled={loadingCampaigns || loadingOffers || mutating}>
-            {loadingCampaigns ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span className="ml-2">Recargar</span>
-          </Button>
-        </>
+        <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading || loadingOffers}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          <span className="ml-2">Recargar</span>
+        </Button>
       }
     >
-      {renewalsLocked ? (
+      {renewalsLocked && (
         <UpgradeFeatureAlert
-          title="Renovaciones automáticas bloqueadas"
-          description={`Tu plan actual (${planLabel}) no incluye campañas automáticas de renovación. Mejora a Pro para activarlas.`}
+          title="Renovaciones automáticas — plan Pro"
+          description={`Tu plan actual (${planLabel}) no incluye renovaciones automáticas. Mejora a Pro para activarlas.`}
           onUpgrade={() => void startUpgrade("renewalAutomation")}
         />
-      ) : null}
+      )}
 
-      <div className="grid gap-2 sm:grid-cols-3">
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Campañas activas</p>
-          <p className="text-lg font-semibold text-foreground">{campaigns.length}</p>
-        </div>
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Propuestas visibles</p>
-          <p className="text-lg font-semibold text-foreground">{offers.length}</p>
-        </div>
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Filtro activo</p>
-          <p className="text-lg font-semibold text-foreground">{OFFER_STATUS_FILTERS.find((item) => item.value === statusFilter)?.label || "Todas"}</p>
-        </div>
-      </div>
+      <div className={renewalsLocked ? "pointer-events-none opacity-60 blur-[1px] space-y-4" : "space-y-4"}>
 
-      <div className={renewalsLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
-
-      {campaignsError && campaigns.length === 0 ? (
-        <Card>
-          <CardContent>
-            <EmptyState
-              type="error"
-              title="No se pudieron cargar campañas"
-              description={campaignsError}
-              actionLabel="Reintentar"
-              onAction={() => void loadCampaigns()}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Crear campaña</CardTitle>
-          <CardDescription>Genera propuestas para los alumnos activos del periodo origen.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-4">
-          <div className="space-y-2 md:col-span-2">
-            <Label>Nombre</Label>
-            <Input
-              value={campaignName}
-              onChange={(event) => {
-                setCampaignName(event.target.value);
-                if (createError) setCreateError(null);
-              }}
-              placeholder="Renovación abril"
-              aria-invalid={Boolean(createError || createValidationError) && !campaignNameTrimmed}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Periodo origen</Label>
-            <Input
-              value={fromPeriod}
-              onChange={(event) => {
-                setFromPeriod(event.target.value);
-                if (createError) setCreateError(null);
-              }}
-              placeholder="2026-03"
-              aria-invalid={Boolean(createError || createValidationError) && (!fromPeriodTrimmed || !isValidPeriodCode(fromPeriodTrimmed))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Periodo destino</Label>
-            <Input
-              value={toPeriod}
-              onChange={(event) => {
-                setToPeriod(event.target.value);
-                if (createError) setCreateError(null);
-              }}
-              placeholder="2026-04"
-              aria-invalid={Boolean(createError || createValidationError) && (!toPeriodTrimmed || !isValidPeriodCode(toPeriodTrimmed) || fromPeriodTrimmed >= toPeriodTrimmed)}
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Fecha límite (opcional)</Label>
-            <Input
-              type="datetime-local"
-              value={expiresAt}
-              onChange={(event) => setExpiresAt(event.target.value)}
-            />
-          </div>
-          <div className="md:col-span-2 flex items-end">
-            <Button onClick={handleCreateCampaign} disabled={!canCreateCampaign}>
-              {mutating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Crear campaña
-            </Button>
-          </div>
-          <div className="md:col-span-4">
-            {createError ? (
-              <p className="text-sm text-destructive">{createError}</p>
-            ) : createValidationError ? (
-              <p className="text-xs text-muted-foreground">{createValidationError}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">Listo para crear la campaña con validación completa.</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Campañas</CardTitle>
-          <CardDescription>Selecciona una campaña para gestionar sus propuestas.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2 md:col-span-2">
-            <Label>Campaña activa</Label>
-            <Select value={selectedCampaignId} onValueChange={setSelectedCampaignIdPersisted}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona una campaña" />
-              </SelectTrigger>
-              <SelectContent>
-                {campaigns.map((campaign) => (
-                  <SelectItem key={campaign.id} value={campaign.id}>
-                    {campaign.name} ({campaign.fromPeriod} a {campaign.toPeriod})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!loadingCampaigns && campaigns.length === 0 ? (
-              <div className="pt-2">
-                <EmptyState
-                  title="Aún no hay campañas"
-                  description="Crea la primera campaña para preparar propuestas de continuidad automáticamente."
+        {/* ── Setup: no active renewal yet ── */}
+        {!loading && !activeCampaign && (
+          <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Iniciar período de renovación</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Se generará una propuesta para cada alumno activo. Podrás enviarles un email con enlace de confirmación o rechazo.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 items-end">
+              <div className="space-y-1 flex-1">
+                <Label htmlFor="expires" className="text-xs font-semibold">Fecha límite de respuesta</Label>
+                <Input
+                  id="expires"
+                  type="datetime-local"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  className="h-9 text-sm"
                 />
               </div>
-            ) : null}
-          </div>
-          <div className="space-y-2">
-            <Label>Estado</Label>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | RenewalOfferStatus)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar" />
-              </SelectTrigger>
-              <SelectContent>
-                {OFFER_STATUS_FILTERS.map((filter) => (
-                  <SelectItem key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {selectedCampaign ? (
-            <div className="md:col-span-3 grid gap-3 sm:grid-cols-5 text-sm">
-              <div className="rounded-lg border p-3">
-                <div className="text-muted-foreground">Total</div>
-                <div className="text-xl font-semibold">{selectedCampaign.counts.total}</div>
-              </div>
-              <div className="rounded-lg border p-3">
-                <div className="text-muted-foreground">Pendientes</div>
-                <div className="text-xl font-semibold">{selectedCampaign.counts.pending}</div>
-              </div>
-              <div className="rounded-lg border p-3">
-                <div className="text-muted-foreground">Confirmadas</div>
-                <div className="text-xl font-semibold">{selectedCampaign.counts.confirmed}</div>
-              </div>
-              <div className="rounded-lg border p-3">
-                <div className="text-muted-foreground">Con cambios</div>
-                <div className="text-xl font-semibold">{selectedCampaign.counts.changed}</div>
-              </div>
-              <div className="rounded-lg border p-3">
-                <div className="text-muted-foreground">Liberadas</div>
-                <div className="text-xl font-semibold">{selectedCampaign.counts.released}</div>
-              </div>
+              <Button onClick={() => void handleCreate()} disabled={mutating} className="shrink-0">
+                {mutating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Calendar className="h-4 w-4 mr-2" />}
+                Iniciar renovación
+              </Button>
             </div>
-          ) : null}
-        </CardContent>
-      </Card>
+            <p className="text-xs text-muted-foreground">
+              El sistema tomará los alumnos del período actual ({getCurrentPeriod()}) y generará propuestas para el siguiente ({getNextPeriod()}).
+            </p>
+          </div>
+        )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Propuestas de renovación</CardTitle>
-          <CardDescription>
-            {offers.length === 0 ? "No hay propuestas para los filtros actuales." : `${offers.length} propuesta(s) en pantalla`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loadingOffers ? (
-            <div className="py-8 text-center text-muted-foreground">
-              <Loader2 className="mx-auto h-5 w-5 animate-spin" />
-            </div>
-          ) : offersError ? (
-            <EmptyState
-              type="error"
-              title="No se pudieron cargar propuestas"
-              description={offersError}
-              actionLabel="Reintentar"
-              onAction={() => void loadOffers(selectedCampaignId, statusFilter)}
-            />
-          ) : offers.length === 0 ? (
-            <EmptyState
-              title="Sin propuestas para este filtro"
-              description="Cambia el estado o selecciona otra campaña para recuperar resultados rápidamente."
-              actionLabel="Ver todas"
-              onAction={() => setStatusFilter("all")}
-            />
-          ) : (
-            <div className="space-y-3">
-              {offers.map((offer) => (
-                <div key={offer.id} className="rounded-lg border p-3">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="font-medium">{offer.studentName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {offer.studentEmail || "Sin email"} · estado: {OFFER_STATUS_LABELS[offer.status]}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Clases actuales: {offer.currentClassIds.length} · clases propuestas: {offer.proposedClassIds.length}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => void handleOfferAction(offer.id, "confirm")}
-                        disabled={mutating || loadingOffers || offer.status !== "pending"}
-                      >
-                        Confirmar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void handleOfferAction(offer.id, "release")}
-                        disabled={mutating || loadingOffers || offer.status === "released"}
-                      >
-                        Liberar plaza
-                      </Button>
-                    </div>
-                  </div>
+        {/* ── Active renewal ── */}
+        {activeCampaign && (
+          <>
+            {/* Stats inline + deadline */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 h-9 text-xs">
+                <span className="text-muted-foreground">{counts.total} alumnos</span>
+                <span className="text-border">·</span>
+                <span className="text-amber-600 font-medium">{counts.pending} pendientes</span>
+                <span className="text-border">·</span>
+                <span className="text-success font-medium">{counts.confirmed} confirmados</span>
+                <span className="text-border">·</span>
+                <span className="text-muted-foreground">{counts.released} no renuevan</span>
+              </div>
+              {activeCampaign.expiresAt && (
+                <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3 h-9 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  Límite: {formatDate(activeCampaign.expiresAt)}
                 </div>
+              )}
+              <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3 h-9 text-xs text-muted-foreground ml-auto">
+                <Mail className="h-3.5 w-3.5" />
+                {counts.emailSent} emails enviados
+              </div>
+            </div>
+
+            {/* Email actions panel */}
+            <div className="rounded-lg border border-border bg-card px-4 py-3 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium text-foreground flex-1">Notificar a alumnos</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowSchedule((s) => !s)}
+                >
+                  <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                  {showSchedule ? "Enviar ahora" : "Programar envío"}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => void handleSendEmail()}
+                  disabled={sendingEmail !== null || counts.pending === 0}
+                >
+                  {sendingEmail === "bulk" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1.5" />}
+                  {showSchedule ? "Programar" : `Enviar a ${counts.pending} pendiente(s)`}
+                </Button>
+              </div>
+
+              {showSchedule && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="datetime-local"
+                    value={scheduleSendAt}
+                    onChange={(e) => setScheduleSendAt(e.target.value)}
+                    className="h-8 text-sm w-auto"
+                  />
+                  <p className="text-xs text-muted-foreground">El email se enviará en la fecha y hora indicadas.</p>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                El email incluye un enlace para que el alumno confirme o rechace su plaza sin necesidad de iniciar sesión.
+              </p>
+            </div>
+
+            {/* Filter chips */}
+            <div className="flex flex-wrap gap-1.5">
+              {(["all", "pending", "confirmed", "released"] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setStatusFilter(f)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium border transition-colors",
+                    statusFilter === f
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:text-foreground bg-transparent"
+                  )}
+                >
+                  {f === "all" ? `Todos (${counts.total})` :
+                   f === "pending" ? `Pendientes (${counts.pending})` :
+                   f === "confirmed" ? `Confirmados (${counts.confirmed})` :
+                   `No renuevan (${counts.released})`}
+                </button>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* Offers table */}
+            {loadingOffers ? (
+              <div className="py-8 text-center">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto" />
+              </div>
+            ) : filteredOffers.length === 0 ? (
+              <EmptyState
+                title="Sin resultados"
+                description="Cambia el filtro para ver más alumnos."
+                actionLabel="Ver todos"
+                onAction={() => setStatusFilter("all")}
+              />
+            ) : (
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                {filteredOffers.map((offer, idx) => {
+                  const st = STATUS_MAP[offer.status];
+                  const emailSentAt = (offer.metadata as Record<string, unknown>)?.emailSentAt as string | undefined;
+                  return (
+                    <div
+                      key={offer.id}
+                      className={cn(
+                        "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-border",
+                        idx > 0 && "border-t",
+                        idx % 2 !== 0 && "bg-muted/20"
+                      )}
+                    >
+                      {/* Info */}
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+                          {offer.studentName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{offer.studentName}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {offer.studentEmail || "Sin email"}
+                            {offer.respondedAt && <span> · Respondió {formatDate(offer.respondedAt)}</span>}
+                            {emailSentAt && <span className="text-success"> · Email enviado</span>}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 shrink-0 ml-11 sm:ml-0">
+                        <Badge variant="outline" className={cn("text-[10px] font-medium shrink-0", st.className)}>
+                          {st.label}
+                        </Badge>
+
+                        {offer.status === "pending" && offer.studentEmail && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs text-muted-foreground"
+                            disabled={sendingEmail !== null}
+                            onClick={() => void handleSendEmail(offer.id)}
+                            title="Enviar email de renovación"
+                          >
+                            {sendingEmail === offer.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Mail className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
+
+                        {offer.status === "pending" && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-7 text-xs"
+                            disabled={mutating}
+                            onClick={() => void handleOfferAction(offer.id, "confirm")}
+                          >
+                            Confirmar
+                          </Button>
+                        )}
+                        {offer.status !== "released" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                            disabled={mutating}
+                            onClick={() => void handleOfferAction(offer.id, "release")}
+                          >
+                            Liberar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <FeatureLockDialog
         open={lockOpen}
         onOpenChange={setLockOpen}
         title="Renovaciones disponibles en plan Pro"
-        description="Para crear campañas y confirmar propuestas necesitas activar el módulo de renovaciones automáticas en un plan superior."
+        description="Para gestionar renovaciones y enviar notificaciones a alumnos necesitas el plan Pro."
         onUpgrade={() => void startUpgrade("renewalAutomation")}
       />
     </PageContainer>

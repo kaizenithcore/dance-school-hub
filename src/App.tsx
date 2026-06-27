@@ -56,6 +56,7 @@ const FullSchedulePage = lazy(() => import("@/pages/public/FullSchedulePage"));
 const StudentPortalLandingPage = lazy(() => import("@/pages/public/StudentPortalLandingPage"));
 
 const LeadQualificationPage = lazy(() => import("@/pages/public/LeadQualificationPage"));
+const RenewalResponsePage = lazy(() => import("@/pages/public/RenewalResponsePage"));
 
 // ── Portal V1 — 7 operational screens ──────────────────────────────────────
 const PortalAppShell = lazy(() => import("@/portal/screens/PortalAppShell"));
@@ -205,6 +206,7 @@ const App = () => (
             <Route path="schedule" element={withSuspense(<FullSchedulePage />)} />
           </Route>
           <Route path="/cualificacion" element={withSuspense(<LeadQualificationPage />)} />
+          <Route path="/renovar" element={withSuspense(<RenewalResponsePage />)} />
           <Route path="/portal" element={withSuspense(<StudentPortalLandingPage />)} />
           {/* /portal/mockup removed — was a V2 wireframe, no longer linked */}
           <Route path="/dashboard/economia" element={<Navigate to="/admin/economia" replace />} />

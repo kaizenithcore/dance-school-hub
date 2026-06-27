@@ -24,6 +24,7 @@ import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
 import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 type ClassItem = { id: string; name: string };
@@ -235,39 +236,16 @@ export default function CommunicationsPage() {
   };
 
   return (
-    <PageContainer
-      title="Comunicados"
-      description="Comunicación masiva clara y enfocada a resultados"
-      actions={
-        <Button variant="outline" onClick={() => void handleProcessQueue()} disabled={processingQueue}>
-          {processingQueue ? "Enviando..." : "Enviar pendientes"}
-        </Button>
-      }
-    >
+    <PageContainer title="Comunicados">
       {communicationLocked ? (
         <UpgradeFeatureAlert
           title="Comunicación masiva por email bloqueada"
-          description={`Tu plan actual (${planLabel}) no incluye campañas masivas. Mejora a Pro para habilitar esta función.`}
+          description={`Tu plan actual (${planLabel}) no incluye envíos masivos. Mejora a Pro para habilitar esta función.`}
           onUpgrade={() => void startUpgrade("massCommunicationEmail")}
         />
       ) : null}
 
-      <div className="grid gap-2 sm:grid-cols-3">
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Campañas activas</p>
-          <p className="text-lg font-semibold text-foreground">{activeCampaignsCount}</p>
-        </div>
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Mensajes enviados</p>
-          <p className="text-lg font-semibold text-foreground">{totalSentCount}</p>
-        </div>
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Errores acumulados</p>
-          <p className="text-lg font-semibold text-foreground">{totalFailedCount}</p>
-        </div>
-      </div>
-
-      <div className={communicationLocked ? "pointer-events-none opacity-70 blur-[1px]" : ""}>
+      <div className={communicationLocked ? "pointer-events-none opacity-70 blur-[1px] space-y-4" : "space-y-4"}>
 
       <div className="rounded-lg border border-border bg-card p-5 shadow-soft space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
@@ -350,9 +328,15 @@ export default function CommunicationsPage() {
       </div>
 
       <div className="rounded-lg border border-border bg-card p-5 shadow-soft">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Historial reciente</h3>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h3 className="text-sm font-semibold text-foreground">Historial reciente</h3>
+          <Button variant="outline" size="sm" onClick={() => void handleProcessQueue()} disabled={processingQueue}>
+            {processingQueue ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+            {processingQueue ? "Enviando…" : "Enviar pendientes"}
+          </Button>
+        </div>
         {campaigns.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aun no tienes envios registrados. Cuando prepares el primero, aparecera aqui.</p>
+          <p className="text-sm text-muted-foreground">Aún no tienes envíos registrados. Cuando prepares el primero, aparecerá aquí.</p>
         ) : (
           <div className="space-y-2">
             {campaigns.map((item) => (
@@ -381,15 +365,15 @@ export default function CommunicationsPage() {
             onClick={() => void handleCancelQueued()}
             disabled={!selectedCampaignId || cancellingQueue}
           >
-            {cancellingQueue ? "Eliminando cola..." : "Eliminar mensajes en cola"}
+            {cancellingQueue ? "Eliminando…" : "Eliminar cola"}
           </Button>
         </div>
         {!selectedCampaignId ? (
-          <p className="text-sm text-muted-foreground">Selecciona una campana para ver el detalle de entrega por destinatario.</p>
+          <p className="text-sm text-muted-foreground">Selecciona un envío del historial para ver el detalle por destinatario.</p>
         ) : loadingDeliveries ? (
-          <p className="text-sm text-muted-foreground">Estamos cargando el detalle de entregas...</p>
+          <p className="text-sm text-muted-foreground">Cargando detalle de entregas…</p>
         ) : deliveries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Esta campana no tiene destinatarios para mostrar con los filtros actuales.</p>
+          <p className="text-sm text-muted-foreground">Este envío no tiene destinatarios registrados.</p>
         ) : (
           <div className="space-y-2 max-h-[360px] overflow-auto pr-1">
             {deliveries.map((delivery) => (
@@ -415,7 +399,6 @@ export default function CommunicationsPage() {
             ))}
           </div>
         )}
-      </div>
       </div>
 
       <FeatureLockDialog

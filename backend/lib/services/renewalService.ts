@@ -1,5 +1,7 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import { featureEntitlementsService } from "@/lib/services/featureEntitlementsService";
+import { emailService } from "@/lib/services/emailService";
+import { brandingService } from "@/lib/services/brandingService";
 
 interface RenewalCampaignRow {
   id: string;
@@ -36,6 +38,33 @@ interface EnrollmentForRenewalRow {
     | { name?: string | null; email?: string | null }
     | Array<{ name?: string | null; email?: string | null }>
     | null;
+}
+
+function buildRenewalEmailHtml(input: {
+  studentName: string;
+  schoolName: string;
+  confirmUrl: string;
+  rejectUrl: string;
+  primaryColor: string;
+}) {
+  const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return `<!doctype html>
+<html><head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a;">
+  <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+    <div style="background:${input.primaryColor};padding:24px 32px;">
+      <p style="margin:0;font-size:18px;font-weight:700;color:#fff;">${escape(input.schoolName)}</p>
+    </div>
+    <div style="padding:32px;">
+      <p style="margin:0 0 8px;font-size:15px;">Hola <strong>${escape(input.studentName)}</strong>,</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#475569;">El período de renovación de plaza está abierto. Confirma si continuarás el próximo período o si quieres liberar tu plaza.</p>
+      <a href="${input.confirmUrl}" style="display:inline-block;background:${input.primaryColor};color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;margin-bottom:12px;">Confirmar mi plaza</a>
+      <br/>
+      <a href="${input.rejectUrl}" style="display:inline-block;color:#64748b;font-size:13px;text-decoration:underline;margin-top:8px;">No deseo renovar</a>
+      <p style="margin:32px 0 0;font-size:12px;color:#94a3b8;">Si no quieres realizar ningún cambio, puedes ignorar este mensaje. Tu plaza permanecerá como está hasta la fecha límite.</p>
+    </div>
+  </div>
+</body></html>`;
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -389,5 +418,123 @@ export const renewalService = {
       id: data.id as string,
       status: data.status as "pending" | "confirmed" | "changed" | "released",
     };
+  },
+
+  async sendOfferEmails(input: {
+    tenantId: string;
+    campaignId: string;
+    offerIds?: string[];
+    scheduledAt?: string;
+  }): Promise<{ sent: number; failed: number; skipped: number; scheduledAt?: string }> {
+    // If scheduledAt is set, persist it in campaign metadata and return without sending
+    if (input.scheduledAt) {
+      await supabaseAdmin
+        .from("renewal_campaigns")
+        .update({ metadata: supabaseAdmin.rpc as unknown as Record<string, unknown> })
+        .eq("tenant_id", input.tenantId)
+        .eq("id", input.campaignId);
+
+      // Store scheduledAt in campaign metadata via raw update
+      const { data: campaign } = await supabaseAdmin
+        .from("renewal_campaigns")
+        .select("metadata")
+        .eq("tenant_id", input.tenantId)
+        .eq("id", input.campaignId)
+        .single();
+
+      const existingMeta = asObject(campaign?.metadata);
+      await supabaseAdmin
+        .from("renewal_campaigns")
+        .update({ metadata: { ...existingMeta, emailScheduledAt: input.scheduledAt } })
+        .eq("tenant_id", input.tenantId)
+        .eq("id", input.campaignId);
+
+      return { sent: 0, failed: 0, skipped: 0, scheduledAt: input.scheduledAt };
+    }
+
+    // Build query for offers to notify
+    let query = supabaseAdmin
+      .from("renewal_offers")
+      .select("id, student_id, status, metadata, students(name, email)")
+      .eq("tenant_id", input.tenantId)
+      .eq("campaign_id", input.campaignId);
+
+    if (input.offerIds && input.offerIds.length > 0) {
+      query = query.in("id", input.offerIds);
+    } else {
+      query = query.eq("status", "pending");
+    }
+
+    const { data: offers, error } = await query;
+    if (error) throw new Error(`Failed to load offers: ${error.message}`);
+    if (!offers || offers.length === 0) return { sent: 0, failed: 0, skipped: 0 };
+
+    // Fetch school branding for email header
+    const branding = await brandingService.getTenantBranding(input.tenantId);
+    const { data: tenant } = await supabaseAdmin
+      .from("tenants")
+      .select("name, slug")
+      .eq("id", input.tenantId)
+      .single();
+    const schoolName = (tenant?.name as string | null) || "Tu escuela";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://app.nexa.es";
+
+    let sent = 0;
+    let failed = 0;
+    let skipped = 0;
+
+    for (const offer of offers as RenewalOfferRow[]) {
+      const student = normalizeStudent(offer.students);
+      if (!student.email) { skipped++; continue; }
+
+      const confirmUrl = `${appUrl}/renovar?offer=${offer.id}&action=confirm`;
+      const rejectUrl  = `${appUrl}/renovar?offer=${offer.id}&action=reject`;
+      const primaryColor = branding.primary_color || "#7C3AED";
+
+      const html = buildRenewalEmailHtml({
+        studentName: student.name,
+        schoolName,
+        confirmUrl,
+        rejectUrl,
+        primaryColor,
+      });
+
+      const result = await emailService.send({
+        to: student.email,
+        subject: `${schoolName} — Confirma tu plaza para el próximo período`,
+        html,
+        text: `Hola ${student.name},\n\nTu escuela ${schoolName} te invita a confirmar tu plaza.\n\nConfirmar: ${confirmUrl}\nNo renovar: ${rejectUrl}`,
+      });
+
+      if (result.sent) {
+        const meta = asObject(offer.metadata);
+        await supabaseAdmin
+          .from("renewal_offers")
+          .update({ metadata: { ...meta, emailSentAt: new Date().toISOString(), emailMessageId: result.messageId } })
+          .eq("tenant_id", input.tenantId)
+          .eq("id", offer.id);
+        sent++;
+      } else {
+        failed++;
+      }
+    }
+
+    return { sent, failed, skipped };
+  },
+
+  async respondToOffer(input: { offerId: string; action: "confirm" | "reject" }): Promise<{ studentName: string; status: string }> {
+    const nextStatus = input.action === "confirm" ? "confirmed" : "released";
+
+    const { data, error } = await supabaseAdmin
+      .from("renewal_offers")
+      .update({ status: nextStatus, responded_at: new Date().toISOString() })
+      .eq("id", input.offerId)
+      .select("id, status, students(name)")
+      .single();
+
+    if (error || !data) throw new Error("No se pudo procesar tu respuesta. El enlace puede haber expirado.");
+
+    const studentName = normalizeStudent((data as { students: RenewalOfferRow["students"] }).students).name;
+    return { studentName, status: nextStatus };
   },
 };
