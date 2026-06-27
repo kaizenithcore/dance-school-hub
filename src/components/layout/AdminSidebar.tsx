@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, GraduationCap, Users, BookOpen, ClipboardList,
   CreditCard, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags,
-  Megaphone, ListOrdered, Repeat, Building2, Wallet, ChevronDown, CalendarDays,
+  Megaphone, ListOrdered, Repeat, Building2, Wallet, ChevronDown, CalendarDays, Copy,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -81,6 +81,7 @@ const NAV_ENTRIES: NavEntry[] = [
     items: [
       { title: "Clases", url: "/admin/classes", icon: GraduationCap, module: "classes" },
       { title: "Horario semanal", url: "/admin/schedule", icon: CalendarDays, module: "schedule" },
+      { title: "Clonar curso", url: "/admin/course-clone", icon: Copy, module: "course-clone" },
       { title: "Profesores", url: "/admin/teachers", icon: BookOpen, module: "teachers" },
       { title: "Aulas", url: "/admin/rooms", icon: DoorOpen, module: "rooms" },
     ],

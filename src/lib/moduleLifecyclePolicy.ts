@@ -28,10 +28,11 @@ const MODULE_MAP: Record<string, ModuleEntry> = {
   pricing: { status: "mvp", owner: "product-core" },
   renewals: { status: "mvp", owner: "product-core" },
 
+  "course-clone": { status: "mvp", owner: "product-core" },
+
   // Hidden from primary UX — not removed yet, pending cleanup
   analytics: { status: "legacy", owner: "product-mvp", reason: "Analíticas avanzadas fuera de MVP" },
   events: { status: "legacy", owner: "product-mvp", reason: "Eventos avanzados fuera de MVP" },
-  "course-clone": { status: "legacy", owner: "product-mvp", reason: "Herramientas avanzadas fuera de MVP" },
 
   // Advanced/enterprise features flagged as future
   enterprise: { status: "future", owner: "product-mvp", reason: "Funciones enterprise avanzadas" },

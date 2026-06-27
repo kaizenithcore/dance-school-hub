@@ -3,86 +3,58 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
 import { courseCloneService } from "@/lib/services/courseCloneService";
-import { permissionService } from "@/lib/services/permissionService";
+
+export const runtime = "nodejs";
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreFlight(request.headers.get("origin"));
 }
 
+/** GET ?sourceYearId=&targetYearId= — preview what would be cloned */
 export async function GET(request: NextRequest) {
   const origin = request.headers.get("origin");
   const auth = await requireAuth(request);
+  if (!auth.authorized || !auth.context) return auth.response;
 
-  if (!auth.authorized || !auth.context) {
-    return auth.response;
-  }
-
-  if (!permissionService.canManageCourseClone({
-    tenantRole: auth.context.role,
-    organizationRole: auth.context.organizationRole,
-  })) {
-    return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
-  }
-
-  const featureEnabled = await courseCloneService.isCourseCloneEnabled(auth.context.tenantId);
-  if (!featureEnabled) {
-    return fail({ code: "feature_disabled", message: "Course clone is not active for this tenant" }, 403, origin);
+  const sourceYearId = request.nextUrl.searchParams.get("sourceYearId") || "";
+  const targetYearId = request.nextUrl.searchParams.get("targetYearId") || "";
+  if (!sourceYearId || !targetYearId) {
+    return fail({ code: "invalid_request", message: "sourceYearId y targetYearId son requeridos" }, 400, origin);
   }
 
   try {
-    const jobs = await courseCloneService.listCloneJobs(auth.context.tenantId);
-    return ok(jobs, 200, origin);
+    const preview = await courseCloneService.preview(auth.context.tenantId, sourceYearId, targetYearId);
+    return ok(preview, 200, origin);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load clone jobs";
-    return fail({ code: "fetch_failed", message }, 500, origin);
+    return fail({ code: "preview_failed", message: error instanceof Error ? error.message : "Error al previsualizar" }, 500, origin);
   }
 }
 
+/** POST { sourceYearId, targetYearId } — execute the clone */
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
   const auth = await requireAuth(request);
-
-  if (!auth.authorized || !auth.context || !auth.user) {
-    return auth.response;
-  }
-
-  if (!permissionService.canManageCourseClone({
-    tenantRole: auth.context.role,
-    organizationRole: auth.context.organizationRole,
-  })) {
-    return fail({ code: "forbidden", message: "Insufficient permissions" }, 403, origin);
-  }
-
-  const featureEnabled = await courseCloneService.isCourseCloneEnabled(auth.context.tenantId);
-  if (!featureEnabled) {
-    return fail({ code: "feature_disabled", message: "Course clone is not active for this tenant" }, 403, origin);
-  }
+  if (!auth.authorized || !auth.context || !auth.user) return auth.response;
 
   try {
     const body = await request.json();
-    const action = body?.action === "apply" ? "apply" : "dry_run";
-    const sourcePeriod = typeof body?.sourcePeriod === "string" ? body.sourcePeriod : "";
-    const targetPeriod = typeof body?.targetPeriod === "string" ? body.targetPeriod : "";
-
-    if (!sourcePeriod || !targetPeriod) {
-      return fail({ code: "invalid_request", message: "sourcePeriod and targetPeriod are required" }, 400, origin);
+    const sourceYearId = typeof body?.sourceYearId === "string" ? body.sourceYearId : "";
+    const targetYearId = typeof body?.targetYearId === "string" ? body.targetYearId : "";
+    if (!sourceYearId || !targetYearId) {
+      return fail({ code: "invalid_request", message: "sourceYearId y targetYearId son requeridos" }, 400, origin);
+    }
+    if (sourceYearId === targetYearId) {
+      return fail({ code: "invalid_request", message: "El curso origen y destino no pueden ser el mismo" }, 400, origin);
     }
 
-    if (action === "dry_run") {
-      const result = await courseCloneService.dryRun(auth.context.tenantId, sourcePeriod, targetPeriod);
-      return ok(result, 200, origin);
-    }
-
-    const result = await courseCloneService.applyClone({
+    const result = await courseCloneService.cloneYear({
       tenantId: auth.context.tenantId,
       actorUserId: auth.user.id,
-      sourcePeriod,
-      targetPeriod,
+      sourceYearId,
+      targetYearId,
     });
-
     return ok(result, 201, origin);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to process course clone";
-    return fail({ code: "process_failed", message }, 500, origin);
+    return fail({ code: "clone_failed", message: error instanceof Error ? error.message : "Error al clonar el curso" }, 500, origin);
   }
 }

@@ -20,11 +20,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAcademicYear } from "@/hooks/useAcademicYear";
+import { useAcademicYearContext } from "@/contexts/AcademicYearContext";
 
 export function AcademicYearSelector() {
   const navigate = useNavigate();
-  const { academicYears, currentAcademicYear, loading, setCurrentAcademicYear, createNewAcademicYear } = useAcademicYear();
+  const { academicYears, currentYear: currentAcademicYear, loading, switchYear, createYear } = useAcademicYearContext();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newYearCode, setNewYearCode] = useState("");
@@ -78,7 +78,7 @@ export function AcademicYearSelector() {
   };
 
   const handleChangeYear = async (yearId: string) => {
-    await setCurrentAcademicYear(yearId);
+    await switchYear(yearId);
   };
 
   const handleCreateYear = async () => {
@@ -88,7 +88,7 @@ export function AcademicYearSelector() {
 
     setSaving(true);
     try {
-      await createNewAcademicYear({
+      await createYear({
         yearCode: newYearCode,
         displayName: newDisplayName,
         startDate: newStartDate,

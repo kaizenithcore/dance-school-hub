@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useAcademicYearContext } from "@/contexts/AcademicYearContext";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ClassesTable } from "@/components/tables/ClassesTable";
 import { ClassFormModal } from "@/components/tables/ClassFormModal";
@@ -22,6 +23,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 const VIEW_PREF_KEY = "nexa:admin:classes-view:v1";
 
 export default function ClassesPage() {
+  const { refreshKey } = useAcademicYearContext();
+  const prevRefreshKey = useRef(refreshKey);
   const [classes, setClasses] = useState<ClassRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -110,6 +113,20 @@ export default function ClassesPage() {
     };
     loadClasses();
   }, []);
+
+  // Re-fetch when academic year changes
+  useEffect(() => {
+    if (refreshKey !== prevRefreshKey.current) {
+      prevRefreshKey.current = refreshKey;
+      void (async () => {
+        setLoading(true);
+        try {
+          const [data] = await Promise.all([getClasses()]);
+          setClasses(data.map((c) => ({ ...c, discipline: c.discipline || "General", category: c.category || "General", teacher: c.teachers?.[0]?.name || "", teacherId: c.teacherId || "", teacherIds: c.teacherIds || [], roomId: c.roomId || "", room: "", day: "", time: "", price: c.price, enrolled: c.enrolledCount } as unknown as ClassRecord)));
+        } catch { /* ignore */ } finally { setLoading(false); }
+      })();
+    }
+  }, [refreshKey]);
 
   const handleCreate = () => { setEditingClass(null); setFormOpen(true); };
   const handlePreview = (cls: ClassRecord) => { setSelectedClass(cls); setPreviewOpen(true); };

@@ -160,26 +160,29 @@ async function getClassWithTeachers(tenantId: string, classId: string): Promise<
 }
 
 export const classService = {
-  async listClasses(tenantId: string): Promise<Class[]> {
+  async listClasses(tenantId: string, academicYearId?: string | null): Promise<Class[]> {
     let data: Class[] | null = null;
     let error: { message: string } | null = null;
 
-    const withJoin = await supabaseAdmin
-      .from("classes")
-      .select("*, class_teachers(teacher_id, teachers(id, name))")
-      .eq("tenant_id", tenantId)
-      .order("name", { ascending: true });
+    const buildQuery = (select: string) => {
+      let q = supabaseAdmin
+        .from("classes")
+        .select(select)
+        .eq("tenant_id", tenantId)
+        .order("name", { ascending: true });
+      // When a year is active: show classes for that year OR unscoped (NULL) classes
+      if (academicYearId) {
+        q = q.or(`academic_year_id.eq.${academicYearId},academic_year_id.is.null`);
+      }
+      return q;
+    };
 
+    const withJoin = await buildQuery("*, class_teachers(teacher_id, teachers(id, name))");
     data = withJoin.data as Class[] | null;
     error = withJoin.error as { message: string } | null;
 
     if (error && isClassTeachersSchemaMissing(error.message)) {
-      const legacy = await supabaseAdmin
-        .from("classes")
-        .select("*, teachers(id, name)")
-        .eq("tenant_id", tenantId)
-        .order("name", { ascending: true });
-
+      const legacy = await buildQuery("*, teachers(id, name)");
       data = legacy.data as Class[] | null;
       error = legacy.error as { message: string } | null;
     }

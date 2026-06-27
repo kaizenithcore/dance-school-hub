@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
 import { enrollmentService } from "@/lib/services/enrollmentService";
+import { getCurrentAcademicYearId } from "@/lib/services/academicYearService";
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreFlight(request.headers.get("origin"));
@@ -17,7 +18,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const enrollments = await enrollmentService.listEnrollments(auth.context.tenantId);
+    const yearId = await getCurrentAcademicYearId(auth.context.tenantId);
+    const enrollments = await enrollmentService.listEnrollments(auth.context.tenantId, yearId);
     return ok(enrollments, 200, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch enrollments";

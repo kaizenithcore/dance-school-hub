@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useAcademicYearContext } from "@/contexts/AcademicYearContext";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { EnrollmentsTable } from "@/components/tables/EnrollmentsTable";
 import { EnrollmentDetailDrawer } from "@/components/tables/EnrollmentDetailDrawer";
@@ -18,6 +19,8 @@ const STATUS_LABELS: Record<EnrollmentStatus, string> = {
 
 export default function EnrollmentsPage() {
   const navigate = useNavigate();
+  const { refreshKey } = useAcademicYearContext();
+  const prevRefreshKey = useRef(refreshKey);
   const [enrollments, setEnrollments] = useState<EnrollmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEnrollment, setSelectedEnrollment] = useState<EnrollmentRecord | null>(null);
@@ -37,6 +40,14 @@ export default function EnrollmentsPage() {
   }, []);
 
   useEffect(() => { void loadEnrollments(); }, [loadEnrollments]);
+
+  // Re-fetch when academic year changes
+  useEffect(() => {
+    if (refreshKey !== prevRefreshKey.current) {
+      prevRefreshKey.current = refreshKey;
+      void loadEnrollments();
+    }
+  }, [refreshKey, loadEnrollments]);
 
   useEffect(() => {
     if (loading) return;

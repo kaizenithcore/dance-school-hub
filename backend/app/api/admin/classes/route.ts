@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { classService } from "@/lib/services/classService";
 import { createClassSchema } from "@/lib/validators/classSchemas";
+import { getCurrentAcademicYearId } from "@/lib/services/academicYearService";
 import { handleCorsPreFlight } from "@/lib/cors";
 
 export async function OPTIONS(request: NextRequest) {
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const classes = await classService.listClasses(auth.context.tenantId);
+    const yearId = await getCurrentAcademicYearId(auth.context.tenantId);
+    const classes = await classService.listClasses(auth.context.tenantId, yearId);
     return ok(classes, 200, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch classes";

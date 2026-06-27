@@ -3,8 +3,8 @@ import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 export type EnrollmentStatus = "pending" | "confirmed" | "declined" | "cancelled";
 
 export const enrollmentService = {
-  async listEnrollments(tenantId: string) {
-    const { data, error } = await supabaseAdmin
+  async listEnrollments(tenantId: string, academicYearId?: string | null) {
+    let q = supabaseAdmin
       .from("enrollments")
       .select(
         `
@@ -23,6 +23,12 @@ export const enrollmentService = {
       )
       .eq("tenant_id", tenantId)
       .order("created_at", { ascending: false });
+
+    if (academicYearId) {
+      q = q.or(`academic_year_id.eq.${academicYearId},academic_year_id.is.null`);
+    }
+
+    const { data, error } = await q;
 
     if (error) {
       throw new Error(`Failed to fetch enrollments: ${error.message}`);

@@ -179,7 +179,7 @@ const App = () => (
             <Route path="communications" element={withSuspense(<CommunicationsPage />)} />
             <Route path="waitlist" element={withSuspense(<WaitlistPage />)} />
             <Route path="renewals" element={withSuspense(<RenewalsPage />)} />
-            <Route path="course-clone" element={<ModuleDisabledPage moduleKey="course-clone" />} />
+            <Route path="course-clone" element={withSuspense(<CourseClonePage />)} />
             <Route path="reception" element={withSuspense(<ReceptionPage />)} />
             <Route path="events" element={<ModuleDisabledPage moduleKey="events" />} />
             <Route path="website" element={withSuspense(<WebsitePage />)} />
