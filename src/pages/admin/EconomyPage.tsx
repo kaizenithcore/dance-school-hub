@@ -241,7 +241,6 @@ export default function EconomyPage() {
   return (
     <PageContainer
       title="Economía"
-      description="Visión financiera clara para decidir con rapidez"
       actions={
         <>
           <ModuleHelpShortcut module="economia" />
@@ -367,91 +366,101 @@ export default function EconomyPage() {
               ))}
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="ingresos">
           <Card>
             <CardHeader>
-              <CardTitle>Ingresos</CardTitle>
-              <CardDescription>Cuotas, eventos y movimientos manuales</CardDescription>
+              <CardTitle className="text-sm">Vista rápida (6 meses)</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Alumno</TableHead>
-                    <TableHead>Importe</TableHead>
-                    <TableHead>Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {summary12.incomeRows.slice(0, 100).map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>{row.date.slice(0, 10)}</TableCell>
-                      <TableCell className="capitalize">{row.type}</TableCell>
-                      <TableCell>{row.student || "-"}</TableCell>
-                      <TableCell className="font-semibold">{euro(row.amount)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={row.status === "paid" ? "text-success" : "text-warning"}>
-                          {row.status === "paid" ? "Pagado" : "Pendiente"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {summary12.incomeRows.length === 0 ? (
-                <EmptyState
-                  type="payments"
-                  title="Sin ingresos registrados"
-                  description="Añade un ingreso manual para empezar a construir el histórico de economía."
-                  actionLabel="Añadir ingreso"
-                  onAction={() => setIncomeDialogOpen(true)}
-                />
-              ) : null}
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={summary6.series}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" />
+                  <YAxis />
+                  <Tooltip formatter={(v: number) => euro(v)} />
+                  <Area type="monotone" dataKey="ingresos" stroke="hsl(142, 72%, 35%)" fill="hsl(142, 72%, 35%)" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="gastos" stroke="hsl(0, 72%, 50%)" fill="hsl(0, 72%, 50%)" fillOpacity={0.18} />
+                </AreaChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
+
+          <p className="text-xs text-muted-foreground px-1">
+            Menos gestión, más enseñanza: visión operativa simple sin contabilidad compleja.
+          </p>
         </TabsContent>
 
-        <TabsContent value="gastos">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gastos</CardTitle>
-              <CardDescription>Profesores y gastos manuales</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead>Descripción</TableHead>
-                    <TableHead>Importe</TableHead>
+        <TabsContent value="ingresos" className="space-y-3">
+          <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs">Fecha</TableHead>
+                  <TableHead className="text-xs">Tipo</TableHead>
+                  <TableHead className="text-xs">Alumno</TableHead>
+                  <TableHead className="text-xs">Importe</TableHead>
+                  <TableHead className="text-xs">Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {summary12.incomeRows.slice(0, 100).map((row, idx) => (
+                  <TableRow key={row.id} className={idx % 2 !== 0 ? "bg-muted/20" : ""}>
+                    <TableCell className="text-sm">{row.date.slice(0, 10)}</TableCell>
+                    <TableCell className="text-sm capitalize">{row.type}</TableCell>
+                    <TableCell className="text-sm">{row.student || "-"}</TableCell>
+                    <TableCell className="text-sm font-semibold">{euro(row.amount)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={row.status === "paid" ? "text-[10px] bg-success/15 text-success border-success/20" : "text-[10px] bg-amber-500/10 text-amber-700 border-amber-400/30 dark:text-amber-400"}>
+                        {row.status === "paid" ? "Pagado" : "Pendiente"}
+                      </Badge>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {summary12.expenseRows.slice(0, 100).map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>{row.date.slice(0, 10)}</TableCell>
-                      <TableCell className="capitalize">{row.category}</TableCell>
-                      <TableCell>{row.description}</TableCell>
-                      <TableCell className="font-semibold text-destructive">{euro(row.amount)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {summary12.expenseRows.length === 0 ? (
-                <EmptyState
-                  title="Sin gastos registrados"
-                  description="Registra un gasto para tener una vista real de márgenes y balance mensual."
-                  actionLabel="Añadir gasto"
-                  onAction={() => setExpenseDialogOpen(true)}
-                />
-              ) : null}
-            </CardContent>
-          </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {summary12.incomeRows.length === 0 ? (
+            <EmptyState
+              type="payments"
+              title="Sin ingresos registrados"
+              description="Añade un ingreso manual para empezar a construir el histórico de economía."
+              actionLabel="Añadir ingreso"
+              onAction={() => setIncomeDialogOpen(true)}
+            />
+          ) : null}
+        </TabsContent>
+
+        <TabsContent value="gastos" className="space-y-3">
+          <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs">Fecha</TableHead>
+                  <TableHead className="text-xs">Categoría</TableHead>
+                  <TableHead className="text-xs">Descripción</TableHead>
+                  <TableHead className="text-xs">Importe</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {summary12.expenseRows.slice(0, 100).map((row, idx) => (
+                  <TableRow key={row.id} className={idx % 2 !== 0 ? "bg-muted/20" : ""}>
+                    <TableCell className="text-sm">{row.date.slice(0, 10)}</TableCell>
+                    <TableCell className="text-sm capitalize">{row.category}</TableCell>
+                    <TableCell className="text-sm">{row.description}</TableCell>
+                    <TableCell className="text-sm font-semibold text-destructive">{euro(row.amount)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {summary12.expenseRows.length === 0 ? (
+            <EmptyState
+              title="Sin gastos registrados"
+              description="Registra un gasto para tener una vista real de márgenes y balance mensual."
+              actionLabel="Añadir gasto"
+              onAction={() => setExpenseDialogOpen(true)}
+            />
+          ) : null}
         </TabsContent>
       </Tabs>
 
@@ -562,31 +571,6 @@ export default function EconomyPage() {
         </DialogContent>
       </Dialog>
 
-      <Card className="bg-muted/30">
-        <CardContent className="pt-5">
-          <p className="text-sm text-muted-foreground">
-            Menos gestión, más enseñanza: este módulo ofrece una visión operativa simple sin contabilidad compleja.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Vista rápida (6 meses)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={summary6.series}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis />
-              <Tooltip formatter={(v: number) => euro(v)} />
-              <Area type="monotone" dataKey="ingresos" stroke="hsl(142, 72%, 35%)" fill="hsl(142, 72%, 35%)" fillOpacity={0.2} />
-              <Area type="monotone" dataKey="gastos" stroke="hsl(0, 72%, 50%)" fill="hsl(0, 72%, 50%)" fillOpacity={0.18} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
     </PageContainer>
   );
 }

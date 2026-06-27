@@ -22,7 +22,7 @@ import {
 import { getEnrollments } from "@/lib/api/enrollments";
 import { redirectToStripeCheckout } from "@/lib/api/stripe";
 import { toast } from "sonner";
-import { Loader2, Copy, DollarSign, FileText, AlertTriangle, Eye, Trash2 } from "lucide-react";
+import { Loader2, Copy, DollarSign, FileText, AlertTriangle, Eye, Trash2, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,7 +51,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams } from "react-router-dom";
 
@@ -591,7 +591,7 @@ export default function PaymentsPage() {
 
   if (initialLoading) {
     return (
-      <PageContainer title="Pagos" description="Control de cobros claro y accionable">
+      <PageContainer title="Pagos">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -600,70 +600,71 @@ export default function PaymentsPage() {
   }
 
   return (
-    <PageContainer title="Pagos" description="Control de cobros claro y accionable">
-      <div className="mb-4 grid gap-2 sm:grid-cols-3">
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Pagos pendientes</p>
-          <p className="text-lg font-semibold text-foreground">{pendingPaymentsCount}</p>
+    <PageContainer title="Pagos">
+      {/* Inline alert chips — only shown when there are real issues */}
+      {(!hasCurrentMonthInvoices || acceptedStudentsWithoutCurrentMonthRecords.length > 0) && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {!hasCurrentMonthInvoices && (
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400">
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              Sin facturas para {currentMonth}
+            </div>
+          )}
+          {acceptedStudentsWithoutCurrentMonthRecords.length > 0 && (
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400">
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              {acceptedStudentsWithoutCurrentMonthRecords.length} alumno(s) sin registro mensual
+            </div>
+          )}
         </div>
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Pagos confirmados</p>
-          <p className="text-lg font-semibold text-foreground">{paidPaymentsCount}</p>
-        </div>
-        <div className="rounded-md border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Cobrado</p>
-          <p className="text-lg font-semibold text-foreground">€{collectedAmount.toFixed(2)}</p>
-        </div>
-      </div>
+      )}
 
       <Tabs defaultValue="payments" className="w-full">
-        <div className="space-y-3 mb-4">
-          {!hasCurrentMonthInvoices && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>No se han generado recibos del mes actual</AlertTitle>
-              <AlertDescription>
-                Aún no hay facturas/recibos para {currentMonth}. Genera las facturas del mes para mantener el control de cobros al día.
-              </AlertDescription>
-            </Alert>
-          )}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <TabsList>
+            <TabsTrigger value="payments" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Pagos
+            </TabsTrigger>
+            <TabsTrigger value="invoices" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Facturas
+            </TabsTrigger>
+          </TabsList>
 
-          {acceptedStudentsWithoutCurrentMonthRecords.length > 0 && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>
-                {acceptedStudentsWithoutCurrentMonthRecords.length} alumno(s) aceptado(s) sin registro del mes
-              </AlertTitle>
-              <AlertDescription>
-                {acceptedStudentsWithoutCurrentMonthRecords
-                  .slice(0, 5)
-                  .map((student) => student.studentName)
-                  .join(", ")}
-                {acceptedStudentsWithoutCurrentMonthRecords.length > 5 ? "..." : ""}. Revisa si se matricularon durante el mes y genera sus recibos.
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Compact stats inline */}
+          <div className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-muted/30 px-3 text-xs">
+            <span className="text-muted-foreground">{pendingPaymentsCount} pendientes</span>
+            <span className="text-border">·</span>
+            <span className="text-muted-foreground">{paidPaymentsCount} confirmados</span>
+            <span className="text-border">·</span>
+            <span className="font-semibold text-foreground">€{collectedAmount.toFixed(0)} cobrados</span>
+          </div>
         </div>
 
-        <TabsList>
-          <TabsTrigger value="payments" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            Pagos
-          </TabsTrigger>
-          <TabsTrigger value="invoices" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Facturas
-          </TabsTrigger>
-        </TabsList>
-
         <TabsContent value="payments" className="space-y-4">
-          <Alert className="border-primary/25 bg-primary/5">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Flujo recomendado</AlertTitle>
-            <AlertDescription>
-              1) Genera facturas del mes. 2) Registra o confirma pagos. 3) Al marcar factura pagada se vincula con pagos existentes del mismo período para evitar duplicados.
-            </AlertDescription>
-          </Alert>
+          {/* Guided workflow bar */}
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">1</span>
+                Genera facturas del mes
+              </span>
+              <ChevronRight className="h-3 w-3 shrink-0 text-border" />
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground border border-border">2</span>
+                Registra o confirma pagos
+              </span>
+              <ChevronRight className="h-3 w-3 shrink-0 text-border" />
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground border border-border">3</span>
+                Descarga recibos en efectivo
+              </span>
+            </div>
+            <Button size="sm" variant="outline" className="shrink-0" onClick={() => setGenerateDialogOpen(true)}>
+              Generar facturas
+            </Button>
+          </div>
 
           <PaymentsTable
             payments={payments}
@@ -674,59 +675,33 @@ export default function PaymentsPage() {
             generatingReceiptPaymentId={generatingReceiptPaymentId}
           />
 
-          <div className="flex justify-end">
-            <Button onClick={() => setGenerateDialogOpen(true)}>
-              Generar facturas del mes
-            </Button>
-          </div>
-
-          <div className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold">Recibos en efectivo (PDF único)</h3>
-              <p className="text-xs text-muted-foreground">
-                Genera un PDF multipágina con todos los recibos de pagos en efectivo del mes.
-              </p>
+          {/* Cash receipts — compact */}
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">Recibos en efectivo</p>
+              <p className="text-xs text-muted-foreground">PDF multipágina con recibos de pagos en efectivo del mes seleccionado.</p>
             </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="space-y-1">
-                <Label htmlFor="receipt-month" className="text-xs">Mes</Label>
-                <Input
-                  id="receipt-month"
-                  type="month"
-                  value={receiptMonth}
-                  onChange={(event) => setReceiptMonth(event.target.value)}
-                  className="h-9 w-[170px]"
-                />
-              </div>
+            <div className="flex items-center gap-2">
+              <Input
+                id="receipt-month"
+                type="month"
+                value={receiptMonth}
+                onChange={(event) => setReceiptMonth(event.target.value)}
+                className="h-8 w-[155px] text-sm"
+              />
               <Button
+                size="sm"
                 onClick={() => void handleGenerateCashReceiptsBatch()}
                 disabled={generatingReceipts}
-                className="sm:mt-5"
               >
-                {generatingReceipts ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                Generar PDF de Recibos
+                {generatingReceipts ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+                Generar PDF
               </Button>
             </div>
           </div>
         </TabsContent>
 
         <TabsContent value="invoices" className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold">Facturas</h3>
-            <p className="text-sm text-muted-foreground">
-              Genera y gestiona facturas mensuales de tus alumnos
-            </p>
-          </div>
-
-          <Alert className="border-primary/25 bg-primary/5">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Flujo unificado de cobro</AlertTitle>
-            <AlertDescription>
-              Marca y registra pagos desde la pestaña <strong>Pagos</strong>. Esta vista de facturas es informativa para evitar duplicar acciones.
-            </AlertDescription>
-          </Alert>
-
           {/* Filters */}
           {invoices.length > 0 && (
             <div className="flex flex-wrap gap-3">
@@ -844,20 +819,13 @@ export default function PaymentsPage() {
                         {formatPaymentMethodLabel(invoice.paymentMethod)}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            invoice.status === "paid"
-                              ? "default"
-                              : invoice.status === "overdue"
-                                ? "destructive"
-                                : "outline"
-                          }
-                        >
-                          {invoice.status === "paid"
-                            ? "Pagada"
-                            : invoice.status === "overdue"
-                              ? "Vencida"
-                              : "Pendiente"}
+                        <Badge variant="outline" className={cn(
+                          "text-[10px] font-medium",
+                          invoice.status === "paid" ? "bg-success/15 text-success border-success/20" :
+                          invoice.status === "overdue" ? "bg-destructive/15 text-destructive border-destructive/20" :
+                          "bg-amber-500/10 text-amber-700 border-amber-400/30 dark:text-amber-400"
+                        )}>
+                          {invoice.status === "paid" ? "Pagada" : invoice.status === "overdue" ? "Vencida" : "Pendiente"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -982,20 +950,13 @@ export default function PaymentsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Estado</p>
-                  <Badge
-                    variant={
-                      selectedInvoice.status === "paid"
-                        ? "default"
-                        : selectedInvoice.status === "overdue"
-                          ? "destructive"
-                          : "outline"
-                    }
-                  >
-                    {selectedInvoice.status === "paid"
-                      ? "Pagada"
-                      : selectedInvoice.status === "overdue"
-                        ? "Vencida"
-                        : "Pendiente"}
+                  <Badge variant="outline" className={cn(
+                    "text-[10px] font-medium",
+                    selectedInvoice.status === "paid" ? "bg-success/15 text-success border-success/20" :
+                    selectedInvoice.status === "overdue" ? "bg-destructive/15 text-destructive border-destructive/20" :
+                    "bg-amber-500/10 text-amber-700 border-amber-400/30 dark:text-amber-400"
+                  )}>
+                    {selectedInvoice.status === "paid" ? "Pagada" : selectedInvoice.status === "overdue" ? "Vencida" : "Pendiente"}
                   </Badge>
                 </div>
                 <div>
