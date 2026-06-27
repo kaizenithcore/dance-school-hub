@@ -11,7 +11,8 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, GraduationCap, SlidersHorizontal, Loader2, ArrowUpDown, ChevronUp, ChevronDown, Filter, FilterX } from "lucide-react";
+import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, GraduationCap, SlidersHorizontal, Loader2, ArrowUpDown, ChevronUp, ChevronDown, Filter, FilterX, Printer } from "lucide-react";
+import { openPrintView } from "@/lib/printUtils";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -336,6 +337,38 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Print current filtered view */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0"
+              onClick={() => void openPrintView({
+                title: "Listado de alumnos",
+                subtitle: search ? `Búsqueda: "${search}"` : undefined,
+                columns: [
+                  { label: "Nombre", key: "name" },
+                  { label: "Email", key: "email" },
+                  { label: "Teléfono", key: "phone" },
+                  { label: "Estado", key: "statusLabel" },
+                  { label: "Localidad", key: "locality" },
+                ],
+                rows: filtered.map((s) => ({
+                  name: s.name,
+                  email: s.email || "-",
+                  phone: s.phone || "-",
+                  statusLabel: STATUS_MAP[s.status]?.label ?? s.status,
+                  locality: s.locality || "-",
+                })),
+              })}
+            >
+              <Printer className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>Imprimir vista actual ({filtered.length})</p></TooltipContent>
+        </Tooltip>
 
       </div>
 

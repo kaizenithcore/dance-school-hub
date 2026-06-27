@@ -14,7 +14,7 @@ import { getStudents } from "@/lib/api/students";
 import { getClasses } from "@/lib/api/classes";
 import { createIncident, getIncidents, type IncidentRecord, type IncidentType, updateIncident } from "@/lib/api/incidents";
 import { recordPayment } from "@/lib/api/payments";
-import { downloadAttendanceSheetPdf } from "@/lib/api/attendance";
+import { downloadAttendanceSheetPdf, downloadBulkAttendancePdf } from "@/lib/api/attendance";
 import { addWaitlistEntry } from "@/lib/api/waitlist";
 import { toastErrorOnce } from "@/lib/toastPremium";
 
@@ -189,6 +189,17 @@ export default function ReceptionPage() {
     }
   };
 
+  function triggerDownload(blob: Blob, fileName: string) {
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
+  }
+
   const handleDownloadAttendance = async () => {
     if (!attendanceClassId) {
       toast.error("Selecciona una clase");
@@ -199,18 +210,23 @@ export default function ReceptionPage() {
     try {
       const blob = await downloadAttendanceSheetPdf(attendanceClassId, attendanceMonth);
       const className = classes.find((cls) => cls.id === attendanceClassId)?.name || "clase";
-      const fileName = `hoja-asistencia-${className.replace(/\s+/g, "-").toLowerCase()}-${attendanceMonth}.pdf`;
-      const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = fileName;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      window.URL.revokeObjectURL(url);
+      triggerDownload(blob, `hoja-asistencia-${className.replace(/\s+/g, "-").toLowerCase()}-${attendanceMonth}.pdf`);
       toast.success("Hoja de asistencia descargada");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo descargar la hoja de asistencia");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDownloadBulkAttendance = async () => {
+    setBusy(true);
+    try {
+      const blob = await downloadBulkAttendancePdf(attendanceMonth);
+      triggerDownload(blob, `listados-asistencia-${attendanceMonth}.pdf`);
+      toast.success("Listados de todas las clases descargados");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudieron generar los listados");
     } finally {
       setBusy(false);
     }
@@ -454,10 +470,16 @@ export default function ReceptionPage() {
               <Label>Mes</Label>
               <Input type="month" value={attendanceMonth} onChange={(event) => setAttendanceMonth(event.target.value)} />
             </div>
-            <Button onClick={handleDownloadAttendance} disabled={busy || !attendanceClassId}>
-              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-              Descargar hoja
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleDownloadAttendance} disabled={busy || !attendanceClassId} className="flex-1">
+                {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Descargar clase
+              </Button>
+              <Button variant="outline" onClick={handleDownloadBulkAttendance} disabled={busy} title="Descargar listados de todas las clases en un solo PDF">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <span className="ml-1.5 hidden sm:inline">Todas</span>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

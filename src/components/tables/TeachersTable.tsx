@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Eye, Pencil, Trash2, ChevronLeft, ChevronRight, Book, DollarSign, Loader2, ArrowUpDown, ChevronUp, ChevronDown, List } from "lucide-react";
+import { Eye, Pencil, Trash2, ChevronLeft, ChevronRight, Book, DollarSign, Loader2, ArrowUpDown, ChevronUp, ChevronDown, List, Printer } from "lucide-react";
+import { openPrintView } from "@/lib/printUtils";
 import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TablePagination, readPageSize } from "@/components/tables/TablePagination";
 import { cn } from "@/lib/utils";
@@ -177,10 +178,43 @@ export function TeachersTable({
         visibleColumns={visibleColumns}
         onColumnToggle={(key, v) => { const n = { ...visibleColumns, [key]: v }; setVisibleColumns(n); window.localStorage.setItem(COLUMN_KEY, JSON.stringify(n)); }}
         extra={
-          <div className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3 ml-auto shrink-0">
-            <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Salarios:</span>
-            <span className="text-sm font-semibold text-foreground">${totalSalary}/mes</span>
+          <div className="flex items-center gap-2 ml-auto shrink-0">
+            <div className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3">
+              <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Salarios:</span>
+              <span className="text-sm font-semibold text-foreground">${totalSalary}/mes</span>
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 shrink-0"
+                  onClick={() => void openPrintView({
+                    title: "Listado de profesores",
+                    columns: [
+                      { label: "Nombre", key: "name" },
+                      { label: "Email", key: "email" },
+                      { label: "Teléfono", key: "phone" },
+                      { label: "Clases", key: "classes", align: "center" },
+                      { label: "Salario/mes", key: "salary", align: "right" },
+                      { label: "Estado", key: "statusLabel" },
+                    ],
+                    rows: filtered.map((t) => ({
+                      name: t.name,
+                      email: t.email || "-",
+                      phone: t.phone || "-",
+                      classes: String(t.assignedClasses.length),
+                      salary: `€${teacherSalaryValue(t)}`,
+                      statusLabel: STATUS_MAP[t.status]?.label ?? t.status,
+                    })),
+                  })}
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom"><p>Imprimir vista actual ({filtered.length})</p></TooltipContent>
+            </Tooltip>
           </div>
         }
       />

@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Eye, ChevronLeft, ChevronRight, Plus, Receipt, FileCheck, Loader2, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Eye, ChevronLeft, ChevronRight, Plus, Receipt, FileCheck, Loader2, ArrowUpDown, ChevronUp, ChevronDown, Printer } from "lucide-react";
+import { openPrintView } from "@/lib/printUtils";
 import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TablePagination, readPageSize } from "@/components/tables/TablePagination";
 import { cn } from "@/lib/utils";
@@ -221,9 +222,43 @@ export function PaymentsTable({
           visibleColumns={visibleColumns}
           onColumnToggle={(key, v) => { const n = { ...visibleColumns, [key]: v }; setVisibleColumns(n); window.localStorage.setItem(COLUMN_KEY, JSON.stringify(n)); }}
           extra={
-            <Button size="sm" onClick={onAddPayment} className="shrink-0">
-              <Plus className="h-3.5 w-3.5 mr-1" /> Registrar Pago
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void openPrintView({
+                      title: "Registro de pagos",
+                      subtitle: search ? `Búsqueda: "${search}"` : undefined,
+                      columns: [
+                        { label: "Alumno", key: "student" },
+                        { label: "Mes", key: "month" },
+                        { label: "Importe", key: "amount", align: "right" },
+                        { label: "Método", key: "method" },
+                        { label: "Estado", key: "statusLabel" },
+                        { label: "Concepto", key: "concept" },
+                      ],
+                      rows: filtered.map((p) => ({
+                        student: p.studentName || p.payerName || "-",
+                        month: p.month || "-",
+                        amount: `€${(p.amount / 100).toFixed(2)}`,
+                        method: p.method || "-",
+                        statusLabel: STATUS_CONFIG[p.status]?.label ?? p.status,
+                        concept: p.concept || "-",
+                      })),
+                      footerNote: `Total filtrado: €${(filtered.reduce((sum, p) => sum + (p.status === "paid" ? p.amount : 0), 0) / 100).toFixed(2)} cobrados`,
+                    })}
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom"><p>Imprimir vista actual ({filtered.length})</p></TooltipContent>
+              </Tooltip>
+              <Button size="sm" onClick={onAddPayment}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Registrar Pago
+              </Button>
+            </div>
           }
         />
 
