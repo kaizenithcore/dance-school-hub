@@ -51,6 +51,10 @@ export async function createRenewalCampaign(payload: {
   fromPeriod: string;
   toPeriod: string;
   expiresAt?: string;
+  fromCourse?: string;
+  toCourse?: string;
+  scheduleText?: string;
+  scheduleUrl?: string;
 }) {
   const response = await apiRequest<{ campaignId: string; offersCount: number }>("/api/admin/renewals", {
     method: "POST",
@@ -97,10 +101,42 @@ export async function updateRenewalOffer(payload: {
   return response.data;
 }
 
+export async function getRenewalEmailPreview(campaignId: string, opts?: { scheduleText?: string; scheduleUrl?: string }): Promise<string> {
+  const params = new URLSearchParams({ campaignId });
+  if (opts?.scheduleText) params.set("scheduleText", opts.scheduleText);
+  if (opts?.scheduleUrl)  params.set("scheduleUrl",  opts.scheduleUrl);
+  const response = await apiRequest<{ html: string }>(`/api/admin/renewals/preview?${params.toString()}`);
+  if (!response.success || !response.data) throw new Error(response.error?.message || "No se pudo generar la vista previa");
+  return response.data.html;
+}
+
+export interface PublicOfferDetails {
+  studentName: string;
+  schoolName: string;
+  fromCourse: string;
+  toCourse: string;
+  classes: Array<{ id: string; name: string }>;
+  expiresAt: string | null;
+  status: string;
+}
+
+export async function getPublicRenewalOffer(offerId: string): Promise<PublicOfferDetails> {
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const response = await fetch(`${apiUrl}/api/public/renewals/offer?id=${encodeURIComponent(offerId)}`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error((body as { error?: { message?: string } })?.error?.message || "Oferta no encontrada");
+  }
+  const wrapper = await response.json() as { data: PublicOfferDetails };
+  return wrapper.data;
+}
+
 export async function sendRenewalNotifications(payload: {
   campaignId: string;
   offerIds?: string[];
   scheduledAt?: string;
+  scheduleText?: string;
+  scheduleUrl?: string;
 }): Promise<{ sent: number; failed: number; skipped: number; scheduledAt?: string }> {
   const response = await apiRequest<{ sent: number; failed: number; skipped: number; scheduledAt?: string }>(
     "/api/admin/renewals/notify",
@@ -115,7 +151,8 @@ export async function sendRenewalNotifications(payload: {
 export async function respondToRenewalOffer(payload: {
   offerId: string;
   action: "confirm" | "reject";
-}): Promise<{ studentName: string; status: string }> {
+  selectedClassIds?: string[];
+}): Promise<{ studentName: string; status: string; confirmedClasses: string[]; releasedClasses: string[] }> {
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const response = await fetch(`${apiUrl}/api/public/renewals/respond`, {
     method: "POST",

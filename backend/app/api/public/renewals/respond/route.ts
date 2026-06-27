@@ -17,12 +17,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const offerId = typeof body?.offerId === "string" ? body.offerId.trim() : "";
     const action  = body?.action === "confirm" || body?.action === "reject" ? body.action as "confirm" | "reject" : null;
+    const selectedClassIds = Array.isArray(body?.selectedClassIds)
+      ? (body.selectedClassIds as string[]).filter((id: unknown) => typeof id === "string")
+      : undefined;
 
     if (!offerId || !action) {
       return fail({ code: "invalid_request", message: "offerId and action (confirm|reject) are required" }, 400, origin);
     }
 
-    const result = await renewalService.respondToOffer({ offerId, action });
+    const result = await renewalService.respondToOffer({ offerId, action, selectedClassIds });
     return ok(result, 200, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo procesar la respuesta";

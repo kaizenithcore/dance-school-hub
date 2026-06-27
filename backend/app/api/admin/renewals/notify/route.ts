@@ -28,9 +28,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const campaignId = typeof body?.campaignId === "string" ? body.campaignId : "";
-    const offerIds   = Array.isArray(body?.offerIds) ? (body.offerIds as string[]) : undefined;
-    const scheduledAt = typeof body?.scheduledAt === "string" ? body.scheduledAt : undefined;
+    const campaignId   = typeof body?.campaignId   === "string" ? body.campaignId   : "";
+    const offerIds     = Array.isArray(body?.offerIds)          ? (body.offerIds as string[]) : undefined;
+    const scheduledAt  = typeof body?.scheduledAt  === "string" ? body.scheduledAt  : undefined;
+    const scheduleText = typeof body?.scheduleText === "string" ? body.scheduleText : undefined;
+    const scheduleUrl  = typeof body?.scheduleUrl  === "string" ? body.scheduleUrl  : undefined;
 
     if (!campaignId) {
       return fail({ code: "invalid_request", message: "campaignId is required" }, 400, origin);
@@ -41,6 +43,8 @@ export async function POST(request: NextRequest) {
       campaignId,
       offerIds,
       scheduledAt,
+      scheduleText,
+      scheduleUrl,
     });
 
     return ok(result, 200, origin);

@@ -43,27 +43,70 @@ interface EnrollmentForRenewalRow {
 function buildRenewalEmailHtml(input: {
   studentName: string;
   schoolName: string;
-  confirmUrl: string;
-  rejectUrl: string;
+  responseUrl: string;
   primaryColor: string;
+  fromCourse: string;
+  toCourse: string;
+  classNames: string[];
+  scheduleText?: string;
+  scheduleUrl?: string;
+  expiresAt?: string | null;
 }) {
-  const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const expiresLabel = input.expiresAt
+    ? new Date(input.expiresAt).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })
+    : null;
+
+  const classListHtml = input.classNames.length > 0
+    ? `<ul style="margin:0 0 0 18px;padding:0;font-size:13px;color:#334155;">${input.classNames.map((cn) => `<li style="margin-bottom:4px;">${esc(cn)}</li>`).join("")}</ul>`
+    : `<p style="margin:0;font-size:13px;color:#64748b;">Sin clases asociadas.</p>`;
+
+  const scheduleHtml = (input.scheduleText || input.scheduleUrl)
+    ? `<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+        <p style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Horario del próximo curso</p>
+        ${input.scheduleText ? `<p style="margin:0 0 8px;font-size:13px;color:#334155;white-space:pre-line;">${esc(input.scheduleText)}</p>` : ""}
+        ${input.scheduleUrl ? `<a href="${esc(input.scheduleUrl)}" style="font-size:13px;color:#3b82f6;">Ver horario completo →</a>` : ""}
+      </div>`
+    : "";
+
   return `<!doctype html>
-<html><head><meta charset="UTF-8"/></head>
-<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a;">
-  <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-    <div style="background:${input.primaryColor};padding:24px 32px;">
-      <p style="margin:0;font-size:18px;font-weight:700;color:#fff;">${escape(input.schoolName)}</p>
-    </div>
-    <div style="padding:32px;">
-      <p style="margin:0 0 8px;font-size:15px;">Hola <strong>${escape(input.studentName)}</strong>,</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#475569;">El período de renovación de plaza está abierto. Confirma si continuarás el próximo período o si quieres liberar tu plaza.</p>
-      <a href="${input.confirmUrl}" style="display:inline-block;background:${input.primaryColor};color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;margin-bottom:12px;">Confirmar mi plaza</a>
-      <br/>
-      <a href="${input.rejectUrl}" style="display:inline-block;color:#64748b;font-size:13px;text-decoration:underline;margin-top:8px;">No deseo renovar</a>
-      <p style="margin:32px 0 0;font-size:12px;color:#94a3b8;">Si no quieres realizar ningún cambio, puedes ignorar este mensaje. Tu plaza permanecerá como está hasta la fecha límite.</p>
-    </div>
+<html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f1f5f9;color:#0f172a;">
+<div style="max-width:560px;margin:32px auto;background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+  <!-- header -->
+  <div style="background:${input.primaryColor};padding:20px 32px;display:flex;align-items:center;justify-content:space-between;">
+    <p style="margin:0;font-size:18px;font-weight:700;color:#fff;">${esc(input.schoolName)}</p>
+    <span style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;">${esc(input.fromCourse)} → ${esc(input.toCourse)}</span>
   </div>
+  <!-- body -->
+  <div style="padding:28px 32px;">
+    <p style="margin:0 0 6px;font-size:15px;">Hola <strong>${esc(input.studentName)}</strong>,</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#475569;">
+      Tu escuela ha abierto el proceso de renovación para el curso <strong>${esc(input.toCourse)}</strong>.
+      Revisa tus clases y confirma o ajusta tu plaza antes de que termine el plazo.
+    </p>
+
+    <!-- classes -->
+    <div style="margin-bottom:20px;">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;">Tus clases actuales (${esc(input.fromCourse)})</p>
+      ${classListHtml}
+    </div>
+
+    ${scheduleHtml}
+
+    <!-- cta -->
+    <div style="margin-top:28px;text-align:center;">
+      <a href="${esc(input.responseUrl)}" style="display:inline-block;background:${input.primaryColor};color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;">Gestionar mi renovación →</a>
+      <p style="margin:12px 0 0;font-size:12px;color:#94a3b8;">Podrás elegir qué clases renovar y cuáles liberar.</p>
+    </div>
+
+    ${expiresLabel ? `<p style="margin:24px 0 0;font-size:12px;color:#94a3b8;text-align:center;">Plazo límite: <strong>${esc(expiresLabel)}</strong></p>` : ""}
+  </div>
+  <!-- footer -->
+  <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 32px;">
+    <p style="margin:0;font-size:11px;color:#94a3b8;text-align:center;">Este correo es de ${esc(input.schoolName)}. Si tienes dudas, contacta directamente con la escuela.</p>
+  </div>
+</div>
 </body></html>`;
 }
 
@@ -263,18 +306,28 @@ export const renewalService = {
     fromPeriod: string;
     toPeriod: string;
     expiresAt?: string;
+    fromCourse?: string;
+    toCourse?: string;
+    scheduleText?: string;
+    scheduleUrl?: string;
   }) {
-    if (!input.name.trim()) {
-      throw new Error("Campaign name is required");
-    }
+    if (!input.name.trim()) throw new Error("Campaign name is required");
     if (!isValidPeriod(input.fromPeriod) || !isValidPeriod(input.toPeriod)) {
       throw new Error("fromPeriod and toPeriod must follow YYYY-MM");
     }
 
     const classIds = await listClassIdsForPeriod(input.tenantId, input.fromPeriod);
-    if (classIds.length === 0) {
-      throw new Error("No classes found in source period");
-    }
+    if (classIds.length === 0) throw new Error("No classes found in source period");
+
+    // Fetch class names snapshot for emails
+    const { data: classRows } = await supabaseAdmin
+      .from("classes")
+      .select("id, name")
+      .eq("tenant_id", input.tenantId)
+      .in("id", classIds);
+
+    const classNameMap: Record<string, string> = {};
+    (classRows || []).forEach((c) => { classNameMap[c.id as string] = c.name as string; });
 
     const { data: enrollments, error: enrollmentsError } = await supabaseAdmin
       .from("enrollments")
@@ -283,26 +336,26 @@ export const renewalService = {
       .eq("status", "confirmed")
       .in("class_id", classIds);
 
-    if (enrollmentsError) {
-      throw new Error(`Failed to load enrollments for campaign: ${enrollmentsError.message}`);
-    }
+    if (enrollmentsError) throw new Error(`Failed to load enrollments: ${enrollmentsError.message}`);
 
     const byStudent = new Map<string, { classIds: Set<string>; name: string; email: string }>();
     ((enrollments || []) as EnrollmentForRenewalRow[]).forEach((row) => {
       const studentId = row.student_id;
       const student = normalizeStudent(row.students);
-      const current = byStudent.get(studentId) || {
-        classIds: new Set<string>(),
-        name: student.name,
-        email: student.email,
-      };
+      const current = byStudent.get(studentId) || { classIds: new Set<string>(), name: student.name, email: student.email };
       current.classIds.add(row.class_id);
       byStudent.set(studentId, current);
     });
 
-    if (byStudent.size === 0) {
-      throw new Error("No confirmed enrollments found for this period");
-    }
+    if (byStudent.size === 0) throw new Error("No confirmed enrollments found for this period");
+
+    const campaignMeta = {
+      fromCourse: input.fromCourse || input.fromPeriod,
+      toCourse: input.toCourse || input.toPeriod,
+      scheduleText: input.scheduleText || null,
+      scheduleUrl: input.scheduleUrl || null,
+      classNameMap,
+    };
 
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from("renewal_campaigns")
@@ -314,12 +367,13 @@ export const renewalService = {
         status: "active",
         expires_at: input.expiresAt || null,
         created_by: input.actorUserId,
+        metadata: campaignMeta,
       })
       .select("id")
       .single();
 
     if (campaignError || !campaign) {
-      throw new Error(`Failed to create renewal campaign: ${campaignError?.message || "Unknown error"}`);
+      throw new Error(`Failed to create campaign: ${campaignError?.message || "Unknown error"}`);
     }
 
     const offerRows = Array.from(byStudent.entries()).map(([studentId, info]) => {
@@ -332,18 +386,12 @@ export const renewalService = {
         proposed_class_ids: classIdList,
         status: "pending",
         expires_at: input.expiresAt || null,
-        metadata: {
-          studentName: info.name,
-          studentEmail: info.email,
-        },
+        metadata: { studentName: info.name, studentEmail: info.email },
       };
     });
 
     const { error: offersError } = await supabaseAdmin.from("renewal_offers").insert(offerRows);
-
-    if (offersError) {
-      throw new Error(`Failed to create renewal offers: ${offersError.message}`);
-    }
+    if (offersError) throw new Error(`Failed to create offers: ${offersError.message}`);
 
     await supabaseAdmin.from("audit_log").insert({
       tenant_id: input.tenantId,
@@ -351,17 +399,10 @@ export const renewalService = {
       action: "renewal_campaign_created",
       entity_type: "renewal_campaign",
       entity_id: campaign.id as string,
-      metadata: {
-        fromPeriod: input.fromPeriod,
-        toPeriod: input.toPeriod,
-        offersCount: offerRows.length,
-      },
+      metadata: { fromPeriod: input.fromPeriod, toPeriod: input.toPeriod, offersCount: offerRows.length },
     });
 
-    return {
-      campaignId: campaign.id as string,
-      offersCount: offerRows.length,
-    };
+    return { campaignId: campaign.id as string, offersCount: offerRows.length };
   },
 
   async updateOfferStatus(input: {
@@ -425,37 +466,49 @@ export const renewalService = {
     campaignId: string;
     offerIds?: string[];
     scheduledAt?: string;
+    scheduleText?: string;
+    scheduleUrl?: string;
   }): Promise<{ sent: number; failed: number; skipped: number; scheduledAt?: string }> {
-    // If scheduledAt is set, persist it in campaign metadata and return without sending
+    // Fetch campaign for course/schedule metadata
+    const { data: campaignRow } = await supabaseAdmin
+      .from("renewal_campaigns")
+      .select("metadata, expires_at, name")
+      .eq("tenant_id", input.tenantId)
+      .eq("id", input.campaignId)
+      .single();
+
+    const campaignMeta = asObject(campaignRow?.metadata);
+
+    // Merge any new schedule info passed from the modal
+    const updatedMeta: Record<string, unknown> = {
+      ...campaignMeta,
+      ...(input.scheduleText !== undefined ? { scheduleText: input.scheduleText } : {}),
+      ...(input.scheduleUrl  !== undefined ? { scheduleUrl:  input.scheduleUrl  } : {}),
+    };
+
+    // If scheduledAt: persist and return
     if (input.scheduledAt) {
       await supabaseAdmin
         .from("renewal_campaigns")
-        .update({ metadata: supabaseAdmin.rpc as unknown as Record<string, unknown> })
+        .update({ metadata: { ...updatedMeta, emailScheduledAt: input.scheduledAt } })
         .eq("tenant_id", input.tenantId)
         .eq("id", input.campaignId);
-
-      // Store scheduledAt in campaign metadata via raw update
-      const { data: campaign } = await supabaseAdmin
-        .from("renewal_campaigns")
-        .select("metadata")
-        .eq("tenant_id", input.tenantId)
-        .eq("id", input.campaignId)
-        .single();
-
-      const existingMeta = asObject(campaign?.metadata);
-      await supabaseAdmin
-        .from("renewal_campaigns")
-        .update({ metadata: { ...existingMeta, emailScheduledAt: input.scheduledAt } })
-        .eq("tenant_id", input.tenantId)
-        .eq("id", input.campaignId);
-
       return { sent: 0, failed: 0, skipped: 0, scheduledAt: input.scheduledAt };
     }
 
-    // Build query for offers to notify
+    // Persist any schedule updates even for immediate sends
+    if (input.scheduleText !== undefined || input.scheduleUrl !== undefined) {
+      await supabaseAdmin
+        .from("renewal_campaigns")
+        .update({ metadata: updatedMeta })
+        .eq("tenant_id", input.tenantId)
+        .eq("id", input.campaignId);
+    }
+
+    // Load offers
     let query = supabaseAdmin
       .from("renewal_offers")
-      .select("id, student_id, status, metadata, students(name, email)")
+      .select("id, student_id, status, current_class_ids, metadata, students(name, email)")
       .eq("tenant_id", input.tenantId)
       .eq("campaign_id", input.campaignId);
 
@@ -469,41 +522,47 @@ export const renewalService = {
     if (error) throw new Error(`Failed to load offers: ${error.message}`);
     if (!offers || offers.length === 0) return { sent: 0, failed: 0, skipped: 0 };
 
-    // Fetch school branding for email header
     const branding = await brandingService.getTenantBranding(input.tenantId);
-    const { data: tenant } = await supabaseAdmin
-      .from("tenants")
-      .select("name, slug")
-      .eq("id", input.tenantId)
-      .single();
+    const { data: tenant } = await supabaseAdmin.from("tenants").select("name").eq("id", input.tenantId).single();
+
     const schoolName = (tenant?.name as string | null) || "Tu escuela";
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://app.nexa.es";
+    const primaryColor = branding.primary_color || "#7C3AED";
+    const classNameMap = (updatedMeta.classNameMap as Record<string, string> | undefined) || {};
+    const fromCourse   = (updatedMeta.fromCourse   as string | undefined) || "";
+    const toCourse     = (updatedMeta.toCourse     as string | undefined) || "";
+    const scheduleText = (updatedMeta.scheduleText  as string | undefined) || "";
+    const scheduleUrl  = (updatedMeta.scheduleUrl   as string | undefined) || "";
+    const expiresAt    = campaignRow?.expires_at as string | null | undefined;
 
-    let sent = 0;
-    let failed = 0;
-    let skipped = 0;
+    let sent = 0; let failed = 0; let skipped = 0;
 
-    for (const offer of offers as RenewalOfferRow[]) {
+    for (const offer of offers as (RenewalOfferRow & { current_class_ids: string[] })[]) {
       const student = normalizeStudent(offer.students);
       if (!student.email) { skipped++; continue; }
 
-      const confirmUrl = `${appUrl}/renovar?offer=${offer.id}&action=confirm`;
-      const rejectUrl  = `${appUrl}/renovar?offer=${offer.id}&action=reject`;
-      const primaryColor = branding.primary_color || "#7C3AED";
+      const classNames = (offer.current_class_ids || [])
+        .map((id: string) => classNameMap[id] || id)
+        .filter(Boolean);
 
       const html = buildRenewalEmailHtml({
         studentName: student.name,
         schoolName,
-        confirmUrl,
-        rejectUrl,
+        responseUrl: `${appUrl}/renovar?offer=${offer.id}`,
         primaryColor,
+        fromCourse,
+        toCourse,
+        classNames,
+        scheduleText: scheduleText || undefined,
+        scheduleUrl: scheduleUrl || undefined,
+        expiresAt,
       });
 
       const result = await emailService.send({
         to: student.email,
-        subject: `${schoolName} — Confirma tu plaza para el próximo período`,
+        subject: `${schoolName} — Renovación de plaza curso ${toCourse}`,
         html,
-        text: `Hola ${student.name},\n\nTu escuela ${schoolName} te invita a confirmar tu plaza.\n\nConfirmar: ${confirmUrl}\nNo renovar: ${rejectUrl}`,
+        text: `Hola ${student.name},\n\n${schoolName} ha abierto el proceso de renovación para el curso ${toCourse}.\n\nGestiona tu renovación: ${appUrl}/renovar?offer=${offer.id}`,
       });
 
       if (result.sent) {
@@ -522,19 +581,156 @@ export const renewalService = {
     return { sent, failed, skipped };
   },
 
-  async respondToOffer(input: { offerId: string; action: "confirm" | "reject" }): Promise<{ studentName: string; status: string }> {
-    const nextStatus = input.action === "confirm" ? "confirmed" : "released";
+  async getEmailPreviewHtml(tenantId: string, campaignId: string, opts?: { scheduleText?: string; scheduleUrl?: string }): Promise<string> {
+    const [{ data: campaignRow }, branding, { data: tenantRow }] = await Promise.all([
+      supabaseAdmin.from("renewal_campaigns").select("metadata, expires_at").eq("tenant_id", tenantId).eq("id", campaignId).single(),
+      brandingService.getTenantBranding(tenantId),
+      supabaseAdmin.from("tenants").select("name").eq("id", tenantId).single(),
+    ]);
 
-    const { data, error } = await supabaseAdmin
+    const campaignMeta = asObject(campaignRow?.metadata);
+    const classNameMap = (campaignMeta.classNameMap as Record<string, string> | undefined) || {};
+    const schoolName   = (tenantRow?.name as string | null) || "Tu escuela";
+    const fromCourse   = (campaignMeta.fromCourse as string | undefined) || "Curso actual";
+    const toCourse     = (campaignMeta.toCourse   as string | undefined) || "Próximo curso";
+    const scheduleText = opts?.scheduleText ?? (campaignMeta.scheduleText as string | undefined) ?? "";
+    const scheduleUrl  = opts?.scheduleUrl  ?? (campaignMeta.scheduleUrl  as string | undefined) ?? "";
+    const expiresAt    = campaignRow?.expires_at as string | null | undefined;
+
+    // Use a sample offer (first pending)
+    const { data: sampleOffer } = await supabaseAdmin
       .from("renewal_offers")
-      .update({ status: nextStatus, responded_at: new Date().toISOString() })
-      .eq("id", input.offerId)
-      .select("id, status, students(name)")
+      .select("id, current_class_ids, students(name, email)")
+      .eq("tenant_id", tenantId)
+      .eq("campaign_id", campaignId)
+      .eq("status", "pending")
+      .limit(1)
       .single();
 
-    if (error || !data) throw new Error("No se pudo procesar tu respuesta. El enlace puede haber expirado.");
+    const student = normalizeStudent((sampleOffer as { students: RenewalOfferRow["students"] } | null)?.students ?? null);
+    const classNames = ((sampleOffer as { current_class_ids?: string[] } | null)?.current_class_ids || [])
+      .map((id: string) => classNameMap[id] || id);
 
-    const studentName = normalizeStudent((data as { students: RenewalOfferRow["students"] }).students).name;
-    return { studentName, status: nextStatus };
+    return buildRenewalEmailHtml({
+      studentName: student.name || "Alumno de ejemplo",
+      schoolName,
+      responseUrl: "#preview",
+      primaryColor: branding.primary_color || "#7C3AED",
+      fromCourse,
+      toCourse,
+      classNames: classNames.length > 0 ? classNames : ["Ballet clásico — Lunes 18:00h", "Contemporáneo — Miércoles 19:00h"],
+      scheduleText: scheduleText || undefined,
+      scheduleUrl: scheduleUrl || undefined,
+      expiresAt,
+    });
+  },
+
+  async getPublicOfferDetails(offerId: string): Promise<{
+    studentName: string;
+    schoolName: string;
+    fromCourse: string;
+    toCourse: string;
+    classes: Array<{ id: string; name: string }>;
+    expiresAt: string | null;
+    status: string;
+  }> {
+    const { data: offer, error } = await supabaseAdmin
+      .from("renewal_offers")
+      .select("id, current_class_ids, proposed_class_ids, status, expires_at, campaign_id, students(name), renewal_campaigns(metadata, expires_at, tenant_id)")
+      .eq("id", offerId)
+      .single();
+
+    if (error || !offer) throw new Error("Oferta no encontrada o enlace expirado.");
+
+    const offerRow = offer as {
+      id: string;
+      current_class_ids: string[];
+      proposed_class_ids: string[];
+      status: string;
+      expires_at: string | null;
+      campaign_id: string;
+      students: { name?: string | null } | Array<{ name?: string | null }> | null;
+      renewal_campaigns: { metadata: Record<string, unknown>; expires_at: string | null; tenant_id: string } | null;
+    };
+
+    const studentName = normalizeStudent(offerRow.students).name;
+    const campaignMeta = asObject(offerRow.renewal_campaigns?.metadata);
+    const classNameMap = (campaignMeta.classNameMap as Record<string, string> | undefined) || {};
+    const tenantId = offerRow.renewal_campaigns?.tenant_id as string;
+
+    const classes = (offerRow.current_class_ids || []).map((id) => ({
+      id,
+      name: classNameMap[id] || "Clase",
+    }));
+
+    // Get school name
+    const { data: tenantRow } = await supabaseAdmin.from("tenants").select("name").eq("id", tenantId).single();
+
+    return {
+      studentName,
+      schoolName: (tenantRow?.name as string | null) || "Tu escuela",
+      fromCourse: (campaignMeta.fromCourse as string | undefined) || "",
+      toCourse: (campaignMeta.toCourse as string | undefined) || "",
+      classes,
+      expiresAt: offerRow.renewal_campaigns?.expires_at ?? offerRow.expires_at,
+      status: offerRow.status,
+    };
+  },
+
+  async respondToOffer(input: {
+    offerId: string;
+    action: "confirm" | "reject";
+    selectedClassIds?: string[];
+  }): Promise<{ studentName: string; status: string; confirmedClasses: string[]; releasedClasses: string[] }> {
+    // Fetch offer to know all current classes
+    const { data: offerRow, error: fetchErr } = await supabaseAdmin
+      .from("renewal_offers")
+      .select("id, status, current_class_ids, students(name), renewal_campaigns(metadata)")
+      .eq("id", input.offerId)
+      .single();
+
+    if (fetchErr || !offerRow) throw new Error("No se pudo procesar tu respuesta. El enlace puede haber expirado.");
+
+    const row = offerRow as {
+      id: string;
+      status: string;
+      current_class_ids: string[];
+      students: RenewalOfferRow["students"];
+      renewal_campaigns: { metadata: Record<string, unknown> } | null;
+    };
+
+    const studentName = normalizeStudent(row.students).name;
+    const allClassIds = row.current_class_ids || [];
+    const classNameMap = asObject(row.renewal_campaigns?.metadata)?.classNameMap as Record<string, string> | undefined || {};
+
+    let nextStatus: string;
+    let confirmedIds: string[];
+
+    if (input.action === "reject") {
+      nextStatus = "released";
+      confirmedIds = [];
+    } else {
+      // Partial: keep only selected classes (or all if none specified)
+      confirmedIds = (input.selectedClassIds && input.selectedClassIds.length > 0)
+        ? input.selectedClassIds.filter((id) => allClassIds.includes(id))
+        : allClassIds;
+      nextStatus = confirmedIds.length === allClassIds.length ? "confirmed" : "changed";
+    }
+
+    const releasedIds = allClassIds.filter((id) => !confirmedIds.includes(id));
+
+    await supabaseAdmin
+      .from("renewal_offers")
+      .update({
+        status: nextStatus,
+        responded_at: new Date().toISOString(),
+        proposed_class_ids: confirmedIds,
+      })
+      .eq("id", input.offerId);
+
+    const confirmedClasses = confirmedIds.map((id) => classNameMap[id] || id);
+    const releasedClasses  = releasedIds.map((id)  => classNameMap[id] || id);
+
+    return { studentName, status: nextStatus, confirmedClasses, releasedClasses };
   },
 };
