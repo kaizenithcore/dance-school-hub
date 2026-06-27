@@ -23,6 +23,7 @@ const ImportStudentsPage = lazy(() => import("@/pages/admin/ImportStudentsPage")
 const EnrollmentsPage = lazy(() => import("@/pages/admin/EnrollmentsPage"));
 const PaymentsPage = lazy(() => import("@/pages/admin/PaymentsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/admin/AnalyticsPage"));
+import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
 const SettingsLayout = lazy(() => import("@/pages/admin/settings/SettingsLayout"));
 const EscuelaPage = lazy(() => import("@/pages/admin/settings/EscuelaPage"));
 const AgendaPage = lazy(() => import("@/pages/admin/settings/AgendaPage"));
@@ -171,15 +172,15 @@ const App = () => (
             <Route path="students/import" element={withSuspense(<ImportStudentsPage />)} />
             <Route path="enrollments" element={withSuspense(<EnrollmentsPage />)} />
             <Route path="payments" element={withSuspense(<PaymentsPage />)} />
-            <Route path="analytics" element={withSuspense(<AnalyticsPage />)} />
+            <Route path="analytics" element={<ModuleDisabledPage moduleKey="analytics" />} />
             <Route path="form-builder" element={withSuspense(<FormBuilderPage />)} />
             <Route path="pricing" element={withSuspense(<PricingManagement />)} />
             <Route path="communications" element={withSuspense(<CommunicationsPage />)} />
             <Route path="waitlist" element={withSuspense(<WaitlistPage />)} />
             <Route path="renewals" element={withSuspense(<RenewalsPage />)} />
-            <Route path="course-clone" element={withSuspense(<CourseClonePage />)} />
+            <Route path="course-clone" element={<ModuleDisabledPage moduleKey="course-clone" />} />
             <Route path="reception" element={withSuspense(<ReceptionPage />)} />
-            <Route path="events" element={withSuspense(<EventsPage />)} />
+            <Route path="events" element={<ModuleDisabledPage moduleKey="events" />} />
             <Route path="website" element={withSuspense(<WebsitePage />)} />
             <Route path="school/portal" element={withSuspense(<SchoolPortalHubScreen />)} />
             <Route path="school/settings" element={withSuspense(<SchoolPortalHubScreen />)} />
@@ -195,8 +196,6 @@ const App = () => (
               <Route path="avisos" element={withSuspense(<AvisosPage />)} />
               <Route path="acceso" element={withSuspense(<AccesoPage />)} />
               <Route path="plan" element={withSuspense(<PlanPage />)} />
-              <Route path="recepcion" element={withSuspense(<RecepcionPage />)} />
-              <Route path="pagina-web" element={withSuspense(<PaginaWebPage />)} />
               <Route path="branding" element={withSuspense(<BrandingSettingsPage />)} />
             </Route>
           </Route>

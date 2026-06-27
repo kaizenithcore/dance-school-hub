@@ -56,9 +56,6 @@ export enum Permission {
   // Feature-gated: Course Clone
   COURSE_CLONE_MANAGE = "admin.clone.manage",
 
-  // Feature-gated: Exams
-  EXAMS_MANAGE = "admin.exams.manage",
-
   // Settings
   SETTINGS_READ = "admin.settings.read",
   SETTINGS_WRITE = "admin.settings.write",
@@ -101,7 +98,6 @@ export const MODULE_PERMISSIONS: Record<TenantRole, string[]> = {
     "waitlist",
     "renewals",
     "course-clone",
-    "exams",
     "events",
     "school-portal",
     "website",
@@ -127,7 +123,6 @@ export const MODULE_PERMISSIONS: Record<TenantRole, string[]> = {
     "waitlist",
     "renewals",
     "course-clone",
-    "exams",
     "events",
     "school-portal",
     "website",
@@ -145,6 +140,6 @@ export const MODULE_PERMISSIONS: Record<TenantRole, string[]> = {
     "reception",
     "payments",
     "events",
-    // No: form-builder, communications, waitlist, renewals, course-clone, exams, branches, organization-access, analytics, settings
+    // No: form-builder, communications, waitlist, renewals, course-clone, branches, organization-access, analytics, settings
   ],
 };

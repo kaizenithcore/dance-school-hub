@@ -41,32 +41,15 @@ export default function PrivacyPolicyPage() {
           <li>Nombre y apellidos.</li>
           <li>Contacto.</li>
           <li>Inscripciones y clases.</li>
-          <li>Pagos.</li>
+          <li>Pagos y recibos.</li>
           <li>Asistencia.</li>
-          <li>Progreso y certificaciones.</li>
-          <li>Participación en eventos.</li>
         </ul>
 
         <p><strong>2.4 Datos del portal del alumno</strong></p>
         <ul className="list-disc space-y-1 pl-6">
-          <li>Perfil público básico (sin imágenes personales).</li>
-          <li>Escuela asociada.</li>
-          <li>Actividad (clases, eventos, logros).</li>
-          <li>Interacciones (seguimientos, guardados, etc.).</li>
-        </ul>
-
-        <p>
-          <strong>Importante:</strong>
-        </p>
-        <ul className="list-disc space-y-1 pl-6">
-          <li>Los perfiles públicos de alumnos no incluyen fotografías ni contenido sensible.</li>
-          <li>Los alumnos pueden configurar su perfil como privado.</li>
-        </ul>
-
-        <p><strong>2.5 Contenido publicado</strong></p>
-        <ul className="list-disc space-y-1 pl-6">
-          <li>Solo escuelas y profesores pueden publicar contenido (imágenes, vídeos o información).</li>
-          <li>Los alumnos no pueden publicar contenido.</li>
+          <li>Identificación básica vinculada a la escuela.</li>
+          <li>Horario de clases e inscripciones activas.</li>
+          <li>Estado de pagos y avisos de la escuela.</li>
         </ul>
       </LegalSection>
 

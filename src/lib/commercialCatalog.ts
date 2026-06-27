@@ -9,8 +9,6 @@ interface PlanFeatureFlags {
   attendanceSheetsPdf: boolean;
   quickIncidents: boolean;
   receptionMode: boolean;
-  examSuite?: boolean;
-  certifier?: boolean;
   waitlistAutomation: boolean;
   renewalAutomation: boolean;
   courseClone: boolean;
@@ -83,28 +81,6 @@ interface CommercialCatalog {
     anchor: string;
     comparison: string;
     focus: string;
-  };
-  examSuit?: {
-    plans?: {
-      associations?: {
-        name: string;
-        billing: {
-          monthlyPriceEur: number;
-          annualEffectiveMonthlyPriceEur: number;
-          annualTotalEur: number;
-          annualSavingsLabel?: string;
-        };
-      };
-      schools?: {
-        name: string;
-        billing: {
-          monthlyPriceEur: number;
-          annualEffectiveMonthlyPriceEur: number;
-          annualTotalEur: number;
-          annualSavingsLabel?: string;
-        };
-      };
-    };
   };
 }
 

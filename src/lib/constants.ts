@@ -32,8 +32,5 @@ export const SEARCH_RESULT_LIMIT = 50;
 
 // ── Business rules ────────────────────────────────────────────────────────────
 
-/** Minimum passing grade for exam certifications (legacy, kept for reference) */
-export const CERTIFICATION_PASS_GRADE = 60;
-
 /** Days before trial expiry to start showing the warning banner */
 export const TRIAL_WARNING_DAYS = 3;

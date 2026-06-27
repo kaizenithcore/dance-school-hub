@@ -44,12 +44,6 @@ interface CreativeServicesExtendedCatalog {
   };
 }
 
-interface ExamSuitBenefitsCatalog {
-  associatedSchoolsBenefits?: {
-    benefits?: string[];
-  };
-}
-
 const bundleCatalog = (commercialCatalog.bundles as Record<string, ModernizationBundleCatalog> | undefined)?.modernizationProBundle;
 const creativeServices = (commercialCatalog as unknown as { creativeServices?: CreativeServicesExtendedCatalog & CreativeServicesCatalog }).creativeServices;
 const integratedWebsite = (commercialCatalog.professionalServices as Record<string, IntegratedWebsiteCatalog> | undefined)?.integratedWebsite;
@@ -68,19 +62,8 @@ const foundersFirstYearTotal = foundersDiscountPercent > 0
   ? Math.round(firstYearTotal * (1 - foundersDiscountPercent / 100))
   : null;
 
-const associatedBenefits = ((commercialCatalog.examSuit as unknown as ExamSuitBenefitsCatalog | undefined)
-  ?.associatedSchoolsBenefits
-  ?.benefits) ?? [];
-const associatedBenefitMatch = associatedBenefits
-  .map((benefit) => benefit.match(/(\d+)\s*%/))
-  .find((match) => match?.[1]);
-const associatedDiscountPercent = associatedBenefitMatch?.[1] ? Number(associatedBenefitMatch[1]) : 0;
-const associatedProAnnualTotal = associatedDiscountPercent > 0
-  ? Math.round(proAnnualTotal * (1 - associatedDiscountPercent / 100))
-  : null;
-const associatedFirstYearTotal = associatedProAnnualTotal !== null
-  ? oneTimePackPayment + associatedProAnnualTotal
-  : null;
+const associatedProAnnualTotal: number | null = null;
+const associatedFirstYearTotal: number | null = null;
 const PRO_ANNUAL_CTA_HREF = buildRegisterHref("modernization_pack", {
   params: { focus: "integrated-web" },
 });

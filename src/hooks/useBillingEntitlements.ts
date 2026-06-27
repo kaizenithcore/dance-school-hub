@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getSchoolSettings } from "@/lib/api/settings";
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
 import { planCatalog } from "@/lib/commercialCatalog";
-import { isModuleEnabledByPolicy } from "@/lib/moduleLifecyclePolicy";
+
 
 type PlanType = "starter" | "pro" | "enterprise";
 
@@ -23,7 +23,6 @@ interface BillingEntitlements {
     renewalAutomation: boolean;
     courseClone: boolean;
     massCommunicationEmail: boolean;
-    examSuite: boolean;
   };
 }
 
@@ -44,7 +43,6 @@ const DEFAULT_ENTITLEMENTS: BillingEntitlements = {
     renewalAutomation: false,
     courseClone: false,
     massCommunicationEmail: false,
-    examSuite: false,
   },
 };
 
@@ -84,12 +82,7 @@ function toPlanType(value: unknown): PlanType {
   return "starter";
 }
 
-function targetPlanForFeature(featureKey: keyof BillingEntitlements["features"]): PlanType {
-  if (featureKey === "examSuite") return "pro";
-  if (featureKey === "waitlistAutomation") return "pro";
-  if (featureKey === "renewalAutomation") return "pro";
-  if (featureKey === "courseClone") return "pro";
-  if (featureKey === "massCommunicationEmail") return "pro";
+function targetPlanForFeature(_featureKey: keyof BillingEntitlements["features"]): PlanType {
   return "pro";
 }
 
@@ -134,9 +127,6 @@ export function useBillingEntitlements() {
           renewalAutomation: asBool(features.renewalAutomation),
           courseClone: asBool(features.courseClone),
           massCommunicationEmail: asBool(features.massCommunicationEmail),
-          examSuite:
-            isModuleEnabledByPolicy("examSuite")
-              && asBool(features.examSuite || features.exam_suite || features.examsuite || features.certifier),
         },
       });
     } finally {

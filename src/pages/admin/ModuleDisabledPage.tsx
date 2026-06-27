@@ -1,56 +1,36 @@
-import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
-import { getModuleEntry } from "@/lib/moduleLifecyclePolicy";
+import { Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const MODULE_LABELS: Record<string, { name: string; description: string }> = {
+  analytics:      { name: "Analíticas avanzadas",    description: "Las métricas detalladas de rendimiento de la academia estarán disponibles en una próxima versión." },
+  events:         { name: "Gestión de eventos",       description: "La gestión avanzada de festivales, exhibiciones y competiciones llegará próximamente." },
+  "course-clone": { name: "Clonar temporadas",        description: "La herramienta para duplicar la programación de un curso a otro estará disponible próximamente." },
+};
+
+const DEFAULT_INFO = { name: "Esta funcionalidad", description: "Esta sección no está disponible en la versión actual del producto." };
 
 interface ModuleDisabledPageProps {
   moduleKey?: string;
 }
 
-function resolveModuleKey(rawValue: string | null | undefined): string {
-  if (!rawValue) return "exams";
-  return rawValue;
-}
-
 export default function ModuleDisabledPage({ moduleKey }: ModuleDisabledPageProps) {
   const [searchParams] = useSearchParams();
-
-  const resolvedModuleKey = resolveModuleKey(moduleKey ?? searchParams.get("module"));
-  const entry = useMemo(() => getModuleEntry(resolvedModuleKey), [resolvedModuleKey]);
+  const key = moduleKey ?? searchParams.get("module") ?? "";
+  const info = MODULE_LABELS[key] ?? DEFAULT_INFO;
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-4 py-10">
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" aria-hidden="true" />
-          <div className="space-y-2">
-            <h1 className="text-xl font-semibold text-foreground">Módulo fuera del MVP</h1>
-            <p className="text-sm text-muted-foreground">
-              Este módulo se retiró del flujo principal del MVP y no está operativo en esta fase.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 space-y-2 rounded-lg bg-muted/40 p-4 text-sm">
-          <p><strong>Módulo:</strong> {resolvedModuleKey}</p>
-          <p><strong>Estado:</strong> {entry?.status ?? "desconocido"}</p>
-          <p><strong>Motivo:</strong> {entry?.reason ?? "No especificado"}</p>
-          <p><strong>Owner:</strong> {entry?.owner ?? "-"}</p>
-          <p><strong>Fecha de desactivación:</strong> {entry?.disabledSince ?? "-"}</p>
-          <p><strong>Revisión:</strong> {entry?.reviewAfter ?? "-"}</p>
-          <p><strong>Alternativa MVP:</strong> {entry?.replacement ?? "Operativa core disponible"}</p>
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button asChild>
-            <Link to="/admin">Volver al panel</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/admin/settings">Ver configuración</Link>
-          </Button>
-        </div>
+    <div className="mx-auto w-full max-w-lg px-4 py-16 text-center">
+      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+        <Clock className="h-7 w-7 text-muted-foreground" />
       </div>
-    </section>
+      <h1 className="text-2xl font-semibold text-foreground">{info.name}</h1>
+      <p className="mt-3 text-muted-foreground max-w-sm mx-auto">{info.description}</p>
+      <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <Button asChild>
+          <Link to="/admin">Volver al panel</Link>
+        </Button>
+      </div>
+    </div>
   );
 }

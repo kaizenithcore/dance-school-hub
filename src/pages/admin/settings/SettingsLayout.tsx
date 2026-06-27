@@ -21,8 +21,8 @@ const PRIMARY_NAV: SettingsNavItem[] = [
 ];
 
 const SECONDARY_NAV: SettingsNavItem[] = [
-  { to: "/admin/settings/recepcion", label: "Recepción", icon: Monitor },
-  { to: "/admin/settings/pagina-web", label: "Página web", icon: Globe },
+  { to: "/admin/reception", label: "Recepción", icon: Monitor },
+  { to: "/admin/website", label: "Página web", icon: Globe },
 ];
 
 function NavItem({ item }: { item: SettingsNavItem }) {

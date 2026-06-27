@@ -9,7 +9,6 @@ type AdminModuleHelpKey =
   | "renewals"
   | "course-clone"
   | "events"
-  | "exams"
   | "reception"
   | "school-analytics"
   | "school-posts";
@@ -38,11 +37,6 @@ const HELP_MAP: Record<AdminModuleHelpKey, { href: string; tooltip: string; labe
   events: {
     href: "/guides",
     tooltip: "Abre las guías para flujos de gestión y comunicación.",
-    label: "Ayuda",
-  },
-  exams: {
-    href: "/guides",
-    tooltip: "Revisa buenas prácticas para convocatorias y operación.",
     label: "Ayuda",
   },
   reception: {
