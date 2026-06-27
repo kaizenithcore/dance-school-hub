@@ -115,17 +115,24 @@ El flujo auth:
 
 | Módulo | Estado | Notas |
 |--------|--------|-------|
-| Alumnos | ✅ Activo | Fichas, importación, clases |
-| Clases y horarios | ✅ Activo | Vista lista + toggle a horario semanal |
-| Inscripciones | ✅ Activo | Formulario público configurable |
-| Pagos | ✅ Activo | Registro manual, facturas, recibos |
+| Alumnos | ✅ Activo | Fichas, importación, clases, campos personalizados |
+| Clases y horarios | ✅ Activo | Vista lista + toggle horario semanal + insights |
+| Inscripciones (Matrículas) | ✅ Activo | Formulario público configurable (form-builder) |
+| Pagos | ✅ Activo | Manual, facturas, recibos PDF con branding, impresión |
+| Asistencia | ✅ Activo | Hojas PDF por clase + descarga masiva todas las clases |
+| Tarifas y paquetes | ✅ Activo | Tarifas individuales + paquetes/combos |
+| Economía | ✅ Activo | Ingresos/gastos/balance, gráficas 12 meses |
 | Renovaciones | ✅ Activo | Campañas de renovación por curso |
 | Lista de espera | ✅ Activo | Automática cuando clase está llena |
 | Comunicaciones | ✅ Activo | Email masivo segmentado |
-| Portal del alumno | 🚧 V1 parcial | Horario, pagos, avisos — sin funcionalidades sociales |
-| Exámenes/Certifier | ❌ Eliminado | Discontinuado en Sprint 0 del roadmap |
+| Recepción | ✅ Activo | Búsqueda rápida, cobro express, incidencias |
+| Branding | ✅ Activo | Logo, colores, fuente — aplicado en PDFs y portal |
+| Portal del alumno | ✅ V1 | Horario, pagos/recibos, avisos — datos reales, sin social |
+| Analíticas avanzadas | 🕐 Próximamente | Ruta activa → muestra página "Próximamente" |
+| Eventos avanzados | 🕐 Próximamente | Ruta activa → muestra página "Próximamente" |
+| Clonar temporadas | 🕐 Próximamente | Ruta activa → muestra página "Próximamente" |
+| Exámenes/Certifier | ❌ Eliminado | Código y referencias completamente eliminados |
 | Multi-sede | ❌ Eliminado | Discontinuado en Sprint 0 |
-| Analíticas avanzadas | 🕐 Legacy | Código existe, UI oculta |
 
 ---
 
@@ -145,10 +152,11 @@ Estado en `localStorage` con clave `nexa:onboarding:state:v1`.
 ## Billing / Trial
 
 - Trial de 30 días desde creación del tenant
-- Al expirar → `BillingShell` bloquea el acceso con modal de checkout
+- Al expirar → `BillingShell` bloquea el acceso con modal de checkout (solo Stripe)
 - El checkout llama a Stripe, que redirige de vuelta con `?stripe=success`
 - `BillingShell` detecta el param y persiste `trialPaymentCompleted: true` en `school_settings.billing`
 - `useBillingEntitlements` hook expone el estado de plan y features disponibles
+- **Promo de fundadores**: configurada en `catalog/commercialCatalog.json` → `foundersPromo`. Para desactivarla antes de un cambio de cohorte: poner `"enabled": false` en el JSON y hacer deploy. No requiere cambio de código.
 
 ---
 
@@ -180,3 +188,5 @@ Se ejecuta en push y PR a `main`.
 - `portalFoundationService.ts` en backend es un god file (3.648L) — pendiente de split cuando el portal social se active
 - Tests: solo 1 test file (`src/test/example.test.ts`). Los servicios de pago e inscripción son los más críticos sin cobertura
 - `src/lib/commercialCatalog.ts` contiene la configuración de planes — los price IDs de Stripe están en `.env.local`, no en el catálogo
+- Pantallas V2 del portal (`FeedScreen`, `ConnectionsScreen`, `ProgressScreen`, etc.) existen como ficheros pero no están activas; las rutas correspondientes muestran `PortalComingSoonScreen`
+- `copyFoundersCode` y `foundersCodeCopied` en `BillingShell` son código muerto (el descuento se aplica automáticamente en el modal de checkout, no hay botón de copiar código)

@@ -54,7 +54,7 @@ const SchoolLandingPage = lazy(() => import("@/pages/public/SchoolLandingPage"))
 const EnrollPage = lazy(() => import("@/pages/public/EnrollPage"));
 const FullSchedulePage = lazy(() => import("@/pages/public/FullSchedulePage"));
 const StudentPortalLandingPage = lazy(() => import("@/pages/public/StudentPortalLandingPage"));
-const StudentPortalMockupPage = lazy(() => import("@/pages/public/StudentPortalMockupPage"));
+
 const LeadQualificationPage = lazy(() => import("@/pages/public/LeadQualificationPage"));
 
 // ── Portal V1 — 7 operational screens ──────────────────────────────────────
@@ -68,7 +68,7 @@ const PortalProfile = lazy(() => import("@/portal/screens/ProfileScreen"));
 const PortalPreferencesScreen = lazy(() => import("@/portal/screens/PortalPreferencesScreen"));
 const TeacherScheduleScreen = lazy(() => import("@/portal/screens/teacher/TeacherScheduleScreen"));
 const TeacherClassesScreen = lazy(() => import("@/portal/screens/teacher/TeacherClassesScreen"));
-// Social screens (Feed, Connections, Saved, Gallery, Progress, Certifications) deferred to V2
+const PortalComingSoonScreen = lazy(() => import("@/portal/screens/PortalComingSoonScreen"));
 
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
@@ -206,7 +206,7 @@ const App = () => (
           </Route>
           <Route path="/cualificacion" element={withSuspense(<LeadQualificationPage />)} />
           <Route path="/portal" element={withSuspense(<StudentPortalLandingPage />)} />
-          <Route path="/portal/mockup" element={withSuspense(<StudentPortalMockupPage />)} />
+          {/* /portal/mockup removed — was a V2 wireframe, no longer linked */}
           <Route path="/dashboard/economia" element={<Navigate to="/admin/economia" replace />} />
           <Route path="/portal/onboarding" element={withSuspense(<PortalOnboarding />)} />
           <Route path="/portal/app" element={withSuspense(<PortalAppShell />)}>
@@ -225,7 +225,15 @@ const App = () => (
             <Route path="notifications" element={<Navigate to="/portal/app/avisos" replace />} />
             <Route path="profile" element={<Navigate to="/portal/app/perfil" replace />} />
             <Route path="preferences" element={<Navigate to="/portal/app/preferencias" replace />} />
-            {/* V2 social routes — not yet implemented */}
+            {/* V2 screens — explicit routes so users see "Próximamente" instead of silent redirect */}
+            <Route path="feed" element={withSuspense(<PortalComingSoonScreen />)} />
+            <Route path="connections" element={withSuspense(<PortalComingSoonScreen />)} />
+            <Route path="progress" element={withSuspense(<PortalComingSoonScreen />)} />
+            <Route path="certifications" element={withSuspense(<PortalComingSoonScreen />)} />
+            <Route path="gallery" element={withSuspense(<PortalComingSoonScreen />)} />
+            <Route path="saved" element={withSuspense(<PortalComingSoonScreen />)} />
+            <Route path="search" element={withSuspense(<PortalComingSoonScreen />)} />
+            {/* Anything else still unknown → home */}
             <Route path="*" element={<Navigate to="/portal/app" replace />} />
           </Route>
           <Route path="*" element={withSuspense(<NotFound />)} />

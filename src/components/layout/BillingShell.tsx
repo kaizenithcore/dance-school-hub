@@ -25,7 +25,7 @@ import type { BillingCycle } from "@/lib/api/stripe";
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
 import { getSchoolSettings, syncTrialPaymentStatusFromStripe, updateSchoolSettings } from "@/lib/api/settings";
 import {
-  commercialCatalog, getInterestFreeInstallment, getSelectableSubscriptionAddons,
+  commercialCatalog, foundersPromo, getInterestFreeInstallment, getSelectableSubscriptionAddons,
   planCatalog, planOrder, subscriptionAddonCatalog,
   type PlanType as CatalogPlanType, type SubscriptionAddonKey,
 } from "@/lib/commercialCatalog";
@@ -42,9 +42,9 @@ const CHECKOUT_PAYMENT_METHOD_KEY = "nexa:checkout:payment-method:v1";
 const CHECKOUT_ALLOW_CHANGE_LATER_KEY = "nexa:checkout:allow-change-later:v1";
 const CHECKOUT_SELECTION_KEY = "nexa:checkout:selection:v1";
 const TRIAL_STRIPE_SYNC_TOAST_KEY = "nexa:trial-stripe-sync-toast:v1";
-const FOUNDERS_PROMO_CODE = "FOUNDERS";
-const FOUNDERS_MONTHLY_PROMO_PERCENT = 50;
-const FOUNDERS_ANNUAL_PROMO_PERCENT = 15;
+const FOUNDERS_PROMO_CODE = foundersPromo?.enabled ? foundersPromo.code : null;
+const FOUNDERS_MONTHLY_PROMO_PERCENT = foundersPromo?.monthlyDiscountPercent ?? 0;
+const FOUNDERS_ANNUAL_PROMO_PERCENT = foundersPromo?.annualDiscountPercent ?? 0;
 const CHECKOUT_TOTAL_STEPS = 3;
 const ADMIN_HOURLY_COST_EUR = 18;
 const NET_ENROLLMENT_CONTRIBUTION_EUR = 55;
@@ -266,7 +266,7 @@ export function BillingShell() {
   const checkoutCostPerActiveStudent = checkoutIncludedStudents ? Math.round((checkoutSimulatorTodayAmount / checkoutIncludedStudents) * 100) / 100 : null;
   const checkoutEquivalentAdminHours = Math.round((checkoutSimulatorTodayAmount / ADMIN_HOURLY_COST_EUR) * 10) / 10;
   const checkoutSavings12Months = checkoutBillingCycle === "annual" ? checkoutAnnualSavings : 0;
-  const checkoutBestDiscountLabel = `FOUNDERS ${foundersPromoPercent}%`;
+  const checkoutBestDiscountLabel = FOUNDERS_PROMO_CODE ? `${FOUNDERS_PROMO_CODE} ${foundersPromoPercent}%` : "";
   const checkoutPaybackEnrollments = Math.max(1, Math.ceil(checkoutSimulatorTodayAmount / NET_ENROLLMENT_CONTRIBUTION_EUR));
   const selectedAdvisorProfile = useMemo(() => getAdvisorRecommendation(planAdvisorStudents), [planAdvisorStudents]);
   const advisorPlanCatalog = planCatalog[selectedAdvisorProfile.recommendedPlan];
@@ -430,10 +430,11 @@ export function BillingShell() {
   // ── Callbacks ──────────────────────────────────────────────────────────────────
 
   const copyFoundersCode = useCallback(async () => {
+    if (!FOUNDERS_PROMO_CODE) return;
     try {
       await navigator.clipboard.writeText(FOUNDERS_PROMO_CODE);
       setFoundersCodeCopied(true);
-      toast.success("Código FOUNDERS copiado");
+      toast.success(`Código ${FOUNDERS_PROMO_CODE} copiado`);
     } catch {
       const textarea = document.createElement("textarea");
       textarea.value = FOUNDERS_PROMO_CODE;
@@ -442,9 +443,9 @@ export function BillingShell() {
       textarea.focus(); textarea.select();
       const copied = document.execCommand("copy");
       document.body.removeChild(textarea);
-      if (!copied) { toast.error("No se pudo copiar el código. Cópialo manualmente: FOUNDERS"); return; }
+      if (!copied) { toast.error(`No se pudo copiar el código. Cópialo manualmente: ${FOUNDERS_PROMO_CODE}`); return; }
       setFoundersCodeCopied(true);
-      toast.success("Código FOUNDERS copiado");
+      toast.success(`Código ${FOUNDERS_PROMO_CODE} copiado`);
     }
   }, []);
 

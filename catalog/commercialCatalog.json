@@ -1,5 +1,11 @@
 {
   "planOrder": ["starter", "pro"],
+  "foundersPromo": {
+    "enabled": true,
+    "code": "FOUNDERS",
+    "monthlyDiscountPercent": 50,
+    "annualDiscountPercent": 15
+  },
   "mvpOffer": {
     "planType": "starter",
     "monthlyPriceEur": 89,

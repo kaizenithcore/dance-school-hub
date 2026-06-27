@@ -19,8 +19,16 @@ interface PlanFeatureFlags {
   maxCustomRoles: number;
 }
 
+interface FoundersPromoConfig {
+  enabled: boolean;
+  code: string;
+  monthlyDiscountPercent: number;
+  annualDiscountPercent: number;
+}
+
 interface CommercialCatalog {
   planOrder: PlanType[];
+  foundersPromo?: FoundersPromoConfig;
   mvpOffer?: {
     planType: PlanType;
     monthlyPriceEur: number;
@@ -93,6 +101,7 @@ export const freeTrialDays = mvpOffer?.trialDays ?? 30;
 export const subscriptionAddonCatalog = commercialCatalog.subscriptionAddons;
 export const professionalServicesCatalog = commercialCatalog.professionalServices;
 export const ANNUAL_FINANCING_TERMS = [3, 6] as const;
+export const foundersPromo = commercialCatalog.foundersPromo ?? null;
 
 export function buildRegisterHref(
   source: string,
