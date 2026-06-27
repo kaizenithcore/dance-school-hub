@@ -50,6 +50,7 @@ function buildRenewalEmailHtml(input: {
   classNames: string[];
   scheduleText?: string;
   scheduleUrl?: string;
+  scheduleHtml?: string;
   expiresAt?: string | null;
 }) {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -61,11 +62,13 @@ function buildRenewalEmailHtml(input: {
     ? `<ul style="margin:0 0 0 18px;padding:0;font-size:13px;color:#334155;">${input.classNames.map((cn) => `<li style="margin-bottom:4px;">${esc(cn)}</li>`).join("")}</ul>`
     : `<p style="margin:0;font-size:13px;color:#64748b;">Sin clases asociadas.</p>`;
 
-  const scheduleHtml = (input.scheduleText || input.scheduleUrl)
+  const hasSchedule = !!(input.scheduleHtml || input.scheduleText || input.scheduleUrl);
+  const scheduleHtml = hasSchedule
     ? `<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
-        <p style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Horario del próximo curso</p>
-        ${input.scheduleText ? `<p style="margin:0 0 8px;font-size:13px;color:#334155;white-space:pre-line;">${esc(input.scheduleText)}</p>` : ""}
-        ${input.scheduleUrl ? `<a href="${esc(input.scheduleUrl)}" style="font-size:13px;color:#3b82f6;">Ver horario completo →</a>` : ""}
+        <p style="margin:0 0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Horario del próximo curso</p>
+        ${input.scheduleHtml ?? ""}
+        ${(!input.scheduleHtml && input.scheduleText) ? `<p style="margin:0 0 8px;font-size:13px;color:#334155;white-space:pre-line;">${esc(input.scheduleText)}</p>` : ""}
+        ${input.scheduleUrl ? `<a href="${esc(input.scheduleUrl)}" style="font-size:13px;color:#3b82f6;display:inline-block;margin-top:8px;">Ver horario completo →</a>` : ""}
       </div>`
     : "";
 
@@ -468,6 +471,7 @@ export const renewalService = {
     scheduledAt?: string;
     scheduleText?: string;
     scheduleUrl?: string;
+    scheduleHtml?: string;
   }): Promise<{ sent: number; failed: number; skipped: number; scheduledAt?: string }> {
     // Fetch campaign for course/schedule metadata
     const { data: campaignRow } = await supabaseAdmin
@@ -484,6 +488,7 @@ export const renewalService = {
       ...campaignMeta,
       ...(input.scheduleText !== undefined ? { scheduleText: input.scheduleText } : {}),
       ...(input.scheduleUrl  !== undefined ? { scheduleUrl:  input.scheduleUrl  } : {}),
+      ...(input.scheduleHtml !== undefined ? { scheduleHtml: input.scheduleHtml } : {}),
     };
 
     // If scheduledAt: persist and return
@@ -533,6 +538,7 @@ export const renewalService = {
     const toCourse     = (updatedMeta.toCourse     as string | undefined) || "";
     const scheduleText = (updatedMeta.scheduleText  as string | undefined) || "";
     const scheduleUrl  = (updatedMeta.scheduleUrl   as string | undefined) || "";
+    const scheduleHtml = (updatedMeta.scheduleHtml  as string | undefined) || "";
     const expiresAt    = campaignRow?.expires_at as string | null | undefined;
 
     let sent = 0; let failed = 0; let skipped = 0;
@@ -555,6 +561,7 @@ export const renewalService = {
         classNames,
         scheduleText: scheduleText || undefined,
         scheduleUrl: scheduleUrl || undefined,
+        scheduleHtml: scheduleHtml || undefined,
         expiresAt,
       });
 
@@ -581,7 +588,7 @@ export const renewalService = {
     return { sent, failed, skipped };
   },
 
-  async getEmailPreviewHtml(tenantId: string, campaignId: string, opts?: { scheduleText?: string; scheduleUrl?: string }): Promise<string> {
+  async getEmailPreviewHtml(tenantId: string, campaignId: string, opts?: { scheduleText?: string; scheduleUrl?: string; scheduleHtml?: string }): Promise<string> {
     const [{ data: campaignRow }, branding, { data: tenantRow }] = await Promise.all([
       supabaseAdmin.from("renewal_campaigns").select("metadata, expires_at").eq("tenant_id", tenantId).eq("id", campaignId).single(),
       brandingService.getTenantBranding(tenantId),
@@ -595,6 +602,7 @@ export const renewalService = {
     const toCourse     = (campaignMeta.toCourse   as string | undefined) || "Próximo curso";
     const scheduleText = opts?.scheduleText ?? (campaignMeta.scheduleText as string | undefined) ?? "";
     const scheduleUrl  = opts?.scheduleUrl  ?? (campaignMeta.scheduleUrl  as string | undefined) ?? "";
+    const scheduleHtml = opts?.scheduleHtml ?? (campaignMeta.scheduleHtml as string | undefined) ?? "";
     const expiresAt    = campaignRow?.expires_at as string | null | undefined;
 
     // Use a sample offer (first pending)
@@ -621,6 +629,7 @@ export const renewalService = {
       classNames: classNames.length > 0 ? classNames : ["Ballet clásico — Lunes 18:00h", "Contemporáneo — Miércoles 19:00h"],
       scheduleText: scheduleText || undefined,
       scheduleUrl: scheduleUrl || undefined,
+      scheduleHtml: scheduleHtml || undefined,
       expiresAt,
     });
   },

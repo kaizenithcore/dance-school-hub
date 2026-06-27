@@ -27,11 +27,12 @@ export async function GET(request: NextRequest) {
   const campaignId  = request.nextUrl.searchParams.get("campaignId") || "";
   const scheduleText = request.nextUrl.searchParams.get("scheduleText") ?? undefined;
   const scheduleUrl  = request.nextUrl.searchParams.get("scheduleUrl") ?? undefined;
+  const scheduleHtml = request.nextUrl.searchParams.get("scheduleHtml") ?? undefined;
 
   if (!campaignId) return fail({ code: "invalid_request", message: "campaignId required" }, 400, origin);
 
   try {
-    const html = await renewalService.getEmailPreviewHtml(auth.context.tenantId, campaignId, { scheduleText, scheduleUrl });
+    const html = await renewalService.getEmailPreviewHtml(auth.context.tenantId, campaignId, { scheduleText, scheduleUrl, scheduleHtml });
     return ok({ html }, 200, origin);
   } catch (error) {
     return fail({ code: "preview_failed", message: error instanceof Error ? error.message : "Failed to render preview" }, 500, origin);

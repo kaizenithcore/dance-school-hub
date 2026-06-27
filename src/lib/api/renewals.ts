@@ -101,10 +101,11 @@ export async function updateRenewalOffer(payload: {
   return response.data;
 }
 
-export async function getRenewalEmailPreview(campaignId: string, opts?: { scheduleText?: string; scheduleUrl?: string }): Promise<string> {
+export async function getRenewalEmailPreview(campaignId: string, opts?: { scheduleText?: string; scheduleUrl?: string; scheduleHtml?: string }): Promise<string> {
   const params = new URLSearchParams({ campaignId });
   if (opts?.scheduleText) params.set("scheduleText", opts.scheduleText);
   if (opts?.scheduleUrl)  params.set("scheduleUrl",  opts.scheduleUrl);
+  if (opts?.scheduleHtml) params.set("scheduleHtml", opts.scheduleHtml);
   const response = await apiRequest<{ html: string }>(`/api/admin/renewals/preview?${params.toString()}`);
   if (!response.success || !response.data) throw new Error(response.error?.message || "No se pudo generar la vista previa");
   return response.data.html;
@@ -137,6 +138,7 @@ export async function sendRenewalNotifications(payload: {
   scheduledAt?: string;
   scheduleText?: string;
   scheduleUrl?: string;
+  scheduleHtml?: string;
 }): Promise<{ sent: number; failed: number; skipped: number; scheduledAt?: string }> {
   const response = await apiRequest<{ sent: number; failed: number; skipped: number; scheduledAt?: string }>(
     "/api/admin/renewals/notify",

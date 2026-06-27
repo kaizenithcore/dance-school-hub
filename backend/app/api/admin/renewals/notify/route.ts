@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     const scheduledAt  = typeof body?.scheduledAt  === "string" ? body.scheduledAt  : undefined;
     const scheduleText = typeof body?.scheduleText === "string" ? body.scheduleText : undefined;
     const scheduleUrl  = typeof body?.scheduleUrl  === "string" ? body.scheduleUrl  : undefined;
+    const scheduleHtml = typeof body?.scheduleHtml === "string" ? body.scheduleHtml : undefined;
 
     if (!campaignId) {
       return fail({ code: "invalid_request", message: "campaignId is required" }, 400, origin);
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
       scheduledAt,
       scheduleText,
       scheduleUrl,
+      scheduleHtml,
     });
 
     return ok(result, 200, origin);

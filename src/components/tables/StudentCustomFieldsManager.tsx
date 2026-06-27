@@ -138,7 +138,7 @@ export function StudentCustomFieldsManager({ fields, onReload }: StudentCustomFi
         <div>
           <h3 className="text-sm font-semibold">Campos personalizados de alumno</h3>
           <p className="text-xs text-muted-foreground">
-            Define campos flexibles como DNI, ciudad o nacionalidad sin tocar el esquema core.
+            Define campos personalizados para los alumnos.
           </p>
         </div>
         <Button size="sm" onClick={handleCreate}>

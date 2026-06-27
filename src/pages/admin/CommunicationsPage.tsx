@@ -326,6 +326,7 @@ export default function CommunicationsPage() {
           {previewCount !== null ? <Badge variant="secondary">{previewCount} destinatarios</Badge> : null}
         </div>
       </div>
+      </div>
 
       <div className="rounded-lg border border-border bg-card p-5 shadow-soft">
         <div className="flex items-center justify-between gap-2 mb-3">
