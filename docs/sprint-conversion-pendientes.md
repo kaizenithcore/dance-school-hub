@@ -60,7 +60,7 @@ Piezas a crear:
 Estado: pendiente.
 
 Piezas a crear:
-- Imagen Open Graph propia de DanceHub.
+- Imagen Open Graph propia de Nexa.
 - Version para Twitter/X.
 - Ajuste de metadatos sociales con cuenta oficial.
 

@@ -127,7 +127,7 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave, onManage
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(011) 5555-1234"
+                placeholder="+34 612 34 56 78"
                 disabled={isLoading}
                 className="mt-1"
               />

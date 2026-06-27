@@ -1,24 +1,33 @@
+import { useState } from "react";
 import { TeacherRecord } from "@/lib/data/mockTeachers";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { AlertTriangle } from "lucide-react";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 interface DeleteTeacherModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   teacher: TeacherRecord | null;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void> | void;
 }
 
 export function DeleteTeacherModal({ open, onOpenChange, teacher, onConfirm }: DeleteTeacherModalProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   if (!teacher) return null;
 
-  const handleConfirm = () => {
-    onConfirm();
-    onOpenChange(false);
+  const handleConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      await onConfirm();
+      onOpenChange(false);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={(o) => { if (!isDeleting) onOpenChange(o); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <div className="flex items-center gap-3">
@@ -36,10 +45,16 @@ export function DeleteTeacherModal({ open, onOpenChange, teacher, onConfirm }: D
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="flex gap-2 justify-end">
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirm} className="bg-destructive hover:bg-destructive/90">
+          <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+          <Button
+            variant="destructive"
+            onClick={() => void handleConfirm()}
+            disabled={isDeleting}
+            className="bg-destructive hover:bg-destructive/90"
+          >
+            {isDeleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Eliminar
-          </AlertDialogAction>
+          </Button>
         </div>
       </AlertDialogContent>
     </AlertDialog>

@@ -97,7 +97,7 @@ Revisar precio y características de:
     }
   Revisar:
   "integratedWebsite": {
-      "label": "Web integrada con DanceHub",
+      "label": "Web integrada con Nexa",
       "serviceType": "one_time",
       "shortDescription": "Web conectada al sistema para captar y matricular alumnos.",
       "pricingByPlanEur": {

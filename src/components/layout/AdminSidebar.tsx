@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, GraduationCap, Users, BookOpen, ClipboardList,
   CreditCard, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags,
-  Megaphone, ListOrdered, Repeat, Building2, Wallet, ChevronDown,
+  Megaphone, ListOrdered, Repeat, Building2, Wallet, ChevronDown, CalendarDays,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -79,7 +79,8 @@ const NAV_ENTRIES: NavEntry[] = [
     title: "Clases",
     icon: GraduationCap,
     items: [
-      { title: "Clases y horarios", url: "/admin/classes", icon: GraduationCap, module: "classes" },
+      { title: "Clases", url: "/admin/classes", icon: GraduationCap, module: "classes" },
+      { title: "Horario semanal", url: "/admin/schedule", icon: CalendarDays, module: "schedule" },
       { title: "Profesores", url: "/admin/teachers", icon: BookOpen, module: "teachers" },
       { title: "Aulas", url: "/admin/rooms", icon: DoorOpen, module: "rooms" },
     ],

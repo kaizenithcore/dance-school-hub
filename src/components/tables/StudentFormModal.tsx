@@ -247,7 +247,7 @@ export function StudentFormModal({ open, onOpenChange, student, customFields = [
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Teléfono *</Label>
-              <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="(011) 1234-5678" disabled={isLoading} className={errors.phone ? "border-destructive" : ""} />
+              <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+34 612 34 56 78" disabled={isLoading} className={errors.phone ? "border-destructive" : ""} />
               {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
             </div>
           </div>
@@ -424,7 +424,7 @@ export function StudentFormModal({ open, onOpenChange, student, customFields = [
                   <Input
                     value={form.payerPhone || ""}
                     onChange={(e) => set("payerPhone", e.target.value)}
-                    placeholder="(011) 1234-5678"
+                    placeholder="+34 612 34 56 78"
                     disabled={isLoading}
                     className={errors.payerPhone ? "border-destructive" : ""}
                   />
@@ -567,7 +567,7 @@ export function StudentFormModal({ open, onOpenChange, student, customFields = [
           </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter className="flex-col sm:flex-row gap-0">
           {isEdit && onManageClasses && student && (
             <Button
               type="button"
@@ -576,7 +576,7 @@ export function StudentFormModal({ open, onOpenChange, student, customFields = [
               onClick={() => { onOpenChange(false); onManageClasses(student); }}
               disabled={isLoading}
             >
-              Gestionar clases y cuota
+              Gestionar clases
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancelar</Button>

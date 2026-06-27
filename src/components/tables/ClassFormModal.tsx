@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getTeachers } from "@/lib/api/teachers";
 import { getRooms } from "@/lib/api/rooms";
@@ -51,6 +51,7 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
   const [newDiscipline, setNewDiscipline] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [teacherIds, setTeacherIds] = useState<string[]>([]);
   const [disciplinePopoverOpen, setDisciplinePopoverOpen] = useState(false);
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
@@ -161,6 +162,7 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
 
   const handleSave = async () => {
     if (validate()) {
+      setIsSaving(true);
       const normalizedTeacherIds = Array.from(new Set(teacherIds.filter((teacherId) => teacherId && teacherId.trim().length > 0)));
       const normalizedDisciplineId = form.discipline?.trim() ? form.discipline : undefined;
       const normalizedCategoryId = form.category?.trim() ? form.category : undefined;
@@ -183,9 +185,11 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
         teacherIds: normalizedTeacherIds,
         weeklyFrequency: form.weeklyFrequency || 1,
       };
-      const ok = await onSave(dataToSave);
-      if (ok) {
-        onOpenChange(false);
+      try {
+        const ok = await onSave(dataToSave);
+        if (ok) onOpenChange(false);
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -421,8 +425,11 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave}>{isEdit ? "Guardar Cambios" : "Crear Clase"}</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>Cancelar</Button>
+          <Button onClick={() => void handleSave()} disabled={isSaving}>
+            {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            {isEdit ? "Guardar Cambios" : "Crear Clase"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

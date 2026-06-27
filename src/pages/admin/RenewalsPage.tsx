@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import {
   Loader2, RefreshCw, Mail, Calendar, CheckCircle2, XCircle, Clock, Send, Eye,
   Search, ArrowUpDown, ChevronUp, ChevronDown, Table2, Link as LinkIcon,
-  BookmarkPlus, Trash2, ChevronDown as Expand,
+  BookmarkPlus, Trash2, ChevronDown as Expand, AlertTriangle,
 } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -710,8 +710,20 @@ export default function RenewalsPage() {
           const m = activeCampaign.metadata as Record<string, unknown>;
           const fc = (m.fromCourse as string | undefined) ?? "";
           const tc = (m.toCourse   as string | undefined) ?? "";
+          // Detect legacy campaign (created before the all-enrollments fix): no classNameMap means old data
+          const hasClassNameMap = !!m.classNameMap && Object.keys(m.classNameMap as object).length > 0;
           return (
             <>
+              {/* Legacy campaign warning */}
+              {!hasClassNameMap && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Esta renovación fue creada con una versión anterior</p>
+                    <p className="text-xs mt-0.5">Es posible que no incluya todos los alumnos y que las clases aparezcan como IDs. Crea una nueva renovación para obtener datos correctos.</p>
+                  </div>
+                </div>
+              )}
               {/* Stats bar */}
               <div className="flex flex-wrap items-center gap-2">
                 {(fc || tc) && (

@@ -7,7 +7,7 @@ begin;
 insert into tenants (id, name, slug, is_active, created_at, updated_at)
 values (
   '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d',
-  'Escuela Demo DanceHub',
+  'Escuela Demo Nexa',
   'escuela-demo-dancehub',
   true,
   now(),
@@ -32,7 +32,7 @@ insert into school_settings (
 values (
   '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d',
   jsonb_build_object(
-    'schoolName', 'Escuela Demo DanceHub',
+    'schoolName', 'Escuela Demo Nexa',
     'primaryColor', '#0f766e',
     'accentColor', '#f59e0b'
   ),
@@ -721,7 +721,7 @@ values
     'Open Day Septiembre',
     (current_date + interval '75 day')::date,
     (current_date + interval '75 day')::date,
-    'Escuela Demo DanceHub',
+    'Escuela Demo Nexa',
     'Jornada de puertas abiertas para nuevas matriculas.',
     null,
     300,

@@ -1,5 +1,5 @@
 🧠 CONTEXTO PARA COPILOT (INCLUIR SIEMPRE)
-Estamos implementando el backend del módulo ExamSuit dentro de DanceHub.
+Estamos implementando el backend del módulo ExamSuit dentro de Nexa.
 
 El sistema actual ya incluye:
 - Multi-tenant (escuelas)

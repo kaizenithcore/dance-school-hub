@@ -188,7 +188,7 @@ function buildHtml(receipts: ReceiptRecord[], branding: TenantBranding, month: s
 
           <footer class="receipt-footer">
             <p>${footer}</p>
-            <small>Documento generado automáticamente por DanceHub.</small>
+            <small>Documento generado automáticamente por Nexa.</small>
           </footer>
         </section>
       `;

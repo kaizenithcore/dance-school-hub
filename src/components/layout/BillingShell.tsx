@@ -112,7 +112,7 @@ function readRegisterDefaults(): { addons: Record<"customDomain" | "prioritySupp
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export function BillingShell() {
-  const { billing, planLabel, refresh } = useBillingEntitlements();
+  const { billing, planLabel, refresh, loading: billingLoading } = useBillingEntitlements();
   const { authContext } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -191,7 +191,7 @@ export function BillingShell() {
     if (!trialStatus || trialStatus.trialPaymentCompleted) return null;
     if (trialStatus.isExpired) return "Periodo de prueba finalizado";
     if (trialStatus.daysLeft <= TRIAL_WARNING_DAYS) return `${trialStatus.daysLeft} días de prueba restantes`;
-    return `Prueba gratuita — ${trialStatus.daysLeft} días restantes`;
+    return `Prueba gratuita: ${trialStatus.daysLeft} días restantes`;
   }, [trialStatus]);
 
   const bannerTrialToneClass = useMemo(() => {
@@ -358,6 +358,36 @@ export function BillingShell() {
       } finally { setTrialStatusSyncing(false); }
     })();
   }, [billing.trialPaymentCompleted, isTrialLocked, refresh]);
+
+  // Apply plan selected during registration to trial settings (runs once on first load)
+  const trialPlanAppliedRef = useRef(false);
+  useEffect(() => {
+    if (trialPlanAppliedRef.current || billingLoading) return;
+    if (billing.trialPaymentCompleted) {
+      // Already paid — no need to apply registration plan
+      localStorage.removeItem("selected_plan");
+      trialPlanAppliedRef.current = true;
+      return;
+    }
+    const registrationPlan = localStorage.getItem("selected_plan");
+    if (!registrationPlan || registrationPlan === billing.planType) {
+      trialPlanAppliedRef.current = true;
+      return;
+    }
+    trialPlanAppliedRef.current = true;
+    void (async () => {
+      try {
+        const settings = await getSchoolSettings();
+        if (!settings) return;
+        await updateSchoolSettings({
+          ...settings,
+          billing: { ...settings.billing, planType: registrationPlan },
+        });
+        await refresh();
+        localStorage.removeItem("selected_plan");
+      } catch { /* ignore — non-critical */ }
+    })();
+  }, [billing.trialPaymentCompleted, billing.planType, billingLoading, refresh]);
 
   // Checkout init
   useEffect(() => {
@@ -527,10 +557,10 @@ export function BillingShell() {
       {/* Plan info banner */}
       <div className="border-b border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground md:px-6">
         <span className="font-medium text-foreground">Plan {planLabel}</span>
-        <span className="mx-2">·</span>
-        <span>Límite alumnos activos: {billing.maxActiveStudents}</span>
-        <span className="mx-2">·</span>
-        <span>Incluidos base: {billing.includedActiveStudents}</span>
+        {/* <span className="mx-2">·</span> */}
+        {/* <span>Límite alumnos activos: {billing.maxActiveStudents}</span> */}
+        {/* <span className="mx-2">·</span> */}
+        {/* <span>Incluidos base: {billing.includedActiveStudents}</span> */}
         {bannerTrialText ? (
           <><span className="mx-2">·</span><span className={bannerTrialToneClass}>{bannerTrialText}{trialEndsAtLabel ? ` (fin: ${trialEndsAtLabel})` : ""}</span></>
         ) : null}
