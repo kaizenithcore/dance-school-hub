@@ -216,7 +216,7 @@ export const invoiceService = {
       return createdMonth === month;
     };
 
-    // Get all active students with their enrollments
+    // Get all active students with their enrollments (including payment_type for receipt logic)
     const { data: enrollments, error: enrollError } = await supabaseAdmin
       .from("enrollments")
       .select(
@@ -225,6 +225,7 @@ export const invoiceService = {
         student_id,
         class_id,
         status,
+        payment_method,
         classes(
           id,
           name,
@@ -237,7 +238,8 @@ export const invoiceService = {
           id,
           name,
           email,
-          status
+          status,
+          payment_type
         )
       `
       )
@@ -279,18 +281,25 @@ export const invoiceService = {
     const studentEnrollments = new Map<
       string,
       {
-        student: { id: string; name: string; email: string };
+        student: { id: string; name: string; email: string; payment_type?: string | null };
         enrollments: EnrollmentRow[];
+        paymentMethod: string; // derived from enrollment or student payment_type
       }
     >();
 
     for (const enrollment of filteredEnrollments) {
       const studentId = enrollment.student_id;
       const student = Array.isArray(enrollment.students) ? enrollment.students[0] : enrollment.students;
+      // Payment method priority: enrollment.payment_method → student.payment_type → "manual"
+      const enrollMethod = (enrollment as unknown as { payment_method?: string | null }).payment_method;
+      const studentPaymentType = (student as unknown as { payment_type?: string | null })?.payment_type;
+      const resolvedMethod = enrollMethod || studentPaymentType || "manual";
+
       if (!studentEnrollments.has(studentId)) {
         studentEnrollments.set(studentId, {
           student,
           enrollments: [],
+          paymentMethod: resolvedMethod,
         });
       }
       studentEnrollments.get(studentId)!.enrollments.push(enrollment);
@@ -299,7 +308,7 @@ export const invoiceService = {
     // Generate invoices
     const createdInvoices: Invoice[] = [];
 
-    for (const [studentId, { student, enrollments: studentEnrollmentsList }] of studentEnrollments) {
+    for (const [studentId, { student, enrollments: studentEnrollmentsList, paymentMethod: studentPaymentMethod }] of studentEnrollments) {
       if (paidStudentsForMonth.has(studentId)) {
         continue;
       }
@@ -380,6 +389,7 @@ export const invoiceService = {
               status: "pending",
               total_amount_cents: totalAmountCents,
               invoice_number: invoiceNumber,
+              payment_method: studentPaymentMethod, // persist student's payment method
             },
           ])
           .select()
@@ -568,7 +578,17 @@ export const invoiceService = {
     } = {}
   ) {
     const now = new Date().toISOString();
-    const paymentMethod = options.paymentMethod || "manual";
+
+    // Read the invoice's stored payment_method as fallback (set during generation)
+    const { data: existingInv } = await supabaseAdmin
+      .from("monthly_invoices")
+      .select("payment_method")
+      .eq("tenant_id", tenantId)
+      .eq("id", invoiceId)
+      .maybeSingle();
+    const storedMethod = (existingInv as { payment_method?: string | null } | null)?.payment_method;
+
+    const paymentMethod = options.paymentMethod || storedMethod || "manual";
     const provider =
       paymentMethod === "transfer" || paymentMethod === "bank_transfer" || paymentMethod === "transferencia"
         ? "transfer"

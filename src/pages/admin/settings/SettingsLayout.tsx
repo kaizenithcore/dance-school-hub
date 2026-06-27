@@ -21,7 +21,7 @@ const PRIMARY_NAV: SettingsNavItem[] = [
 ];
 
 const SECONDARY_NAV: SettingsNavItem[] = [
-  { to: "/admin/reception", label: "Recepción", icon: Monitor },
+  // Recepción temporalmente oculta — configuración integrada en la página de Recepción
   { to: "/admin/website", label: "Página web", icon: Globe },
 ];
 

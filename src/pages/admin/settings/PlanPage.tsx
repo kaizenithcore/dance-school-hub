@@ -213,12 +213,7 @@ export default function PlanPage() {
           {/* Add-ons */}
           <div className="space-y-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Add-ons</p>
-            <SwitchRow
-              label="Dominio personalizado"
-              description={`matricula.tuescuela.com (${billing.pricing.addons.customDomain} EUR/mes)`}
-              checked={billing.addons.customDomain}
-              onChange={(v) => setBilling({ ...billing, addons: { ...billing.addons, customDomain: v } })}
-            />
+            {/* Dominio personalizado — temporalmente oculto */}
             <SwitchRow
               label="Soporte prioritario"
               description={`Respuesta en menos de 24h y onboarding (${billing.pricing.addons.prioritySupport} EUR/mes)`}

@@ -434,56 +434,59 @@ export const receiptService = {
       throw new Error("Invalid month format. Expected YYYY-MM");
     }
 
-    const { data: confirmedRows, error: confirmedError } = await supabaseAdmin
-      .from("enrollments")
-      .select("student_id")
+    // New flow: generate receipts from PENDING cash invoices so they can be
+    // distributed before the student pays. The student receives the receipt,
+    // pays, and then the invoice is marked as paid.
+    const CASH_METHODS = new Set(["cash", "efectivo", "manual"]);
+
+    const { data: invoiceRows, error: invoiceError } = await supabaseAdmin
+      .from("monthly_invoices")
+      .select("id, invoice_number, student_id, total_amount_cents, payment_method, students(name, email)")
       .eq("tenant_id", tenantId)
-      .eq("status", "confirmed");
+      .eq("month", selectedMonth)
+      .in("status", ["pending", "overdue"])
+      .order("invoice_number", { ascending: true });
 
-    if (confirmedError) {
-      throw new Error(`Failed to fetch confirmed enrollments: ${confirmedError.message}`);
+    if (invoiceError) {
+      throw new Error(`Failed to fetch invoices: ${invoiceError.message}`);
     }
 
-    const confirmedStudentIds = new Set((confirmedRows || []).map((row: { student_id: string }) => row.student_id));
+    // Filter to cash invoices only
+    const cashInvoices = (invoiceRows || []).filter((inv) => {
+      const m = normalizeText(typeof (inv as Record<string, unknown>).payment_method === "string"
+        ? String((inv as Record<string, unknown>).payment_method)
+        : "", "").toLowerCase();
+      return !m || CASH_METHODS.has(m); // no method = treat as cash (default)
+    });
 
-    const start = `${selectedMonth}-01T00:00:00.000Z`;
-    const [year, monthNum] = selectedMonth.split("-").map(Number);
-    const endDate = new Date(Date.UTC(year, monthNum, 1));
-    const end = endDate.toISOString();
+    if (cashInvoices.length === 0) {
+      // Fall back to legacy paid-payment flow if no pending invoices found
+      const start = `${selectedMonth}-01T00:00:00.000Z`;
+      const [year, monthNum] = selectedMonth.split("-").map(Number);
+      const endDate = new Date(Date.UTC(year, monthNum, 1));
+      const end = endDate.toISOString();
 
-    const { data: paymentRows, error: paymentsError } = await supabaseAdmin
-      .from("payments")
-      .select("id, student_id, amount_cents, currency, paid_at, created_at, provider, metadata, students(name, email)")
-      .eq("tenant_id", tenantId)
-      .eq("status", "paid")
-      .gte("paid_at", start)
-      .lt("paid_at", end)
-      .order("paid_at", { ascending: true });
+      const { data: paymentRows } = await supabaseAdmin
+        .from("payments")
+        .select("id, student_id, amount_cents, currency, paid_at, created_at, provider, metadata, students(name, email)")
+        .eq("tenant_id", tenantId)
+        .eq("status", "paid")
+        .gte("paid_at", start)
+        .lt("paid_at", end)
+        .order("paid_at", { ascending: true });
 
-    if (paymentsError) {
-      throw new Error(`Failed to fetch payments: ${paymentsError.message}`);
+      const eligible = (paymentRows as PaymentRow[] || []).filter((p) => isCashPayment(p));
+      cashInvoices.push(...eligible.map((p, i) => {
+        const st = asStudent(p.students);
+        return {
+          id: p.id, invoice_number: toReceiptNumber(selectedMonth, i + 1),
+          student_id: p.student_id, total_amount_cents: p.amount_cents,
+          payment_method: "cash", students: { name: st?.name || "Alumno", email: st?.email || "" },
+        };
+      }));
     }
 
-    const eligible = (paymentRows as PaymentRow[] || [])
-      .filter((payment) => confirmedStudentIds.has(payment.student_id))
-      .filter((payment) => isCashPayment(payment));
-
-    const paymentIds = eligible.map((item) => item.id);
-
-    const { data: existingReceiptsRows, error: existingError } = paymentIds.length > 0
-      ? await supabaseAdmin
-          .from("receipts")
-          .select("payment_id")
-          .eq("tenant_id", tenantId)
-          .in("payment_id", paymentIds)
-      : { data: [], error: null };
-
-    if (existingError) {
-      throw new Error(`Failed to validate existing receipts: ${existingError.message}`);
-    }
-
-    const existingReceiptPaymentIds = new Set((existingReceiptsRows || []).map((row: { payment_id: string }) => row.payment_id));
-    const pendingPayments = eligible.filter((payment) => !existingReceiptPaymentIds.has(payment.id));
+    const pendingPayments = cashInvoices; // rename for rest of function compatibility
 
     const branding = await resolveBranding(tenantId);
 
@@ -534,28 +537,31 @@ export const receiptService = {
 
     let sequence = (existingMonthReceipts || []).length;
 
-    const rows = pendingPayments.map((payment) => {
+    const rows = pendingPayments.map((item) => {
       sequence += 1;
-      const student = asStudent(payment.students);
-      const metadata = payment.metadata || {};
-      const paymentMethod = normalizeText(metadata.payment_method, payment.provider === "manual" ? "cash" : payment.provider || "cash");
+      // Support both invoice rows and legacy payment rows
+      const inv = item as { id: string; invoice_number?: string; student_id: string; total_amount_cents?: number; amount_cents?: number; payment_method?: string | null; students: { name?: string | null; email?: string | null } | Array<{ name?: string | null; email?: string | null }> | null; provider?: string; metadata?: Record<string, unknown> | null; paid_at?: string | null; created_at?: string };
+      const student = asStudent(inv.students);
+      const amountCents = inv.total_amount_cents ?? (inv as { amount_cents?: number }).amount_cents ?? 0;
+      const invoiceNum = inv.invoice_number || toReceiptNumber(selectedMonth, sequence);
+      const paymentMethod = normalizeText(typeof inv.payment_method === "string" ? inv.payment_method : "", "cash");
 
       return {
         tenant_id: tenantId,
         batch_id: batch.id,
-        payment_id: payment.id,
-        student_id: payment.student_id,
+        payment_id: inv.id,  // invoice id or payment id
+        student_id: inv.student_id,
         receipt_number: toReceiptNumber(selectedMonth, sequence),
-        issued_at: payment.paid_at || payment.created_at,
-        amount_cents: payment.amount_cents,
-        currency: normalizeText(payment.currency, "EUR"),
+        issued_at: (inv as { paid_at?: string | null }).paid_at || inv.created_at || new Date().toISOString(),
+        amount_cents: amountCents,
+        currency: "EUR",
         status: "generated",
         payload_snapshot: {
           student_name: normalizeText(student?.name, "Alumno"),
           student_email: normalizeText(student?.email, ""),
-          payer_name: normalizeText(metadata.payer_name, student?.name || "Alumno"),
+          payer_name: normalizeText(student?.name, "Alumno"),
           payment_method: paymentMethod,
-          concept: normalizeText(metadata.invoice_number, "Pago mensual"),
+          concept: `Cuota mensual - ${invoiceNum}`,
           month: selectedMonth,
         },
       };
@@ -585,7 +591,7 @@ export const receiptService = {
       batchId: batch.id,
       month: selectedMonth,
       generatedCount: insertedRows?.length || 0,
-      skippedCount: eligible.length - (insertedRows?.length || 0),
+      skippedCount: cashInvoices.length - (insertedRows?.length || 0),
     };
   },
 

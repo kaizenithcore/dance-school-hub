@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, X, Loader2 } from "lucide-react";
+import { Plus, X, Loader2, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { getTeachers } from "@/lib/api/teachers";
 import { getRooms } from "@/lib/api/rooms";
@@ -39,6 +41,8 @@ const EMPTY: Omit<ClassRecord, "id" | "enrolled"> = {
   status: "draft",
 };
 
+type FrequencyType = "weekly" | "once" | "biweekly" | "custom";
+
 export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassFormModalProps) {
   const navigate = useNavigate();
   const isEdit = !!classData;
@@ -55,6 +59,10 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
   const [teacherIds, setTeacherIds] = useState<string[]>([]);
   const [disciplinePopoverOpen, setDisciplinePopoverOpen] = useState(false);
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
+  const [roomCapacityMap, setRoomCapacityMap] = useState<Record<string, number>>({});
+  const [extraText, setExtraText] = useState("");
+  const [frequencyType, setFrequencyType] = useState<FrequencyType>("weekly");
+  const [customFrequency, setCustomFrequency] = useState("2");
 
   useEffect(() => {
     if (open) {
@@ -72,6 +80,10 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
       ]);
       setTeachers(teachersData.map((t) => ({ id: t.id, name: t.name })));
       setRooms(roomsData.map((r) => ({ id: r.id, name: r.name })));
+      // Build capacity map for auto-fill when room is selected
+      const capMap: Record<string, number> = {};
+      roomsData.forEach((r) => { if (r.capacity) capMap[r.id] = r.capacity; });
+      setRoomCapacityMap(capMap);
       setDisciplines(disciplinesData.map((d) => ({ id: d.id, name: d.name })));
       setCategories(categoriesData.map((c) => ({ id: c.id, name: c.name })));
     } catch (error) {
@@ -100,6 +112,8 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
     } else {
       setForm(EMPTY);
       setTeacherIds([]);
+      setExtraText("");
+      setFrequencyType("weekly");
     }
     setErrors({});
   }, [classData, open]);
@@ -234,7 +248,13 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
       return;
     }
 
-    set("room", value === NONE_OPTION ? "" : value);
+    const roomId = value === NONE_OPTION ? "" : value;
+    set("room", roomId);
+
+    // Auto-fill capacity from the room's configured capacity
+    if (roomId && roomCapacityMap[roomId]) {
+      set("capacity", roomCapacityMap[roomId]);
+    }
   };
 
   const handleDisciplineChange = (value: string) => {
@@ -329,7 +349,11 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-sm">Disciplina (opcional)</Label>
+              <Label className="text-sm flex items-center gap-1">
+                Disciplina (opcional)
+                <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                <TooltipContent>Tipo de baile o actividad: Ballet, Jazz, Hip Hop, Flamenco, etc. Permite agrupar clases por estilo.</TooltipContent></Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Select
                   value={form.discipline || undefined}
@@ -358,7 +382,11 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
               {errors.discipline && <p className="text-xs text-destructive">{errors.discipline}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">Categoría (opcional)</Label>
+              <Label className="text-sm flex items-center gap-1">
+                Categoría (opcional)
+                <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                <TooltipContent>Segmentación de la clase: por edad (Adultos, Infantil), nivel (Iniciación, Avanzado), intención (Competición, Social) u otros criterios propios.</TooltipContent></Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Select
                   value={form.category || undefined}
@@ -390,25 +418,43 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
 
           <div className="grid grid-cols-4 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-sm">Precio (€) *</Label>
+              <Label className="text-sm flex items-center gap-1">
+                Precio (€) *
+                <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                <TooltipContent>Cuota mensual de esta clase. Se usa en facturas y recibos.</TooltipContent></Tooltip>
+              </Label>
               <Input type="number" value={form.price} onChange={(e) => set("price", Number(e.target.value))} className={errors.price ? "border-destructive" : ""} />
               {errors.price && <p className="text-xs text-destructive">{errors.price}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">Capacidad *</Label>
+              <Label className="text-sm flex items-center gap-1">
+                Capacidad *
+                <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                <TooltipContent>Número máximo de alumnos. Se rellena automáticamente con la capacidad del aula seleccionada.</TooltipContent></Tooltip>
+              </Label>
               <Input type="number" value={form.capacity} onChange={(e) => set("capacity", Number(e.target.value))} className={errors.capacity ? "border-destructive" : ""} />
               {errors.capacity && <p className="text-xs text-destructive">{errors.capacity}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">Frecuencia *</Label>
-              <Input
-                type="number"
-                min={1}
-                value={form.weeklyFrequency || 1}
-                onChange={(e) => set("weeklyFrequency", Math.max(1, Number(e.target.value || 1)))}
-                className={errors.weeklyFrequency ? "border-destructive" : ""}
-              />
-              {errors.weeklyFrequency && <p className="text-xs text-destructive">{errors.weeklyFrequency}</p>}
+              <Label className="text-sm flex items-center gap-1">
+                Tipo frecuencia
+                <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                <TooltipContent>Con qué periodicidad se imparte: semanal (todas las semanas), única (sólo una vez) o con otra cadencia.</TooltipContent></Tooltip>
+              </Label>
+              <Select value={frequencyType} onValueChange={(v) => {
+                setFrequencyType(v as FrequencyType);
+                if (v === "weekly") set("weeklyFrequency", 1);
+                else if (v === "biweekly") set("weeklyFrequency", 0.5);
+                else if (v === "once") set("weeklyFrequency", 0);
+              }}>
+                <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Semanal</SelectItem>
+                  <SelectItem value="biweekly">Quincenal</SelectItem>
+                  <SelectItem value="once">Clase única</SelectItem>
+                  <SelectItem value="custom">Personalizada</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Estado</Label>
@@ -421,6 +467,41 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Custom frequency input */}
+          {frequencyType === "custom" && (
+            <div className="flex items-center gap-3">
+              <Label className="text-sm shrink-0">Cada cuántas semanas:</Label>
+              <Input
+                type="number" min="1" max="52" className="h-8 w-24 text-sm"
+                value={customFrequency}
+                onChange={(e) => {
+                  setCustomFrequency(e.target.value);
+                  const weeks = Number(e.target.value) || 1;
+                  set("weeklyFrequency", Math.round((1 / weeks) * 100) / 100);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                {Number(customFrequency) > 1 ? `Una vez cada ${customFrequency} semanas` : "Una vez por semana"}
+              </p>
+            </div>
+          )}
+
+          {/* Extra text for enrollment form */}
+          <div className="space-y-1.5">
+            <Label className="text-sm flex items-center gap-1">
+              Información extra (opcional)
+              <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+              <TooltipContent>Texto libre que aparecerá en el formulario de matrícula pública junto a esta clase. Útil para indicar nivel, material necesario, etc.</TooltipContent></Tooltip>
+            </Label>
+            <Textarea
+              value={extraText}
+              onChange={(e) => setExtraText(e.target.value)}
+              placeholder="Ej: Se requieren zapatillas de ballet. Nivel iniciación (sin experiencia previa)."
+              rows={2}
+              className="text-sm resize-none"
+            />
           </div>
         </div>
 

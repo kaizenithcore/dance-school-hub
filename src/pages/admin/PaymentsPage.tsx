@@ -576,17 +576,28 @@ export default function PaymentsPage() {
     return result;
   }, [payments]);
 
+  // Pending: payment records + pending/overdue invoices (invoices are the primary source when using the invoice workflow)
   const pendingPaymentsCount = useMemo(
-    () => payments.filter((payment) => payment.status === "pending" || payment.status === "overdue").length,
-    [payments]
+    () => {
+      const fromPayments = payments.filter((p) => p.status === "pending" || p.status === "overdue").length;
+      const fromInvoices = invoices.filter((inv) => inv.status === "pending" || inv.status === "overdue").length;
+      // Show invoice count when > 0 (invoice workflow), otherwise fall back to payment records
+      return fromInvoices > 0 ? fromInvoices : fromPayments;
+    },
+    [payments, invoices]
   );
   const paidPaymentsCount = useMemo(
     () => payments.filter((payment) => payment.status === "paid").length,
     [payments]
   );
   const collectedAmount = useMemo(
-    () => payments.filter((payment) => payment.status === "paid").reduce((sum, payment) => sum + payment.amount, 0),
-    [payments]
+    () => {
+      const fromPayments = payments.filter((p) => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
+      // Also include amounts from paid invoices that have no corresponding payment record
+      const fromInvoices = invoices.filter((inv) => inv.status === "paid").reduce((sum, inv) => sum + (inv.totalAmount ?? 0), 0);
+      return fromPayments > 0 ? fromPayments : fromInvoices;
+    },
+    [payments, invoices]
   );
 
   if (initialLoading) {
@@ -679,7 +690,10 @@ export default function PaymentsPage() {
           <div className="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium">Recibos en efectivo</p>
-              <p className="text-xs text-muted-foreground">PDF multipágina con recibos de pagos en efectivo del mes seleccionado.</p>
+              <p className="text-xs text-muted-foreground">
+                Genera el PDF con los recibos de los alumnos que pagan en efectivo para entregarlos cuando abonen la cuota.
+                Genera primero las facturas del mes y después este PDF.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Input

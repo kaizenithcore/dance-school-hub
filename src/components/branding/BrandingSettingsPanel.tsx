@@ -163,11 +163,16 @@ export function BrandingSettingsPanel() {
 
     setSaving(true);
     try {
+      // Send null for accent_color if empty — the schema rejects empty strings
+      const accentColorPayload = form.accentColor && form.accentColor.trim().startsWith("#")
+        ? form.accentColor.trim()
+        : null;
+
       const updated = await updateTenantBranding(
         {
           primary_color: form.primaryColor,
           secondary_color: form.secondaryColor,
-          accent_color: form.accentColor,
+          accent_color: accentColorPayload,
           font_family: form.fontFamily,
           style_variant: form.styleVariant,
           remove_logo: removeLogo,

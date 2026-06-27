@@ -89,7 +89,12 @@ export async function POST(request: NextRequest) {
       return ok(branding, 200, origin);
     }
 
-    const body = await request.json();
+    const raw = await request.json();
+    // Normalise: empty string → null for nullable colour fields
+    const body = {
+      ...raw,
+      accent_color: raw.accent_color === "" ? null : raw.accent_color,
+    };
     const parsed = updateBrandingSchema.safeParse(body);
 
     if (!parsed.success) {
