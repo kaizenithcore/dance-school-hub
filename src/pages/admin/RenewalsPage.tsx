@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   Loader2, RefreshCw, Mail, Calendar, CheckCircle2, XCircle, Clock, Send, Eye,
   Search, ArrowUpDown, ChevronUp, ChevronDown, Table2, Link as LinkIcon,
+  BookmarkPlus, Trash2, ChevronDown as Expand,
 } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TablePagination, readPageSize } from "@/components/tables/TablePagination";
 import { cn } from "@/lib/utils";
 import {
   createRenewalCampaign,
@@ -24,7 +26,6 @@ import {
   updateRenewalOffer,
   type RenewalCampaign,
   type RenewalOffer,
-  type RenewalOfferStatus,
 } from "@/lib/api/renewals";
 import { getSchedules, type ScheduleWithRelations } from "@/lib/api/schedules";
 import { getClasses, type ClassWithRelations } from "@/lib/api/classes";
@@ -35,7 +36,7 @@ import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
 import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
 
-// ── constants ─────────────────────────────────────────────────────────────────
+// ── constants ──────────────────────────────────────────────────────────────────
 
 const WEEKDAY: Record<number, string> = {
   1: "Lunes", 2: "Martes", 3: "Miércoles", 4: "Jueves",
@@ -43,22 +44,23 @@ const WEEKDAY: Record<number, string> = {
 };
 
 const OFFER_STATUS: Record<string, { label: string; className: string }> = {
-  pending_unsent: { label: "Sin notificar",  className: "bg-muted text-muted-foreground border-border" },
-  pending_sent:   { label: "Email enviado",  className: "bg-primary/10 text-primary border-primary/20" },
-  confirmed:      { label: "Confirmada",     className: "bg-success/15 text-success border-success/20" },
-  changed:        { label: "Parcial",        className: "bg-primary/10 text-primary border-primary/20" },
-  released:       { label: "No renueva",     className: "bg-muted text-muted-foreground border-border" },
+  pending_unsent: { label: "Sin notificar", className: "bg-muted text-muted-foreground border-border" },
+  pending_sent:   { label: "Email enviado", className: "bg-primary/10 text-primary border-primary/20" },
+  confirmed:      { label: "Confirmada",    className: "bg-success/15 text-success border-success/20" },
+  changed:        { label: "Parcial",       className: "bg-primary/10 text-primary border-primary/20" },
+  released:       { label: "No renueva",    className: "bg-muted text-muted-foreground border-border" },
 };
+
+const PAGE_SIZE_KEY = "renewals-table-page-size";
+
+// ── helpers ────────────────────────────────────────────────────────────────────
 
 function offerDisplayStatus(offer: RenewalOffer): string {
   if (offer.status === "confirmed") return "confirmed";
   if (offer.status === "changed")   return "changed";
   if (offer.status === "released")  return "released";
-  const emailSent = !!(offer.metadata as Record<string, unknown>)?.emailSentAt;
-  return emailSent ? "pending_sent" : "pending_unsent";
+  return (offer.metadata as Record<string, unknown>)?.emailSentAt ? "pending_sent" : "pending_unsent";
 }
-
-// ── helpers ──────────────────────────────────────────────────────────────────
 
 function getCurrentPeriod() {
   const d = new Date();
@@ -86,12 +88,30 @@ function fmtDateTime(iso: string | null | undefined) {
 }
 function fmtTime(t: string) { return t.slice(0, 5); }
 
-// ── schedule HTML generator ──────────────────────────────────────────────────
+// ── Schedule preset storage ────────────────────────────────────────────────────
+
+interface SchedulePreset { id: string; name: string; keys: string[] }
+const PRESETS_KEY = "nexa:renewal:schedule-presets";
+
+function loadPresets(): SchedulePreset[] {
+  try {
+    const raw = localStorage.getItem(PRESETS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? (parsed as SchedulePreset[]) : [];
+  } catch { return []; }
+}
+function savePresets(presets: SchedulePreset[]) {
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+}
+
+// ── Schedule HTML generator ────────────────────────────────────────────────────
 
 interface ScheduleRow { className: string; teacherName: string; weekday: number; startTime: string; endTime: string; roomName: string }
 
 function buildScheduleEmailHtml(rows: ScheduleRow[], primaryColor: string): string {
-  const sorted = [...rows].sort((a, b) => a.weekday !== b.weekday ? a.weekday - b.weekday : a.startTime.localeCompare(b.startTime));
+  const sorted = [...rows].sort((a, b) =>
+    a.weekday !== b.weekday ? a.weekday - b.weekday : a.startTime.localeCompare(b.startTime)
+  );
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const trs = sorted.map((r, i) => `
     <tr style="background:${i % 2 === 0 ? "#ffffff" : "#f8fafc"};">
@@ -101,7 +121,6 @@ function buildScheduleEmailHtml(rows: ScheduleRow[], primaryColor: string): stri
       <td style="padding:7px 12px;font-size:13px;color:#475569;">${esc(r.teacherName || "—")}</td>
       <td style="padding:7px 12px;font-size:13px;color:#475569;">${esc(r.roomName || "—")}</td>
     </tr>`).join("");
-
   return `<table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
   <thead>
     <tr style="background:${esc(primaryColor)};">
@@ -116,57 +135,60 @@ function buildScheduleEmailHtml(rows: ScheduleRow[], primaryColor: string): stri
 </table>`;
 }
 
-// ── SendEmailModal ────────────────────────────────────────────────────────────
+// ── SendEmailModal ──────────────────────────────────────────────────────────────
 
 interface SendEmailModalProps {
-  open: boolean;
-  onClose: () => void;
-  campaign: RenewalCampaign;
-  pendingCount: number;
-  onSent: () => void;
-  locked: boolean;
-  onLocked: () => void;
+  open: boolean; onClose: () => void;
+  campaign: RenewalCampaign; pendingCount: number;
+  onSent: () => void; locked: boolean; onLocked: () => void;
 }
 
 function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked, onLocked }: SendEmailModalProps) {
   const meta = campaign.metadata as Record<string, unknown>;
   const [tab, setTab] = useState<"schedule" | "preview">("schedule");
 
-  // Schedule selector state
+  // All schedule rows loaded from API
   const [scheduleRows, setScheduleRows] = useState<(ScheduleRow & { key: string })[]>([]);
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [loadingSchedule, setLoadingSchedule] = useState(false);
-  const [scheduleUrl, setScheduleUrl] = useState((meta.scheduleUrl as string | undefined) ?? "");
-  const [generatedHtml, setGeneratedHtml] = useState((meta.scheduleHtml as string | undefined) ?? "");
-  const [primaryColor] = useState("#7C3AED"); // TODO: get from branding context
 
-  // Send/preview state
-  const [scheduleSend, setScheduleSend] = useState("");
-  const [useSchedule, setUseSchedule] = useState(false);
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  // Selection state
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [showCustomize, setShowCustomize] = useState(false);
+
+  // Preset management
+  const [presets, setPresets] = useState<SchedulePreset[]>(() => loadPresets());
+  const [newPresetName, setNewPresetName] = useState("");
+  const [showSavePreset, setShowSavePreset] = useState(false);
+
+  // Extra options
+  const [scheduleUrl, setScheduleUrl]       = useState((meta.scheduleUrl  as string | undefined) ?? "");
+  const [generatedHtml, setGeneratedHtml]   = useState((meta.scheduleHtml as string | undefined) ?? "");
+  const [scheduleSend, setScheduleSend]     = useState("");
+  const [useSchedule, setUseSchedule]       = useState(false);
+  const [previewHtml, setPreviewHtml]       = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [sending, setSending]               = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const primaryColor = "#7C3AED";
 
   const fromCourse = (meta.fromCourse as string | undefined) ?? "Curso actual";
   const toCourse   = (meta.toCourse   as string | undefined) ?? "Próximo curso";
 
-  // Load classes + schedules when modal opens
+  // Load classes + schedules on open
   useEffect(() => {
     if (!open) return;
     setLoadingSchedule(true);
     Promise.all([getSchedules(), getClasses()])
       .then(([schedules, classes]) => {
         const classById = new Map<string, ClassWithRelations>(classes.map((c) => [c.id, c]));
-        const rows: (ScheduleRow & { key: string })[] = schedules
+        const rows: (ScheduleRow & { key: string })[] = (schedules as ScheduleWithRelations[])
           .filter((s) => s.is_active !== false)
-          .map((s: ScheduleWithRelations) => {
+          .map((s) => {
             const cls = classById.get(s.class_id);
-            const teacherName = cls?.teachers?.[0]?.name ?? cls?.teacher?.name ?? "";
             return {
-              key: s.id,
-              className:   s.className   ?? cls?.name ?? "Clase",
-              teacherName,
+              key:         s.id,
+              className:   s.className ?? cls?.name ?? "Clase",
+              teacherName: cls?.teachers?.[0]?.name ?? cls?.teacher?.name ?? "",
               weekday:     s.weekday,
               startTime:   s.start_time,
               endTime:     s.end_time,
@@ -176,22 +198,43 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
           .sort((a, b) => a.weekday !== b.weekday ? a.weekday - b.weekday : a.startTime.localeCompare(b.startTime));
 
         setScheduleRows(rows);
-        // Auto-select all if nothing was already configured
-        if (!generatedHtml) {
-          setSelectedKeys(new Set(rows.map((r) => r.key)));
-        }
+        // Default: select all rows (full current schedule)
+        setSelectedKeys(new Set(rows.map((r) => r.key)));
       })
       .catch(() => toast.error("No se pudo cargar el horario de clases"))
       .finally(() => setLoadingSchedule(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const handleGenerateTable = () => {
     const selected = scheduleRows.filter((r) => selectedKeys.has(r.key));
     if (selected.length === 0) { toast.error("Selecciona al menos una clase"); return; }
-    const html = buildScheduleEmailHtml(selected, primaryColor);
-    setGeneratedHtml(html);
-    toast.success("Tabla de horario generada — puedes ver la vista previa del email");
+    setGeneratedHtml(buildScheduleEmailHtml(selected, primaryColor));
+    toast.success("Tabla de horario generada");
+  };
+
+  const handleSelectAll = () => setSelectedKeys(new Set(scheduleRows.map((r) => r.key)));
+  const handleSelectNone = () => setSelectedKeys(new Set());
+  const toggleKey = (key: string) => setSelectedKeys((prev) => {
+    const next = new Set(prev); if (next.has(key)) next.delete(key); else next.add(key); return next;
+  });
+
+  const handleLoadPreset = (preset: SchedulePreset) => {
+    setSelectedKeys(new Set(preset.keys.filter((k) => scheduleRows.some((r) => r.key === k))));
+    setShowCustomize(true);
+    toast.success(`Preset "${preset.name}" cargado`);
+  };
+
+  const handleSavePreset = () => {
+    if (!newPresetName.trim()) { toast.error("Escribe un nombre para el preset"); return; }
+    const updated = [...presets, { id: crypto.randomUUID(), name: newPresetName.trim(), keys: Array.from(selectedKeys) }];
+    setPresets(updated); savePresets(updated);
+    setNewPresetName(""); setShowSavePreset(false);
+    toast.success(`Preset "${newPresetName.trim()}" guardado`);
+  };
+
+  const handleDeletePreset = (id: string) => {
+    const updated = presets.filter((p) => p.id !== id);
+    setPresets(updated); savePresets(updated);
   };
 
   const loadPreview = async () => {
@@ -201,13 +244,10 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
         scheduleUrl:  scheduleUrl  || undefined,
         scheduleHtml: generatedHtml || undefined,
       });
-      setPreviewHtml(html);
-      setTab("preview");
+      setPreviewHtml(html); setTab("preview");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo cargar la vista previa");
-    } finally {
-      setLoadingPreview(false);
-    }
+    } finally { setLoadingPreview(false); }
   };
 
   useEffect(() => {
@@ -222,10 +262,10 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
     setSending(true);
     try {
       const result = await sendRenewalNotifications({
-        campaignId: campaign.id,
+        campaignId:   campaign.id,
         scheduleUrl:  scheduleUrl  || undefined,
         scheduleHtml: generatedHtml || undefined,
-        scheduledAt: useSchedule && scheduleSend ? scheduleSend : undefined,
+        scheduledAt:  useSchedule && scheduleSend ? scheduleSend : undefined,
       });
       if (result.scheduledAt) {
         toast.success(`Email programado para el ${fmtDateTime(result.scheduledAt)}`);
@@ -239,32 +279,21 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
       onSent(); onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo enviar");
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   };
-
-  const toggleKey = (key: string) => setSelectedKeys((prev) => {
-    const next = new Set(prev);
-    if (next.has(key)) next.delete(key); else next.add(key);
-    return next;
-  });
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-primary" />
-            Enviar correo de renovación
+            <Mail className="h-4 w-4 text-primary" /> Enviar correo de renovación
           </DialogTitle>
         </DialogHeader>
 
         {/* Meta chips */}
-        <div className="flex flex-wrap gap-2 text-xs">
-          <div className="rounded-md border border-border bg-muted/30 px-2.5 py-1.5 font-semibold">
-            {fromCourse} → {toCourse}
-          </div>
+        <div className="flex flex-wrap gap-2 text-xs shrink-0">
+          <div className="rounded-md border border-border bg-muted/30 px-2.5 py-1.5 font-semibold">{fromCourse} → {toCourse}</div>
           <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400">
             {pendingCount} alumno(s) pendientes
           </div>
@@ -284,39 +313,95 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
           </TabsList>
 
           {/* ── Tab: schedule ── */}
-          <TabsContent value="schedule" className="overflow-y-auto flex-1 space-y-4 pt-1">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-xs font-semibold">Clases a incluir en el horario</Label>
-                <div className="flex gap-1.5">
-                  <button type="button" className="text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => setSelectedKeys(new Set(scheduleRows.map((r) => r.key)))}>
-                    Todas
-                  </button>
-                  <span className="text-muted-foreground text-xs">·</span>
-                  <button type="button" className="text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => setSelectedKeys(new Set())}>
-                    Ninguna
-                  </button>
+          <TabsContent value="schedule" className="overflow-y-auto flex-1 space-y-4 pt-1 min-h-0">
+
+            {/* Default: todo el horario */}
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Horario completo actual</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {loadingSchedule
+                      ? "Cargando clases…"
+                      : `${scheduleRows.length} clase(s) · ${selectedKeys.size} seleccionadas`}
+                  </p>
+                </div>
+                <Button size="sm" onClick={handleGenerateTable}
+                  disabled={loadingSchedule || selectedKeys.size === 0}
+                  className="shrink-0 gap-1.5">
+                  {loadingSchedule
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Table2 className="h-3.5 w-3.5" />}
+                  {generatedHtml ? "Regenerar tabla" : "Insertar tabla en el email"}
+                </Button>
+              </div>
+              {generatedHtml && (
+                <p className="text-xs text-success flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Tabla lista para incluir en el email
+                </p>
+              )}
+            </div>
+
+            {/* Presets */}
+            {presets.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Presets guardados</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {presets.map((p) => (
+                    <div key={p.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-xs">
+                      <button type="button" onClick={() => handleLoadPreset(p)} className="hover:text-foreground text-muted-foreground">
+                        {p.name} ({p.keys.length})
+                      </button>
+                      <button type="button" onClick={() => handleDeletePreset(p.id)}
+                        className="ml-1 text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
+            )}
 
-              {loadingSchedule ? (
-                <div className="py-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Cargando clases…
+            {/* Customize toggle */}
+            <button type="button"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setShowCustomize((s) => !s)}>
+              <Expand className={cn("h-3.5 w-3.5 transition-transform", showCustomize && "rotate-180")} />
+              {showCustomize ? "Ocultar selección por clase" : "Personalizar selección de clases"}
+            </button>
+
+            {showCustomize && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-2">
+                    <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={handleSelectAll}>Todas</button>
+                    <span className="text-border text-xs">·</span>
+                    <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={handleSelectNone}>Ninguna</button>
+                  </div>
+                  <button type="button"
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                    onClick={() => setShowSavePreset((s) => !s)}>
+                    <BookmarkPlus className="h-3.5 w-3.5" /> Guardar como preset
+                  </button>
                 </div>
-              ) : scheduleRows.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-3">No hay clases con horario configurado.</p>
-              ) : (
-                <div className="rounded-lg border border-border overflow-hidden">
+
+                {showSavePreset && (
+                  <div className="flex gap-2">
+                    <Input value={newPresetName} onChange={(e) => setNewPresetName(e.target.value)}
+                      placeholder="Nombre del preset" className="h-8 text-sm flex-1" />
+                    <Button size="sm" className="h-8" onClick={handleSavePreset}>Guardar</Button>
+                  </div>
+                )}
+
+                <div className="rounded-lg border border-border overflow-hidden max-h-52 overflow-y-auto">
                   {scheduleRows.map((row, idx) => (
                     <button key={row.key} type="button" onClick={() => toggleKey(row.key)}
-                      className={cn("w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors",
+                      className={cn("w-full flex items-center gap-3 px-3 py-2 text-left transition-colors text-sm",
                         idx > 0 && "border-t border-border",
                         selectedKeys.has(row.key) ? "bg-primary/5" : "bg-card hover:bg-muted/30"
                       )}
                     >
-                      <div className={cn("h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors",
+                      <div className={cn("h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center",
                         selectedKeys.has(row.key) ? "border-primary bg-primary" : "border-border"
                       )}>
                         {selectedKeys.has(row.key) && (
@@ -325,37 +410,27 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
                           </svg>
                         )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">{row.className}</p>
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground truncate">{row.className}</p>
                         <p className="text-xs text-muted-foreground">
                           {WEEKDAY[row.weekday]} · {fmtTime(row.startTime)}–{fmtTime(row.endTime)}
-                          {row.teacherName && <span> · {row.teacherName}</span>}
-                          {row.roomName && <span> · {row.roomName}</span>}
+                          {row.teacherName && ` · ${row.teacherName}`}
+                          {row.roomName && ` · ${row.roomName}`}
                         </p>
                       </div>
                     </button>
                   ))}
                 </div>
-              )}
-
-              <Button size="sm" variant="outline" className="mt-2 gap-1.5" onClick={handleGenerateTable}
-                disabled={selectedKeys.size === 0}>
-                <Table2 className="h-3.5 w-3.5" />
-                {generatedHtml ? "Regenerar tabla" : "Insertar tabla en el email"}
-              </Button>
-              {generatedHtml && (
-                <p className="text-xs text-success mt-1">✓ Tabla de horario lista para incluir en el email</p>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* External URL */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold flex items-center gap-1.5">
-                <LinkIcon className="h-3 w-3" /> Enlace externo (opcional)
+                <LinkIcon className="h-3 w-3" /> Enlace externo al horario (opcional)
               </Label>
               <Input value={scheduleUrl} onChange={(e) => setScheduleUrl(e.target.value)}
-                placeholder="https://docs.google.com/... o enlace a PDF" className="text-sm h-8" />
-              <p className="text-xs text-muted-foreground">Aparecerá como "Ver horario completo →" debajo de la tabla.</p>
+                placeholder="https://docs.google.com/... o PDF" className="text-sm h-8" />
             </div>
 
             {/* Schedule send */}
@@ -373,15 +448,11 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
           </TabsContent>
 
           {/* ── Tab: preview ── */}
-          <TabsContent value="preview" className="flex-1 overflow-hidden">
-            {previewHtml ? (
-              <iframe ref={iframeRef} sandbox="allow-same-origin"
-                className="w-full h-[400px] rounded-lg border border-border bg-white" title="Vista previa" />
-            ) : (
-              <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-                Genera la vista previa primero.
-              </div>
-            )}
+          <TabsContent value="preview" className="flex-1 overflow-hidden min-h-0">
+            {previewHtml
+              ? <iframe ref={iframeRef} sandbox="allow-same-origin"
+                  className="w-full h-[400px] rounded-lg border border-border bg-white" title="Vista previa" />
+              : <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">Genera la vista previa primero.</div>}
           </TabsContent>
         </Tabs>
 
@@ -402,7 +473,7 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Main page ──────────────────────────────────────────────────────────────────
 
 type SortKey = "name" | "status" | "email";
 
@@ -425,10 +496,12 @@ export default function RenewalsPage() {
   const [expiresAt,  setExpiresAt]  = useState("");
 
   // Table state
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sortKey, setSortKey] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [search,      setSearch]      = useState("");
+  const [statusFilter,setStatusFilter]= useState("all");
+  const [sortKey,     setSortKey]     = useState<SortKey>("name");
+  const [sortDir,     setSortDir]     = useState<"asc" | "desc">("asc");
+  const [page,        setPage]        = useState(0);
+  const [pageSize,    setPageSize]    = useState(() => readPageSize(PAGE_SIZE_KEY));
 
   const activeCampaign = useMemo(
     () => campaigns.find((c) => c.status === "active") ?? campaigns[0] ?? null,
@@ -443,7 +516,10 @@ export default function RenewalsPage() {
   const enrichedOffers = useMemo(() => offers.map((o) => ({
     ...o,
     displayStatus: offerDisplayStatus(o),
-    classNames: (o.currentClassIds || []).map((id) => classNameMap[id] || id),
+    // Resolve class names — fall back to empty string (never show raw UUID)
+    classNames: (o.currentClassIds || [])
+      .map((id) => classNameMap[id] ?? "")
+      .filter(Boolean),
     emailSentAt: (o.metadata as Record<string, unknown>)?.emailSentAt as string | undefined,
   })), [offers, classNameMap]);
 
@@ -451,7 +527,9 @@ export default function RenewalsPage() {
     let rows = enrichedOffers;
     if (search.trim()) {
       const q = search.toLowerCase();
-      rows = rows.filter((r) => r.studentName.toLowerCase().includes(q) || r.studentEmail.toLowerCase().includes(q));
+      rows = rows.filter((r) =>
+        r.studentName.toLowerCase().includes(q) || r.studentEmail.toLowerCase().includes(q)
+      );
     }
     if (statusFilter !== "all") rows = rows.filter((r) => r.displayStatus === statusFilter);
     const dir = sortDir === "asc" ? 1 : -1;
@@ -463,12 +541,22 @@ export default function RenewalsPage() {
     });
   }, [enrichedOffers, search, statusFilter, sortKey, sortDir]);
 
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginated  = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
+  // Reset page when filter/search changes
+  useEffect(() => { setPage(0); }, [search, statusFilter, sortKey, sortDir]);
+  // Clamp page
+  useEffect(() => {
+    if (totalPages > 0 && page >= totalPages) setPage(totalPages - 1);
+  }, [page, totalPages]);
+
   const counts = useMemo(() => ({
-    total:       enrichedOffers.length,
-    pending:     enrichedOffers.filter((o) => o.status === "pending").length,
-    confirmed:   enrichedOffers.filter((o) => o.status === "confirmed" || o.status === "changed").length,
-    released:    enrichedOffers.filter((o) => o.status === "released").length,
-    emailSent:   enrichedOffers.filter((o) => !!o.emailSentAt).length,
+    total:     enrichedOffers.length,
+    pending:   enrichedOffers.filter((o) => o.status === "pending").length,
+    confirmed: enrichedOffers.filter((o) => o.status === "confirmed" || o.status === "changed").length,
+    released:  enrichedOffers.filter((o) => o.status === "released").length,
+    emailSent: enrichedOffers.filter((o) => !!o.emailSentAt).length,
   }), [enrichedOffers]);
 
   const load = async () => {
@@ -480,9 +568,7 @@ export default function RenewalsPage() {
       if (active) await loadOffers(active.id);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo cargar la renovación");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const loadOffers = async (campaignId: string) => {
@@ -541,12 +627,12 @@ export default function RenewalsPage() {
     setSendingEmail(offerId);
     try {
       const result = await sendRenewalNotifications({ campaignId: activeCampaign.id, offerIds: [offerId] });
-      if (result.sent > 0)    toast.success("Email enviado correctamente");
+      if (result.sent > 0)         toast.success("Email enviado correctamente");
       else if (result.skipped > 0) toast.info("Este alumno no tiene email registrado");
       else toast.error("No se pudo enviar el email");
       await loadOffers(activeCampaign.id);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "No se pudo enviar el email");
+      toast.error(err instanceof Error ? err.message : "Error al enviar");
     } finally { setSendingEmail(null); }
   };
 
@@ -555,10 +641,17 @@ export default function RenewalsPage() {
     else { setSortKey(key); setSortDir("asc"); }
   };
 
-  const SortIcon = ({ k }: { k: SortKey }) => {
-    if (sortKey !== k) return <ArrowUpDown className="h-3 w-3 text-muted-foreground" />;
-    return sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
-  };
+  const renderSortHead = (label: string, key: SortKey, className?: string) => (
+    <TableHead className={cn("text-xs", className)}>
+      <button type="button" onClick={() => toggleSort(key)}
+        className="inline-flex items-center gap-1 hover:text-foreground">
+        {label}
+        {sortKey !== key
+          ? <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+          : sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+      </button>
+    </TableHead>
+  );
 
   return (
     <PageContainer
@@ -586,7 +679,7 @@ export default function RenewalsPage() {
             <div>
               <h2 className="text-sm font-semibold">Iniciar período de renovación</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Se generará una propuesta por alumno activo. Podrás enviarles un email con el horario del próximo curso y un enlace para confirmar o rechazar cada clase individualmente.
+                Se generará una propuesta para cada alumno con matrícula confirmada. Podrás enviarles un email con el horario del próximo curso y un enlace para gestionar cada clase individualmente.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -653,13 +746,13 @@ export default function RenewalsPage() {
                     onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { key: "all",           label: `Todos (${counts.total})` },
-                    { key: "pending_unsent",label: "Sin notificar" },
-                    { key: "pending_sent",  label: `Email enviado (${counts.emailSent})` },
-                    { key: "confirmed",     label: `Confirmados (${counts.confirmed})` },
-                    { key: "released",      label: `No renuevan (${counts.released})` },
-                  ].map(({ key, label }) => (
+                  {([
+                    { key: "all",            label: `Todos (${counts.total})` },
+                    { key: "pending_unsent", label: "Sin notificar" },
+                    { key: "pending_sent",   label: `Email enviado (${counts.emailSent})` },
+                    { key: "confirmed",      label: `Confirmados (${counts.confirmed})` },
+                    { key: "released",       label: `No renuevan (${counts.released})` },
+                  ] as const).map(({ key, label }) => (
                     <button key={key} type="button" onClick={() => setStatusFilter(key)}
                       className={cn("rounded-full px-3 py-1 text-xs font-medium border transition-colors",
                         statusFilter === key
@@ -679,116 +772,112 @@ export default function RenewalsPage() {
                 <EmptyState title="Sin resultados" description="Cambia el filtro o la búsqueda."
                   actionLabel="Ver todos" onAction={() => { setStatusFilter("all"); setSearch(""); }} />
               ) : (
-                <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
-                  <Table className="min-w-[700px]">
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="text-xs">
-                          <button type="button" onClick={() => toggleSort("name")}
-                            className="inline-flex items-center gap-1 hover:text-foreground">
-                            Alumno <SortIcon k="name" />
-                          </button>
-                        </TableHead>
-                        <TableHead className="text-xs">Clases</TableHead>
-                        <TableHead className="text-xs">
-                          <button type="button" onClick={() => toggleSort("status")}
-                            className="inline-flex items-center gap-1 hover:text-foreground">
-                            Estado <SortIcon k="status" />
-                          </button>
-                        </TableHead>
-                        <TableHead className="text-xs hidden md:table-cell">Respuesta</TableHead>
-                        <TableHead className="text-xs text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filtered.map((offer, idx) => {
-                        const st = OFFER_STATUS[offer.displayStatus] ?? OFFER_STATUS.pending_unsent;
-                        return (
-                          <TableRow key={offer.id} className={cn("hover:bg-accent/50", idx % 2 !== 0 && "bg-muted/20")}>
-                            <TableCell>
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-                                  {offer.studentName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                <>
+                  <div className="rounded-lg border border-border bg-card shadow-soft overflow-x-auto">
+                    <Table className="min-w-[700px]">
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          {renderSortHead("Alumno", "name")}
+                          <TableHead className="text-xs">Clases</TableHead>
+                          {renderSortHead("Estado", "status")}
+                          <TableHead className="text-xs hidden md:table-cell">Respondió</TableHead>
+                          <TableHead className="text-xs text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginated.map((offer, idx) => {
+                          const st = OFFER_STATUS[offer.displayStatus] ?? OFFER_STATUS.pending_unsent;
+                          return (
+                            <TableRow key={offer.id} className={cn("hover:bg-accent/50", idx % 2 !== 0 && "bg-muted/20")}>
+                              <TableCell>
+                                <div className="flex items-center gap-2.5">
+                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+                                    {offer.studentName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-foreground">{offer.studentName}</p>
+                                    <p className="text-xs text-muted-foreground">{offer.studentEmail || "Sin email"}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-sm font-medium text-foreground">{offer.studentName}</p>
-                                  <p className="text-xs text-muted-foreground">{offer.studentEmail || "Sin email"}</p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {offer.classNames.length === 0 ? (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              ) : (
-                                <div className="space-y-0.5">
-                                  {offer.classNames.slice(0, 2).map((cn2) => (
-                                    <p key={cn2} className="text-xs text-foreground truncate max-w-[160px]">{cn2}</p>
-                                  ))}
-                                  {offer.classNames.length > 2 && (
-                                    <p className="text-[10px] text-muted-foreground">+{offer.classNames.length - 2} más</p>
+                              </TableCell>
+                              <TableCell>
+                                {offer.classNames.length === 0 ? (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                ) : (
+                                  <div className="space-y-0.5">
+                                    {offer.classNames.slice(0, 2).map((name) => (
+                                      <p key={name} className="text-xs text-foreground truncate max-w-[180px]">{name}</p>
+                                    ))}
+                                    {offer.classNames.length > 2 && (
+                                      <p className="text-[10px] text-muted-foreground">+{offer.classNames.length - 2} más</p>
+                                    )}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={cn("text-[10px] font-medium", st.className)}>
+                                  {st.label}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                                {offer.respondedAt ? fmtDate(offer.respondedAt) : "—"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                  {offer.status === "pending" && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7"
+                                          disabled={sendingEmail !== null || !offer.studentEmail}
+                                          onClick={() => void handleSendSingleEmail(offer.id)}>
+                                          {sendingEmail === offer.id
+                                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            : <Mail className="h-3.5 w-3.5" />}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom">
+                                        {offer.studentEmail ? "Enviar email" : "Sin email"}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                  {offer.status === "pending" && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-success hover:text-success"
+                                          disabled={mutating} onClick={() => void handleOfferAction(offer.id, "confirm")}>
+                                          <CheckCircle2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom">Confirmar plaza</TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                  {offer.status !== "released" && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                          disabled={mutating} onClick={() => void handleOfferAction(offer.id, "release")}>
+                                          <XCircle className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom">Liberar plaza</TooltipContent>
+                                    </Tooltip>
                                   )}
                                 </div>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={cn("text-[10px] font-medium", st.className)}>
-                                {st.label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                              {offer.respondedAt ? fmtDate(offer.respondedAt) : "—"}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                                {/* Send email */}
-                                {offer.status === "pending" && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button size="icon" variant="ghost" className="h-7 w-7"
-                                        disabled={sendingEmail !== null || !offer.studentEmail}
-                                        onClick={() => void handleSendSingleEmail(offer.id)}>
-                                        {sendingEmail === offer.id
-                                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                          : <Mail className="h-3.5 w-3.5" />}
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">
-                                      {offer.studentEmail ? "Enviar email" : "Sin email"}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
-                                {/* Confirm */}
-                                {offer.status === "pending" && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button size="icon" variant="ghost" className="h-7 w-7 text-success hover:text-success"
-                                        disabled={mutating} onClick={() => void handleOfferAction(offer.id, "confirm")}>
-                                        <CheckCircle2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">Confirmar plaza</TooltipContent>
-                                  </Tooltip>
-                                )}
-                                {/* Release */}
-                                {offer.status !== "released" && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                        disabled={mutating} onClick={() => void handleOfferAction(offer.id, "release")}>
-                                        <XCircle className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">Liberar plaza</TooltipContent>
-                                  </Tooltip>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <TablePagination
+                    page={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize}
+                    onPageChange={setPage}
+                    onPageSizeChange={(s) => { setPageSize(s); setPage(0); localStorage.setItem(PAGE_SIZE_KEY, String(s)); }}
+                    itemLabel="alumnos"
+                  />
+                </>
               )}
             </>
           );

@@ -319,25 +319,28 @@ export const renewalService = {
       throw new Error("fromPeriod and toPeriod must follow YYYY-MM");
     }
 
-    const classIds = await listClassIdsForPeriod(input.tenantId, input.fromPeriod);
-    if (classIds.length === 0) throw new Error("No classes found in source period");
-
-    // Fetch class names snapshot for emails
-    const { data: classRows } = await supabaseAdmin
+    // Build classNameMap from ALL active classes — not period-filtered.
+    // listClassIdsForPeriod was too restrictive: it only finds classes whose
+    // class_schedule rows have effective_from in the current month, which is
+    // rarely true for established schools whose schedules were created months ago.
+    const { data: allClassRows, error: classRowsError } = await supabaseAdmin
       .from("classes")
       .select("id, name")
       .eq("tenant_id", input.tenantId)
-      .in("id", classIds);
+      .eq("status", "active");
+
+    if (classRowsError) throw new Error(`Failed to load classes: ${classRowsError.message}`);
+    if (!allClassRows || allClassRows.length === 0) throw new Error("No active classes found for this tenant");
 
     const classNameMap: Record<string, string> = {};
-    (classRows || []).forEach((c) => { classNameMap[c.id as string] = c.name as string; });
+    (allClassRows).forEach((c) => { classNameMap[c.id as string] = c.name as string; });
 
+    // Get ALL confirmed enrollments — not filtered by period/class subset.
     const { data: enrollments, error: enrollmentsError } = await supabaseAdmin
       .from("enrollments")
       .select("student_id, class_id, students(name, email)")
       .eq("tenant_id", input.tenantId)
-      .eq("status", "confirmed")
-      .in("class_id", classIds);
+      .eq("status", "confirmed");
 
     if (enrollmentsError) throw new Error(`Failed to load enrollments: ${enrollmentsError.message}`);
 
@@ -350,7 +353,7 @@ export const renewalService = {
       byStudent.set(studentId, current);
     });
 
-    if (byStudent.size === 0) throw new Error("No confirmed enrollments found for this period");
+    if (byStudent.size === 0) throw new Error("No confirmed enrollments found. Ensure students have confirmed enrollments before generating a renewal.");
 
     const campaignMeta = {
       fromCourse: input.fromCourse || input.fromPeriod,
