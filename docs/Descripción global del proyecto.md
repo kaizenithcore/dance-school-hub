@@ -1,234 +1,137 @@
-Nexa es una plataforma SaaS B2B diseñada para la gestión integral de academias, centros formativos y organizaciones educativas/deportivas, con un enfoque claro en operaciones, automatización y conectividad interna.
+# Nexa — Descripción global del proyecto
 
-El sistema centraliza en una única plataforma:
+## ¿Qué es Nexa?
 
-Gestión de alumnos
-Gestión académica (clases, horarios, inscripciones)
-Operativa administrativa (pagos, comunicaciones)
-Experiencia del alumno (portal Nexa Club)
-Módulos específicos (como certificaciones/exámenes → Certifier)
+Nexa es una plataforma SaaS de gestión para escuelas de danza. Está diseñada para academias de 50 a 500 alumnos que actualmente trabajan con Excel, WhatsApp y herramientas desconectadas. El objetivo es centralizar la gestión operativa en una única herramienta, reducir el tiempo administrativo y mejorar la experiencia del alumno.
 
-El posicionamiento actual es premium accesible, orientado a centros que quieren profesionalizar su operativa sin adoptar soluciones fragmentadas.
+---
 
-🏗️ Estado actual del producto (visión técnica)
-Arquitectura
-Frontend: SPA moderna (React + Vite + Tailwind)
-Backend: Next.js (API routes)
-Base de datos: Supabase (PostgreSQL + RLS)
-Auth + storage: Supabase
-Pagos: Stripe (con fallback manual)
-Emails: Resend (opcional)
-Modelo técnico clave
-1. Multi-tenant
-Aislamiento por escuela/asociación mediante RLS
-Soporte multi-sede (Enterprise)
-Asociaciones con acceso multi-escuela (Certifier)
-2. Modelo de datos principal
-students (núcleo)
-classes, schedules
-enrollments
-payments
-guardians
-exam_sessions, exam_results, certificates (Certifier)
-3. Backend modular por dominios
-Student Service
-Enrollment Service
-Payment/Analytics
-ExamSuite (Certifier)
-Notification Service (con outbox)
-Estado funcional actual
-Core SaaS (estable)
-CRUD completo de alumnos
-Sistema de clases + horarios
-Matrícula online (form builder configurable)
-Portal alumno (lite / full)
-Gestión básica de pagos
-Analítica operativa
-Certifier (exámenes)
-Ciclo completo:
-convocatoria → inscripción → evaluación → certificación
-RBAC granular (examiner, grader, supervisor…)
-Multi-escuela
-Generación de certificados PDF
-Analytics específicos
-Infraestructura avanzada
-RLS endurecido
-Sistema de jobs (certificados async)
-Auditoría de eventos
-Feature flags por plan
-Fallback sin Stripe
-Estado real
-Backend completo (Sprint 1–19 + hardening)
-Frontend funcional
-Falta:
-E2E testing completo
-Operativa (jobs, notificaciones, billing manual)
-Refinamiento UX/UI
-💼 Modelo de negocio (Business Model Canvas)
-1. Segmentos de clientes
-Primarios
-Academias medianas/grandes (>400 alumnos)
-Idiomas
-Formación privada
-Centros deportivos
-Escuelas artísticas
-Secundarios
-Academias pequeñas en digitalización inicial
-Asociaciones educativas/deportivas (Certifier)
-2. Propuesta de valor
-Core
+## Propuesta de valor
 
-Sistema todo-en-uno que conecta toda la operativa de una academia
+**Para la academia:**
+- Gestión de alumnos, clases, horarios, inscripciones y cobros en un único panel
+- Formulario de matrícula online configurable y público
+- Recibos, facturas y hojas de asistencia con branding de la escuela
+- Renovaciones automáticas con emails personalizados al alumno
+- Portal del alumno (Nexa Club) listo para usar sin desarrollo adicional
 
-Diferenciales clave
-Conectividad total
-Matrícula → alumno → clases → pagos → portal
-Reducción de fricción operativa
-Visión unificada del negocio
-Portal del alumno como extensión del sistema
-Modularidad sin complejidad visible
-3. Canales
-Landing web (principal canal de adquisición)
-Venta directa (email / contacto)
-Asociaciones (canal indirecto → Certifier)
-Web integrada como canal de conversión
-4. Relación con clientes
-Onboarding guiado (Pack modernización)
-Soporte continuo
-Producto self-service + capa consultiva
-5. Fuentes de ingresos
-SaaS (recurring)
-Starter — 199€/mes
-Pro — 349€/mes
-Enterprise — 649€/mes
-Servicios (one-time)
-Web integrada (399€ / 849€)
-Branding (Kaizenith)
-Implementación
-Certifier
-Asociaciones (modelo recurrente)
-Escuelas (Lite)
-6. Recursos clave
-Plataforma SaaS (core)
-Infraestructura cloud (Supabase)
-Marca Nexa (posicionamiento premium)
-Know-how en procesos operativos de academias
-7. Actividades clave
-Desarrollo producto
-Optimización UX/UI
-Ventas B2B
-Onboarding clientes
-Soporte
-8. Socios clave
-Stripe (billing)
-Supabase (infraestructura)
-Resend (comunicaciones)
-Kaizenith (branding/servicios)
-9. Estructura de costes
-Infraestructura cloud
-Desarrollo (principal)
-Marketing
-Soporte
-🎯 Segmentación y targeting
-Estrategia actual
-Enfoque principal
-Academias con complejidad operativa real
-Negocios que:
-ya facturan
-tienen volumen
-sufren desorganización interna
-Insight clave
+**Para el alumno:**
+- Acceso al portal sin contraseña (magic link)
+- Consulta de horario, estado de pagos y avisos de la escuela
+- Proceso de renovación de plaza guiado (confirmar/rechazar por clase)
 
-El cliente no compra software, compra orden y control
+---
 
-Problemas del cliente
-Gestión manual (Excel, WhatsApp, papel)
-Falta de visibilidad financiera
-Procesos desconectados
-Pérdida de tiempo administrativo
-Mala experiencia del alumno
-💎 Propuesta de valor refinada
-Nivel funcional
-Centralización operativa
-Nivel económico
-Reducción de costes administrativos
-Aumento de conversión (matrícula online)
-Nivel emocional
-Sensación de control
-Profesionalización del negocio
-Percepción de “academia moderna”
-⚔️ Competencia
-Competencia directa
-Vertical SaaS (academias)
-Bsport
-Virtuagym
-Class Manager
-Mindbody
-Características comunes:
-Gestión de clases
-Pagos
-CRM básico
-Debilidades:
-Sistemas fragmentados
-UX compleja
-Poco enfoque en conectividad real
-Competencia indirecta
-Notion
-Airtable
-Excel
-Google Sheets
-Problema:
-Soluciones DIY → no escalables
-Posicionamiento competitivo
-Factor	Nexa
-Conectividad	Muy alta
-UX	En mejora (objetivo premium)
-Especialización	Media-alta
-Flexibilidad	Alta
-Complejidad percibida	Baja (objetivo)
-🧠 Ventaja competitiva real
-1. Sistema conectado
+## Modelo de negocio
 
-No son módulos → es un flujo continuo:
+Suscripción mensual o anual. Dos planes activos:
 
-Captación → matrícula → operación → alumno → analytics
-2. Portal del alumno (Nexa Club)
-Extensión directa del sistema
-Diferenciador clave frente a competencia
-3. Certifier como canal de adquisición
-Entrada indirecta de escuelas
-Estrategia de expansión
-4. Arquitectura moderna
-Escalable
-Multi-tenant real
-Preparado para expansión modular
-📈 Estado estratégico
-Fortalezas
-Producto técnicamente avanzado
-Visión clara de sistema unificado
-Base sólida para escalar
-Debilidades
-UX aún compleja
-Posicionamiento en transición
-Catálogo todavía en simplificación
-Oportunidades
-Mercado fragmentado
-Baja digitalización en academias
-Alto valor percibido en automatización
-Riesgos
-Competidores con más marketing
-Complejidad si no se simplifica UX
-Percepción de “demasiado completo”
-🚀 Conclusión
+| Plan | Alumnos incluidos | Precio mensual |
+|------|-------------------|----------------|
+| Starter | Hasta 200 | 89 €/mes |
+| Pro | Hasta 500 | 179 €/mes |
 
-Nexa no es simplemente un software de gestión, sino un sistema operativo para academias, cuyo valor principal radica en:
+Bloques de alumnos adicionales disponibles en incrementos. Trial gratuito de 30 días sin tarjeta.
 
-conectar procesos
-reducir fricción
-ofrecer control total del negocio
+> Los precios y límites exactos se gestionan en `catalog/commercialCatalog.json`.
 
-El reto actual no es técnico, sino estratégico:
+---
 
-simplificar la percepción del producto sin reducir su potencia real
+## Arquitectura del sistema
 
-Ahí es donde está la clave de crecimiento.
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Frontend (Vite)                     │
+│  React 18 + TypeScript + Tailwind CSS + shadcn/ui       │
+│  Puerto 8080 en dev                                     │
+│                                                         │
+│  ┌──────────────────┐   ┌──────────────────────────┐    │
+│  │  Admin Panel     │   │  Portal del alumno        │    │
+│  │  /admin/*        │   │  /portal/app/*            │    │
+│  │  (Nexa)          │   │  (Nexa Club)              │    │
+│  └──────────────────┘   └──────────────────────────┘    │
+│                                                         │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Páginas públicas: /s/{slug}, /portal/login      │   │
+│  └──────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+                          │
+                   Proxy /api/* → 3000
+                          │
+┌─────────────────────────────────────────────────────────┐
+│                   Backend (Next.js 16)                  │
+│  Solo API routes (no SSR)                               │
+│  Puerto 3000 en dev                                     │
+│                                                         │
+│  /api/admin/*   → Requieren auth de admin               │
+│  /api/student/* → Requieren auth de alumno              │
+│  /api/public/*  → Sin autenticación                     │
+│  /api/auth/me   → Contexto de tenant                    │
+└─────────────────────────────────────────────────────────┘
+                          │
+┌─────────────────────────────────────────────────────────┐
+│                      Supabase                           │
+│  PostgreSQL + Auth + Storage (tenant-assets)            │
+│  RLS habilitado — todos los datos tienen tenant_id      │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Modelo de datos clave
+
+**Multi-tenancy**: cada escuela es un tenant. Todo dato tiene `tenant_id`. El aislamiento se garantiza via RLS en Supabase.
+
+**Año académico**: las clases e inscripciones se vinculan a `academic_year_id`. El selector en el header cambia el año activo y filtra automáticamente todos los datos.
+
+**Relaciones principales**:
+```
+tenants
+  └── students
+  └── classes (academic_year_id)
+       └── class_schedules
+       └── class_teachers
+  └── enrollments (student → class, academic_year_id)
+  └── monthly_invoices (student, month, payment_method)
+       └── receipts
+  └── teachers
+  └── rooms
+  └── school_settings (branding, payment config, billing)
+  └── academic_years
+  └── renewal_campaigns
+       └── renewal_offers
+```
+
+---
+
+## Segmentación de clientes objetivo
+
+- **Primario**: Academias de danza independientes, 50-300 alumnos, España
+- **Secundario**: Academias con múltiples disciplinas (ballet, contemporáneo, hip hop, flamenco)
+- **No objetivo (V1)**: Franquicias multi-sede, cadenas con >500 alumnos
+
+---
+
+## Competidores relevantes
+
+- **Classgap, Acuity, Mindbody**: enfocados en booking/reservas, no en gestión integral
+- **Excel + WhatsApp**: el statu quo más extendido
+- **ERP genéricos**: demasiado complejos y no especializados
+
+**Ventaja competitiva de Nexa**: diseño específico para escuelas de danza españolas con flujo completo (matrícula → clase → pago → renovación → portal del alumno) y precio accesible.
+
+---
+
+## Equipo y contacto
+
+Desarrollado por **Kaizenith** (kaizenith.es).  
+Contacto: hola@nexa.es
+
+---
+
+## Estado del producto
+
+**Versión actual**: V1 — Early Adopters  
+El núcleo operativo (alumnos, clases, pagos, portal) está completo y funcional. El portal del alumno (Nexa Club) está en V1 sin funcionalidades sociales. Las funcionalidades de comunidad (feed, perfiles públicos, logros) están planificadas para V2.
+
+Ver [estado-actual.md](./estado-actual.md) para el detalle completo de módulos y estado de cada uno.

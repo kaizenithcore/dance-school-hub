@@ -1,6 +1,14 @@
-# Estado actual de integracion ExamSuit
+# ExamSuite — Especificación técnica (referencia futura)
 
-Fecha: 2026-03-28
+> **⚠️ Estado**: DISCONTINUADO EN V1 — junio 2026  
+> El módulo de exámenes fue eliminado del frontend en el Sprint de limpieza pre-lanzamiento.  
+> Todo el código de UI (componentes, mock data, entitlements) fue removido.  
+> Este documento se conserva como referencia de diseño para una posible reactivación en V2.  
+> El backend puede tener endpoints relacionados sin eliminar — revisar antes de reactivar.
+
+---
+
+Fecha original: 2026-03-28  
 Repositorio: dance-school-hub (backend Next.js + Supabase)
 
 ## 1) Resumen ejecutivo

@@ -1,168 +1,184 @@
-# Mapa de Funcionalidades - Dance School Hub (Actuales + Avanzadas)
+# Funcionalidades actuales — Nexa V1
 
-## 1) Objetivo del documento
-Este documento ofrece una vista rapida y funcional de lo que la aplicacion ya resuelve y de las capacidades avanzadas planificadas.
-
-Se usa para:
-- Poner en contexto al equipo de producto, ventas y operaciones en pocos minutos.
-- Distinguir claramente entre capacidades operativas actuales y capacidades avanzadas en despliegue.
-- Facilitar decisiones de roadmap, empaquetado comercial y priorizacion.
-
-## 2) Resumen ejecutivo
-La plataforma cubre el ciclo principal de una escuela de danza de punta a punta:
-- Captacion y matricula online.
-- Gestion academica diaria (clases, horarios, alumnos, profesores, aulas).
-- Cobros y facturacion.
-- Analiticas y configuracion centralizada.
-
-Sobre esta base, el roadmap avanzado agrega automatizacion operativa, mejor soporte para picos de demanda y nuevas herramientas de comunicacion y planificacion.
-
-## 3) Capacidades actuales en produccion
-
-### 3.1 Acceso, cuentas y sesion
-- Inicio de sesion con email y contrasena.
-- Registro de nueva escuela en flujo guiado.
-- Cambio/restablecimiento de contrasena con politicas de seguridad activas.
-- Timeout de sesion por inactividad y alertas de inicio de sesion configurables.
-
-### 3.2 Operacion administrativa diaria
-- Dashboard con KPIs y alertas accionables.
-- Gestion completa de clases, aulas, profesores y alumnos (alta, edicion, baja, busqueda, filtros y vistas de detalle).
-- Gestion de inscripciones con cambio de estado (pendiente, aceptada, rechazada, cancelada).
-- Editor visual de horarios con arrastrar y soltar.
-
-### 3.3 Cobros y facturacion
-- Registro manual de pagos y cambio de estado (pagado/reembolsado).
-- Generacion de recibo PDF individual.
-- Facturacion mensual con listados, filtros y marcado de pago.
-- Generacion de recibos en lote (efectivo).
-- Alertas operativas de cobranza (facturas faltantes y alumnos sin cobro registrado del mes).
-
-### 3.4 Experiencia publica y matricula
-- Landing publica por escuela (slug).
-- Horario publico con seleccion de clases.
-- Matricula online publica con formulario dinamico configurable.
-- Soporte de secciones, campos condicionales, seleccion de horarios, resumen de precio y matricula conjunta (si esta habilitada).
-
-### 3.5 Form builder, tarifas y configuracion
-- Constructor de formulario de matricula por secciones y campos.
-- Gestion de tarifas/bonos con reglas y categorias.
-- Ajustes centrales de escuela, horarios, pagos, notificaciones, seguridad y billing.
-- El plan seleccionado (Starter/Pro/Enterprise) queda persistido para activar reglas comerciales.
-
-### 3.6 Productividad y soporte legal
-- Topbar con busqueda global de registros y acciones rapidas.
-- Centro de notificaciones operativas.
-- Perfil de cuenta con cambio real de contrasena y cierre de sesion.
-- Publicacion de paginas legales (privacidad, cookies, terminos, aviso legal).
-
-## 4) Funcionalidades avanzadas (estado y alcance)
-
-### 4.1 Sprint 1 - Fundacion transversal
-Estado: planificado.
-
-Incluye:
-- Entitlements por plan/add-on para activar modulos avanzados por tenant.
-- Infra asincrona ligera (outbox + procesamiento) para flujos no bloqueantes.
-- Base de comunicacion por email con plantillas operativas.
-
-### 4.2 Sprint 2 - Lista de espera automatica + matricula inteligente
-Estado: planificado.
-
-Incluye:
-- Lista de espera cuando una clase esta completa.
-- Oferta automatica de plaza con vencimiento configurable.
-- Flujo de aceptacion que puede confirmar automaticamente si hay cupo.
-- Enlaces de matricula con parametros inteligentes (preseleccion y filtros).
-
-### 4.3 Sprint 3 - Renovaciones + copia de curso
-Estado: planificado.
-
-Incluye:
-- Campanas de renovacion para alumnos actuales con prioridad sobre nuevos ingresos.
-- Reserva de cupo desde la oferta con plazo configurable para confirmar.
-- Panel de renovaciones (confirmadas, pendientes, plazas liberadas).
-- Copia del curso anterior con modo de simulacion (dry-run) y aplicacion real.
-
-### 4.4 Sprint 4 - Asistencia PDF + incidencias + modo recepcion
-Estado: planificado.
-
-Incluye:
-- Hojas de asistencia PDF por clase/periodo para profesores.
-- Registro rapido de incidencias de alumnos.
-- Vista simplificada de recepcion para tareas de mostrador.
-
-### 4.5 Sprint 5 - Comunicacion masiva
-Estado: planificado.
-
-Incluye:
-- Campanas segmentadas por clase, disciplina o escuela completa.
-- Historial y seguimiento por destinatario.
-- Canal email end-to-end.
-
-Nota de alcance actual:
-- WhatsApp no entra en la implementacion inicial.
-
-### 4.6 Sprint 6 - Deteccion automatica de problemas de horario
-Estado: planificado.
-
-Incluye:
-- Alertas por baja/sobredemanda.
-- Deteccion de huecos de profesor.
-- Identificacion de aulas infrautilizadas.
-- Recomendaciones accionables desde dashboard y modulo de horarios.
-
-### 4.7 Sprint 7 - Propuestas automaticas de horario (A/B/C)
-Estado: planificado.
-
-Incluye:
-- Generacion de alternativas A/B/C segun disponibilidad, demanda y ocupacion.
-- Comparador de propuestas y aplicacion guiada.
-- Modo semiautomatico con clases bloqueadas manualmente por el usuario.
-
-## 5) Mapa rapido por area funcional
-
-### 5.1 Captacion y conversion
-- Actual: landing publica, horario publico, matricula online configurable.
-- Avanzado: enlaces inteligentes de matricula, lista de espera automatica.
-
-### 5.2 Operacion academica
-- Actual: CRUD de alumnos, profesores, clases, aulas; editor de horario.
-- Avanzado: renovaciones, copia de curso, incidencias, recepcion simplificada.
-
-### 5.3 Cobros y administracion
-- Actual: pagos, facturas, recibos PDF, alertas de cobro.
-- Avanzado: comunicacion segmentada para mejorar seguimiento operativo.
-
-### 5.4 Inteligencia operativa
-- Actual: analiticas y KPIs base.
-- Avanzado: deteccion automatica de problemas y propuestas de horario optimizadas.
-
-## 6) Funcionalidades parcialmente cerradas (actuales)
-Estas piezas existen pero no estan completamente cerradas:
-- Recuperacion de contrasena: flujo de UI listo, con integracion de envio de email aun pendiente de cierre final.
-- Horario publico: existen casos con fallback de datos no definitivos.
-- 2FA: politica disponible en configuracion, con enrolamiento MFA aun por cerrar end-to-end.
-- Perfil avanzado de cuenta: previsto, aun no como modulo completo.
-
-## 7) Implicaciones para planes comerciales
-
-### 7.1 Starter
-- Base operativa completa + herramientas de captacion y cobro.
-- Posibles extras de entrada: asistencia PDF, incidencias y enlace inteligente.
-
-### 7.2 Pro
-- Automatizacion de operacion academica y de cupos.
-- Enfoque: waitlist automatica, renovaciones y copia de curso.
-
-### 7.3 Enterprise
-- Control avanzado de operaciones y optimizacion.
-- Enfoque: permisos mas granulares/roles personalizados, insights avanzados y motor de propuestas de horario.
-
-## 8) Prioridades para producto
-- Cerrar brechas actuales criticas: recuperacion de contrasena, 2FA end-to-end y datos definitivos en horario publico.
-- Activar primero capacidades con impacto operativo inmediato: waitlist, renovaciones y copia de curso.
-- Escalar luego a inteligencia de planificacion: deteccion automatica e IA semiautomatica de horarios.
+> Este documento lista todas las capacidades operativas implementadas y funcionales en producción (V1, junio 2026).  
+> Para el estado de cada módulo ver [estado-actual.md](./estado-actual.md).
 
 ---
-Documento de referencia funcional para contexto rapido de capacidades actuales y avanzadas.
+
+## Autenticación y acceso
+
+- **Academias**: registro de nueva escuela (wizard de 3 pasos), login por email/contraseña, recuperación de contraseña
+- **Alumnos (Nexa Club)**: login por magic link (OTP, sin contraseña) en `/portal/login`, acceso directo a `/portal/app`
+- Sesión con JWT via Supabase Auth, renovación automática
+- Trial de 30 días sin tarjeta; modal de checkout al expirar
+- Roles de tenant: `owner`, `admin`, `staff` (ver [sprint5-permissions-matrix.md](./sprint5-permissions-matrix.md))
+
+---
+
+## Panel de administración
+
+### Dashboard
+- Vista operativa diaria: cobros pendientes (de facturas + pagos), inscripciones pendientes, horario de la semana
+- Alumnos recientes, búsqueda rápida desde el panel
+- Estado de la campaña de renovación activa
+- Acciones rápidas contextuales
+
+### Alumnos
+- Ficha completa: datos de contacto, fecha de nacimiento, estado, método de pago, tipo de pago, notas
+- Campos personalizados configurables por escuela (texto, fecha, select, checkbox, número)
+- Filtros: estado, localidad, DNI, domicilio
+- Búsqueda por nombre, email, teléfono, DNI
+- Importación masiva desde Excel/CSV (mapeo automático de columnas)
+- Gestión de tutores/pagadores (para alumnos menores)
+- Envío de invitación al portal desde la ficha (email con magic link)
+- Métodos de pago disponibles según configuración de la escuela (efectivo / transferencia)
+
+### Clases y horarios
+- Catálogo de clases: nombre, disciplina, categoría, precio, capacidad (auto-fill desde aula), estado
+- Campo "Información extra" visible en el formulario de matrícula
+- Tipo de frecuencia: semanal, quincenal, clase única, personalizada
+- Tooltips de ayuda en todos los campos del formulario
+- Vista de semana con drag & drop (`/admin/schedule`)
+- Insights automáticos: detección de problemas de capacidad, aulas sin usar, teachers sin clases (spec en [sprint6-schedule-insights.md](./sprint6-schedule-insights.md))
+- Descarga de hojas de asistencia en PDF (individual por clase o todas las clases del mes)
+
+### Profesores
+- Directorio con clases asignadas, salario mensual (usado en economía), estado
+- Asignación de clases desde la ficha del profesor o desde la edición de clase
+
+### Aulas
+- Capacidad de cada aula (auto-rellena la capacidad en el formulario de clase)
+- Estado activo/inactivo
+
+### Inscripciones (Matrículas)
+- Gestión de solicitudes: pendiente → confirmada / rechazada / cancelada
+- Vista de detalle con datos del alumno, clase y método de pago
+- Inscripción manual desde recepción o desde la ficha del alumno
+
+### Lista de espera
+- Registro automático cuando la clase está llena
+- Conversión a inscripción cuando se libera plaza
+
+### Formulario de matrícula
+- Editor visual con drag & drop (secciones, campos, condiciones)
+- Tipos de campo: texto, email, teléfono, fecha, select, checkbox, textarea, separador, info
+- Condiciones de visibilidad por campo y sección
+- Soporte para matrícula individual y conjunta (varios alumnos, un pagador)
+- URL pública en `/s/{slug}/enroll`
+- Modo de matrícula conjunta con estilo coherente con el individual
+
+### Pagos, facturas y recibos
+- Registro manual de pagos (efectivo / transferencia / tarjeta)
+- Generación de facturas mensuales para todos los alumnos activos
+  - El método de pago se lee del alumno/inscripción y se guarda en la factura
+- Recibos en efectivo: se generan desde facturas PENDIENTES (antes del pago, para entregar al alumno)
+- Descarga de recibo individual en PDF
+- Descarga de lote de recibos en PDF (todos los del mes)
+- Todos los PDFs incluyen logo, colores y nombre de la escuela
+- Tabla de facturas: filtro por mes, estado, búsqueda; badges coherentes con el resto de páginas
+- Imprimir vista filtrada de la tabla de pagos (con branding)
+
+### Economía
+- Ingresos calculados desde pagos confirmados
+- Gastos: salarios de profesores + gastos manuales
+- Balance mensual y gráficas de tendencia (6 y 12 meses)
+- Registro manual de ingresos y gastos adicionales
+
+### Tarifas y paquetes
+- Tarifas: precio fijo por clase o tipo de servicio
+- Paquetes: agrupaciones de disciplinas para descuento combinado (bonos)
+- Distinción visual clara Tarifas vs Paquetes
+
+### Comunicados
+- Email masivo segmentado: toda la escuela, una clase, una disciplina
+- WhatsApp (enlace externo)
+- Vista previa de destinatarios antes de enviar
+- Historial de envíos con estado por destinatario
+- Cola de mensajes procesada manualmente o en background
+
+### Renovaciones
+- Flujo de renovación por año académico (no por mes)
+- Generación automática de propuestas para todos los alumnos con matrícula confirmada
+- Email personalizado con tabla del horario del próximo curso (generado desde el sistema)
+- Presets de horario guardados en localStorage para reutilizar
+- Vista previa del email en iframe antes de enviar
+- Envío inmediato o programado
+- Alumno confirma/rechaza cada clase individualmente desde `/renovar?offer=<id>`
+- Tabla de resultados con búsqueda, filtros, paginación y acciones (confirmar, liberar, enviar email)
+
+### Portal del alumno — gestión (admin)
+- Configuración de branding (logo, colores, fuente)
+- Vista previa como alumno (`/portal/app` en nueva pestaña)
+- Enlace a página pública de la escuela
+- Invitación a alumnos con email de magic link
+
+### Recepción
+- Búsqueda rápida de alumnos (nombre, email, teléfono)
+- Cobro express desde recepción
+- Registro de incidencias (ausencia, lesión, cambio de grupo)
+- Descarga de hoja de asistencia por clase/mes
+- Descarga masiva de todas las hojas del mes
+
+### Clonar curso
+- Duplica clases + horarios + asignación de profesores de un año académico al siguiente
+- Vista previa del recuento antes de confirmar
+- Pantalla de resultado con guía de pasos siguientes
+
+### Año académico
+- Crear y nombrar años académicos con fechas de inicio y fin
+- Selector en el header (cambia `school_settings.current_academic_year_id`)
+- Clases e inscripciones filtradas por el año activo
+- Al crear clases/inscripciones se asignan automáticamente al año actual
+
+### Configuración
+- **Escuela**: nombre, ciudad, email, teléfono, dirección, redes sociales
+- **Branding**: logo, color principal, color secundario, acento, tipografía, variante de estilo
+- **Agenda**: configuración del horario semanal
+- **Cobros**: moneda, día de vencimiento, métodos de pago activos (efectivo / transferencia)
+- **Plan y facturación**: cambio de plan, bloques de alumnos extra, checkout con Stripe
+- **Página web**: información sobre servicios de web integrada o independiente
+
+### Documentos impresos
+- Botón de impresión en tablas de alumnos, profesores y pagos
+- Genera HTML branded (logo + colores) que abre nueva pestaña con `window.print()`
+
+---
+
+## Portal del alumno — Nexa Club (V1)
+
+- Login por magic link (sin contraseña) en `/portal/login`
+- **Home**: próxima clase, estado de pagos, avisos recientes
+- **Clases**: lista de clases inscritas con horario y sala
+- **Cobros**: facturas y estado de pago, descarga de recibos
+- **Avisos**: comunicados de la escuela
+- **Perfil**: datos básicos, cerrar sesión
+- Branding de la escuela aplicado (colores, logo, nombre)
+
+### Página pública de la escuela (`/s/{slug}`)
+- Horario de clases público
+- Información de la academia
+- Formulario de matrícula online
+
+---
+
+## APIs públicas (sin autenticación)
+
+| Endpoint | Función |
+|----------|---------|
+| `GET /api/public/form/{slug}` | Configuración del formulario de matrícula |
+| `POST /api/public/enroll` | Envío de solicitud de inscripción |
+| `GET /api/public/schedule/{slug}` | Horario público de la escuela |
+| `GET /api/public/branding/{slug}` | Branding de la escuela (para portal) |
+| `GET /api/public/renewals/offer?id=` | Detalles de oferta de renovación para alumno |
+| `POST /api/public/renewals/respond` | Confirmar/rechazar renovación por clase |
+| `GET /api/public/portal/context` | Contexto del alumno en el portal |
+
+---
+
+## Funcionalidades pendientes / V2
+
+- Portal del alumno: feed social, perfiles públicos, logros/gamificación, certificaciones
+- Módulo de eventos avanzados (festivales, exhibiciones)
+- Analíticas avanzadas de negocio
+- Dominio personalizado para el portal
+- Exámenes y certificaciones (spec en [examsuit-estado-integracion-y-pendientes.md](./examsuit-estado-integracion-y-pendientes.md))

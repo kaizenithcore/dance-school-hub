@@ -1,29 +1,68 @@
-| modulo | estado | visible | motivo |
-|---|---:|---:|---|
-| dashboard | mvp | yes | Núcleo del panel administrativo |
-| students | mvp | yes | Gestión de alumnos — core MVP |
-| form-builder | mvp | yes | Matrícula online / formularios públicos |
-| enrollments | mvp | yes | Inscripciones y matrículas |
-| classes | mvp | yes | Gestión de clases |
-| schedule | mvp | yes | Horarios y aulas |
-| teachers | mvp | yes | Gestión de profesores |
-| payments | mvp | yes | Cobros básicos (core) |
-| waitlist | mvp | yes | Lista de espera (core) |
-| communications | mvp | yes | Comunicaciones básicas (emails/avisos) |
-| school-portal | mvp | yes | Portal del alumno (core) |
-| website | mvp | yes | Branding simple / página web |
-| pricing | mvp | yes | Plan principal y trial |
+# Mapa de módulos — Nexa V1
 
-| exams | legacy | no | Exámenes avanzados fuera del MVP — oculto de la UX |
-| branches | legacy | no | Multisede fuera del MVP |
-| analytics | legacy | no | Analíticas avanzadas ocultas |
-| events | legacy | no | Eventos avanzados ocultos |
-| renewals | legacy | no | Automatizaciones complejas ocultas |
-| course-clone | legacy | no | Herramientas de gestión avanzadas ocultas |
-| organization-access | legacy | no | Enterprise access oculto |
-| billing_complex | legacy | no | Facturación avanzada / enterprise oculto |
-| enterprise | future | no | Funcionalidades enterprise planificadas para futuro |
+> Actualizado: junio 2026
 
-Notas:
-- `visible` indica si el módulo aparece en la navegación y widgets principales. Todos los módulos con estado distinto a `mvp` quedan ocultos de la UX primaria.
-- La implementación mantiene el código vivo y accesible (no se elimina). El objetivo es reducir complejidad visible sin romper compatibilidad.
+## Módulos activos (MVP)
+
+| Módulo | Ruta | Visible | Notas |
+|--------|------|---------|-------|
+| dashboard | `/admin` | ✅ | Vista operativa diaria |
+| students | `/admin/students` | ✅ | Fichas, campos personalizados, importación |
+| form-builder | `/admin/form-builder` | ✅ | Formulario de matrícula público |
+| enrollments | `/admin/enrollments` | ✅ | Inscripciones (Matrículas) |
+| classes | `/admin/classes` | ✅ | Catálogo de clases |
+| schedule | `/admin/schedule` | ✅ | Horario semanal (separado de /classes) |
+| teachers | `/admin/teachers` | ✅ | Directorio de profesores |
+| rooms | `/admin/rooms` | ✅ | Gestión de aulas |
+| payments | `/admin/payments` | ✅ | Cobros, facturas, recibos |
+| economia | `/admin/economia` | ✅ | Balance financiero |
+| pricing | `/admin/pricing` | ✅ | Tarifas y paquetes |
+| waitlist | `/admin/waitlist` | ✅ | Lista de espera |
+| communications | `/admin/communications` | ✅ | Email masivo segmentado |
+| renewals | `/admin/renewals` | ✅ | Renovación por año académico |
+| reception | `/admin/reception` | ✅ | Operativa diaria de recepción |
+| school-portal | `/admin/school/portal` | ✅ | Gestión del portal (Nexa Club) |
+| course-clone | `/admin/course-clone` | ✅ | Clonar curso entre años académicos |
+| website | `/admin/website` | ✅ | Info sobre servicios web, branding |
+| settings | `/admin/settings/*` | ✅ | Configuración general |
+
+## Módulos legacy (ocultos del sidebar, rutas activas → "Próximamente")
+
+| Módulo | Ruta | Motivo |
+|--------|------|--------|
+| analytics | `/admin/analytics` | Analíticas avanzadas fuera del MVP |
+| events | `/admin/events` | Gestión de eventos avanzados fuera del MVP |
+
+## Módulos discontinuados en V1
+
+| Módulo | Estado | Notas |
+|--------|--------|-------|
+| exams / certifier | ❌ Eliminado | Código removido del frontend. Ver `docs/examsuit-estado-integracion-y-pendientes.md` para referencia futura |
+| branches | ❌ Eliminado | Multi-sede descartado en Sprint 0 |
+| organization-access | ❌ Eliminado | Enterprise access descartado en Sprint 0 |
+
+---
+
+## Módulos del Portal del alumno (Nexa Club)
+
+| Pantalla | Ruta | Estado |
+|----------|------|--------|
+| Home | `/portal/app` | ✅ V1 activo |
+| Clases | `/portal/app/clases` | ✅ V1 activo |
+| Cobros | `/portal/app/cobros` | ✅ V1 activo |
+| Avisos | `/portal/app/avisos` | ✅ V1 activo |
+| Perfil | `/portal/app/perfil` | ✅ V1 activo |
+| Login alumno | `/portal/login` | ✅ Magic link OTP |
+| Feed social | `/portal/app/feed` | 🔮 V2 — Próximamente |
+| Conexiones | `/portal/app/connections` | 🔮 V2 — Próximamente |
+| Progreso/Logros | `/portal/app/progress` | 🔮 V2 — Próximamente |
+| Certificaciones | `/portal/app/certifications` | 🔮 V2 — Próximamente |
+
+---
+
+## Notas
+
+- `visible` indica si el módulo aparece en el sidebar de navegación.
+- Los módulos legacy muestran una página "Próximamente" si se accede por URL directa.
+- Los módulos eliminados no tienen código ni rutas en el frontend.
+- La `moduleLifecyclePolicy` en `src/lib/moduleLifecyclePolicy.ts` es la fuente de verdad para el estado de cada módulo.
