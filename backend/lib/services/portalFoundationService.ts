@@ -1,4 +1,6 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
+import { emailService } from "@/lib/services/emailService";
+import { brandingService } from "@/lib/services/brandingService";
 import {
   createPortalNotification,
   PORTAL_NOTIFICATION_TYPES,
@@ -2553,14 +2555,55 @@ export const portalFoundationService = {
         continue;
       }
 
-      invited.push({
+      const inviteRecord = {
         id: data.id as string,
         email: data.invited_email as string,
         code: data.invitation_code as string,
         status: data.status as "pending" | "accepted" | "revoked" | "expired",
         expiresAt: (data.expires_at as string | null | undefined) ?? null,
         createdAt: data.created_at as string,
-      });
+      };
+      invited.push(inviteRecord);
+
+      // Send invitation email
+      try {
+        const branding = await brandingService.getTenantBranding(tenantId);
+        const { data: tenantRow } = await supabaseAdmin.from("tenants").select("name").eq("id", tenantId).single();
+        const schoolName = (tenantRow?.name as string | null) || "Tu escuela";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://app.nexa.es";
+        const portalUrl = `${appUrl}/portal/app`;
+        const primary = branding.primary_color || "#7C3AED";
+        const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const customMsg = input.message ? `<p style="margin:0 0 16px;font-size:14px;color:#475569;">${esc(input.message)}</p>` : "";
+
+        const html = `<!doctype html><html><head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f1f5f9;color:#0f172a;">
+<div style="max-width:520px;margin:32px auto;background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+  <div style="background:${esc(primary)};padding:20px 32px;">
+    <p style="margin:0;font-size:18px;font-weight:700;color:#fff;">${esc(schoolName)}</p>
+  </div>
+  <div style="padding:28px 32px;">
+    <p style="margin:0 0 10px;font-size:15px;">Hola,</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#475569;">${esc(schoolName)} te invita a acceder a <strong>Nexa Club</strong>, el portal del alumno donde puedes consultar tus clases, pagos y avisos de la escuela.</p>
+    ${customMsg}
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${esc(portalUrl)}" style="display:inline-block;background:${esc(primary)};color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;">Acceder a Nexa Club →</a>
+    </div>
+    <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;text-align:center;">Este acceso fue enviado por ${esc(schoolName)}. Si no esperabas este mensaje, ignóralo.</p>
+  </div>
+</div>
+</body></html>`;
+
+        await emailService.send({
+          to: email,
+          subject: `${schoolName} te invita a Nexa Club`,
+          html,
+          text: `Hola,\n\n${schoolName} te invita a acceder a Nexa Club, el portal del alumno.\n\nAccede aquí: ${portalUrl}\n\n${input.message || ""}`,
+        });
+      } catch (emailErr) {
+        // Non-critical — invitation record was created; log but don't fail
+        console.error("[portalFoundation] Failed to send invitation email to", email, emailErr);
+      }
     }
 
     return {

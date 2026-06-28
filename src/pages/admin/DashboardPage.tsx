@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { getDashboardMetrics } from "@/lib/api/payments";
-import { getPayments, type PaymentRecord } from "@/lib/api/payments";
+import { getPayments, getInvoices, type PaymentRecord, type InvoiceRecord } from "@/lib/api/payments";
 import { getEnrollments } from "@/lib/api/enrollments";
 import { getSchedules } from "@/lib/api/schedules";
 import { getRenewalCampaigns, type RenewalCampaign } from "@/lib/api/renewals";
@@ -107,6 +107,7 @@ export default function DashboardPage() {
 
   const [metrics, setMetrics] = useState<Awaited<ReturnType<typeof getDashboardMetrics>> | null>(null);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
   const [enrollments, setEnrollments] = useState<EnrollmentRecord[]>([]);
   const [schedules, setSchedules] = useState<Awaited<ReturnType<typeof getSchedules>>>([]);
   const [campaigns, setCampaigns] = useState<RenewalCampaign[]>([]);
@@ -117,15 +118,17 @@ export default function DashboardPage() {
     void (async () => {
       setLoading(true);
       try {
-        const [metricsData, paymentsData, enrollmentsData, schedulesData, campaignsData] = await Promise.allSettled([
+        const [metricsData, paymentsData, invoicesData, enrollmentsData, schedulesData, campaignsData] = await Promise.allSettled([
           getDashboardMetrics(),
           getPayments(),
+          getInvoices(),
           getEnrollments(),
           getSchedules(),
           getRenewalCampaigns(),
         ]);
         if (metricsData.status === "fulfilled") setMetrics(metricsData.value);
         if (paymentsData.status === "fulfilled") setPayments(paymentsData.value ?? []);
+        if (invoicesData.status === "fulfilled") setInvoices(invoicesData.value ?? []);
         if (enrollmentsData.status === "fulfilled") setEnrollments(enrollmentsData.value ?? []);
         if (schedulesData.status === "fulfilled") setSchedules(schedulesData.value ?? []);
         if (campaignsData.status === "fulfilled") setCampaigns(campaignsData.value ?? []);
@@ -139,12 +142,16 @@ export default function DashboardPage() {
 
   // ── Derived data ─────────────────────────────────────────────────────────────
 
-  const pendingPayments = useMemo(
-    () => payments.filter((p) => p.status === "overdue" || p.status === "pending"),
-    [payments]
-  );
+  // Pending cobros: payment records OR pending invoices (invoices are primary in the invoice workflow)
+  const pendingPayments = useMemo(() => {
+    const fromPayments = payments.filter((p) => p.status === "overdue" || p.status === "pending");
+    const fromInvoices = invoices.filter((inv) => inv.status === "pending" || inv.status === "overdue");
+    // Use invoices if they exist (invoice workflow), otherwise fall back to payment records
+    return fromInvoices.length > 0 ? fromInvoices : fromPayments;
+  }, [payments, invoices]);
+
   const pendingPaymentsTotal = useMemo(
-    () => pendingPayments.reduce((sum, p) => sum + p.amount, 0),
+    () => pendingPayments.reduce((sum, p) => sum + ((p as { amount?: number; totalAmount?: number }).amount ?? (p as { amount?: number; totalAmount?: number }).totalAmount ?? 0), 0),
     [pendingPayments]
   );
 

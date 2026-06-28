@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Palette, ExternalLink, Megaphone, CheckCircle2,
-  Users, ArrowRight, Smartphone,
+  Users, ArrowRight, Smartphone, Eye,
 } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -52,24 +52,36 @@ export default function SchoolPortalHubScreen() {
       description="Gestión y personalización del portal que ven tus alumnos"
     >
       {/* Status banner */}
-      <div className="flex items-center gap-3 rounded-xl border border-success/25 bg-success/5 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-success/25 bg-success/5 px-4 py-3">
         <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
-        <div>
-          <p className="text-sm font-semibold text-foreground">Portal V1 activo</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground">Nexa Club activo</p>
           <p className="text-xs text-muted-foreground">
             Tus alumnos pueden ver sus clases, pagos y avisos. Acceden con el link de invitación que envías desde su ficha.
           </p>
         </div>
-        {schoolSlug && (
+        <div className="flex items-center gap-2 ml-auto shrink-0">
+          {/* Preview mode: open portal as demo student */}
           <a
-            href={`/portal`}
+            href={`/portal/app`}
             target="_blank"
             rel="noreferrer"
-            className="ml-auto shrink-0 flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 text-primary px-3 py-1.5 text-xs font-medium hover:bg-primary/10 transition-colors"
+            title="Ver el portal como lo ve un alumno"
           >
-            <ExternalLink className="h-3.5 w-3.5" /> Ver portal
+            <Eye className="h-3.5 w-3.5" /> Vista previa alumno
           </a>
-        )}
+          {schoolSlug && (
+            <a
+              href={`/s/${schoolSlug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> Página pública
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Main grid */}

@@ -37,7 +37,7 @@ function Hero() {
 
           <motion.div variants={item} className="mt-8 flex flex-wrap justify-center gap-3">
             <Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
-              <Link to="/auth/register">
+              <Link to="/portal/login">
                 Acceder al portal <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
@@ -344,7 +344,7 @@ function FinalCTA() {
             </p>
             <div className="mt-8">
               <Button size="lg" className="h-12 px-10 text-base font-semibold" asChild>
-                <Link to="/auth/register">
+                <Link to="/portal/login">
                   Acceder al portal <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
@@ -367,14 +367,14 @@ function PortalHeader() {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
             <span className="text-xs font-bold text-primary-foreground">N</span>
           </div>
-          <span className="text-sm font-semibold text-foreground">Nexa <span className="text-muted-foreground font-normal">Portal</span></span>
+          <span className="text-sm font-semibold text-foreground">Nexa <span className="text-muted-foreground font-normal">Club</span></span>
         </Link>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/auth/login">Iniciar sesión</Link>
+            <Link to="/portal/login">Iniciar sesión</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link to="/auth/register">Acceder</Link>
+            <Link to="/portal/login">Acceder</Link>
           </Button>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import type { SchoolStudentField } from "@/lib/api/studentFields";
+import { getSchoolSettings } from "@/lib/api/settings";
 
 interface StudentFormModalProps {
   open: boolean;
@@ -50,6 +51,11 @@ export function StudentFormModal({ open, onOpenChange, student, customFields = [
   const [hasGuardian, setHasGuardian] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  // Payment methods available based on school settings
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<Array<{value: string; label: string}>>([
+    { value: "cash", label: "Efectivo" },
+    { value: "transfer", label: "Transferencia bancaria" },
+  ]);
 
   const isMinor = (() => {
     if (!form.birthdate) return false;
@@ -64,6 +70,25 @@ export function StudentFormModal({ open, onOpenChange, student, customFields = [
     );
     return age < 18;
   })();
+
+  // Load school payment settings once on open
+  useEffect(() => {
+    if (!open) return;
+    void (async () => {
+      try {
+        const settings = await getSchoolSettings();
+        const p = (settings?.payment || {}) as Record<string, unknown>;
+        const enableCash = p.enableCash !== false; // default true
+        const enableTransfer = p.enableTransfer === true; // default false unless configured
+        const methods: Array<{value: string; label: string}> = [];
+        if (enableCash) methods.push({ value: "cash", label: "Efectivo" });
+        if (enableTransfer) methods.push({ value: "transfer", label: "Transferencia bancaria" });
+        // Always have at least one method
+        if (methods.length === 0) methods.push({ value: "cash", label: "Efectivo" });
+        setAvailablePaymentMethods(methods);
+      } catch { /* keep defaults */ }
+    })();
+  }, [open]);
 
   useEffect(() => {
     if (student) {
@@ -382,10 +407,9 @@ export function StudentFormModal({ open, onOpenChange, student, customFields = [
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="transfer">Transferencia bancaria</SelectItem>
-                    <SelectItem value="cash">Efectivo</SelectItem>
-                    <SelectItem value="card">Tarjeta</SelectItem>
-                    <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+                    {availablePaymentMethods.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {errors.preferredPaymentMethod && <p className="text-xs text-destructive">{errors.preferredPaymentMethod}</p>}

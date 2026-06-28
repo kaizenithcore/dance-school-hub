@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { X, Plus, User, Trash2 } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import type { FormSection, FormField, FieldCondition, EnrollmentFormConfig, ScheduleDisplaySettings } from "@/lib/api/publicEnrollment";
 import type { PublicClass } from "@/lib/api/publicEnrollment";
 import { JointEnrollmentScheduleSelector } from "@/components/schedule/JointEnrollmentScheduleSelector";
@@ -175,12 +175,10 @@ export function JointEnrollmentForm({
     <div className="space-y-6">
       {/* Payer Information */}
       {payerSection && (
-        <Card className="border-l-4 border-l-primary bg-primary/5">
+        <Card>
           <CardHeader>
-            <CardTitle>👤 Datos del Responsable/Pagador</CardTitle>
-            <CardDescription>
-              Información de quien realizará el pago y será contacto principal
-            </CardDescription>
+            <CardTitle>1. {payerSection.title || "Datos del responsable"}</CardTitle>
+            {payerSection.description && <CardDescription>{payerSection.description}</CardDescription>}
           </CardHeader>
           <CardContent className="space-y-4">
             {payerSection.fields
@@ -202,42 +200,23 @@ export function JointEnrollmentForm({
         </Card>
       )}
 
-      {/* Students Information - Moved before class selection */}
+      {/* Students */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between bg-blue-50 p-4 rounded-lg border-l-4 border-l-blue-500">
-          <h3 className="text-lg font-semibold text-blue-900">✨ Alumnos a Matricular</h3>
-          {students.length < maxStudents && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addStudent}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Añadir Alumno
-            </Button>
-          )}
-        </div>
-
         {students.map((student, index) => (
-          <Card key={student.id} className="relative">
-            {students.length > 1 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 h-8 w-8"
-                onClick={() => removeStudent(student.id)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-            
-<CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Alumno {index + 1}
-              </CardTitle>
+          <Card key={student.id}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle>{index + 2}. Alumno {index + 1}</CardTitle>
+              {students.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-muted-foreground hover:text-destructive"
+                  onClick={() => removeStudent(student.id)}
+                >
+                  <X className="h-4 w-4 mr-1" /> Eliminar
+                </Button>
+              )}
             </CardHeader>
             
             <CardContent className="space-y-4">
@@ -351,6 +330,20 @@ export function JointEnrollmentForm({
             />
           </CardContent>
         </Card>
+      ))}
+
+      {/* Add student button below the list */}
+      {students.length < maxStudents && (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={addStudent}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Añadir alumno
+        </Button>
+      )}
       </div>
     </div>
   );

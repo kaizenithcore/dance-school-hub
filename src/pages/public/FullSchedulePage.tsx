@@ -30,20 +30,18 @@ export default function FullSchedulePage() {
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [notFound, setNotFound] = useState(false);
 
-  // Load schedule from public API
+  // Load schedule from public API — does NOT depend on form config to avoid 404
   useEffect(() => {
     const loadSchedule = async () => {
       try {
         setLoading(true);
-        const school = await getPublicFormData(schoolSlug || "");
-        if (!school) {
-          setNotFound(true);
-          setClasses([]);
-          return;
-        }
-
-        setNotFound(false);
         const data = await getPublicSchedule(schoolSlug || "");
+        if (!data || data.length === 0) {
+          // Try form data only to check school existence
+          const school = await getPublicFormData(schoolSlug || "").catch(() => null);
+          if (!school) { setNotFound(true); setClasses([]); return; }
+        }
+        setNotFound(false);
 
         const mappedClasses: ClassForDisplay[] = data.map((schedule) => {
           const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
