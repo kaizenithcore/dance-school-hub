@@ -349,11 +349,7 @@ export const publicEnrollmentService = {
       max_age?: number | null;
     };
 
-    let classes: PublicClassRow[] | null = null;
-
-    let classesError: { message: string } | null = null;
-
-    const classesWithAge = await supabaseAdmin
+    const { data: classesData, error: classesError } = await supabaseAdmin
       .from("classes")
       .select(`
         id,
@@ -361,33 +357,12 @@ export const publicEnrollmentService = {
         discipline_id,
         category_id,
         price_cents,
-        capacity,
-        min_age,
-        max_age
+        capacity
       `)
       .eq("tenant_id", tenant.id)
       .eq("status", "active");
 
-    if (classesWithAge.error) {
-      const fallbackClasses = await supabaseAdmin
-        .from("classes")
-        .select(`
-          id,
-          name,
-          discipline_id,
-          category_id,
-          price_cents,
-          capacity
-        `)
-        .eq("tenant_id", tenant.id)
-        .eq("status", "active");
-
-      classes = (fallbackClasses.data as PublicClassRow[] | null) || [];
-      classesError = fallbackClasses.error ? { message: fallbackClasses.error.message } : null;
-    } else {
-      classes = (classesWithAge.data as PublicClassRow[] | null) || [];
-      classesError = null;
-    }
+    const classes: PublicClassRow[] = (classesData as PublicClassRow[] | null) || [];
 
     if (classesError) {
       console.error("Error fetching classes:", classesError);

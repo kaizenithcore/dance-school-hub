@@ -19,7 +19,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import type { BillingCycle } from "@/lib/api/stripe";
 import { redirectToBillingCheckout } from "@/lib/api/stripe";
@@ -131,7 +130,6 @@ export function BillingShell() {
   const [checkoutAddons, setCheckoutAddons] = useState<Record<CheckoutAddonKey, boolean>>({
     customDomain: false, prioritySupport: false, waitlistAutomation: false, renewalAutomation: false,
   });
-  const [foundersCodeCopied, setFoundersCodeCopied] = useState(false);
   const [usePromoInSimulator, setUsePromoInSimulator] = useState(true);
   const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState<CheckoutPaymentMethod>(() => {
     const stored = window.localStorage.getItem(CHECKOUT_PAYMENT_METHOD_KEY);
@@ -458,26 +456,6 @@ export function BillingShell() {
   }, [location.pathname, location.search, navigate, refresh]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Callbacks ──────────────────────────────────────────────────────────────────
-
-  const copyFoundersCode = useCallback(async () => {
-    if (!FOUNDERS_PROMO_CODE) return;
-    try {
-      await navigator.clipboard.writeText(FOUNDERS_PROMO_CODE);
-      setFoundersCodeCopied(true);
-      toast.success(`Código ${FOUNDERS_PROMO_CODE} copiado`);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = FOUNDERS_PROMO_CODE;
-      textarea.style.cssText = "position:fixed;opacity:0";
-      document.body.appendChild(textarea);
-      textarea.focus(); textarea.select();
-      const copied = document.execCommand("copy");
-      document.body.removeChild(textarea);
-      if (!copied) { toast.error(`No se pudo copiar el código. Cópialo manualmente: ${FOUNDERS_PROMO_CODE}`); return; }
-      setFoundersCodeCopied(true);
-      toast.success(`Código ${FOUNDERS_PROMO_CODE} copiado`);
-    }
-  }, []);
 
   const persistBillingSelection = useCallback(async (trialPaymentCompleted: boolean, trialPaymentCompletedAt: string | null) => {
     const settings = await getSchoolSettings();

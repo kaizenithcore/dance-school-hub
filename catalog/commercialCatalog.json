@@ -108,21 +108,18 @@
       },
       "display": {
         "features": [
-          "Todo en Starter",
+          "Todo lo de Starter",
           "Hasta 500 alumnos activos",
-          "Analítica avanzada de negocio",
-          "Dominio personalizado incluido",
-          "Soporte prioritario incluido",
-          "Onboarding personalizado"
+          "Bloques de 100 alumnos extra disponibles",
+          "Soporte por email con respuesta prioritaria"
         ],
         "adminHighlights": [
-          "Para escuelas en crecimiento",
-          "Analítica real para tomar mejores decisiones",
-          "Tu dominio propio en la matrícula online",
-          "Soporte directo cuando lo necesitas"
+          "Para academias en crecimiento",
+          "Capacidad para hasta 500 alumnos sin restricciones",
+          "Bloques de alumnos extra a mejor precio por unidad"
         ]
       },
-      "includedSubscriptionAddons": ["customDomain", "prioritySupport"]
+      "includedSubscriptionAddons": []
     },
     "enterprise": {
       "name": "Enterprise",

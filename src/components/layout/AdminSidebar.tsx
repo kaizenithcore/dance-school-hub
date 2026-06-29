@@ -11,7 +11,6 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
-import { usePermissions } from "@/hooks/usePermissions";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -177,7 +176,6 @@ function ProBadge() {
 
 export function AdminSidebar() {
   const { billing, loading } = useBillingEntitlements();
-  const { canView } = usePermissions();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(readExpandedGroups);
@@ -222,16 +220,12 @@ export function AdminSidebar() {
   }, [billing.features, loading]);
 
   const canShowItem = useCallback((item: SubNavItem): boolean => {
-    if (!isModuleVisible(item.module)) return false;
-    if (item.module && !canView(item.module)) return false;
-    return true;
-  }, [canView]);
+    return isModuleVisible(item.module);
+  }, []);
 
   const canShowSimple = useCallback((entry: SimpleNavItem): boolean => {
-    if (!isModuleVisible(entry.module)) return false;
-    if (entry.module && !canView(entry.module)) return false;
-    return true;
-  }, [canView]);
+    return isModuleVisible(entry.module);
+  }, []);
 
   const isGroupActive = useCallback((entry: GroupNavItem): boolean => {
     return entry.items.some((item) => location.pathname.startsWith(item.url));

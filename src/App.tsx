@@ -58,6 +58,7 @@ const StudentPortalLandingPage = lazy(() => import("@/pages/public/StudentPortal
 const LeadQualificationPage = lazy(() => import("@/pages/public/LeadQualificationPage"));
 const RenewalResponsePage = lazy(() => import("@/pages/public/RenewalResponsePage"));
 const PortalLoginPage = lazy(() => import("@/pages/portal/PortalLoginPage"));
+const SuperAdminDashboard = lazy(() => import("@/pages/superadmin/SuperAdminDashboard"));
 
 // ── Portal V1 — 7 operational screens ──────────────────────────────────────
 const PortalAppShell = lazy(() => import("@/portal/screens/PortalAppShell"));
@@ -209,6 +210,8 @@ const App = () => (
           <Route path="/cualificacion" element={withSuspense(<LeadQualificationPage />)} />
           <Route path="/renovar" element={withSuspense(<RenewalResponsePage />)} />
           <Route path="/portal/login" element={withSuspense(<PortalLoginPage />)} />
+          {/* Super admin — protected by backend PLATFORM_OWNER_EMAIL check */}
+          <Route path="/superadmin" element={withSuspense(<SuperAdminDashboard />)} />
           <Route path="/portal" element={withSuspense(<StudentPortalLandingPage />)} />
           {/* /portal/mockup removed — was a V2 wireframe, no longer linked */}
           <Route path="/dashboard/economia" element={<Navigate to="/admin/economia" replace />} />

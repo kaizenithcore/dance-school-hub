@@ -390,11 +390,9 @@ export function ContextualHelpPanel({ open, onClose, pathname, onOpenWizard, wiz
 
             {/* Footer — wizard CTA */}
             <div className="border-t border-border p-4 space-y-2">
-              {!wizardFinished && (
-                <Button variant="default" size="sm" className="w-full" onClick={() => { onOpenWizard(); onClose(); }}>
-                  ✦ Retomar configuración inicial
-                </Button>
-              )}
+              <Button variant={wizardFinished ? "outline" : "default"} size="sm" className="w-full" onClick={() => { onOpenWizard(); onClose(); }}>
+                {wizardFinished ? "↺ Volver a la guía de inicio" : "✦ Retomar configuración inicial"}
+              </Button>
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => { navigate("/admin/settings"); onClose(); }}>
                 <Settings className="h-3.5 w-3.5 mr-1.5" /> Ir a configuración
               </Button>
