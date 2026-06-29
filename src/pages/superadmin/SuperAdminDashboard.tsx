@@ -208,21 +208,21 @@ export default function SuperAdminDashboard() {
               <table className="w-full min-w-[900px]">
                 <thead>
                   <tr className="border-b border-border hover:bg-transparent">
-                    [
-                      { label: "Escuela",       key: "name"    as SortKey },
-                      { label: "Plan",          key: "plan"    as SortKey },
-                      { label: "Alumnos",       key: "students"as SortKey },
-                      { label: "Uso",           key: "usage"   as SortKey },
+                    {([
+                      { label: "Escuela",       key: "name"     as SortKey | null },
+                      { label: "Plan",          key: "plan"     as SortKey | null },
+                      { label: "Alumnos",       key: "students" as SortKey | null },
+                      { label: "Uso",           key: "usage"    as SortKey | null },
                       { label: "Trial / Pago",  key: null },
                       { label: "Pagado a Nexa", key: null },
-                      { label: "Alta",          key: "created" as SortKey },
+                      { label: "Alta",          key: "created"  as SortKey | null },
                       { label: "CRM",           key: null },
-                    ].map(({ label, key }) => (
+                    ] as const).map(({ label, key }) => (
                       <th key={label} className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">
                         {key ? (
-                          <button type="button" onClick={() => toggleSort(key)}
+                          <button type="button" onClick={() => toggleSort(key as SortKey)}
                             className="inline-flex items-center gap-1 hover:text-foreground">
-                            {label} <SortIcon k={key} />
+                            {label} <SortIcon k={key as SortKey} />
                           </button>
                         ) : label}
                       </th>

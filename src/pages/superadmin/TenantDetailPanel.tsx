@@ -129,10 +129,11 @@ export function TenantDetailPanel({ tenant, onClose, onSuspendChange }: Props) {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">{tenant.slug}</p>
-                {/* Admin email — prominent */}
+                {/* Admin email — prominent with visible address */}
                 <a href={`mailto:${tenant.ownerEmail}`}
-                  className="flex items-center gap-1 text-xs text-primary hover:underline mt-0.5">
-                  <Mail className="h-3 w-3" />{tenant.ownerEmail}
+                  className="flex items-center gap-1.5 text-xs text-primary hover:underline mt-0.5 truncate max-w-[220px]">
+                  <Mail className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{tenant.ownerEmail}</span>
                 </a>
               </div>
               <div className="flex items-center gap-1.5 shrink-0 ml-2">
