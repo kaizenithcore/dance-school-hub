@@ -186,4 +186,45 @@ export const stripeService = {
 
     return null;
   },
+
+  /** Returns total amount actually charged to Nexa by this tenant (plan payments). */
+  async getTotalRevenueByTenant(tenantId: string): Promise<{ totalCents: number; currency: string; count: number }> {
+    if (!this.isConfigured()) return { totalCents: 0, currency: "eur", count: 0 };
+    const stripe = getStripeClient();
+
+    let totalCents = 0;
+    let count = 0;
+    let currency = "eur";
+
+    try {
+      // Use Stripe Search API — finds all completed checkout sessions for this tenant
+      const sessions = await stripe.checkout.sessions.search({
+        query: `metadata["tenantId"]:"${tenantId}" AND payment_status:"paid"`,
+        limit: 100,
+      });
+
+      for (const session of sessions.data) {
+        if (session.amount_total && session.amount_total > 0) {
+          totalCents += session.amount_total;
+          currency = session.currency || "eur";
+          count++;
+        }
+      }
+    } catch {
+      // Fallback: iterate events (less accurate but works on all Stripe plans)
+      const events = await stripe.events.list({ type: "checkout.session.completed", limit: 100 });
+      for (const event of events.data) {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.tenantId !== tenantId) continue;
+        if (session.payment_status !== "paid" && session.status !== "complete") continue;
+        if (session.amount_total && session.amount_total > 0) {
+          totalCents += session.amount_total;
+          currency = session.currency || "eur";
+          count++;
+        }
+      }
+    }
+
+    return { totalCents, currency, count };
+  },
 };

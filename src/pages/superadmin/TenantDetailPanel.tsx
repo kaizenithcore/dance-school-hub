@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Loader2, CheckCircle2, AlertTriangle, TrendingUp } from "lucide-react";
+import { X, ExternalLink, Loader2, Database, HardDrive, Pause, Play, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
-  getTenantDetail, saveCrmNote, updateCrmStatus,
-  type TenantDetail, type CrmStatus, type TenantSummary,
+  getTenantDetail, saveCrmNote, updateCrmStatus, setSuspended,
+  type TenantDetail, type CrmStatus, type TenantSummary, type ResourceUsage,
 } from "@/lib/api/platformAdmin";
 
 const CRM_LABELS: Record<CrmStatus, { label: string; className: string }> = {
@@ -25,7 +25,7 @@ function UsageBar({ pct }: { pct: number }) {
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>Uso de alumnos</span><span>{pct}%</span>
+        <span>Alumnos activos / límite</span><span className="font-semibold">{pct}%</span>
       </div>
       <div className="h-2 rounded-full bg-muted overflow-hidden">
         <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${Math.min(pct, 100)}%` }} />
@@ -34,22 +34,32 @@ function UsageBar({ pct }: { pct: number }) {
   );
 }
 
+function ResourceRow({ label, value, icon: Icon }: { label: string; value: string | number; icon?: React.ComponentType<{className?: string}> }) {
+  return (
+    <div className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {Icon && <Icon className="h-3 w-3" />}{label}
+      </div>
+      <span className="text-xs font-semibold text-foreground">{value}</span>
+    </div>
+  );
+}
+
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
 }
+function fmtEur(cents: number) { return `${(cents / 100).toFixed(2)} €`; }
 
-interface Props {
-  tenant: TenantSummary | null;
-  onClose: () => void;
-}
+interface Props { tenant: TenantSummary | null; onClose: () => void; onSuspendChange?: (id: string, suspended: boolean) => void; }
 
-export function TenantDetailPanel({ tenant, onClose }: Props) {
+export function TenantDetailPanel({ tenant, onClose, onSuspendChange }: Props) {
   const [detail, setDetail] = useState<TenantDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState<CrmStatus>("new");
   const [saving, setSaving] = useState(false);
+  const [suspending, setSuspending] = useState(false);
 
   useEffect(() => {
     if (!tenant) { setDetail(null); return; }
@@ -78,10 +88,23 @@ export function TenantDetailPanel({ tenant, onClose }: Props) {
       setDetail(updated);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al guardar");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
+
+  const handleToggleSuspend = async () => {
+    if (!tenant) return;
+    const next = !tenant.isSuspended;
+    setSuspending(true);
+    try {
+      await setSuspended(tenant.id, next);
+      onSuspendChange?.(tenant.id, next);
+      toast.success(next ? `${tenant.name} suspendida` : `${tenant.name} reactivada`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al cambiar estado");
+    } finally { setSuspending(false); }
+  };
+
+  const res: ResourceUsage | null = detail?.resourceUsage ?? null;
 
   return (
     <AnimatePresence>
@@ -96,12 +119,23 @@ export function TenantDetailPanel({ tenant, onClose }: Props) {
             className="fixed right-0 top-0 bottom-0 z-[61] w-96 bg-card border-l border-border shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <div>
-                <p className="text-sm font-bold text-foreground">{tenant.name}</p>
-                <p className="text-xs text-muted-foreground">{tenant.slug} · {tenant.ownerEmail}</p>
+            <div className={cn("flex items-start justify-between px-5 py-4 border-b border-border",
+              tenant.isSuspended && "bg-destructive/5")}>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-foreground truncate">{tenant.name}</p>
+                  {tenant.isSuspended && (
+                    <span className="shrink-0 rounded-full bg-destructive/15 text-destructive text-[10px] font-bold px-2 py-0.5">SUSPENDIDA</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">{tenant.slug}</p>
+                {/* Admin email — prominent */}
+                <a href={`mailto:${tenant.ownerEmail}`}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline mt-0.5">
+                  <Mail className="h-3 w-3" />{tenant.ownerEmail}
+                </a>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
                 <a href={`/s/${tenant.slug}`} target="_blank" rel="noreferrer"
                   className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                   <ExternalLink className="h-4 w-4" />
@@ -136,26 +170,60 @@ export function TenantDetailPanel({ tenant, onClose }: Props) {
                     </div>
                   </div>
 
+                  {/* Revenue to Nexa */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Ingresos para Nexa (Stripe)</p>
+                    <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total cobrado</p>
+                        <p className="text-xl font-bold text-foreground">{fmtEur(tenant.stripeTotalCents)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">Pagos</p>
+                        <p className="text-lg font-semibold text-foreground">{tenant.stripePaymentCount}</p>
+                      </div>
+                    </div>
+                    {tenant.stripeTotalCents === 0 && !tenant.trialPaymentCompleted && (
+                      <p className="text-xs text-muted-foreground">Trial activo — aún no ha pagado.</p>
+                    )}
+                  </div>
+
                   {/* Usage */}
                   <div className="space-y-3">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Uso</p>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Uso de alumnos</p>
                     <UsageBar pct={tenant.usagePct} />
                     <div className="grid grid-cols-3 gap-2">
                       {[
                         { label: "Alumnos", value: `${tenant.activeStudents}/${tenant.maxStudents}` },
                         { label: "Inscripciones", value: String(tenant.totalEnrollments) },
-                        { label: "Cobrado", value: `${(tenant.totalPaymentsCents / 100).toFixed(0)}€` },
+                        { label: "Último", value: tenant.lastStudentAt ? fmtDate(tenant.lastStudentAt) : "—" },
                       ].map(({ label, value }) => (
-                        <div key={label} className="rounded-lg border border-border bg-muted/20 px-3 py-2 text-center">
+                        <div key={label} className="rounded-lg border border-border bg-muted/20 px-2 py-2 text-center">
                           <p className="text-[10px] text-muted-foreground">{label}</p>
-                          <p className="text-sm font-semibold text-foreground">{value}</p>
+                          <p className="text-xs font-semibold text-foreground">{value}</p>
                         </div>
                       ))}
                     </div>
-                    {tenant.lastStudentAt && (
-                      <p className="text-xs text-muted-foreground">Último alumno: {fmtDate(tenant.lastStudentAt)}</p>
-                    )}
                   </div>
+
+                  {/* Supabase resource usage */}
+                  {res && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        Recursos en Supabase
+                      </p>
+                      <div className="rounded-lg border border-border bg-muted/20 px-3 py-2 space-y-0.5">
+                        <ResourceRow label="Alumnos (filas)" value={res.students} icon={Database} />
+                        <ResourceRow label="Inscripciones" value={res.enrollments} />
+                        <ResourceRow label="Clases" value={res.classes} />
+                        <ResourceRow label="Horarios" value={res.schedules} />
+                        <ResourceRow label="Pagos" value={res.payments} />
+                        <ResourceRow label="Facturas" value={res.invoices} />
+                        <ResourceRow label="Total filas" value={res.totalRows} />
+                        <ResourceRow label="Almacenamiento" value={`${res.storageMb} MB`} icon={HardDrive} />
+                      </div>
+                    </div>
+                  )}
 
                   {/* CRM */}
                   <div className="space-y-3">
@@ -202,6 +270,26 @@ export function TenantDetailPanel({ tenant, onClose }: Props) {
                   )}
                 </>
               )}
+            </div>
+
+            {/* Footer — suspend toggle */}
+            <div className="border-t border-border p-4">
+              <Button
+                variant={tenant.isSuspended ? "outline" : "destructive"}
+                size="sm"
+                className="w-full"
+                onClick={() => void handleToggleSuspend()}
+                disabled={suspending}
+              >
+                {suspending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> :
+                  tenant.isSuspended ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
+                {tenant.isSuspended ? "Reactivar escuela" : "Suspender escuela"}
+              </Button>
+              <p className="text-[10px] text-muted-foreground text-center mt-1.5">
+                {tenant.isSuspended
+                  ? "La escuela volverá a tener acceso inmediatamente."
+                  : "Los usuarios de esta escuela recibirán un error 403 al intentar acceder."}
+              </p>
             </div>
           </motion.div>
         </>

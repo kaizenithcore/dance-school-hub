@@ -26,7 +26,10 @@ const CRM_LABELS: Record<CrmStatus, { label: string; dot: string }> = {
 type FilterKey = "all" | "trial" | "active" | "at_risk" | "new";
 type SortKey = "name" | "created" | "usage" | "students" | "plan";
 
-function fmtEur(cents: number) { return `${(cents / 100).toFixed(0)}€`; }
+function fmtEur(cents: number) {
+  if (cents === 0) return "—";
+  return `${(cents / 100).toFixed(0)} €`;
+}
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
@@ -58,6 +61,12 @@ export default function SuperAdminDashboard() {
   const [pageSize, setPageSize] = useState(() => readPageSize(PAGE_SIZE_KEY));
   const [selected, setSelected] = useState<TenantSummary | null>(null);
 
+  // Update local tenant state when suspend/resume is toggled in the detail panel
+  const handleSuspendChange = (id: string, suspended: boolean) => {
+    setTenants((prev) => prev.map((t) => t.id === id ? { ...t, isSuspended: suspended } : t));
+    setSelected((prev) => prev?.id === id ? { ...prev, isSuspended: suspended } : prev);
+  };
+
   const load = async () => {
     setLoading(true);
     try { setTenants(await getAllTenants()); }
@@ -74,7 +83,8 @@ export default function SuperAdminDashboard() {
     active: tenants.filter((t) => t.trialPaymentCompleted).length,
     atRisk: tenants.filter((t) => t.usagePct >= 80).length,
     newThis7d: tenants.filter((t) => t.isNew).length,
-    totalRevenue: tenants.reduce((s, t) => s + t.totalPaymentsCents, 0),
+    stripeRevenue: tenants.reduce((s, t) => s + t.stripeTotalCents, 0),
+    suspended: tenants.filter((t) => t.isSuspended).length,
   }), [tenants]);
 
   const filtered = useMemo(() => {
@@ -156,8 +166,8 @@ export default function SuperAdminDashboard() {
             { icon: Users,      label: "En trial",      value: kpis.trial },
             { icon: TrendingUp, label: "Activas",       value: kpis.active },
             { icon: AlertTriangle, label: "En riesgo",  value: kpis.atRisk, warn: kpis.atRisk > 0 },
-            { icon: Sparkles,   label: "Nuevas <7d",    value: kpis.newThis7d },
-            { icon: CreditCard, label: "Total cobrado", value: fmtEur(kpis.totalRevenue) },
+            { icon: Sparkles,   label: "Nuevas <7d",      value: kpis.newThis7d },
+            { icon: CreditCard, label: "Cobrado (Stripe)", value: fmtEur(kpis.stripeRevenue) },
           ].map(({ icon: Icon, label, value, warn }) => (
             <div key={label} className={cn("rounded-lg border border-border bg-card px-3 py-2.5",
               warn ? "border-amber-300/50 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-950/20" : "")}>
@@ -198,15 +208,15 @@ export default function SuperAdminDashboard() {
               <table className="w-full min-w-[900px]">
                 <thead>
                   <tr className="border-b border-border hover:bg-transparent">
-                    {[
-                      { label: "Escuela",    key: "name"    as SortKey },
-                      { label: "Plan",       key: "plan"    as SortKey },
-                      { label: "Alumnos",    key: "students"as SortKey },
-                      { label: "Uso",        key: "usage"   as SortKey },
-                      { label: "Trial / Pago", key: null },
-                      { label: "Cobrado",    key: null },
-                      { label: "Alta",       key: "created" as SortKey },
-                      { label: "CRM",        key: null },
+                    [
+                      { label: "Escuela",       key: "name"    as SortKey },
+                      { label: "Plan",          key: "plan"    as SortKey },
+                      { label: "Alumnos",       key: "students"as SortKey },
+                      { label: "Uso",           key: "usage"   as SortKey },
+                      { label: "Trial / Pago",  key: null },
+                      { label: "Pagado a Nexa", key: null },
+                      { label: "Alta",          key: "created" as SortKey },
+                      { label: "CRM",           key: null },
                     ].map(({ label, key }) => (
                       <th key={label} className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">
                         {key ? (
@@ -229,16 +239,18 @@ export default function SuperAdminDashboard() {
                       <tr key={t.id}
                         onClick={() => setSelected(t)}
                         className={cn("border-t border-border cursor-pointer hover:bg-accent/40 transition-colors",
-                          idx % 2 !== 0 && "bg-muted/20")}>
+                          idx % 2 !== 0 && "bg-muted/20",
+                          t.isSuspended && "opacity-60")}>
                         <td className="px-3 py-2.5">
-                          <div className="flex items-center gap-2">
-                            <div>
-                              <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                                {t.name}
-                                {t.isNew && <span className="rounded-full bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5">NEW</span>}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground">{t.ownerEmail}</p>
-                            </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                              {t.name}
+                              {t.isNew && <span className="rounded-full bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5">NEW</span>}
+                              {t.isSuspended && <span className="rounded-full bg-destructive/15 text-destructive text-[9px] font-bold px-1.5 py-0.5">SUSPENDIDA</span>}
+                            </p>
+                            {/* Admin email — clickable mailto */}
+                            <a href={`mailto:${t.ownerEmail}`} onClick={(e) => e.stopPropagation()}
+                              className="text-[10px] text-primary hover:underline">{t.ownerEmail}</a>
                           </div>
                         </td>
                         <td className="px-3 py-2.5">
@@ -254,7 +266,12 @@ export default function SuperAdminDashboard() {
                               </span>
                           }
                         </td>
-                        <td className="px-3 py-2.5 text-sm text-foreground">{fmtEur(t.totalPaymentsCents)}</td>
+                        <td className="px-3 py-2.5">
+                          <span className="text-sm font-semibold text-foreground">{fmtEur(t.stripeTotalCents)}</span>
+                          {t.stripePaymentCount > 0 && (
+                            <span className="text-[10px] text-muted-foreground ml-1">({t.stripePaymentCount}x)</span>
+                          )}
+                        </td>
                         <td className="px-3 py-2.5 text-xs text-muted-foreground">{fmtDate(t.createdAt)}</td>
                         <td className="px-3 py-2.5">
                           <span className="inline-flex items-center gap-1 text-xs">
@@ -279,7 +296,7 @@ export default function SuperAdminDashboard() {
         )}
       </div>
 
-      <TenantDetailPanel tenant={selected} onClose={() => setSelected(null)} />
+      <TenantDetailPanel tenant={selected} onClose={() => setSelected(null)} onSuspendChange={handleSuspendChange} />
     </div>
   );
 }

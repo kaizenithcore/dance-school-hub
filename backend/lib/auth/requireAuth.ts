@@ -564,6 +564,29 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
     };
   }
 
+  // Check if tenant is suspended by platform admin
+  const { data: settingsRow } = await supabaseAdmin
+    .from("school_settings")
+    .select("payment_config")
+    .eq("tenant_id", selectedTenantId)
+    .maybeSingle();
+  const paymentConfig = settingsRow?.payment_config && typeof settingsRow.payment_config === "object"
+    ? (settingsRow.payment_config as Record<string, unknown>)
+    : {};
+  if (Boolean(paymentConfig.suspended)) {
+    return {
+      authorized: false,
+      response: fail(
+        {
+          code: "account_suspended",
+          message: "Esta cuenta ha sido suspendida temporalmente. Contacta con soporte en hola@nexa.es",
+        },
+        403,
+        origin
+      ),
+    };
+  }
+
   const activeOrganization = selectedOrganizationId
     ? organizations.find((organization) => organization.organizationId === selectedOrganizationId) ?? null
     : resolveActiveOrganization(enrichedSelectedMembership, organizations);
