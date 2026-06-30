@@ -46,13 +46,16 @@ export default function LandingDemoPage() {
     .filter((s) => s.enabled)
     .sort((a, b) => a.order - b.order);
 
+  useEffect(() => {
+    const prevTitle = document.title;
+    document.title = `${content.meta.schoolFullName} · Clases de danza en Madrid`;
+    return () => {
+      document.title = prevTitle;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#faf7f2] text-stone-900 antialiased [font-feature-settings:'ss01']">
-      <Helmet>
-        <title>{content.meta.schoolFullName} · Clases de danza en Madrid</title>
-        <meta name="description" content={content.meta.tagline} />
-      </Helmet>
-
       <LandingHeader meta={content.meta} />
 
       <main>
