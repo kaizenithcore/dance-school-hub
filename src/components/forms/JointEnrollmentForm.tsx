@@ -29,7 +29,8 @@ interface JointEnrollmentFormProps {
     values: Record<string, unknown>,
     setValues: Dispatch<SetStateAction<Record<string, unknown>>>,
     errors: Record<string, string>,
-    setErrors: Dispatch<SetStateAction<Record<string, string>>>
+    setErrors: Dispatch<SetStateAction<Record<string, string>>>,
+    idPrefix?: string
   ) => React.ReactNode;
   isVisible: (conditions: FieldCondition[] | undefined, values: Record<string, unknown>) => boolean;
   jointConfig?: EnrollmentFormConfig["jointEnrollment"];
@@ -186,9 +187,9 @@ export function JointEnrollmentForm({
               .map(field => (
                 <div key={field.id} className="space-y-2">
                   {field.type !== "checkbox" && field.type !== "info" ? (
-                    <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                    <Label htmlFor={field.id}>{`${field.label}${field.required ? " *" : ""}`}</Label>
                   ) : field.type === "checkbox" && field.placeholder ? (
-                    <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                    <Label htmlFor={field.id}>{`${field.label}${field.required ? " *" : ""}`}</Label>
                   ) : null}
                   {renderField(field, payerValues, onPayerChange, payerErrors, onPayerErrorChange)}
                   {payerErrors[field.id] && (
@@ -231,16 +232,17 @@ export function JointEnrollmentForm({
                     .map(field => (
                       <div key={field.id} className="space-y-2">
                         {field.type !== "checkbox" && field.type !== "info" ? (
-                          <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                          <Label htmlFor={`${student.id}::${field.id}`}>{`${field.label}${field.required ? " *" : ""}`}</Label>
                         ) : field.type === "checkbox" && field.placeholder ? (
-                          <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                          <Label htmlFor={`${student.id}::${field.id}`}>{`${field.label}${field.required ? " *" : ""}`}</Label>
                         ) : null}
                         {renderField(
                           field,
                           student.values,
                           (values) => updateStudentValues(student.id, values),
                           student.errors,
-                          (errors) => updateStudentErrors(student.id, errors)
+                          (errors) => updateStudentErrors(student.id, errors),
+                          `${student.id}::`
                         )}
                         {student.errors[field.id] && (
                           <p className="text-xs text-destructive">{student.errors[field.id]}</p>
@@ -330,7 +332,7 @@ export function JointEnrollmentForm({
             />
           </CardContent>
         </Card>
-      ))}
+      ))
 
       {/* Add student button below the list */}
       {students.length < maxStudents && (

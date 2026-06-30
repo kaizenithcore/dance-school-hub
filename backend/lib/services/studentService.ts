@@ -906,6 +906,32 @@ export const studentService = {
       throw new Error(`Failed to remove member from joint group: ${error.message}`);
     }
 
+    // A "group" of one is no longer a group — dissolve it so the remaining
+    // student reverts to individual pricing instead of being left in a
+    // phantom joint group.
+    const { data: remainingEnrollments } = await supabaseAdmin
+      .from("enrollments")
+      .select("student_id")
+      .eq("tenant_id", tenantId)
+      .eq("joint_enrollment_group_id", groupId)
+      .in("status", ["pending", "confirmed"]);
+
+    const remainingStudentIds = Array.from(
+      new Set((remainingEnrollments || []).map((row: { student_id: string }) => row.student_id))
+    );
+
+    if (remainingStudentIds.length === 1) {
+      const { error: dissolveError } = await supabaseAdmin
+        .from("enrollments")
+        .update({ joint_enrollment_group_id: null })
+        .eq("tenant_id", tenantId)
+        .eq("joint_enrollment_group_id", groupId);
+
+      if (dissolveError) {
+        throw new Error(`Failed to dissolve single-member joint group: ${dissolveError.message}`);
+      }
+    }
+
     return { removed: true };
   },
 

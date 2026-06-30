@@ -138,6 +138,12 @@ export interface PublicFormData {
     endHour?: string;
     recurringSelectionMode?: "linked" | "single_day";
   };
+  enrollmentFee?: {
+    enabled: boolean;
+    amount: number;
+    currency: string;
+    allowCash: boolean;
+  };
   availableClasses: Array<{
     id: string;
     name: string;
@@ -181,7 +187,7 @@ export const publicEnrollmentService = {
 
     const { data: settingsData, error: settingsError } = await supabaseAdmin
       .from("school_settings")
-      .select("enrollment_config, schedule_config")
+      .select("enrollment_config, schedule_config, payment_config")
       .eq("tenant_id", tenant.id)
       .maybeSingle();
 
@@ -323,6 +329,18 @@ export const publicEnrollmentService = {
         return [branch];
       });
 
+    const paymentConfigSource =
+      settingsData?.payment_config && typeof settingsData.payment_config === "object"
+        ? (settingsData.payment_config as Record<string, unknown>)
+        : {};
+
+    const enrollmentFee: PublicFormData["enrollmentFee"] = {
+      enabled: paymentConfigSource.enrollmentFeeEnabled === true,
+      amount: Number(paymentConfigSource.enrollmentFeeAmount) || 0,
+      currency: typeof paymentConfigSource.currency === "string" ? paymentConfigSource.currency : "EUR",
+      allowCash: paymentConfigSource.enrollmentFeeAllowCash !== false,
+    };
+
     const scheduleConfigSource =
       settingsData?.schedule_config && typeof settingsData.schedule_config === "object"
         ? (settingsData.schedule_config as Record<string, unknown>)
@@ -387,6 +405,7 @@ export const publicEnrollmentService = {
           : {}),
         publicProfile,
         scheduleConfig,
+        enrollmentFee,
         availableClasses: [],
       };
     }
@@ -521,6 +540,7 @@ export const publicEnrollmentService = {
         : {}),
       publicProfile,
       scheduleConfig,
+      enrollmentFee,
       availableClasses,
     };
   },

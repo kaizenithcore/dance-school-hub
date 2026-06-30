@@ -731,7 +731,11 @@ export function StudentClassesModal({
 
               {jointEnabled && groupId ? (
                 <>
-                  <p className="text-xs text-muted-foreground">Grupo: {groupId}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {members.length > 0
+                      ? `Grupo familiar: ${[student?.name, ...members.map((m) => m.name)].filter(Boolean).join(", ")}`
+                      : "Grupo familiar nuevo — añade alumnos abajo"}
+                  </p>
 
                   <div className="rounded-md border border-border bg-muted/20 px-3 py-2 space-y-2">
                     <p className="text-xs font-medium text-foreground">Tarifa mensual en matrícula conjunta (previsualización)</p>

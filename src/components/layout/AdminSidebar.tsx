@@ -235,7 +235,7 @@ export function AdminSidebar() {
 
   function renderNavContent(isCollapsedView: boolean) {
     return (
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5" aria-label="Navegación principal">
         {NAV_ENTRIES.map((entry) => {
           if (entry.type === "simple") {
             if (!canShowSimple(entry)) return null;
@@ -272,6 +272,7 @@ export function AdminSidebar() {
                 key={entry.key}
                 type="button"
                 title={entry.title}
+                aria-label={entry.title}
                 onClick={() => {
                   setCollapsed(false);
                   setExpandedGroups((prev) => {
@@ -298,6 +299,8 @@ export function AdminSidebar() {
               <button
                 type="button"
                 onClick={() => toggleGroup(entry.key)}
+                aria-expanded={isExpanded}
+                aria-controls={`nav-group-${entry.key}`}
                 className={cn(
                   "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
                   "text-muted-foreground hover:text-foreground hover:bg-accent",
@@ -316,7 +319,7 @@ export function AdminSidebar() {
 
               {/* Sub-items */}
               {isExpanded && (
-                <div className="mt-0.5 ml-3 pl-3 border-l border-border space-y-0.5 pb-1">
+                <div id={`nav-group-${entry.key}`} className="mt-0.5 ml-3 pl-3 border-l border-border space-y-0.5 pb-1">
                   {visibleItems.map((item) => {
                     const gated = isItemGated(item.featureKey);
                     return (
@@ -422,6 +425,8 @@ export function AdminSidebar() {
           size="icon"
           className="fixed top-4 left-4 z-50 md:hidden h-9 w-9"
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>

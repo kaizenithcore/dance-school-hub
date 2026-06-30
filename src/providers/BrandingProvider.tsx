@@ -82,6 +82,19 @@ function hexToHslString(hex: string): string {
   return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+function getReadableForegroundHsl(hex: string): string {
+  const normalized = hex.replace("#", "");
+  const r = Number.parseInt(normalized.slice(0, 2), 16) / 255;
+  const g = Number.parseInt(normalized.slice(2, 4), 16) / 255;
+  const b = Number.parseInt(normalized.slice(4, 6), 16) / 255;
+
+  const channel = (v: number) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const relativeLuminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+
+  // WCAG: luminance below ~0.32 is "dark" — use a light foreground for contrast.
+  return relativeLuminance < 0.32 ? "0 0% 98%" : "263 50% 25%";
+}
+
 function mapApiBrandingToTheme(data: TenantBranding): BrandingTheme {
   return {
     logoUrl: data.logo_url,
@@ -171,6 +184,9 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     root.style.setProperty("--sidebar-primary", hexToHslString(effectiveBranding.primaryColor));
     root.style.setProperty("--secondary", hexToHslString(effectiveBranding.secondaryColor));
     root.style.setProperty("--accent", hexToHslString(effectiveBranding.accentColor));
+    const accentForeground = getReadableForegroundHsl(effectiveBranding.accentColor);
+    root.style.setProperty("--accent-foreground", accentForeground);
+    root.style.setProperty("--sidebar-accent-foreground", accentForeground);
     root.style.setProperty("--radius", styleRadiusMap[effectiveBranding.styleVariant]);
   }, [effectiveBranding]);
 

@@ -16,11 +16,19 @@ export interface SelectedClass {
   time?: string
 }
 
+export interface EnrollmentFeeInfo {
+  enabled: boolean
+  amount: number
+  currency: string
+  allowCash: boolean
+}
+
 interface Props {
   tenantId: string
   selectedClasses: SelectedClass[]
   onRemoveClass: (id: string) => void
   showRemoveButtons?: boolean
+  enrollmentFee?: EnrollmentFeeInfo
 }
 
 export function DynamicPricingSummary({
@@ -28,6 +36,7 @@ export function DynamicPricingSummary({
   selectedClasses,
   onRemoveClass,
   showRemoveButtons = true,
+  enrollmentFee,
 }: Props) {
   const [pricing, setPricing] = useState<PricingCalculation | null>(null)
   const [loading, setLoading] = useState(false)
@@ -210,6 +219,21 @@ export function DynamicPricingSummary({
               <div className="flex justify-between text-sm text-success">
                 <span>Descuento</span>
                 <span>-€{pricing.discount.toFixed(2)}</span>
+              </div>
+            )}
+
+            {/* Enrollment fee (informational, not collected by Nexa) */}
+            {enrollmentFee?.enabled && enrollmentFee.amount > 0 && (
+              <div className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <div className="flex justify-between text-sm font-medium text-amber-900">
+                  <span>Matrícula</span>
+                  <span>€{enrollmentFee.amount.toFixed(2)}</span>
+                </div>
+                <p className="text-xs text-amber-800">
+                  Importe informativo, no incluido en el total ni gestionado por esta plataforma.
+                  Se abona directamente en la escuela
+                  {enrollmentFee.allowCash ? " (efectivo o transferencia)" : " por transferencia"}.
+                </p>
               </div>
             )}
 

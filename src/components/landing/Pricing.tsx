@@ -97,20 +97,20 @@ const comparisonRows: ComparisonRow[] = [
       enterprise: "✓ Avanzada",
     },
   },
-  {
-    label: "Dominio personalizado",
-    values: {
-      starter: "Add-on +19€/mes",
-      pro: "✓ Incluido",
-      enterprise: "✓ Incluido",
-    },
-  },
+  // {
+  //   label: "Dominio personalizado",
+  //   values: {
+  //     starter: "Add-on +19€/mes",
+  //     pro: "✓ Incluido",
+  //     enterprise: "✓ Incluido",
+  //   },
+  // },
   {
     label: "Soporte",
     values: {
       starter: "Estándar",
       pro: "✓ Prioritario incluido",
-      enterprise: "✓ Prioritario + onboarding",
+      enterprise: "✓ Prioritario + puesta a punto",
     },
   },
 ];
@@ -150,9 +150,8 @@ const plans: Plan[] = planOrder.map((planType) => {
         "Todo en Starter",
         "Hasta 500 alumnos activos",
         "Analítica avanzada de negocio",
-        "Dominio personalizado incluido",
         "Soporte prioritario incluido",
-        "Onboarding personalizado",
+        "Puesta a punto incluida",
       ],
     },
     enterprise: {
@@ -167,7 +166,7 @@ const plans: Plan[] = planOrder.map((planType) => {
         "Roles avanzados",
         "Analítica avanzada",
         "Soporte prioritario",
-        "Onboarding personalizado",
+        "Puesta a punto incluida",
       ],
     },
   };

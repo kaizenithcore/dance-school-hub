@@ -32,6 +32,14 @@ export interface UpdateCurrentAcademicYearInput {
   academicYearId: string;
 }
 
+export interface UpdateAcademicYearInput {
+  yearCode?: string;
+  displayName?: string;
+  startDate?: string;
+  endDate?: string;
+  dataRetentionMonths?: number;
+}
+
 export const getAcademicYears = async (): Promise<AcademicYearsListResponse> => {
   const response = await apiRequest<AcademicYearsListResponse>("/api/admin/academic-years");
   if (!response.success) {
@@ -60,4 +68,24 @@ export const setCurrentAcademicYear = async (input: UpdateCurrentAcademicYearInp
     throw new Error(response.error?.message || "No se pudo actualizar el año académico actual");
   }
   return response.data || { academicYear: {} as AcademicYear };
+};
+
+export const updateAcademicYear = async (id: string, input: UpdateAcademicYearInput): Promise<AcademicYearResponse> => {
+  const response = await apiRequest<AcademicYearResponse>(`/api/admin/academic-years/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  if (!response.success) {
+    throw new Error(response.error?.message || "No se pudo actualizar el curso académico");
+  }
+  return response.data || { academicYear: {} as AcademicYear };
+};
+
+export const deleteAcademicYear = async (id: string): Promise<void> => {
+  const response = await apiRequest<{ deleted: boolean }>(`/api/admin/academic-years/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.success) {
+    throw new Error(response.error?.message || "No se pudo eliminar el curso académico");
+  }
 };

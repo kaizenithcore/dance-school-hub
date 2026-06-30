@@ -168,8 +168,10 @@ function renderField(
   values: Record<string, unknown>,
   setValues: Dispatch<SetStateAction<Record<string, unknown>>>,
   errors: Record<string, string>,
-  setErrors: Dispatch<SetStateAction<Record<string, string>>>
+  setErrors: Dispatch<SetStateAction<Record<string, string>>>,
+  idPrefix = ""
 ) {
+  const fieldId = `${idPrefix}${field.id}`;
   const clearError = () => {
     if (!errors[field.id]) return;
     setErrors((prev) => {
@@ -187,6 +189,7 @@ function renderField(
   if (field.type === "textarea") {
     return (
       <Textarea
+        id={fieldId}
         value={(values[field.id] as string) || ""}
         onChange={(event) => onStringChange(event.target.value)}
         placeholder={field.placeholder}
@@ -202,7 +205,7 @@ function renderField(
         value={(values[field.id] as string) || ""}
         onValueChange={(selected) => onStringChange(selected)}
       >
-        <SelectTrigger className={errors[field.id] ? "border-destructive" : ""}>
+        <SelectTrigger id={fieldId} className={errors[field.id] ? "border-destructive" : ""}>
           <SelectValue placeholder="Seleccionar..." />
         </SelectTrigger>
         <SelectContent>
@@ -220,6 +223,7 @@ function renderField(
     return (
       <div className="flex items-center gap-2">
         <Checkbox
+          id={fieldId}
           checked={Boolean(values[field.id])}
           onCheckedChange={(checked) => {
             setValues((prev) => ({ ...prev, [field.id]: Boolean(checked) }));
@@ -242,6 +246,7 @@ function renderField(
   if (field.type === "file") {
     return (
       <Input
+        id={fieldId}
         type="file"
         accept={field.accept}
         onChange={(event) => {
@@ -257,6 +262,7 @@ function renderField(
 
   return (
     <Input
+      id={fieldId}
       type={inputType}
       value={(values[field.id] as string) || ""}
       onChange={(event) => onStringChange(event.target.value)}
@@ -1007,9 +1013,9 @@ export default function EnrollPage() {
                       .map((field) => (
                         <div key={field.id} className="space-y-2">
                           {field.type !== "checkbox" && field.type !== "info" ? (
-                            <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                            <Label htmlFor={field.id}>{`${field.label}${field.required ? " *" : ""}`}</Label>
                           ) : field.type === "checkbox" && field.placeholder ? (
-                            <Label>{`${field.label}${field.required ? " *" : ""}`}</Label>
+                            <Label htmlFor={field.id}>{`${field.label}${field.required ? " *" : ""}`}</Label>
                           ) : null}
                           {renderField(field, values, setValues, errors, setErrors)}
                           {errors[field.id] ? <p className="text-xs text-destructive">{errors[field.id]}</p> : null}
@@ -1085,6 +1091,7 @@ export default function EnrollPage() {
             <DynamicPricingSummary
               tenantId={formConfig.tenantId}
               selectedClasses={selectedPricingClasses}
+              enrollmentFee={formConfig.enrollmentFee}
               onRemoveClass={(id) => {
                 if (!isJointEnrollmentEnabled) {
                   toggleClass(id);

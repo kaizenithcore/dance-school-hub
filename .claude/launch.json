@@ -3,9 +3,15 @@
   "configurations": [
     {
       "name": "nexa-frontend",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["node_modules/.bin/vite", "--port", "5173", "--host"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5173", "--host"],
       "port": 5173
+    },
+    {
+      "name": "nexa-backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "backend", "run", "dev:raw"],
+      "port": 3000
     }
   ]
 }

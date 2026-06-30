@@ -52,7 +52,7 @@
       },
       "display": {
         "features": [
-          "Alumnos, clases y horarios — todo gestionado",
+          "Alumnos, clases y horarios, todo gestionado",
           "Matrícula online con formulario configurable",
           "Pagos, facturas y recibos",
           "Renovaciones automáticas de matrícula",
@@ -172,29 +172,24 @@
           "Soporte dedicado desde el primer día"
         ]
       },
-      "includedSubscriptionAddons": ["customDomain", "prioritySupport"]
+      "includedSubscriptionAddons": ["prioritySupport"]
     }
   },
   "subscriptionAddons": {
     "customDomain": {
       "label": "Dominio personalizado",
-      "description": "Tu URL propia para la matrícula online: matricula.tuescuela.com",
+      "description": "Tu escuela con su propio dominio web (www.tuescuela.com) y correo corporativo.",
       "monthlyPriceEur": 19
     },
     "prioritySupport": {
       "label": "Soporte prioritario",
       "description": "Respuesta en menos de 24h y acceso a onboarding guiado",
       "monthlyPriceEur": 39
-    },
-    "extraRoles": {
-      "label": "Roles personalizados extra",
-      "description": "Bloques de 5 roles adicionales (solo Enterprise)",
-      "monthlyPriceEur": 19
     }
   },
   "publicWeb": {
     "label": "Web preparada para captar",
-    "includedInPlans": ["starter", "pro", "enterprise"],
+    "includedInPlans": ["starter", "pro"],
     "positioning": "entry_level_acquisition_layer",
     "description": "Landing integrada en Nexa para arrancar captación y matrícula online desde el día 1.",
     "includes": [
@@ -216,16 +211,16 @@
       "serviceType": "one_time",
       "shortDescription": "Te configuramos la plataforma y la dejamos lista para operar desde el día 1.",
       "pricingByPlanEur": {
-        "starter": 390,
-        "pro": 590,
-        "enterprise": 890
+        "starter": 190,
+        "pro": 290,
+        "enterprise": 490       
       },
       "commercialStrategy": {
         "starter": "optional",
         "pro": "recommended",
         "enterprise": "included_premium"
       },
-      "valueAnchorEur": 590,
+      "valueAnchorEur": 290,
       "positioning": "core_offer"
     },
     "integratedWebsite": {
@@ -254,8 +249,8 @@
       },
       "pricingByPlanEur": {
         "starter": 490,
-        "pro": 490,
-        "enterprise": 490
+        "pro": 390,
+        "enterprise": 390
       },
       "installments": {
         "months": [3, 6],
@@ -289,7 +284,7 @@
         "Portal del alumno integrado"
       ],
       "tierPricingEur": {
-        "basic": 349,
+        "basic": 449,
         "standard": 690
       },
       "installments": {
@@ -341,7 +336,7 @@
       "identityReview": {
         "label": "Revisión de identidad visual",
         "description": "Analizamos tu logo, colores y tipografía actuales y te damos una guía concreta de mejoras para comunicar mejor lo que eres. Ideal si tienes algo pero sabes que puede mejorar.",
-        "pricingEur": 249,
+        "pricingEur": 149,
         "includedInBundle": false,
         "deliverables": [
           "Análisis de tu imagen actual",
@@ -353,7 +348,7 @@
       "rebranding": {
         "label": "Rebranding completo",
         "description": "Renovación visual desde cero: logo profesional, sistema de colores, tipografía y guía de marca lista para aplicar en web, redes y materiales físicos.",
-        "pricingEur": 590,
+        "pricingEur": 390,
         "includedInBundle": false,
         "deliverables": [
           "Nuevo logo (3 propuestas + refinado final)",

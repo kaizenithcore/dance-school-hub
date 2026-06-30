@@ -251,6 +251,7 @@ export default function StudentsPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         student={editingStudent}
+        students={students}
         customFields={studentFields}
         onSave={handleSave}
         onManageClasses={handleManageClasses}

@@ -90,6 +90,16 @@ function hexToHsl(hex: string): string {
   return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+function getReadableForegroundHsl(hex: string): string {
+  const n = hex.replace("#", "");
+  const r = parseInt(n.slice(0, 2), 16) / 255;
+  const g = parseInt(n.slice(2, 4), 16) / 255;
+  const b = parseInt(n.slice(4, 6), 16) / 255;
+  const channel = (v: number) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const relativeLuminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  return relativeLuminance < 0.32 ? "0 0% 98%" : "263 50% 25%";
+}
+
 function apiBrandingToPortal(data: TenantBranding, schoolName: string, tenantSlug: string): PortalBranding {
   return {
     logoUrl: data.logo_url,
@@ -109,6 +119,9 @@ function applyCssVars(branding: PortalBranding, root: HTMLElement) {
   root.style.setProperty("--primary", hexToHsl(branding.primaryColor));
   root.style.setProperty("--ring", hexToHsl(branding.primaryColor));
   root.style.setProperty("--accent", hexToHsl(branding.accentColor));
+  const accentForeground = getReadableForegroundHsl(branding.accentColor);
+  root.style.setProperty("--accent-foreground", accentForeground);
+  root.style.setProperty("--sidebar-accent-foreground", accentForeground);
   root.style.setProperty("--radius", RADIUS_MAP[branding.styleVariant] ?? RADIUS_MAP.clean);
 }
 

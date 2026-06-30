@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Loader2, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Loader2, Plus, Settings2, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -16,25 +15,49 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAcademicYearContext } from "@/contexts/AcademicYearContext";
+import type { AcademicYear } from "@/lib/api/academicYears";
+import { toast } from "sonner";
+
+type ManageView = "list" | "form";
 
 export function AcademicYearSelector() {
-  const navigate = useNavigate();
-  const { academicYears, currentYear: currentAcademicYear, loading, switchYear, createYear } = useAcademicYearContext();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [newYearCode, setNewYearCode] = useState("");
-  const [newDisplayName, setNewDisplayName] = useState("");
-  const [newStartDate, setNewStartDate] = useState("");
-  const [newEndDate, setNewEndDate] = useState("");
+  const {
+    academicYears,
+    currentYear: currentAcademicYear,
+    loading,
+    switchYear,
+    createYear,
+    updateYear,
+    deleteYear,
+  } = useAcademicYearContext();
 
-  const today = useMemo(() => {
-    return new Date().toISOString().slice(0, 10);
-  }, []);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [view, setView] = useState<ManageView>("list");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AcademicYear | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const [formYearCode, setFormYearCode] = useState("");
+  const [formDisplayName, setFormDisplayName] = useState("");
+  const [formStartDate, setFormStartDate] = useState("");
+  const [formEndDate, setFormEndDate] = useState("");
+
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const selectedAcademicYear =
     currentAcademicYear
@@ -42,13 +65,20 @@ export function AcademicYearSelector() {
     || academicYears[0]
     || null;
 
-  const initializeCreateForm = () => {
+  const resetForm = () => {
+    setFormYearCode("");
+    setFormDisplayName("");
+    setFormStartDate("");
+    setFormEndDate("");
+    setEditingId(null);
+  };
+
+  const openCreateForm = () => {
     const sourceYear = selectedAcademicYear || academicYears[0] || null;
     if (!sourceYear) {
-      setNewYearCode("");
-      setNewDisplayName("");
-      setNewStartDate("");
-      setNewEndDate("");
+      resetForm();
+      setEditingId(null);
+      setView("form");
       return;
     }
 
@@ -56,10 +86,8 @@ export function AcademicYearSelector() {
     const end = new Date(sourceYear.endDate);
 
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      setNewYearCode("");
-      setNewDisplayName("");
-      setNewStartDate("");
-      setNewEndDate("");
+      resetForm();
+      setView("form");
       return;
     }
 
@@ -68,35 +96,72 @@ export function AcademicYearSelector() {
     const nextEnd = new Date(end);
     nextEnd.setFullYear(end.getFullYear() + 1);
 
-    setNewStartDate(nextStart.toISOString().slice(0, 10));
-    setNewEndDate(nextEnd.toISOString().slice(0, 10));
-
+    setFormStartDate(nextStart.toISOString().slice(0, 10));
+    setFormEndDate(nextEnd.toISOString().slice(0, 10));
     const startYear = nextStart.getFullYear();
     const endYear = nextEnd.getFullYear();
-    setNewYearCode(`${startYear}-${endYear}`);
-    setNewDisplayName(`Curso ${startYear}/${endYear}`);
+    setFormYearCode(`${startYear}-${endYear}`);
+    setFormDisplayName(`Curso ${startYear}/${endYear}`);
+    setEditingId(null);
+    setView("form");
+  };
+
+  const openEditForm = (year: AcademicYear) => {
+    setEditingId(year.id);
+    setFormYearCode(year.yearCode);
+    setFormDisplayName(year.displayName);
+    setFormStartDate(year.startDate.slice(0, 10));
+    setFormEndDate(year.endDate.slice(0, 10));
+    setView("form");
   };
 
   const handleChangeYear = async (yearId: string) => {
     await switchYear(yearId);
   };
 
-  const handleCreateYear = async () => {
-    if (!newYearCode || !newDisplayName || !newStartDate || !newEndDate) {
-      return;
-    }
+  const handleSaveForm = async () => {
+    if (!formYearCode || !formDisplayName || !formStartDate || !formEndDate) return;
 
     setSaving(true);
     try {
-      await createYear({
-        yearCode: newYearCode,
-        displayName: newDisplayName,
-        startDate: newStartDate,
-        endDate: newEndDate,
-      });
-      setCreateDialogOpen(false);
+      if (editingId) {
+        await updateYear(editingId, {
+          yearCode: formYearCode,
+          displayName: formDisplayName,
+          startDate: formStartDate,
+          endDate: formEndDate,
+        });
+        toast.success("Curso académico actualizado");
+      } else {
+        await createYear({
+          yearCode: formYearCode,
+          displayName: formDisplayName,
+          startDate: formStartDate,
+          endDate: formEndDate,
+        });
+        toast.success("Curso académico creado");
+      }
+      resetForm();
+      setView("list");
+      if (academicYears.length === 0) setManageOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo guardar el curso académico");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteYear(deleteTarget.id);
+      toast.success("Curso académico eliminado");
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo eliminar el curso académico");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -116,17 +181,154 @@ export function AcademicYearSelector() {
     );
   }
 
+  const manageDialog = (
+    <Dialog
+      open={manageOpen}
+      onOpenChange={(open) => {
+        setManageOpen(open);
+        if (open) {
+          setView(academicYears.length === 0 ? "form" : "list");
+          if (academicYears.length === 0) openCreateForm();
+        } else {
+          resetForm();
+          setView("list");
+        }
+      }}
+    >
+      <DialogContent>
+        {view === "list" ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Cursos académicos</DialogTitle>
+              <DialogDescription>
+                Cambia, crea, edita o elimina los cursos académicos de tu escuela.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {academicYears.map((year) => (
+                <div
+                  key={year.id}
+                  className="flex items-center justify-between gap-2 rounded-md border border-border p-2.5"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{year.displayName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {year.yearCode} · {getYearStatus(year)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label={`Editar ${year.displayName}`} onClick={() => openEditForm(year)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      aria-label={`Eliminar ${year.displayName}`}
+                      disabled={year.isActive}
+                      title={year.isActive ? "No puedes eliminar el curso activo" : "Eliminar"}
+                      onClick={() => setDeleteTarget(year)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={openCreateForm}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Nuevo curso
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {academicYears.length > 0 && (
+                  <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0 -ml-1.5" aria-label="Volver al listado" onClick={() => { resetForm(); setView("list"); }}>
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                )}
+                {editingId ? "Editar curso académico" : "Crear nuevo curso académico"}
+              </DialogTitle>
+              <DialogDescription>
+                Puedes crear cursos futuros o pasados. Después podrás seleccionarlos desde el header.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="year-code">Código</Label>
+                <Input id="year-code" value={formYearCode} onChange={(event) => setFormYearCode(event.target.value)} placeholder="2026-2027" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="year-name">Nombre</Label>
+                <Input id="year-name" value={formDisplayName} onChange={(event) => setFormDisplayName(event.target.value)} placeholder="Curso 2026/2027" />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="year-start">Fecha inicio</Label>
+                  <Input id="year-start" type="date" value={formStartDate} onChange={(event) => setFormStartDate(event.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="year-end">Fecha fin</Label>
+                  <Input id="year-end" type="date" value={formEndDate} onChange={(event) => setFormEndDate(event.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              {academicYears.length > 0 && (
+                <Button type="button" variant="ghost" onClick={() => { resetForm(); setView("list"); }} disabled={saving}>Cancelar</Button>
+              )}
+              <Button type="button" onClick={() => void handleSaveForm()} disabled={saving || !formYearCode || !formDisplayName || !formStartDate || !formEndDate}>
+                {saving ? "Guardando..." : editingId ? "Guardar cambios" : "Crear curso"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
+  const deleteConfirm = (
+    <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Eliminar curso académico</AlertDialogTitle>
+          <AlertDialogDescription>
+            ¿Seguro que quieres eliminar "{deleteTarget?.displayName}"? Esta acción no se puede deshacer.
+            Si el curso tiene clases o inscripciones asociadas, no podrá eliminarse.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => void handleConfirmDelete()} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            {deleting ? "Eliminando..." : "Eliminar"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   if (!selectedAcademicYear) {
     return (
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-8"
-        onClick={() => navigate("/admin/settings")}
-      >
-        Configurar curso
-      </Button>
+      <>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-8"
+          onClick={() => setManageOpen(true)}
+        >
+          <Plus className="h-3.5 w-3.5 mr-1" /> Crear curso
+        </Button>
+        {manageDialog}
+      </>
     );
   }
 
@@ -148,58 +350,13 @@ export function AcademicYearSelector() {
         </SelectContent>
       </Select>
 
-      <Dialog
-        open={createDialogOpen}
-        onOpenChange={(open) => {
-          setCreateDialogOpen(open);
-          if (open) {
-            initializeCreateForm();
-          }
-        }}
-      >
-        <DialogTrigger asChild>
-          <Button type="button" size="sm" variant="outline" className="h-8 px-2.5">
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Nuevo curso
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Crear nuevo curso académico</DialogTitle>
-            <DialogDescription>
-              Puedes crear cursos futuros o pasados. Después podrás seleccionarlos desde el header.
-            </DialogDescription>
-          </DialogHeader>
+      <Button type="button" size="sm" variant="outline" className="h-8 px-2.5" aria-label="Gestionar cursos académicos" onClick={() => setManageOpen(true)}>
+        <Settings2 className="h-3.5 w-3.5 mr-1" />
+        Gestionar
+      </Button>
 
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="year-code">Código</Label>
-              <Input id="year-code" value={newYearCode} onChange={(event) => setNewYearCode(event.target.value)} placeholder="2026-2027" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="year-name">Nombre</Label>
-              <Input id="year-name" value={newDisplayName} onChange={(event) => setNewDisplayName(event.target.value)} placeholder="Curso 2026/2027" />
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="year-start">Fecha inicio</Label>
-                <Input id="year-start" type="date" value={newStartDate} onChange={(event) => setNewStartDate(event.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="year-end">Fecha fin</Label>
-                <Input id="year-end" type="date" value={newEndDate} onChange={(event) => setNewEndDate(event.target.value)} />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setCreateDialogOpen(false)} disabled={saving}>Cancelar</Button>
-            <Button type="button" onClick={() => void handleCreateYear()} disabled={saving || !newYearCode || !newDisplayName || !newStartDate || !newEndDate}>
-              {saving ? "Guardando..." : "Crear curso"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {manageDialog}
+      {deleteConfirm}
     </div>
   );
 }

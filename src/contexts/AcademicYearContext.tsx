@@ -1,5 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { getAcademicYears, setCurrentAcademicYear, type AcademicYear } from "@/lib/api/academicYears";
+import {
+  getAcademicYears,
+  setCurrentAcademicYear,
+  updateAcademicYear,
+  deleteAcademicYear,
+  type AcademicYear,
+  type UpdateAcademicYearInput,
+} from "@/lib/api/academicYears";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -12,6 +19,8 @@ interface AcademicYearContextValue {
   refreshKey: number;
   switchYear: (yearId: string) => Promise<void>;
   createYear: (input: { yearCode: string; displayName: string; startDate: string; endDate: string }) => Promise<void>;
+  updateYear: (id: string, input: UpdateAcademicYearInput) => Promise<void>;
+  deleteYear: (id: string) => Promise<void>;
   reload: () => Promise<void>;
 }
 
@@ -68,6 +77,16 @@ export function AcademicYearProvider({ children }: { children: React.ReactNode }
     await load();
   }, [load]);
 
+  const updateYear = useCallback(async (id: string, input: UpdateAcademicYearInput) => {
+    await updateAcademicYear(id, input);
+    await load();
+  }, [load]);
+
+  const deleteYear = useCallback(async (id: string) => {
+    await deleteAcademicYear(id);
+    await load();
+  }, [load]);
+
   const currentYear = academicYears.find((y) => y.id === currentYearId) ?? null;
 
   return (
@@ -79,6 +98,8 @@ export function AcademicYearProvider({ children }: { children: React.ReactNode }
       refreshKey,
       switchYear,
       createYear,
+      updateYear,
+      deleteYear,
       reload: load,
     }}>
       {children}

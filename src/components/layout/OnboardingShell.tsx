@@ -21,6 +21,11 @@ import { useAuth } from "@/contexts/AuthContext";
 // ── Storage keys ───────────────────────────────────────────────────────────────
 const LOGIN_WELCOME_KEY = "nexa:welcome-overlay-until";
 const WIZARD_STATE_KEY  = "nexa:onboarding:v2";
+// Set when the user explicitly dismisses the wizard ("Cerrar y continuar después").
+// Session-scoped (not localStorage) so it doesn't suppress the wizard forever,
+// only for the rest of the current browser session — re-opening it manually
+// from the help panel still works at any time.
+const WIZARD_DISMISSED_SESSION_KEY = "nexa:onboarding:dismissed-session";
 
 function isWizardFinished(): boolean {
   try {
@@ -32,6 +37,7 @@ function isWizardFinished(): boolean {
 }
 
 function shouldAutoOpenWizard(): boolean {
+  if (window.sessionStorage.getItem(WIZARD_DISMISSED_SESSION_KEY) === "1") return false;
   try {
     const raw = localStorage.getItem(WIZARD_STATE_KEY);
     if (!raw) return true; // Never started — show wizard
@@ -100,7 +106,13 @@ export function OnboardingShell() {
 
   const handleWizardClose = useCallback(() => {
     setShowWizard(false);
-    setWizardFinished(isWizardFinished());
+    const finished = isWizardFinished();
+    setWizardFinished(finished);
+    if (!finished) {
+      // Dismissed without finishing — don't auto-reopen for the rest of this
+      // session. The user can still resume it anytime via the help panel.
+      window.sessionStorage.setItem(WIZARD_DISMISSED_SESSION_KEY, "1");
+    }
   }, []);
 
   const handleOpenWizard = useCallback(() => {

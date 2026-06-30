@@ -14,6 +14,7 @@ interface StudentFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   student?: StudentRecord | null;
+  students?: StudentRecord[];
   customFields?: SchoolStudentField[];
   onSave: (data: Omit<StudentRecord, "id">) => Promise<boolean>;
   onManageClasses?: (student: StudentRecord) => void;
@@ -45,7 +46,7 @@ function isValidDate(value: string): boolean {
   return !Number.isNaN(date.getTime());
 }
 
-export function StudentFormModal({ open, onOpenChange, student, customFields = [], onSave, onManageClasses }: StudentFormModalProps) {
+export function StudentFormModal({ open, onOpenChange, student, students = [], customFields = [], onSave, onManageClasses }: StudentFormModalProps) {
   const isEdit = !!student;
   const [form, setForm] = useState<Omit<StudentRecord, "id">>(EMPTY);
   const [hasGuardian, setHasGuardian] = useState(false);
@@ -118,6 +119,24 @@ export function StudentFormModal({ open, onOpenChange, student, customFields = [
       ...prev,
       guardian: { ...(prev.guardian || { name: "", phone: "", email: "" }), [key]: value },
     }));
+  };
+
+  // Existing guardians already on file (e.g. a sibling's tutor), deduped by phone,
+  // so the school doesn't have to retype the same contact for every child.
+  const existingGuardians = (() => {
+    const seen = new Map<string, { name: string; phone: string; email?: string }>();
+    for (const s of students) {
+      if (!s.guardian?.phone) continue;
+      if (student && s.id === student.id) continue;
+      const key = s.guardian.phone.replace(/\D/g, "");
+      if (key && !seen.has(key)) seen.set(key, s.guardian);
+    }
+    return Array.from(seen.values());
+  })();
+
+  const applyExistingGuardian = (phone: string) => {
+    const guardian = existingGuardians.find((g) => g.phone === phone);
+    if (guardian) setForm((prev) => ({ ...prev, guardian: { ...guardian } }));
   };
 
   const validate = () => {
@@ -490,6 +509,19 @@ export function StudentFormModal({ open, onOpenChange, student, customFields = [
           {(hasGuardian || isMinor || form.payerType === "guardian") && (
             <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Datos del Tutor</p>
+              {existingGuardians.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Reutilizar tutor existente (opcional)</Label>
+                  <Select value="" onValueChange={applyExistingGuardian}>
+                    <SelectTrigger disabled={isLoading}><SelectValue placeholder="Buscar por nombre de un hermano/a ya registrado..." /></SelectTrigger>
+                    <SelectContent>
+                      {existingGuardians.map((g) => (
+                        <SelectItem key={g.phone} value={g.phone}>{g.name} · {g.phone}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label className="text-sm">Nombre *</Label>
                 <Input value={form.guardian?.name || ""} onChange={(e) => setGuardian("name", e.target.value)} disabled={isLoading} className={errors.guardian_name ? "border-destructive" : ""} />

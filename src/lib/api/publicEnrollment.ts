@@ -220,6 +220,12 @@ export interface PublicFormData {
   };
   publicProfile?: PublicSchoolProfile;
   scheduleConfig?: PublicScheduleConfig;
+  enrollmentFee?: {
+    enabled: boolean;
+    amount: number;
+    currency: string;
+    allowCash: boolean;
+  };
   availableClasses: PublicClass[];
 }
 

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, RotateCcw } from "lucide-react";
+import { Save, RotateCcw, Info } from "lucide-react";
 import { toast } from "sonner";
 import { getSchoolSettings, updateSchoolSettings } from "@/lib/api/settings";
 import { FieldGroup, SectionHeader, SwitchRow } from "./_shared";
@@ -13,11 +13,13 @@ interface PaymentConfig {
   currency: string; dueDayOfMonth: string; gracePeriodDays: string;
   enableTransfer: boolean; enableCash: boolean; transferAlias: string;
   transferCBU: string; autoReminders: boolean;
+  enrollmentFeeEnabled: boolean; enrollmentFeeAmount: string; enrollmentFeeAllowCash: boolean;
 }
 
 const DEFAULT: PaymentConfig = {
   currency: "EUR", dueDayOfMonth: "10", gracePeriodDays: "5",
   enableTransfer: true, enableCash: true, transferAlias: "", transferCBU: "", autoReminders: true,
+  enrollmentFeeEnabled: false, enrollmentFeeAmount: "", enrollmentFeeAllowCash: true,
 };
 
 export default function CobrosSettingsPage() {
@@ -118,6 +120,41 @@ export default function CobrosSettingsPage() {
             checked={payment.enableCash}
             onChange={(v) => setPayment({ ...payment, enableCash: v })}
           />
+        </div>
+
+        <Separator />
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Matrícula</p>
+        <div className="space-y-4">
+          <SwitchRow
+            label="Requerir pago de matrícula"
+            description="Muestra el precio de la matrícula en el formulario de inscripción online"
+            checked={payment.enrollmentFeeEnabled}
+            onChange={(v) => setPayment({ ...payment, enrollmentFeeEnabled: v })}
+          />
+          {payment.enrollmentFeeEnabled && (
+            <div className="space-y-4 pl-6 border-l-2 border-primary/20">
+              <FieldGroup label={`Precio de la matrícula (${payment.currency})`}>
+                <Input type="number" min="0" step="0.01" value={payment.enrollmentFeeAmount}
+                  onChange={(e) => setPayment({ ...payment, enrollmentFeeAmount: e.target.value })}
+                  className="h-9 text-sm w-32" placeholder="0.00" />
+              </FieldGroup>
+              <SwitchRow
+                label="Permitir abono en efectivo"
+                description="Indica a los alumnos que pueden pagar la matrícula en efectivo en la escuela"
+                checked={payment.enrollmentFeeAllowCash}
+                onChange={(v) => setPayment({ ...payment, enrollmentFeeAllowCash: v })}
+              />
+              <div className="flex gap-2 rounded-lg border border-amber-300/50 bg-amber-50 p-3 text-xs text-amber-900">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>
+                  Nexa no gestiona ni procesa este pago: solo muestra el importe a los alumnos como información.
+                  El cobro lo realiza la escuela por sus propios medios (transferencia, efectivo, etc.).
+                  Si necesitas un comprobante, puedes añadir un campo obligatorio de tipo <strong>Archivo</strong> en
+                  el editor del formulario de matriculación (sección Documentos) para que el alumno suba el recibo del pago.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <Separator />
