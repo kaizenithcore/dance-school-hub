@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 import content from "@/data/landing-demo/content.json";
 import { LandingHeader } from "@/components/landing-demo/LandingHeader";
 import { HeroSection } from "@/components/landing-demo/HeroSection";
