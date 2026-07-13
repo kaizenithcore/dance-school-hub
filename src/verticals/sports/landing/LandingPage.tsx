@@ -10,6 +10,12 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { buildRegisterHref, freeTrialDays, planCatalog, planOrder, formatEuro } from "@/lib/commercialCatalog";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { Results } from "@/components/landing/Results";
+import { DecisionCompare } from "@/components/landing/DecisionCompare";
+import { WebService } from "@/components/landing/WebService";
+import { WeydiCreativeServices } from "@/components/landing/WeydiCreativeServices";
+import { Credibility } from "@/components/landing/Credibility";
+import { VerticalLandingShell } from "@/verticals/_shared/VerticalLandingShell";
 
 const CTA_HREF = buildRegisterHref("hero");
 
