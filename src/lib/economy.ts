@@ -187,7 +187,7 @@ function buildExpenseRows(teachers: Teacher[], manualExpenses: EconomyExpenseRec
       date: currentMonthDate,
       category: "profesor",
       description: `Salario ${teacher.name}`,
-      amount: Number((teacher as { salay?: number; aulary?: number }).salay ?? (teacher as { salay?: number; aulary?: number }).aulary ?? 0) || 0,
+      amount: Number(teacher.salary ?? (teacher as { salay?: number }).salay ?? (teacher as { aulary?: number }).aulary ?? 0) || 0,
     }));
 
   return [...manualExpenses, ...teacherRows].sort((a, b) => b.date.localeCompare(a.date));
@@ -208,6 +208,10 @@ function recommendations(snapshot: {
   monthlyExpenses: number;
   monthlyBalance: number;
 }): string[] {
+  if (snapshot.monthlyIncome === 0 && snapshot.monthlyExpenses === 0) {
+    return ["Sin datos económicos este mes: registra cobros o gastos para ver recomendaciones."];
+  }
+
   const tips: string[] = [];
   const incomeGrowth = snapshot.previousMonthlyIncome > 0
     ? ((snapshot.monthlyIncome - snapshot.previousMonthlyIncome) / snapshot.previousMonthlyIncome) * 100
@@ -221,7 +225,7 @@ function recommendations(snapshot: {
 
   if (snapshot.monthlyIncome > 0 && snapshot.monthlyExpenses / snapshot.monthlyIncome > 0.6) {
     tips.push("Tus gastos en profesores superan el 60% de ingresos: optimiza grupos y horarios.");
-  } else {
+  } else if (snapshot.monthlyIncome > 0) {
     tips.push("La relación ingresos/gastos está saludable: tienes margen para crecer.");
   }
 
@@ -229,7 +233,7 @@ function recommendations(snapshot: {
     tips.push(`Ingresos al alza: +${incomeGrowth.toFixed(0)}% vs mes anterior.`);
   } else if (incomeGrowth <= -10) {
     tips.push(`Atención: ingresos a la baja (${incomeGrowth.toFixed(0)}% vs mes anterior).`);
-  } else {
+  } else if (snapshot.monthlyIncome > 0) {
     tips.push("Ingresos estables: evalúa campañas o eventos para mejorar crecimiento.");
   }
 

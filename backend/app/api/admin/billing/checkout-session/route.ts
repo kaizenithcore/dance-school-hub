@@ -23,6 +23,7 @@ const checkoutSchema = z.object({
     waitlistAutomation: z.boolean().default(false),
     renewalAutomation: z.boolean().default(false),
   }),
+  discountCode: z.string().trim().toUpperCase().optional(),
   successUrl: z.string().url().optional(),
   cancelUrl: z.string().url().optional(),
 });
@@ -283,6 +284,7 @@ export async function POST(request: NextRequest) {
         renewalAutomation: String(input.addons.renewalAutomation),
       },
       lineItems,
+      couponId: input.discountCode || undefined,
     });
 
     return ok(

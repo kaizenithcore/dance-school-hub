@@ -49,7 +49,7 @@ export default function SchoolSettingsScreen() {
           });
         }
       } catch (error) {
-        console.error(error);
+        if (import.meta.env.DEV) console.error(error);
         toast.error("No se pudieron cargar los datos de escuela");
       } finally {
         setLoading(false);
@@ -77,8 +77,8 @@ export default function SchoolSettingsScreen() {
       });
       toast.success("Perfil de escuela actualizado");
     } catch (error) {
-      console.error(error);
-      toast.error("No se pudo actualizar el perfil de escuela");
+      if (import.meta.env.DEV) console.error(error);
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar el perfil de escuela");
     } finally {
       setSaving(false);
     }

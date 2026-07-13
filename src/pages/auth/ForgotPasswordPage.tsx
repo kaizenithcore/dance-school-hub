@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Music, ArrowLeft, Loader2, MailCheck } from "lucide-react";
+import { ArrowLeft, Loader2, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,9 +62,7 @@ export default function ForgotPasswordPage() {
         className="w-full max-w-md space-y-8"
       >
         <div className="flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <Music className="h-6 w-6 text-primary-foreground" />
-          </div>
+          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-12 w-12 object-contain" />
           <h1 className="text-2xl font-bold text-foreground">Recuperar contraseña</h1>
         </div>
 

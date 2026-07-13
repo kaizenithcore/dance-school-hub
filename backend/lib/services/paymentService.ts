@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
+import { sendPaymentConfirmation } from "@/lib/emails/transactionalEmails";
 
 export type PaymentStatus = "pending" | "paid" | "overdue" | "refunded";
 
@@ -696,7 +697,12 @@ export const paymentService = {
         .eq("tenant_id", tenantId);
     }
 
-    return data;
+    let emailSent: boolean | undefined;
+    if (status === "paid") {
+      emailSent = await sendPaymentConfirmation({ tenantId, paymentId: data.id });
+    }
+
+    return { ...data, emailSent };
   },
 
   async updatePaymentStatus(
@@ -720,6 +726,11 @@ export const paymentService = {
       throw new Error(`Failed to update payment: ${error.message}`);
     }
 
-    return data;
+    let emailSent: boolean | undefined;
+    if (status === "paid") {
+      emailSent = await sendPaymentConfirmation({ tenantId, paymentId });
+    }
+
+    return { ...data, emailSent };
   },
 };

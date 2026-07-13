@@ -75,7 +75,7 @@ interface PlanCapacitySummary {
   activeStudents: number;
 }
 
-const NOTIFICATION_READ_STORAGE_KEY = "dance-school-hub.notifications.read";
+const NOTIFICATION_READ_STORAGE_KEY = "nexa.notifications.read";
 const FORM_BUILDER_UNSAVED_KEY = "nexa:form-builder:unsaved";
 
 const NAV_ITEMS: SearchItem[] = [
@@ -409,6 +409,12 @@ export function Topbar({ title }: TopbarProps) {
 
   useEffect(() => {
     void loadDynamicItems();
+  }, [loadDynamicItems]);
+
+  useEffect(() => {
+    const handler = () => { void loadDynamicItems(); };
+    window.addEventListener("nexa:students:changed", handler);
+    return () => window.removeEventListener("nexa:students:changed", handler);
   }, [loadDynamicItems]);
 
   useEffect(() => {

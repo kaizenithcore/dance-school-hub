@@ -107,9 +107,10 @@ export default function CobrosSettingsPage() {
                   onChange={(e) => setPayment({ ...payment, transferAlias: e.target.value })}
                   className="h-9 text-sm" />
               </FieldGroup>
-              <FieldGroup label="CBU / CVU">
+              <FieldGroup label="IBAN">
                 <Input value={payment.transferCBU}
                   onChange={(e) => setPayment({ ...payment, transferCBU: e.target.value })}
+                  placeholder="ES91 2100 0418 4502 0005 1332"
                   className="h-9 text-sm" />
               </FieldGroup>
             </div>

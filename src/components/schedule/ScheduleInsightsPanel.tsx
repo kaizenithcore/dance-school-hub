@@ -93,7 +93,7 @@ export function ScheduleInsightsPanel({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            {insights.summary.totalAlerts} alerta(s) detectadas · ocupacion media {insights.metrics.avgClassOccupancyPct}%
+            {insights.summary.totalAlerts} alerta(s) detectadas · ocupación media {insights.metrics.avgClassOccupancyPct}%
           </p>
         </div>
         {onViewSchedule && (

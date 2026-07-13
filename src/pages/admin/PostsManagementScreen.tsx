@@ -129,7 +129,7 @@ export default function PostsManagementScreen() {
       const data = await listSchoolPortalPosts({ limit: 100 });
       setPosts(data.items);
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
       const message = "No se pudieron cargar las publicaciones";
       setLoadError(message);
       toastErrorOnce("posts-load", message);
@@ -240,7 +240,7 @@ export default function PostsManagementScreen() {
       resetForm();
       await loadPosts();
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     } finally {
       setSaving(false);
     }
@@ -303,7 +303,7 @@ export default function PostsManagementScreen() {
           await deleteSchoolPortalPost(post.id);
         }
       ).catch((error) => {
-        console.error(error);
+        if (import.meta.env.DEV) console.error(error);
         setPosts((prev) => {
           const next = [...prev];
           next.splice(Math.min(pending.index, next.length), 0, pending.post);
@@ -331,7 +331,7 @@ export default function PostsManagementScreen() {
       );
       await loadPosts();
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     }
   };
 
@@ -351,7 +351,7 @@ export default function PostsManagementScreen() {
       );
       await loadPosts();
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     }
   };
 

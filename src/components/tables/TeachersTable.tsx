@@ -27,7 +27,7 @@ const DEFAULT_COLS = { email: true, phone: true, salary: true };
 const CLASSES_VIEW_KEY = "teachers-table-classes-view";
 
 function teacherSalaryValue(teacher: TeacherRecord): number {
-  return Number((teacher as { salay?: number; aulary?: number }).salay ?? (teacher as { salay?: number; aulary?: number }).aulary ?? 0) || 0;
+  return Number(teacher.salary ?? (teacher as { salay?: number }).salay ?? (teacher as { aulary?: number }).aulary ?? 0) || 0;
 }
 
 type TeacherSortKey = "name" | "email" | "phone" | "classes" | "salary" | "status";
@@ -324,7 +324,7 @@ export function TeachersTable({
                       <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onViewProfile(teacher)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Ver perfil" onClick={() => onViewProfile(teacher)}>
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>
@@ -332,7 +332,7 @@ export function TeachersTable({
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(teacher)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar profesor" onClick={() => onEdit(teacher)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>
@@ -340,7 +340,7 @@ export function TeachersTable({
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(teacher)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" aria-label="Eliminar profesor" onClick={() => onDelete(teacher)}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>

@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Mail, ArrowRight, Music } from "lucide-react";
+import { Loader2, Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,9 +48,7 @@ export default function PortalLoginPage() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-8">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-          <Music className="h-5 w-5 text-primary-foreground" />
-        </div>
+        <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-10 w-10 object-contain" />
         <span className="text-xl font-bold text-foreground">
           Nexa <span className="font-normal text-muted-foreground">Club</span>
         </span>

@@ -28,9 +28,7 @@ export function LandingHeader() {
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">N</span>
-          </div>
+          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-8 w-8 object-contain" />
           <span className="text-base font-semibold text-foreground">Nexa</span>
         </Link>
 

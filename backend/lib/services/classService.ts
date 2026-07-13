@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
 import type { CreateClassInput, UpdateClassInput } from "@/lib/validators/classSchemas";
+import { getCurrentAcademicYearId } from "@/lib/services/academicYearService";
 
 export interface Class {
   id: string;
@@ -230,6 +231,18 @@ export const classService = {
     const teacherIds = normalizeTeacherIds(input);
     const primaryTeacherId = teacherIds[0] ?? null;
 
+    const { data: existing } = await supabaseAdmin
+      .from("classes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .ilike("name", input.name.trim())
+      .maybeSingle();
+    if (existing) {
+      throw Object.assign(new Error(`Ya existe una clase con el nombre "${input.name}"`), { code: "duplicate_name" });
+    }
+
+    const academicYearId = await getCurrentAcademicYearId(tenantId);
+
     const { data, error } = await supabaseAdmin
       .from("classes")
       .insert({
@@ -245,6 +258,7 @@ export const classService = {
         description: input.description ?? null,
         status: input.status ?? "active",
         created_by: userId,
+        academic_year_id: academicYearId,
       })
       .select("id")
       .single();
@@ -264,6 +278,19 @@ export const classService = {
   ): Promise<Class> {
     const teacherIds = normalizeTeacherIds(input);
     const primaryTeacherId = teacherIds[0] ?? null;
+
+    if (input.name !== undefined) {
+      const { data: existing } = await supabaseAdmin
+        .from("classes")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .ilike("name", input.name.trim())
+        .neq("id", classId)
+        .maybeSingle();
+      if (existing) {
+        throw Object.assign(new Error(`Ya existe una clase con el nombre "${input.name}"`), { code: "duplicate_name" });
+      }
+    }
 
     const { data, error } = await supabaseAdmin
       .from("classes")

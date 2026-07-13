@@ -174,7 +174,10 @@ export default function PlanPage() {
                     className={`rounded-lg border px-3 py-2 text-left transition-colors ${isActive ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}
                   >
                     <p className="text-sm font-semibold">{p.name}</p>
-                    <p className="text-xs">{p.billing.monthlyPriceEur} EUR/mes</p>
+                    <p className="text-xs">
+                      {p.billing.annualEffectiveMonthlyPriceEur} EUR/mes
+                      <span className="text-muted-foreground"> (anual) · {p.billing.monthlyPriceEur} mensual</span>
+                    </p>
                     <p className="text-[10px] text-muted-foreground">{formatAnnualFinancingLabel(p.billing.annualTotalEur)}</p>
                   </button>
                 );
@@ -272,7 +275,11 @@ export default function PlanPage() {
                     <p className="text-sm font-semibold text-foreground">{p.name}</p>
                     {isSelected && <Badge>Seleccionado</Badge>}
                   </div>
-                  <p className="mt-2 text-xl font-bold text-foreground">{p.billing.monthlyPriceEur} EUR/mes</p>
+                  <p className="mt-2 text-xl font-bold text-foreground">
+                    {p.billing.annualEffectiveMonthlyPriceEur} EUR/mes
+                    <span className="text-sm font-normal text-muted-foreground"> (anual)</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">{p.billing.monthlyPriceEur} EUR/mes sin compromiso anual</p>
                   <p className="mt-1 text-xs text-muted-foreground">{formatAnnualFinancingLabel(p.billing.annualTotalEur)}</p>
                   <p className="mt-1 text-xs text-muted-foreground">Incluye {p.limits.includedActiveStudents} alumnos activos</p>
                   <p className="text-xs text-muted-foreground">Bloque extra: {p.extraStudentBlocks.size} alumnos por {p.extraStudentBlocks.monthlyPriceEur} EUR/mes</p>

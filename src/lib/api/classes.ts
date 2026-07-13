@@ -173,6 +173,9 @@ export async function createClass(data: CreateClassRequest): Promise<ClassWithRe
     method: "POST",
     body: JSON.stringify(mapClassCreateToApi(data)),
   });
+  if (!response.success && response.error?.code === "duplicate_name") {
+    throw new Error(response.error.message);
+  }
   return response.success && response.data ? mapClassFromApi(response.data) : null;
 }
 
@@ -181,6 +184,9 @@ export async function updateClass(id: string, data: UpdateClassRequest): Promise
     method: "PUT",
     body: JSON.stringify(mapClassUpdateToApi(data)),
   });
+  if (!response.success && response.error?.code === "duplicate_name") {
+    throw new Error(response.error.message);
+  }
   return response.success && response.data ? mapClassFromApi(response.data) : null;
 }
 

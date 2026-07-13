@@ -108,7 +108,7 @@ export default function TeachersPage() {
           assignedClasses,
           status: teacher.status,
           hireDate: new Date(teacher.created_at || Date.now()).toISOString().split("T")[0],
-          salay: Number((teacher as { salay?: number; aulary?: number }).salay ?? (teacher as { salay?: number; aulary?: number }).aulary ?? 0) || 0,
+          salary: Number((teacher as { salary?: number; salay?: number; aulary?: number }).salary ?? (teacher as { salay?: number }).salay ?? (teacher as { aulary?: number }).aulary ?? 0) || 0,
         };
       });
     },
@@ -164,7 +164,7 @@ export default function TeachersPage() {
       setTeachers(mappedTeachers);
       setClassesCatalog(mapClassCatalog(classesData, roomNameById, schedulesByClassId));
     } catch (error) {
-      console.error("Error loading teachers:", error);
+      if (import.meta.env.DEV) console.error("Error loading teachers:", error);
       toast.error("Error al cargar profesores");
       setTeachers([]);
       setClassesCatalog([]);
@@ -240,7 +240,7 @@ export default function TeachersPage() {
           phone: data.phone?.trim() ? data.phone.trim() : undefined,
           bio: data.bio?.trim() ? data.bio.trim() : undefined,
           status: data.status,
-          salay: data.salay,
+          salary: data.salary,
         });
         if (result) {
           setTeachers((prev) =>
@@ -258,16 +258,16 @@ export default function TeachersPage() {
           phone: data.phone?.trim() ? data.phone.trim() : undefined,
           bio: data.bio?.trim() ? data.bio.trim() : undefined,
           status: data.status,
-          salay: data.salay,
+          salary: data.salary,
         });
         if (result) {
-          const newTeacher: TeacherRecord = { 
-            ...data, 
+          const newTeacher: TeacherRecord = {
+            ...data,
             id: result.id,
             specialties: [],
             assignedClasses: [],
             hireDate: data.hireDate || new Date().toISOString().split("T")[0],
-            salay: data.salay || 0,
+            salary: data.salary || 0,
           };
           setTeachers((prev) => [newTeacher, ...prev]);
           toast.success("Profesor creado exitosamente");
@@ -277,8 +277,8 @@ export default function TeachersPage() {
         return false;
       }
     } catch (error) {
-      toast.error("Error al guardar el profesor");
-      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Error al guardar el profesor");
+      if (import.meta.env.DEV) console.error(error);
       return false;
     }
   }, [editingTeacher]);
@@ -293,7 +293,7 @@ export default function TeachersPage() {
         }
       } catch (error) {
         toast.error("Error al eliminar el profesor");
-        console.error(error);
+        if (import.meta.env.DEV) console.error(error);
       }
     }
   }, [deletingTeacher]);
@@ -347,7 +347,7 @@ export default function TeachersPage() {
       toast.success("Clases asignadas exitosamente");
       return true;
     } catch (error) {
-      console.error("Error saving assigned classes:", error);
+      if (import.meta.env.DEV) console.error("Error saving assigned classes:", error);
       toast.error("No se pudieron guardar las clases asignadas");
       return false;
     }

@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { useAcademicYearContext } from "@/contexts/AcademicYearContext";
 import { PaymentsTable } from "@/components/tables/PaymentsTable";
 import { PaymentDetailDrawer } from "@/components/tables/PaymentDetailDrawer";
 import { RecordPaymentModal } from "@/components/tables/RecordPaymentModal";
@@ -90,6 +91,8 @@ function formatPaymentMethodLabel(value?: string) {
 }
 
 export default function PaymentsPage() {
+  const { refreshKey } = useAcademicYearContext();
+  const prevRefreshKey = useRef(refreshKey);
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Payments state
@@ -145,7 +148,7 @@ export default function PaymentsPage() {
           .map((enrollment) => ({ studentId: enrollment.studentId, studentName: enrollment.studentName }))
       );
     } catch (error) {
-      console.error("Failed to load data:", error);
+      if (import.meta.env.DEV) console.error("Failed to load data:", error);
       toast.error("Error al cargar los datos");
     } finally {
       if (background) {
@@ -159,6 +162,13 @@ export default function PaymentsPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (refreshKey !== prevRefreshKey.current) {
+      prevRefreshKey.current = refreshKey;
+      void loadData();
+    }
+  }, [refreshKey, loadData]);
 
   useEffect(() => {
     if (initialLoading) {
@@ -189,10 +199,15 @@ export default function PaymentsPage() {
 
   const handleMarkPaid = useCallback(async (id: string) => {
     try {
-      await updatePaymentStatus(id, "paid");
+      const result = await updatePaymentStatus(id, "paid");
       setPayments((prev) => prev.map((p) => (p.id === id ? { ...p, status: "paid" } : p)));
       setSelectedPayment((prev) => prev && prev.id === id ? { ...prev, status: "paid" } : prev);
       toast.success("Pago marcado como pagado");
+      if (result?.emailSent === true) {
+        toast.info("Confirmación de pago enviada al alumno por correo ✓");
+      } else if (result?.emailSent === false) {
+        toast.warning("No se pudo enviar la confirmación de pago al alumno.");
+      }
     } catch (error) {
       toast.error("Error al actualizar el pago");
     }
@@ -229,7 +244,7 @@ export default function PaymentsPage() {
       await loadData({ background: true });
       toast.success(`Recibo generado para ${payment.studentName}`);
     } catch (error) {
-      console.error("Failed to generate payment receipt:", error);
+      if (import.meta.env.DEV) console.error("Failed to generate payment receipt:", error);
       toast.error("No se pudo generar el recibo para este pago");
     } finally {
       setGeneratingReceiptPaymentId(null);
@@ -263,7 +278,7 @@ export default function PaymentsPage() {
 
       toast.success(`Lote generado: ${batch.generatedCount} recibo(s) en PDF`);
     } catch (error) {
-      console.error("Failed to generate receipts batch:", error);
+      if (import.meta.env.DEV) console.error("Failed to generate receipts batch:", error);
       toast.error("Error al generar o descargar el lote de recibos");
     } finally {
       setGeneratingReceipts(false);
@@ -282,6 +297,11 @@ export default function PaymentsPage() {
         setPayments((prev) => [newPayment, ...prev]);
         setPaymentModalOpen(false);
         toast.success("Pago registrado correctamente");
+        if (newPayment.emailSent === true) {
+          toast.info("Confirmación de pago enviada al alumno por correo ✓");
+        } else if (newPayment.emailSent === false) {
+          toast.warning("No se pudo enviar la confirmación de pago al alumno.");
+        }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error al registrar el pago";
@@ -305,7 +325,7 @@ export default function PaymentsPage() {
         cancelUrl: `${window.location.origin}/admin/payments?stripe=cancel`,
       });
     } catch (error) {
-      console.error("Failed to start Stripe checkout:", error);
+      if (import.meta.env.DEV) console.error("Failed to start Stripe checkout:", error);
       toast.error(error instanceof Error ? error.message : "No se pudo iniciar el cobro con Stripe");
     }
   }, []);
@@ -322,7 +342,7 @@ export default function PaymentsPage() {
         toast.success(`${result.created} factura(s) generada(s) para ${selectedMonth}`);
       }
     } catch (error) {
-      console.error("Failed to generate invoices:", error);
+      if (import.meta.env.DEV) console.error("Failed to generate invoices:", error);
       toast.error("Error al generar las facturas");
     } finally {
       setGeneratingInvoices(false);
@@ -360,7 +380,7 @@ export default function PaymentsPage() {
       await loadData({ background: true });
       toast.success(`Factura ${invoice.invoiceNumber} marcada como pagada`);
     } catch (error) {
-      console.error("Failed to mark invoice as paid:", error);
+      if (import.meta.env.DEV) console.error("Failed to mark invoice as paid:", error);
       toast.error("Error al marcar la factura como pagada");
     } finally {
       setMarkingInvoiceId(null);
@@ -384,7 +404,7 @@ export default function PaymentsPage() {
       setSelectedInvoiceIds((prev) => prev.filter((id) => id !== invoice.id));
       toast.success(`Factura ${invoice.invoiceNumber} eliminada`);
     } catch (error) {
-      console.error("Failed to delete invoice:", error);
+      if (import.meta.env.DEV) console.error("Failed to delete invoice:", error);
       toast.error("Error al eliminar la factura");
     }
   }, []);
@@ -474,7 +494,7 @@ export default function PaymentsPage() {
         toast.error(`${failedCount} factura(s) no se pudieron marcar como pagadas`);
       }
     } catch (error) {
-      console.error("Failed to mark invoices as paid in bulk:", error);
+      if (import.meta.env.DEV) console.error("Failed to mark invoices as paid in bulk:", error);
       toast.error("Error al marcar facturas como pagadas");
     } finally {
       setBulkAction(null);
@@ -512,7 +532,7 @@ export default function PaymentsPage() {
         toast.error(`${failedCount} factura(s) no se pudieron eliminar`);
       }
     } catch (error) {
-      console.error("Failed to delete invoices in bulk:", error);
+      if (import.meta.env.DEV) console.error("Failed to delete invoices in bulk:", error);
       toast.error("Error al eliminar facturas");
     } finally {
       setBulkAction(null);

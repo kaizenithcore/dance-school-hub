@@ -47,7 +47,7 @@ export function resetOnboarding() { localStorage.removeItem(KEY); }
 
 // ── Step definitions ───────────────────────────────────────────────────────────
 const STEPS = [
-  { id: 1, title: "Tu escuela",        icon: Building2,      skippable: false, hint: "La información básica de tu academia." },
+  { id: 1, title: "Tu escuela",        icon: Building2,      skippable: true,  hint: "La información básica de tu academia." },
   { id: 2, title: "Año académico",     icon: CalendarRange,  skippable: true,  hint: "Organiza los datos por curso escolar." },
   { id: 3, title: "Primera clase",     icon: GraduationCap,  skippable: true,  hint: "Añade al menos una clase para empezar." },
   { id: 4, title: "Primer alumno",     icon: Users,          skippable: true,  hint: "Registra o importa alumnos." },
@@ -665,7 +665,8 @@ export function OnboardingWizard({ open, onClose, schoolSlug }: OnboardingWizard
               {state.step !== 7 && (
                 <button type="button" onClick={onClose}
                   className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  title="Cerrar y continuar después">
+                  title="Cerrar y continuar después"
+                  aria-label="Cerrar y continuar después">
                   <X className="h-4 w-4" />
                 </button>
               )}

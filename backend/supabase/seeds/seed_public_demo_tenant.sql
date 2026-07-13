@@ -38,8 +38,8 @@ values (
   ),
   jsonb_build_object(
     'public_profile', jsonb_build_object(
-      'tagline', 'Escuela urbana y clasica con gestion moderna',
-      'description', 'Centro de danza ficticio con datos comerciales realistas para evaluar operativa, captacion y cobros en menos de 10 minutos.',
+      'tagline', 'Escuela urbana y clásica con gestión moderna',
+      'description', 'Centro de danza ficticio con datos comerciales realistas para evaluar operativa, captación y cobros en menos de 10 minutos.',
       'address', 'Calle Coreografia 12, Madrid',
       'phone', '+34 910 000 321',
       'email', 'demo@dancehub.es',
@@ -133,12 +133,12 @@ begin
   ) then
     insert into teachers (id, tenant_id, name, email, phone, bio, status, salay, created_at, updated_at)
     values
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb001', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Clara Mendez', 'clara@demo.dancehub.es', '+34 611 100 001', 'Especialista en ballet y tecnica de puntas.', 'active', 2450, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb002', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Diego Luna', 'diego@demo.dancehub.es', '+34 611 100 002', 'Coreografo de danza urbana y competicion.', 'active', 2300, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb003', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Irene Soto', 'irene@demo.dancehub.es', '+34 611 100 003', 'Contemporaneo y preparacion fisica.', 'active', 2100, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb004', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Mario Gil', 'mario@demo.dancehub.es', '+34 611 100 004', 'Latino social y formacion de parejas.', 'active', 2050, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb005', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Patricia Rios', 'patricia@demo.dancehub.es', '+34 611 100 005', 'Jazz tecnico para grupos teen y pro.', 'active', 2200, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb006', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Nerea Cano', 'nerea@demo.dancehub.es', '+34 611 100 006', 'Heels y puesta en escena.', 'active', 1950, now(), now());
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb001', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Clara Mendez', 'clara@demo.nexa.es', '+34 611 100 001', 'Especialista en ballet y tecnica de puntas.', 'active', 2450, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb002', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Diego Luna', 'diego@demo.nexa.es', '+34 611 100 002', 'Coreografo de danza urbana y competicion.', 'active', 2300, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb003', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Irene Soto', 'irene@demo.nexa.es', '+34 611 100 003', 'Contemporaneo y preparacion fisica.', 'active', 2100, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb004', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Mario Gil', 'mario@demo.nexa.es', '+34 611 100 004', 'Latino social y formacion de parejas.', 'active', 2050, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb005', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Patricia Rios', 'patricia@demo.nexa.es', '+34 611 100 005', 'Jazz tecnico para grupos teen y pro.', 'active', 2200, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb006', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Nerea Cano', 'nerea@demo.nexa.es', '+34 611 100 006', 'Heels y puesta en escena.', 'active', 1950, now(), now());
   elsif exists (
     select 1
     from information_schema.columns
@@ -146,21 +146,21 @@ begin
   ) then
     insert into teachers (id, tenant_id, name, email, phone, bio, status, aulary, created_at, updated_at)
     values
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb001', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Clara Mendez', 'clara@demo.dancehub.es', '+34 611 100 001', 'Especialista en ballet y tecnica de puntas.', 'active', 2450, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb002', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Diego Luna', 'diego@demo.dancehub.es', '+34 611 100 002', 'Coreografo de danza urbana y competicion.', 'active', 2300, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb003', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Irene Soto', 'irene@demo.dancehub.es', '+34 611 100 003', 'Contemporaneo y preparacion fisica.', 'active', 2100, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb004', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Mario Gil', 'mario@demo.dancehub.es', '+34 611 100 004', 'Latino social y formacion de parejas.', 'active', 2050, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb005', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Patricia Rios', 'patricia@demo.dancehub.es', '+34 611 100 005', 'Jazz tecnico para grupos teen y pro.', 'active', 2200, now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb006', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Nerea Cano', 'nerea@demo.dancehub.es', '+34 611 100 006', 'Heels y puesta en escena.', 'active', 1950, now(), now());
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb001', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Clara Mendez', 'clara@demo.nexa.es', '+34 611 100 001', 'Especialista en ballet y tecnica de puntas.', 'active', 2450, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb002', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Diego Luna', 'diego@demo.nexa.es', '+34 611 100 002', 'Coreografo de danza urbana y competicion.', 'active', 2300, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb003', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Irene Soto', 'irene@demo.nexa.es', '+34 611 100 003', 'Contemporaneo y preparacion fisica.', 'active', 2100, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb004', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Mario Gil', 'mario@demo.nexa.es', '+34 611 100 004', 'Latino social y formacion de parejas.', 'active', 2050, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb005', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Patricia Rios', 'patricia@demo.nexa.es', '+34 611 100 005', 'Jazz tecnico para grupos teen y pro.', 'active', 2200, now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb006', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Nerea Cano', 'nerea@demo.nexa.es', '+34 611 100 006', 'Heels y puesta en escena.', 'active', 1950, now(), now());
   else
     insert into teachers (id, tenant_id, name, email, phone, bio, status, created_at, updated_at)
     values
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb001', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Clara Mendez', 'clara@demo.dancehub.es', '+34 611 100 001', 'Especialista en ballet y tecnica de puntas.', 'active', now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb002', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Diego Luna', 'diego@demo.dancehub.es', '+34 611 100 002', 'Coreografo de danza urbana y competicion.', 'active', now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb003', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Irene Soto', 'irene@demo.dancehub.es', '+34 611 100 003', 'Contemporaneo y preparacion fisica.', 'active', now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb004', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Mario Gil', 'mario@demo.dancehub.es', '+34 611 100 004', 'Latino social y formacion de parejas.', 'active', now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb005', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Patricia Rios', 'patricia@demo.dancehub.es', '+34 611 100 005', 'Jazz tecnico para grupos teen y pro.', 'active', now(), now()),
-      ('a6fd4fe8-2997-4f44-ae08-3e41daedb006', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Nerea Cano', 'nerea@demo.dancehub.es', '+34 611 100 006', 'Heels y puesta en escena.', 'active', now(), now());
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb001', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Clara Mendez', 'clara@demo.nexa.es', '+34 611 100 001', 'Especialista en ballet y tecnica de puntas.', 'active', now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb002', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Diego Luna', 'diego@demo.nexa.es', '+34 611 100 002', 'Coreografo de danza urbana y competicion.', 'active', now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb003', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Irene Soto', 'irene@demo.nexa.es', '+34 611 100 003', 'Contemporaneo y preparacion fisica.', 'active', now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb004', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Mario Gil', 'mario@demo.nexa.es', '+34 611 100 004', 'Latino social y formacion de parejas.', 'active', now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb005', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Patricia Rios', 'patricia@demo.nexa.es', '+34 611 100 005', 'Jazz tecnico para grupos teen y pro.', 'active', now(), now()),
+      ('a6fd4fe8-2997-4f44-ae08-3e41daedb006', '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d', 'Nerea Cano', 'nerea@demo.nexa.es', '+34 611 100 006', 'Heels y puesta en escena.', 'active', now(), now());
   end if;
 end $$;
 
@@ -269,7 +269,7 @@ select
   gen_random_uuid(),
   '6b8f58d4-5c83-42cf-a671-31b8c5b93e5d',
   fn.arr[((g - 1) % array_length(fn.arr, 1)) + 1] || ' ' || ln.arr[((g * 3 - 1) % array_length(ln.arr, 1)) + 1] || ' ' || ln.arr[((g * 7 - 1) % array_length(ln.arr, 1)) + 1],
-  'alumno' || lpad(g::text, 3, '0') || '@demo.dancehub.es',
+  'alumno' || lpad(g::text, 3, '0') || '@demo.nexa.es',
   '+34 6' || lpad((10000000 + g)::text, 8, '0'),
   (
     case

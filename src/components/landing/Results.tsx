@@ -49,7 +49,7 @@ export function Results() {
 
         {/* Testimonio + CTA */}
         <div className="mt-14 max-w-3xl mx-auto grid sm:grid-cols-2 gap-6">
-          {/* Testimonio de ejemplo */}
+          {/* Testimonio real */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -58,15 +58,15 @@ export function Results() {
           >
             <Quote className="h-6 w-6 text-primary/40 mb-4" />
             <p className="text-sm text-foreground leading-relaxed flex-1">
-              "Antes tardaba dos semanas en gestionar las renovaciones de curso. Ahora las lanzo en un día y las familias confirman solas. No me lo creí hasta que lo vi."
+              "Antes invertíamos demasiadas horas en matrículas y reorganización de grupos. Ahora el equipo puede centrarse en alumnos y calidad de clases."
             </p>
             <div className="mt-5 flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                M
+                E
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">María G.</p>
-                <p className="text-xs text-muted-foreground">Academia de danza · 140 alumnos · Madrid</p>
+                <p className="text-sm font-semibold text-foreground">Etna G.</p>
+                <p className="text-xs text-muted-foreground">Directora · Escuela Danzante · Griñón, Madrid</p>
               </div>
             </div>
           </motion.div>

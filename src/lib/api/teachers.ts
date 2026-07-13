@@ -7,7 +7,7 @@ export interface Teacher {
   email: string | null;
   phone: string | null;
   bio: string | null;
-  salay: number;
+  salary: number;
   status: "active" | "inactive";
   created_at: string;
   updated_at: string;
@@ -19,7 +19,7 @@ export interface CreateTeacherRequest {
   phone?: string;
   bio?: string;
   status?: "active" | "inactive";
-  salay?: number;
+  salary?: number;
   aulary?: number;
 }
 
@@ -29,14 +29,14 @@ export interface UpdateTeacherRequest {
   phone?: string;
   bio?: string;
   status?: "active" | "inactive";
-  salay?: number;
+  salary?: number;
   aulary?: number;
 }
 
 function normalizeTeacher(row: any): Teacher {
   return {
     ...row,
-    salay: Number(row?.salay ?? row?.aulary ?? 0),
+    salary: Number(row?.salary ?? row?.salay ?? row?.aulary ?? 0),
   } as Teacher;
 }
 
@@ -53,24 +53,30 @@ export async function getTeacher(id: string): Promise<Teacher | null> {
 export async function createTeacher(data: CreateTeacherRequest): Promise<Teacher | null> {
   const payload = {
     ...data,
-    salay: data.salay ?? data.aulary,
+    salary: data.salary ?? data.aulary,
   };
   const response = await apiRequest<Teacher>("/api/admin/teachers", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  if (!response.success && response.error?.code === "duplicate_name") {
+    throw new Error(response.error.message);
+  }
   return response.success && response.data ? normalizeTeacher(response.data) : null;
 }
 
 export async function updateTeacher(id: string, data: UpdateTeacherRequest): Promise<Teacher | null> {
   const payload = {
     ...data,
-    salay: data.salay ?? data.aulary,
+    salary: data.salary ?? data.aulary,
   };
   const response = await apiRequest<Teacher>(`/api/admin/teachers/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
+  if (!response.success && response.error?.code === "duplicate_name") {
+    throw new Error(response.error.message);
+  }
   return response.success && response.data ? normalizeTeacher(response.data) : null;
 }
 

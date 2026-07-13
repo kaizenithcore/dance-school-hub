@@ -84,25 +84,14 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     );
     return ok(teacher, 200, origin);
   } catch (error) {
+    if (error instanceof Error && (error as NodeJS.ErrnoException & { code?: string }).code === "duplicate_name") {
+      return fail({ code: "duplicate_name", message: error.message }, 409, origin);
+    }
     const message = error instanceof Error ? error.message : "Failed to update teacher";
     if (message === "Teacher not found") {
-      return fail(
-        {
-          code: "not_found",
-          message,
-        },
-        404,
-        origin
-      );
+      return fail({ code: "not_found", message }, 404, origin);
     }
-    return fail(
-      {
-        code: "update_failed",
-        message,
-      },
-      500,
-      origin
-    );
+    return fail({ code: "update_failed", message }, 500, origin);
   }
 }
 

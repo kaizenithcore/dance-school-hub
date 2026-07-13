@@ -300,7 +300,7 @@ export function FormPreview({ config }: FormPreviewProps) {
                 })
                 .map((field) => (
                   <div key={field.id} className="space-y-1.5">
-                    {field.type !== "checkbox" && field.type !== "info" ? (
+                    {field.type !== "checkbox" && field.type !== "info" && field.type !== "file_download" ? (
                       <Label className="text-xs font-medium text-foreground">
                         {field.label}
                         {field.required && <Asterisk className="inline h-2.5 w-2.5 text-destructive ml-0.5" />}
@@ -343,6 +343,13 @@ export function FormPreview({ config }: FormPreviewProps) {
                     ) : field.type === "file" ? (
                       <div className="rounded-lg border border-dashed border-border py-4 text-center text-xs text-muted-foreground">
                         Arrastra o haz clic para subir ({field.accept})
+                      </div>
+                    ) : field.type === "file_download" ? (
+                      <div className="inline-flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-1.5 text-xs font-medium text-foreground">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        {field.downloadUrl ? "Descargar documento" : "URL del documento no configurada"}
                       </div>
                     ) : (
                       <Input

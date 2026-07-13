@@ -60,14 +60,10 @@ export async function POST(request: NextRequest) {
     const teacher = await teacherService.createTeacher(auth.context.tenantId, parsed.data);
     return ok(teacher, 201, origin);
   } catch (error) {
+    if (error instanceof Error && (error as NodeJS.ErrnoException & { code?: string }).code === "duplicate_name") {
+      return fail({ code: "duplicate_name", message: error.message }, 409, origin);
+    }
     const message = error instanceof Error ? error.message : "Failed to create teacher";
-    return fail(
-      {
-        code: "create_failed",
-        message,
-      },
-      500,
-      origin
-    );
+    return fail({ code: "create_failed", message }, 500, origin);
   }
 }

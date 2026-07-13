@@ -49,7 +49,7 @@ export default function SchoolAnalyticsScreen() {
       setOverview(advanced);
       setKpis(kpiContract.kpis);
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
       const message = "No se pudieron cargar las analíticas";
       setLoadError(message);
       toastErrorOnce("school-analytics-load", message);

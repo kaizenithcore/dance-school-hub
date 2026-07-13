@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -38,19 +38,22 @@ export function TotalHoursConditionEditor({ conditions, categories, onChange }: 
     void loadDisciplines()
   }, [])
 
+  const onChangeRef = useRef(onChange)
+  useEffect(() => { onChangeRef.current = onChange })
+
   useEffect(() => {
-    onChange({
+    onChangeRef.current({
       hours_min: parseFloat(hoursMin) || 0,
       hours_max: parseFloat(hoursMax) || 0,
       included_categories: Array.from(includedCategories),
       excluded_disciplines: Array.from(excludedDisciplines),
     })
-  }, [hoursMin, hoursMax, includedCategories, excludedDisciplines, onChange])
+  }, [hoursMin, hoursMax, includedCategories, excludedDisciplines])
 
   async function loadDisciplines() {
     const { data, error } = await supabase.from('disciplines').select('id, name').order('name')
     if (error) {
-      console.error('Error loading disciplines:', error)
+      if (import.meta.env.DEV) console.error('Error loading disciplines:', error)
       return
     }
     setDisciplines(data || [])

@@ -64,7 +64,17 @@ export const teacherService = {
   },
 
   async createTeacher(tenantId: string, input: CreateTeacherInput): Promise<Teacher> {
-    const salaryValue = input.salay ?? input.aulary ?? 0;
+    const { data: existing } = await supabaseAdmin
+      .from("teachers")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .ilike("name", input.name.trim())
+      .maybeSingle();
+    if (existing) {
+      throw Object.assign(new Error(`Ya existe un profesor con el nombre "${input.name}"`), { code: "duplicate_name" });
+    }
+
+    const salaryValue = input.salary ?? input.aulary ?? 0;
     const basePayload = {
       tenant_id: tenantId,
       name: input.name,
@@ -166,7 +176,7 @@ export const teacherService = {
       payload.bio = normalizeNullableText(input.bio);
     }
 
-    const nextSalary = input.salay ?? input.aulary;
+    const nextSalary = input.salary ?? input.aulary;
     if (nextSalary !== undefined && Number(nextSalary) !== Number(existing.salay)) {
       payload.salay = nextSalary;
     }

@@ -523,17 +523,17 @@ export function StudentsTable({ students, customFields = [], isLoading = false, 
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         <Tooltip><TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onViewProfile(student)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Ver perfil" onClick={() => onViewProfile(student)}>
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
                         </TooltipTrigger><TooltipContent side="bottom"><p>Ver perfil</p></TooltipContent></Tooltip>
                         <Tooltip><TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(student)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar alumno" onClick={() => onEdit(student)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         </TooltipTrigger><TooltipContent side="bottom"><p>Editar</p></TooltipContent></Tooltip>
                         <Tooltip><TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(student)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" aria-label="Eliminar alumno" onClick={() => onDelete(student)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </TooltipTrigger><TooltipContent side="bottom"><p>Eliminar</p></TooltipContent></Tooltip>

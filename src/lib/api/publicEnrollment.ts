@@ -92,7 +92,7 @@ function extractPublicFormData(payload: unknown): PublicFormData | null {
   return null;
 }
 
-export type FieldType = "text" | "email" | "tel" | "textarea" | "select" | "checkbox" | "file" | "date" | "number" | "info";
+export type FieldType = "text" | "email" | "tel" | "textarea" | "select" | "checkbox" | "file" | "date" | "number" | "info" | "file_download";
 
 export interface FieldCondition {
   id: string;
@@ -111,6 +111,7 @@ export interface FormField {
   accept?: string;
   maxLength?: number;
   conditions?: FieldCondition[];
+  downloadUrl?: string;
 }
 
 export interface FormSection {
@@ -226,6 +227,7 @@ export interface PublicFormData {
     currency: string;
     allowCash: boolean;
   };
+  allowedPaymentMethods?: string[];
   availableClasses: PublicClass[];
 }
 
@@ -291,7 +293,7 @@ export async function getPublicFormData(tenantSlug: string): Promise<PublicFormD
 
     return null;
   } catch (error) {
-    console.error("Error fetching public form data:", error);
+    if (import.meta.env.DEV) console.error("Error fetching public form data:", error);
     return null;
   }
 }
@@ -338,7 +340,7 @@ export async function submitPublicEnrollment(
 
     throw lastError || new Error("No se pudo conectar con el backend publico");
   } catch (error) {
-    console.error("Error submitting enrollment:", error);
+    if (import.meta.env.DEV) console.error("Error submitting enrollment:", error);
     throw error;
   }
 }

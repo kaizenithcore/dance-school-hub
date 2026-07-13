@@ -375,7 +375,7 @@ export function StudentFormModal({ open, onOpenChange, student, students = [], c
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-sm">Estado</Label>
-              <Select value={form.status} onValueChange={(v: any) => set("status", v)} disabled={isLoading}>
+              <Select value={form.status} onValueChange={(v: string) => set("status", v)} disabled={isLoading}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">Activo</SelectItem>
@@ -478,7 +478,7 @@ export function StudentFormModal({ open, onOpenChange, student, students = [], c
 
             {form.preferredPaymentMethod === "transfer" && (
               <div className="space-y-1.5">
-                <Label className="text-sm">Número de cuenta (IBAN/CBU) *</Label>
+                <Label className="text-sm">Número de cuenta (IBAN) *</Label>
                 <Input
                   value={form.accountNumber || ""}
                   onChange={(e) => set("accountNumber", e.target.value)}

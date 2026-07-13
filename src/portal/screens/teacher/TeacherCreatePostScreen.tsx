@@ -85,7 +85,7 @@ export default function TeacherCreatePostScreen() {
       }
       setMediaPreviewUrl("");
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
       toast.error("No se pudo enviar la publicacion");
     } finally {
       setSaving(false);

@@ -65,10 +65,16 @@ export function DynamicPricingSummary({
 
       setPricing(result)
     } catch (err: unknown) {
-      console.error('Error calculating pricing:', err)
+      if (import.meta.env.DEV) console.error('Error calculating pricing:', err)
       setError(err instanceof Error ? err.message : 'Error al calcular el precio')
-      // Fallback to simple sum
-      const fallbackTotal = selectedClasses.reduce((sum, c) => sum + c.price, 0)
+      // Fallback: sum unique class prices (one price per pricingClassId)
+      const seen = new Set<string>()
+      const fallbackTotal = selectedClasses.reduce((sum, c) => {
+        const key = c.pricingClassId || c.id
+        if (seen.has(key)) return sum
+        seen.add(key)
+        return sum + c.price
+      }, 0)
       setPricing({
         total: fallbackTotal,
         subtotal: fallbackTotal,
@@ -108,37 +114,50 @@ export function DynamicPricingSummary({
         <CardTitle className="text-lg">Resumen de Matrícula</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Selected Classes List */}
+        {/* Selected Classes List — grouped by class, price shown once per class */}
         <div className="space-y-2">
-          {selectedClasses.map((cls) => (
-            <div
-              key={cls.id}
-              className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-            >
-              <div className="flex-1">
-                <p className="font-medium text-sm">{cls.name}</p>
-                {(cls.day || cls.time) && (
-                  <p className="text-xs text-muted-foreground">
-                    {cls.day} {cls.time}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">€{cls.price.toFixed(2)}</span>
-                {showRemoveButtons && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemoveClass(cls.id)}
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
+          {(() => {
+            const groups = new Map<string, typeof selectedClasses>()
+            for (const cls of selectedClasses) {
+              const key = cls.pricingClassId || cls.id
+              const group = groups.get(key) ?? []
+              group.push(cls)
+              groups.set(key, group)
+            }
+            return Array.from(groups.entries()).map(([groupKey, slots]) => {
+              const first = slots[0]
+              return (
+                <div key={groupKey} className="p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{first.name}</p>
+                      {slots.map((slot) => (
+                        <div key={slot.id} className="flex items-center justify-between mt-1">
+                          {(slot.day || slot.time) && (
+                            <p className="text-xs text-muted-foreground">
+                              {slot.day} {slot.time}
+                            </p>
+                          )}
+                          {showRemoveButtons && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onRemoveClass(slot.id)}
+                              className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-sm font-medium shrink-0">€{first.price.toFixed(2)}</span>
+                  </div>
+                </div>
+              )
+            })
+          })()}
         </div>
 
         {/* Loading State */}

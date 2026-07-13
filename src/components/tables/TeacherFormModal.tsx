@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { TeacherRecord } from "@/lib/data/mockTeachers";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ interface TeacherFormModalProps {
 
 export function TeacherFormModal({ open, onOpenChange, teacher, onSave, onManageClasses }: TeacherFormModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const submittingRef = useRef(false);
+  const [errors, setErrors] = useState<{ name?: string; salary?: string }>({});
   const [formData, setFormData] = useState<Omit<TeacherRecord, "id">>({
     name: "",
     email: "",
@@ -27,7 +29,7 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave, onManage
     assignedClasses: [],
     status: "active",
     hireDate: new Date().toISOString().split("T")[0],
-    salay: 2000,
+    salary: 2000,
   });
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave, onManage
         assignedClasses: teacher.assignedClasses,
         status: teacher.status,
         hireDate: teacher.hireDate,
-        salay: teacher.salay,
+        salary: teacher.salary,
         notes: teacher.notes,
       });
     } else {
@@ -54,7 +56,7 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave, onManage
         assignedClasses: [],
         status: "active",
         hireDate: new Date().toISOString().split("T")[0],
-        salay: 2000,
+        salary: 2000,
       });
     }
   }, [teacher, open]);
@@ -62,6 +64,13 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave, onManage
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
+      const newErrors: { name?: string; salary?: string } = {};
+      if (!formData.name.trim()) newErrors.name = "El nombre es obligatorio";
+      if (!formData.salary || formData.salary < 0) newErrors.salary = "Introduce un salario válido";
+      if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+      setErrors({});
+      if (submittingRef.current) return;
+      submittingRef.current = true;
       setIsLoading(true);
       try {
         const ok = await onSave(formData);
@@ -69,6 +78,7 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave, onManage
           onOpenChange(false);
         }
       } finally {
+        submittingRef.current = false;
         setIsLoading(false);
       }
     },
@@ -96,12 +106,12 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave, onManage
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => { setFormData({ ...formData, name: e.target.value }); if (errors.name) setErrors((p) => ({ ...p, name: undefined })); }}
                 placeholder="Nombre completo"
-                required
                 disabled={isLoading}
-                className="mt-1"
+                className={`mt-1${errors.name ? " border-destructive" : ""}`}
               />
+              {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name}</p>}
             </div>
 
             <div>
@@ -134,19 +144,19 @@ export function TeacherFormModal({ open, onOpenChange, teacher, onSave, onManage
             </div>
 
             <div>
-              <Label htmlFor="salay" className="text-xs font-semibold">
+              <Label htmlFor="salary" className="text-xs font-semibold">
                 Salario Mensual (€) *
               </Label>
               <Input
-                id="salay"
+                id="salary"
                 type="number"
-                value={formData.salay}
-                onChange={(e) => setFormData({ ...formData, salay: parseInt(e.target.value) || 0 })}
+                value={formData.salary}
+                onChange={(e) => { setFormData({ ...formData, salary: parseInt(e.target.value) || 0 }); if (errors.salary) setErrors((p) => ({ ...p, salary: undefined })); }}
                 placeholder="2000"
-                required
                 disabled={isLoading}
-                className="mt-1"
+                className={`mt-1${errors.salary ? " border-destructive" : ""}`}
               />
+              {errors.salary && <p className="mt-1 text-xs text-destructive">{errors.salary}</p>}
             </div>
           </div>
 

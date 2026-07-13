@@ -41,7 +41,7 @@ export default function AnalyticsPage() {
         setMetrics(metricsData);
         setStudents(studentsData || []);
       } catch (error) {
-        console.error("Failed to load analytics:", error);
+        if (import.meta.env.DEV) console.error("Failed to load analytics:", error);
       } finally {
         setLoading(false);
       }

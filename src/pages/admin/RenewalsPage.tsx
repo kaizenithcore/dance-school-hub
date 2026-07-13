@@ -31,6 +31,7 @@ import { getSchedules, type ScheduleWithRelations } from "@/lib/api/schedules";
 import { getClasses, type ClassWithRelations } from "@/lib/api/classes";
 import { runWithRetry } from "@/lib/reliability";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
+import { useAcademicYearContext } from "@/contexts/AcademicYearContext";
 import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
@@ -479,6 +480,8 @@ type SortKey = "name" | "status" | "email";
 
 export default function RenewalsPage() {
   const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
+  const { refreshKey } = useAcademicYearContext();
+  const prevRefreshKeyRef = useRef(refreshKey);
   const renewalsLocked = !billingLoading && !billing.features.renewalAutomation;
   const [lockOpen, setLockOpen] = useState(false);
   const [sendModalOpen, setSendModalOpen] = useState(false);
@@ -579,6 +582,13 @@ export default function RenewalsPage() {
   };
 
   useEffect(() => { void load(); }, []);
+
+  useEffect(() => {
+    if (refreshKey !== prevRefreshKeyRef.current) {
+      prevRefreshKeyRef.current = refreshKey;
+      void load();
+    }
+  }, [refreshKey]);
 
   if (!isModuleVisible("renewals")) return <ModuleDisabledPage moduleKey="renewals" />;
 

@@ -292,7 +292,7 @@ export default function SettingsPage() {
     name: "Nexa Studio",
     slug: "nexa",
     email: "info@nexa.com",
-    phone: "(011) 5555-0000",
+    phone: "+34 612 34 56 78",
     address: "Av. Corrientes 1234, Piso 3",
     city: "Buenos Aires",
     tagline: "Escuela de danza para todas las edades",
@@ -399,7 +399,7 @@ export default function SettingsPage() {
       setBilling(nextBilling);
       setSavedBillingSnapshot(nextBilling);
     } catch (error) {
-      console.error("Failed to load settings", error);
+      if (import.meta.env.DEV) console.error("Failed to load settings", error);
       toast.error("Error al cargar la configuración");
     } finally {
       setLoading(false);
@@ -568,7 +568,7 @@ export default function SettingsPage() {
       const pastParticiple = section === "Notificaciones" ? "guardadas" : "guardada";
       toast.success(`${section} ${pastParticiple} correctamente`);
     } catch (error) {
-      console.error("Failed to save settings", error);
+      if (import.meta.env.DEV) console.error("Failed to save settings", error);
       toast.error("Error al guardar la configuración");
     } finally {
       setSaving(false);
@@ -978,8 +978,8 @@ export default function SettingsPage() {
                   <FieldGroup label="Alias">
                     <Input value={payment.transferAlias} onChange={(e) => setPayment({ ...payment, transferAlias: e.target.value })} className="h-9 text-sm" />
                   </FieldGroup>
-                  <FieldGroup label="CBU / CVU">
-                    <Input value={payment.transferCBU} onChange={(e) => setPayment({ ...payment, transferCBU: e.target.value })} className="h-9 text-sm" />
+                  <FieldGroup label="IBAN">
+                    <Input value={payment.transferCBU} onChange={(e) => setPayment({ ...payment, transferCBU: e.target.value })} placeholder="ES91 2100 0418 4502 0005 1332" className="h-9 text-sm" />
                   </FieldGroup>
                 </div>
               )}
@@ -1148,7 +1148,10 @@ export default function SettingsPage() {
                       }`}
                     >
                       <p className="text-sm font-semibold">{PLAN_CATALOG[planKey].label}</p>
-                      <p className="text-xs">{PLAN_CATALOG[planKey].monthlyPriceEur} EUR/mes</p>
+                      <p className="text-xs">
+                        {PLAN_CATALOG[planKey].annualEffectiveMonthlyPriceEur} EUR/mes
+                        <span className="text-muted-foreground"> (anual) · {PLAN_CATALOG[planKey].monthlyPriceEur} EUR/mes mensual</span>
+                      </p>
                       <p className="text-[10px] text-muted-foreground">{formatAnnualFinancingLabel(PLAN_CATALOG[planKey].annualTotalEur)}</p>
                     </button>
                   );

@@ -38,7 +38,7 @@ export function ScheduleProposalsPanel({ onApplied, onPreviewChange }: ScheduleP
       setGeneratedAt(result?.generatedAt || null);
       toast.success("Propuestas A/B/C generadas");
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
       toast.error("No se pudieron generar propuestas");
     } finally {
       setLoading(false);
@@ -70,7 +70,7 @@ export function ScheduleProposalsPanel({ onApplied, onPreviewChange }: ScheduleP
       setProposals([]);
       setGeneratedAt(null);
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
       toast.error("Error aplicando propuesta");
     } finally {
       setApplyingId(null);

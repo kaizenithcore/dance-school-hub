@@ -87,7 +87,7 @@ export function ClassFormModal({ open, onOpenChange, classData, onSave }: ClassF
       setDisciplines(disciplinesData.map((d) => ({ id: d.id, name: d.name })));
       setCategories(categoriesData.map((c) => ({ id: c.id, name: c.name })));
     } catch (error) {
-      console.error("Error loading form data:", error);
+      if (import.meta.env.DEV) console.error("Error loading form data:", error);
       toast.error("Error al cargar datos");
     }
   };

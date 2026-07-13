@@ -106,7 +106,7 @@ export default function ClassesPage() {
         });
         setClasses(mappedClasses);
       } catch (error) {
-        console.error("Error loading classes:", error);
+        if (import.meta.env.DEV) console.error("Error loading classes:", error);
         toast.error("Error al cargar clases");
         setClasses([]);
       } finally { setLoading(false); }
@@ -165,7 +165,7 @@ export default function ClassesPage() {
         toast.error("No se pudo crear la clase");
         return false;
       }
-    } catch (error) { toast.error("Error al guardar la clase"); console.error(error); return false; }
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Error al guardar la clase"); if (import.meta.env.DEV) console.error(error); return false; }
   }, [editingClass]);
 
   const handleConfirmDelete = useCallback(async () => {
@@ -173,7 +173,7 @@ export default function ClassesPage() {
       try {
         const success = await deleteClass(deletingClass.id);
         if (success) { setClasses((prev) => prev.filter((c) => c.id !== deletingClass.id)); toast.success("Clase eliminada"); }
-      } catch (error) { toast.error("Error al eliminar la clase"); console.error(error); }
+      } catch (error) { toast.error("Error al eliminar la clase"); if (import.meta.env.DEV) console.error(error); }
     }
   }, [deletingClass]);
 

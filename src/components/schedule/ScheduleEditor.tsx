@@ -183,7 +183,7 @@ export function ScheduleEditor({ previewProposal = null }: ScheduleEditorProps) 
         `Horario guardado: ${result.created} creados, ${result.updated} actualizados, ${result.deleted} eliminados`
       );
     } catch (error) {
-      console.error("Error saving schedule:", error);
+      if (import.meta.env.DEV) console.error("Error saving schedule:", error);
       const errorMessage = error instanceof Error ? error.message : "Error desconocido";
       toast.error(`No se pudo guardar el horario: ${errorMessage}`);
     } finally {

@@ -36,7 +36,7 @@ export function PricingManagement() {
       setRules(rulesData)
       setCategories(categoriesData)
     } catch (error: unknown) {
-      console.error('Error loading pricing data:', error)
+      if (import.meta.env.DEV) console.error('Error loading pricing data:', error)
       toast.error(error instanceof Error ? error.message : 'Error al cargar los datos')
     } finally {
       setLoading(false)

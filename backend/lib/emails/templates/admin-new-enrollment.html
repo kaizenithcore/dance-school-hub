@@ -1,0 +1,160 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html dir="ltr" lang="es">
+  <head>
+    <meta content="width=device-width" name="viewport" />
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta content="IE=edge" http-equiv="X-UA-Compatible" />
+    <meta content="telephone=no,address=no,email=no,date=no,url=no" name="format-detection" />
+    <title>Nueva inscripción recibida — {{{school_name}}}</title>
+  </head>
+
+  <!--
+    Nexa — Notificación interna: nueva inscripción online (admin-new-enrollment-v1)
+    Enviado al administrador/director de la escuela cuando un alumno envía el formulario público.
+
+    Asunto sugerido: "Nueva inscripción de {{{student_name}}} en {{{school_name}}}"
+
+    Variables: {{{admin_name}}},       ← nombre del director/admin que recibe
+               {{{school_name}}},
+               {{{student_name}}},
+               {{{student_email}}},
+               {{{student_phone}}},    ← opcional
+               {{{classes_list}}},     ← filas HTML (misma estructura que enrollment-confirmation)
+               {{{submitted_at}}},     ← ej. "hoy a las 14:32"
+               {{{review_url}}}        ← enlace directo a la inscripción en el panel de admin
+  -->
+
+  <body style="margin:0;padding:0;background-color:#0d0b1c;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Helvetica Neue',Arial,sans-serif">
+    <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation">
+      <tbody><tr><td align="center" style="padding:40px 16px 56px">
+
+        <!-- Card -->
+        <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation"
+          style="max-width:600px;background-color:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 0 0 1px rgba(109,62,196,0.12),0 32px 80px rgba(0,0,0,0.45)">
+          <tbody>
+
+            <tr><td height="3" style="background:linear-gradient(90deg,#6d3ec4 0%,#a78bfa 50%,#6d3ec4 100%);font-size:0;line-height:0">&nbsp;</td></tr>
+
+            <!-- HEADER -->
+            <tr><td style="padding:28px 36px 24px;border-bottom:1px solid #f0edf9">
+              <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:24px">
+                <tbody><tr>
+                  <td style="vertical-align:middle">
+                    <table border="0" cellpadding="0" cellspacing="0" role="presentation"><tbody><tr>
+                      <td style="background:#6d3ec4;border-radius:8px;width:30px;height:30px;text-align:center;vertical-align:middle">
+                        <span style="font-size:13px;font-weight:800;color:#fff;line-height:30px;display:inline-block;padding:0 7px">N</span>
+                      </td>
+                      <td style="padding-left:9px;vertical-align:middle">
+                        <span style="font-size:14px;font-weight:700;color:#1a1535">Nexa</span>
+                      </td>
+                    </tr></tbody></table>
+                  </td>
+                  <td align="right" style="vertical-align:middle">
+                    <table border="0" cellpadding="0" cellspacing="0" role="presentation"><tbody><tr>
+                      <td style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:100px;padding:4px 11px">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation"><tbody><tr>
+                          <td style="width:5px;height:5px;background:#6d3ec4;border-radius:50%;vertical-align:middle;font-size:0">&nbsp;</td>
+                          <td style="padding-left:5px;vertical-align:middle">
+                            <span style="font-size:10px;font-weight:600;color:#6d3ec4;white-space:nowrap">Nueva inscripción</span>
+                          </td>
+                        </tr></tbody></table>
+                      </td>
+                    </tr></tbody></table>
+                  </td>
+                </tr></tbody>
+              </table>
+
+              <p style="margin:0 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9d8ec8">{{{school_name}}}</p>
+              <h1 style="margin:0 0 10px;font-size:25px;font-weight:800;color:#1a1535;letter-spacing:-0.4px;line-height:1.25">
+                {{{admin_name}}}, tienes<br />una inscripción pendiente.
+              </h1>
+              <p style="margin:0;font-size:14px;color:#6b6585;line-height:1.65">
+                <strong style="color:#1a1535">{{{student_name}}}</strong> ha enviado una solicitud de inscripción
+                {{{#if submitted_at}}}{{{submitted_at}}}{{{/if}}}.
+                Revísala y confirma o rechaza la plaza desde tu panel.
+              </p>
+            </td></tr>
+
+            <!-- DATOS DEL ALUMNO -->
+            <tr><td style="padding:24px 36px;border-bottom:1px solid #f0edf9">
+              <p style="margin:0 0 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9d8ec8">Datos de contacto</p>
+              <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                style="background:#faf9ff;border-radius:12px">
+                <tbody>
+                  <tr>
+                    <td style="padding:14px 16px;border-bottom:1px solid #f0edf9;vertical-align:top;width:35%">
+                      <p style="margin:0;font-size:12px;font-weight:600;color:#9d8ec8">Nombre</p>
+                    </td>
+                    <td style="padding:14px 16px;border-bottom:1px solid #f0edf9;vertical-align:top">
+                      <p style="margin:0;font-size:13px;font-weight:600;color:#1a1535">{{{student_name}}}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 16px;border-bottom:1px solid #f0edf9;vertical-align:top">
+                      <p style="margin:0;font-size:12px;font-weight:600;color:#9d8ec8">Email</p>
+                    </td>
+                    <td style="padding:14px 16px;border-bottom:1px solid #f0edf9;vertical-align:top">
+                      <a href="mailto:{{{student_email}}}" style="font-size:13px;color:#6d3ec4;text-decoration:none;font-weight:500">{{{student_email}}}</a>
+                    </td>
+                  </tr>
+                  {{{#if student_phone}}}
+                  <tr>
+                    <td style="padding:14px 16px;vertical-align:top">
+                      <p style="margin:0;font-size:12px;font-weight:600;color:#9d8ec8">Teléfono</p>
+                    </td>
+                    <td style="padding:14px 16px;vertical-align:top">
+                      <p style="margin:0;font-size:13px;color:#1a1535">{{{student_phone}}}</p>
+                    </td>
+                  </tr>
+                  {{{/if}}}
+                </tbody>
+              </table>
+            </td></tr>
+
+            <!-- CLASES SOLICITADAS -->
+            <tr><td style="padding:24px 36px;border-bottom:1px solid #f0edf9">
+              <p style="margin:0 0 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9d8ec8">Clases solicitadas</p>
+              {{{classes_list}}}
+            </td></tr>
+
+            <!-- CTA -->
+            <tr><td style="padding:28px 36px 32px;text-align:center">
+              <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto">
+                <tbody><tr>
+                  <td style="border-radius:10px;background:#6d3ec4">
+                    <a href="{{{review_url}}}"
+                      style="display:inline-block;padding:13px 28px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px">
+                      Revisar en el panel →
+                    </a>
+                  </td>
+                </tr></tbody>
+              </table>
+              <p style="margin:12px 0 0;font-size:11px;color:#b0a8c8">
+                Desde el panel puedes aceptar, rechazar o contactar con el alumno directamente.
+              </p>
+            </td></tr>
+
+          </tbody>
+        </table>
+
+        <!-- Footer -->
+        <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin-top:20px">
+          <tbody><tr>
+            <td style="padding:0 4px;vertical-align:middle">
+              <p style="margin:0;font-size:11px;color:#4a4268;line-height:1.6">
+                Notificación interna de <strong style="color:#5e538a">{{{school_name}}}</strong>.
+                Solo el equipo de la escuela recibe este mensaje.
+              </p>
+            </td>
+            <td align="right" style="vertical-align:middle;padding-left:16px;white-space:nowrap">
+              <p style="margin:0;font-size:10px;color:#3d3560;text-align:right">Gestionado por</p>
+              <span style="font-size:12px;font-weight:800;color:#6d3ec4;letter-spacing:-0.3px">Nexa</span>
+            </td>
+          </tr></tbody>
+        </table>
+
+      </td></tr></tbody>
+    </table>
+  </body>
+</html>

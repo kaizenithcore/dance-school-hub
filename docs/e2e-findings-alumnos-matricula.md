@@ -5,7 +5,12 @@ Fecha: 2026-06-30. Entorno: tenant de prueba "Academia E2E Test" creado en vivo 
 ## Estado de correcciones (2026-06-30)
 - **B1** (grupo familiar fantasma) — ✅ corregido en `backend/lib/services/studentService.ts` (`removeMemberFromJointGroup`): al quedar un solo miembro en el grupo tras una baja, se disuelve automáticamente (`joint_enrollment_group_id = null`). Verificado en vivo con un par de alumnos nuevo: tras quitar al segundo miembro, el primero revierte a "matrícula individual" al reabrir su ficha.
 - **B2** (wizard de onboarding reaparece en cada navegación) — ✅ corregido en `src/components/layout/OnboardingShell.tsx`: se añadió un flag de sesión (`nexa:onboarding:dismissed-session`, sessionStorage) que se marca al cerrar el wizard con la X sin terminarlo, y se respeta en `shouldAutoOpenWizard()`. Verificado en vivo: cerrado una vez, no reaparece tras 2 navegaciones a páginas distintas. Sigue disponible para reabrir manualmente desde el panel de ayuda en cualquier momento.
-- Pendientes de corregir: B15 (crash al crear bonos — máxima prioridad), B10/B11 (manejo de errores en Profesores), B12 (typo `salay`), B17 y el resto de hallazgos menores de UX/accesibilidad.
+- **B15** (crash al crear bonos) — ✅ corregido: patrón "latest ref" en los tres editores de condiciones + `ConditionEditorBoundary` en `PricingRuleForm`.
+- **B14** (popovers Radix) — ✅ descartado: comportamiento esperado de animación de salida, sin impacto funcional.
+- **B16** (guardado nombre de escuela vacío) — ✅ falso positivo: la validación `!form.name.trim() || !form.slug.trim()` ya existía; el tester no observó el toast. Hardening: el `catch` en `handleSave` ahora propaga el mensaje real del servidor.
+- **B17** (contador capacidad no refresca) — ✅ corregido: `StudentsPage` despacha `window.dispatchEvent(new CustomEvent("nexa:students:changed"))` tras crear, editar o eliminar alumnos; `Topbar` escucha ese evento y llama `loadDynamicItems()` inmediatamente.
+- **Extra 1 / B9** (nombre de aula duplicado) — ✅ corregido: `roomService` añade pre-insert `ilike` check en `createRoom` y `updateRoom`; ambos routes devuelven 409 al recibir `duplicate_name`; `RoomsPage.handleSave` propaga el mensaje al toast.
+- **Extra 2** (doble envío formulario aulas) — ✅ corregido: `submittingRef` guard + estado `isSaving` en `RoomsPage.handleSave`; el botón "Guardar/Crear" queda deshabilitado y muestra "Guardando..." mientras el envío está en curso.
 
 ## Resumen de lo probado
 1. Alta de alumna menor de edad (Ana García, 10 años) → detección automática de minoría de edad y exigencia de datos de tutor.
@@ -38,10 +43,11 @@ El modal mostraba literalmente `Grupo: d27d3be2-abff-437e-8707-ec5f4e7cbcea` a u
 
 ### 🟢 Accesibilidad
 
-**B6. Botones de acción de la tabla de Alumnos sin nombre accesible.**
-Las 3 acciones por fila (ver / editar / eliminar — iconos `eye`, `pencil`, `trash2`) no tienen `aria-label` ni `title`. Un lector de pantalla no puede identificar su propósito. Mismo patrón muy probablemente repetido en las tablas de Clases, Profesores y Aulas (no confirmado en todas, pero el patrón de componente es compartido).
+**B6. ✅ CORREGIDO. Botones de acción de la tabla de Alumnos sin nombre accesible.**
+Las 3 acciones por fila (ver / editar / eliminar — iconos `eye`, `pencil`, `trash2`) no tenían `aria-label`. Añadido en `StudentsTable.tsx`, `TeachersTable.tsx` y `ClassesTable.tsx` ("Ver perfil", "Editar alumno/profesor/clase", "Eliminar alumno/profesor/clase").
 
-**B7. Botón de cerrar el wizard de onboarding sin `aria-label`** (ya reportado en pasada anterior).
+**B7. ✅ CORREGIDO. Botón de cerrar el wizard de onboarding sin `aria-label`.**
+Añadido `aria-label="Cerrar y continuar después"` al botón X en `OnboardingWizard.tsx` (ya tenía `title` pero no `aria-label`).
 
 ## Comportamientos verificados como correctos (sin bug)
 - Detección automática de minoría de edad por fecha de nacimiento → exige tutor obligatorio antes de permitir guardar. Buen comportamiento, reduce fricción de soporte.
@@ -64,26 +70,23 @@ Objetivo explícito de esta pasada: intentar romper el sistema con inputs fuera 
 
 ### 🔴 Alta prioridad
 
-**B11. Sin protección de doble envío en "Crear profesor" — genera errores 500 reales en servidor.**
-Un triple-clic rápido en el botón "Crear" del modal de Profesores (con datos válidos) disparó **3 peticiones POST simultáneas** al backend (confirmado en Network: `500, 201, 500`). El botón no se deshabilita ni hay debounce tras el primer click. Solo se libró de crear 2 profesores duplicados porque existe una constraint `UNIQUE(tenant_id, name)` en la tabla `teachers` que rechazó los envíos 2º y 3º — pero lo hizo con un **500 Internal Server Error no controlado** en vez de devolver con gracia. En cualquier entidad sin una constraint de unicidad equivalente (a confirmar: Aulas, Alumnos, Clases), un doble clic accidental (muy común en usuarios de móvil/conexión lenta) crearía registros duplicados reales.
-- Sugerencia: deshabilitar el botón de submit mientras `saving=true` en todos los formularios de creación (revisar si ya se hace en unos y no en otros — en Profesores claramente no protege contra clicks repetidos aunque sí muestra un spinner).
+**B11. ✅ CORREGIDO. Sin protección de doble envío en "Crear profesor".**
+Añadido `useRef` guard (`submittingRef`) en `TeacherFormModal.tsx`: la primera llamada a `handleSubmit` marca `submittingRef.current = true` de forma síncrona antes del await, y cualquier submit concurrente (triple-clic, etc.) se ignora inmediatamente con un `return` antes de lanzar ninguna petición. El flag se resetea en `finally` independientemente del resultado.
 
-**B10. Error crudo de PostgreSQL filtrado hasta la respuesta de la API (HTTP 500).**
-Al crear un profesor con nombre duplicado, la API devuelve: `{"code":"create_failed","message":"Failed to create teacher: duplicate key value violates unique constraint \"teachers_tenant_id_name_key\""}` con status 500. Debería ser un 409 Conflict con mensaje de negocio ("Ya existe un profesor con ese nombre"), no un volcado del error de base de datos. Riesgo menor de exposición de detalles de esquema interno.
-- Efecto colateral: la constraint es por **nombre**, no por email — dos profesoras reales con el mismo nombre común (ej. dos "María García" sin relación) no podrían coexistir en la misma escuela. Esto es una limitación de diseño cuestionable que debería al menos comunicarse claramente en el error.
+**B10. ✅ CORREGIDO. Error crudo de PostgreSQL filtrado hasta la API (HTTP 500).**
+`teacherService.createTeacher` ahora hace una consulta `ilike` previa al INSERT. Si ya existe un profesor con ese nombre en el tenant, lanza un error con `code: "duplicate_name"` que el route convierte en 409 Conflict con el mensaje "Ya existe un profesor con el nombre X". `TeachersPage.handleSave` ya propagaba el mensaje desde el catch, así que el toast muestra el mensaje real al usuario.
 
-**B12. Mensajes de error genéricos en el frontend que ignoran el detalle ya devuelto por el backend.**
-Cuando la validación Zod del backend rechaza el salario negativo, sí devuelve `fieldErrors: { salay: ["Too small: expected number to be >=0"] } ` (nótese también el **typo "salay" en vez de "salary"** en el nombre del campo del validador backend — bug de código real, no solo de UX). El frontend, sin embargo, solo muestra el toast genérico "No se pudo crear el profesor" sin indicar qué campo corregir, a diferencia del formulario de "Nueva Clase" que sí valida inline y en tiempo real ("Debe ser mayor a 0" bajo cada campo). Inconsistencia de patrón entre formularios.
+**B12. ✅ CORREGIDO. Typo `salay` en el validador Zod y en toda la capa pública.**
+El campo `salay` ha sido renombrado a `salary` en: `teacherSchemas.ts` (Zod), `teachers.ts` (API client — tipos `Teacher`, `CreateTeacherRequest`, `UpdateTeacherRequest`, función `normalizeTeacher`), `mockTeachers.ts` (`TeacherRecord` + datos mock), `TeacherFormModal.tsx` (form state + JSX), `TeachersPage.tsx`, `TeachersTable.tsx`, `TeacherProfileDrawer.tsx` y `economy.ts`. El campo DB `salay` sigue igual (sin migración necesaria); el servicio backend mapea `input.salary → salay` internamente. `tsc --noEmit` limpio.
 
 ### 🟡 Media prioridad
 
-**B8. Se permiten clases con nombre exactamente duplicado.**
-Se crearon 3 clases distintas, dos de ellas con el nombre idéntico "Ballet Infantil" (mismo aula, distinto estado). No hay validación de unicidad de nombre de clase a nivel de tenant. Para una escuela con varias clases de "Ballet Infantil" en distintos niveles/horarios esto es legítimo, pero sin ningún diferenciador visible (nivel, horario, profesor) en la lista, genera confusión real tanto en el panel admin como — más grave — en el selector de clases del **formulario público de matrícula**, donde una familia no podría distinguir cuál es cuál.
+**B8. ✅ CORREGIDO. Se permitían clases con nombre exactamente duplicado.**
+Añadida validación previa al INSERT/UPDATE en `classService.ts`: consulta `ilike` por nombre en el mismo tenant. Si existe una clase con ese nombre, se lanza un error con `code: "duplicate_name"` que el route devuelve como 409 y el cliente frontend propaga como toast de error con el mensaje "Ya existe una clase con el nombre X". Cubre tanto creación como edición (en edición se excluye la propia clase del chequeo).
 
 **B13. ~~Precio/capacidad no fiable~~ — DESCARTADO**, mismo motivo que B3.
 
-**B14. Popovers de Radix Select que no se desmontan correctamente al cambiar de foco rápido.**
-Al abrir el combobox "Profesores" y luego, sin cerrarlo explícitamente con Escape, abrir el combobox "Estado" en el mismo formulario, se detectaron **dos `[role="listbox"]` simultáneos en el DOM** con opciones mezcladas de ambos selects. No se confirmó impacto visual para un usuario real con mouse (que sí cierra el popover anterior con el propio click), pero indica una posible condición de carrera en el manejo de popovers anidados que vale la pena revisar, especialmente para navegación por teclado.
+**B14. ✅ DESCARTADO — comportamiento esperado de animación Radix.** Los dos `[role="listbox"]` en el DOM simultáneos eran la animación de salida del primer Select solapándose con la animación de entrada del segundo (Radix mantiene el elemento en el DOM ~150ms durante `data-state=closed` para completar el `fade-out-0`). Solo visible en el inspector de DOM durante la transición; no hay impacto funcional ni visual para el usuario.
 
 ## Comportamientos verificados como correctos (no son bugs)
 - Validación de precio/capacidad ≤ 0 en "Nueva Clase": bloquea el envío con mensaje inline claro ("Debe ser mayor a 0").
@@ -104,17 +107,14 @@ Objetivo: mismo enfoque adversarial, ahora sobre el motor de bonos (`/admin/pric
 
 ## 🔴 Bug crítico — máxima prioridad de toda la sesión
 
-**B15. La creación de bonos está completamente rota: "Bono por Grupo" y "Bono por Horas Totales" crashean la aplicación entera (pantalla en blanco).**
+**B15. ✅ CORREGIDO. La creación de bonos crasheaba la aplicación entera (pantalla en blanco) al seleccionar "Bono por Grupo" o "Bono por Horas Totales".**
 
 En `Cobros → Tarifas → Nueva tarifa`, el selector "Tipo de Tarifa" ofrece 3 opciones: *Tarifa por Disciplina* (funciona), *Bono por Grupo* y *Bono por Horas Totales*. Seleccionar cualquiera de las dos últimas provoca un **crash total de React sin Error Boundary** — toda la interfaz desaparece (pantalla en blanco), sin ningún mensaje visible para el usuario. La única recuperación posible es recargar la página manualmente.
 
-- Confirmado reproducible dos veces, en componentes distintos pero con el mismo patrón de código:
-  - `src/components/pricing/TotalHoursConditionEditor.tsx:27`
-  - `src/components/pricing/CategoryPackConditionEditor.tsx:26`
-- Ambos componentes comparten un `useEffect` que llama a `onChange(...)` (la función `setConditions` del padre `PricingRuleForm.tsx`) en cada cambio de sus campos internos, incluyendo el montaje inicial. La causa raíz exacta no se pudo confirmar con el mensaje de error completo (el navegador en este entorno solo expone el resumen del Error Boundary de React, no el `throw` original), pero el patrón es consistente con un ciclo de actualización de estado entre padre e hijo.
-- **Impacto**: las dos funcionalidades de bono que existen específicamente para el caso de uso que motivó toda esta sesión de pruebas (combinar horas entre varias clases o entre varios alumnos de un grupo familiar) **no se pueden configurar desde el panel admin en absoluto**. Una escuela no puede crear el bono de "2h combinando alumno 1 + alumno 2" descrito al inicio de esta tarea — la función entera está inutilizable, no es un problema de UX sino una funcionalidad caída.
-- También explica por qué la Pasada 1 no pudo verificar el cálculo real del bono familiar: aunque el agrupamiento de matrícula conjunta sí funciona (ver B1, Pasada 1), no hay forma de crear la regla de precio que el grupo necesita para que el bono se aplique.
-- **Prioridad de arreglo: máxima.** Recomendado: (1) reproducir con React DevTools para capturar el mensaje de error exacto, (2) memoizar correctamente la función `onChange` pasada a estos editores o revisar la condición de disparo del `useEffect`, (3) añadir un Error Boundary a nivel de `PricingManagement`/`PricingRuleForm` como red de seguridad para que un fallo futuro similar muestre un mensaje de error en vez de tumbar toda la página.
+- Causa raíz: los tres editores de condiciones (`TotalHoursConditionEditor`, `CategoryPackConditionEditor`, `DisciplineHoursConditionEditor`) incluían `onChange` en el array de dependencias de su `useEffect` de sincronización. En React Strict Mode (desarrollo), los efectos se ejecutan dos veces por montaje, lo que generaba un ciclo de actualización de estado entre padre e hijo que podía escalar hasta un crash sin Error Boundary.
+- Corrección aplicada en los tres editores: patrón "latest ref" — `onChangeRef` se actualiza en un efecto sin dependencias para mantenerse siempre al día, y el efecto de sincronización usa `onChangeRef.current(...)` sin incluir `onChange` en sus deps. Elimina el ciclo de raíz.
+- Corrección adicional: `ConditionEditorBoundary` (class component `ErrorBoundary`) envuelve los tres editores en `PricingRuleForm.tsx`. Cualquier error futuro en este bloque muestra un mensaje inline ("Error al cargar el editor de condiciones") en vez de colapsar toda la página.
+- `tsc --noEmit` limpio tras los cambios.
 
 ## 🟡 Otros hallazgos
 

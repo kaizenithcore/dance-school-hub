@@ -56,7 +56,7 @@ export function CategoryForm({ category, onClose }: Props) {
       if (error) throw error
       setDisciplines(data || [])
     } catch (error) {
-      console.error('Error loading disciplines:', error)
+      if (import.meta.env.DEV) console.error('Error loading disciplines:', error)
     }
   }
 

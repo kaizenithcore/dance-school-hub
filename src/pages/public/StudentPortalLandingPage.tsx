@@ -364,9 +364,7 @@ function PortalHeader() {
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
       <div className="container flex h-14 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-            <span className="text-xs font-bold text-primary-foreground">N</span>
-          </div>
+          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-7 w-7 object-contain" />
           <span className="text-sm font-semibold text-foreground">Nexa <span className="text-muted-foreground font-normal">Club</span></span>
         </Link>
         <div className="flex items-center gap-2">

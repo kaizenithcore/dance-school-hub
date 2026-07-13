@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ScheduleEditor } from "@/components/schedule/ScheduleEditor";
 import { ScheduleInsightsPanel } from "@/components/schedule/ScheduleInsightsPanel";
@@ -6,9 +6,12 @@ import { ScheduleProposalsPanel } from "@/components/schedule/ScheduleProposalsP
 import { getScheduleInsights, type ScheduleInsightsResult, type ScheduleProposal } from "@/lib/api/schedules";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAcademicYearContext } from "@/contexts/AcademicYearContext";
 
 export default function SchedulePage() {
   const navigate = useNavigate();
+  const { refreshKey } = useAcademicYearContext();
+  const prevRefreshKey = useRef(refreshKey);
   const [insights, setInsights] = useState<ScheduleInsightsResult | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(true);
   const [editorVersion, setEditorVersion] = useState(0);
@@ -24,6 +27,15 @@ export default function SchedulePage() {
   };
 
   useEffect(() => { void loadInsights(); }, []);
+
+  // Re-fetch and force ScheduleEditor remount when academic year changes
+  useEffect(() => {
+    if (refreshKey !== prevRefreshKey.current) {
+      prevRefreshKey.current = refreshKey;
+      setEditorVersion((v) => v + 1);
+      void loadInsights();
+    }
+  }, [refreshKey]);
 
   return (
     <PageContainer

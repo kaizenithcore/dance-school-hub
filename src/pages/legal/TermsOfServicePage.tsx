@@ -104,8 +104,35 @@ export default function TermsOfServicePage() {
       </LegalSection>
 
       <LegalSection title="10. Pagos y facturación">
-        <ul className="list-disc space-y-1 pl-6">
-          <li>El servicio funciona mediante suscripción mensual o anual en Euros (EUR), IVA no incluido salvo indicación expresa.</li>
+        <p>El servicio funciona mediante suscripción mensual o anual en Euros (EUR), IVA no incluido salvo indicación expresa. Los precios vigentes son:</p>
+        <div className="overflow-x-auto my-3">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="py-2 pr-4 text-left font-semibold text-foreground">Plan</th>
+                <th className="py-2 pr-4 text-left font-semibold text-foreground">Mensual</th>
+                <th className="py-2 pr-4 text-left font-semibold text-foreground">Anual (total)</th>
+                <th className="py-2 text-left font-semibold text-foreground">Precio efectivo/mes</th>
+              </tr>
+            </thead>
+            <tbody className="text-muted-foreground">
+              <tr className="border-b border-border/50">
+                <td className="py-2 pr-4 font-medium text-foreground">Starter</td>
+                <td className="py-2 pr-4">89 €/mes</td>
+                <td className="py-2 pr-4">890 €/año</td>
+                <td className="py-2">74 €/mes</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 font-medium text-foreground">Pro</td>
+                <td className="py-2 pr-4">179 €/mes</td>
+                <td className="py-2 pr-4">1.790 €/año</td>
+                <td className="py-2">149 €/mes</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-muted-foreground">Los precios pueden actualizarse con preaviso de 30 días. La versión actualizada se publicará en esta misma página y en <strong>hola@nexa.es</strong>.</p>
+        <ul className="list-disc space-y-1 pl-6 mt-3">
           <li>El pago es anticipado y se procesa a través de Stripe.</li>
           <li>Las facturas se emiten mensual o anualmente según el plan contratado.</li>
           <li>El impago implica aviso por email; si no se regulariza en 10 días hábiles, el servicio puede suspenderse (modo solo lectura durante 15 días adicionales antes de cancelación definitiva).</li>

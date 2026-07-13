@@ -110,7 +110,7 @@ export default function CommunicationsPage() {
       setDisciplines((disciplinesData || []).map((item) => ({ id: item.id, name: item.name })));
       setCampaigns(campaignData || []);
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
       toast.error("No se pudo cargar la configuración de comunicación");
     }
   };

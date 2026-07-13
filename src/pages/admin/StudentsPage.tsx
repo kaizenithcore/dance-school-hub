@@ -72,7 +72,7 @@ export default function StudentsPage() {
       const fields = await getStudentFields();
       setStudentFields(fields);
     } catch (error) {
-      console.error("Error loading student fields:", error);
+      if (import.meta.env.DEV) console.error("Error loading student fields:", error);
       setStudentFields([]);
     }
   }, []);
@@ -86,7 +86,7 @@ export default function StudentsPage() {
       const plan = settings?.billing?.planType;
       setPlanType(plan === "pro" || plan === "enterprise" ? plan : "starter");
     } catch (error) {
-      console.error("Error loading capacity limits:", error);
+      if (import.meta.env.DEV) console.error("Error loading capacity limits:", error);
       setMaxActiveStudents(0);
       setPlanType("starter");
     }
@@ -98,7 +98,7 @@ export default function StudentsPage() {
       const data = await getStudents();
       setStudents(data);
     } catch (error) {
-      console.error("Error loading students:", error);
+      if (import.meta.env.DEV) console.error("Error loading students:", error);
       toast.error("Error al cargar alumnos");
       setStudents([]);
     } finally {
@@ -143,9 +143,10 @@ export default function StudentsPage() {
       }
       await loadStudents();
       await loadCapacity();
+      window.dispatchEvent(new CustomEvent("nexa:students:changed"));
       return true;
     } catch (error) {
-      console.error("Error saving student:", error);
+      if (import.meta.env.DEV) console.error("Error saving student:", error);
       toast.error(error instanceof Error ? error.message : "Error al guardar");
       return false;
     }
@@ -160,8 +161,9 @@ export default function StudentsPage() {
         toast.success("Alumno eliminado");
         await loadStudents();
         await loadCapacity();
+        window.dispatchEvent(new CustomEvent("nexa:students:changed"));
       } catch (error) {
-        console.error("Error deleting student:", error);
+        if (import.meta.env.DEV) console.error("Error deleting student:", error);
         toast.error("Error al eliminar el alumno");
       }
     })();

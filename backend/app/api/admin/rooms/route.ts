@@ -60,6 +60,9 @@ export async function POST(request: NextRequest) {
     const room = await roomService.createRoom(auth.context.tenantId, parsed.data);
     return ok(room, 201, origin);
   } catch (error) {
+    if (error instanceof Error && (error as NodeJS.ErrnoException & { code?: string }).code === "duplicate_name") {
+      return fail({ code: "duplicate_name", message: error.message }, 409, origin);
+    }
     const message = error instanceof Error ? error.message : "Failed to create room";
     return fail(
       {

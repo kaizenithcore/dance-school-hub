@@ -282,17 +282,17 @@ export function ClassesTable({ classes, isLoading = false, onPreview, onEdit, on
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Tooltip><TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onPreview(cls)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Vista previa" onClick={() => onPreview(cls)}>
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
                         </TooltipTrigger><TooltipContent side="bottom"><p>Vista previa</p></TooltipContent></Tooltip>
                         <Tooltip><TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(cls)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar clase" onClick={() => onEdit(cls)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         </TooltipTrigger><TooltipContent side="bottom"><p>Editar</p></TooltipContent></Tooltip>
                         <Tooltip><TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(cls)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" aria-label="Eliminar clase" onClick={() => onDelete(cls)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </TooltipTrigger><TooltipContent side="bottom"><p>Eliminar</p></TooltipContent></Tooltip>

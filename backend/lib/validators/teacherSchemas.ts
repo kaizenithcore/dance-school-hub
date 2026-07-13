@@ -6,7 +6,7 @@ export const createTeacherSchema = z.object({
   phone: z.string().trim().min(6).max(20).optional().nullable(),
   bio: z.string().trim().max(1000).optional().nullable(),
   status: z.enum(["active", "inactive"]).default("active"),
-  salay: z.number().min(0).optional().default(0),
+  salary: z.number().min(0).optional().default(0),
   aulary: z.number().min(0).optional(),
 });
 
@@ -16,7 +16,7 @@ export const updateTeacherSchema = z.object({
   phone: z.string().trim().min(6).max(20).optional().nullable(),
   bio: z.string().trim().max(1000).optional().nullable(),
   status: z.enum(["active", "inactive"]).optional(),
-  salay: z.number().min(0).optional(),
+  salary: z.number().min(0).optional(),
   aulary: z.number().min(0).optional(),
 });
 

@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { BrandingProvider } from "@/providers/BrandingProvider";
 import Index from "@/pages/Index";
+import { CookieBanner } from "@/components/CookieBanner";
 
 const AdminLayout = lazy(() => import("@/components/layout/AdminLayout").then((module) => ({ default: module.AdminLayout })));
 const PublicLayout = lazy(() => import("@/components/layout/PublicLayout").then((module) => ({ default: module.PublicLayout })));
@@ -134,6 +135,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <BrandingProvider>
+          <CookieBanner />
           <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth/login" element={withSuspense(<LoginPage />)} />

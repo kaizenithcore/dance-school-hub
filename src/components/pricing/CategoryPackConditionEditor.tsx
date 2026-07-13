@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -21,13 +21,16 @@ export function CategoryPackConditionEditor({ conditions, categories, onChange }
   const [hoursMin, setHoursMin] = useState(conditions.hours_min?.toString() || '1')
   const [hoursMax, setHoursMax] = useState(conditions.hours_max?.toString() || '1')
 
+  const onChangeRef = useRef(onChange)
+  useEffect(() => { onChangeRef.current = onChange })
+
   useEffect(() => {
-    onChange({
+    onChangeRef.current({
       category_slug: categorySlug,
       hours_min: parseFloat(hoursMin) || 0,
       hours_max: parseFloat(hoursMax) || 0,
     })
-  }, [categorySlug, hoursMin, hoursMax, onChange])
+  }, [categorySlug, hoursMin, hoursMax])
 
   const selectedCategory = categories.find((c) => c.slug === categorySlug)
 

@@ -144,6 +144,7 @@ export interface PublicFormData {
     currency: string;
     allowCash: boolean;
   };
+  allowedPaymentMethods?: string[];
   availableClasses: Array<{
     id: string;
     name: string;
@@ -341,6 +342,14 @@ export const publicEnrollmentService = {
       allowCash: paymentConfigSource.enrollmentFeeAllowCash !== false,
     };
 
+    const allowedPaymentMethods: string[] = [];
+    if (paymentConfigSource.enableTransfer !== false) allowedPaymentMethods.push("transfer");
+    if (paymentConfigSource.enableCash !== false) allowedPaymentMethods.push("cash");
+    if (paymentConfigSource.enableCard !== false) allowedPaymentMethods.push("card");
+    if (paymentConfigSource.enableMercadoPago === true) allowedPaymentMethods.push("mercadopago");
+    // Default: if no specific methods are configured, allow transfer and cash
+    if (allowedPaymentMethods.length === 0) allowedPaymentMethods.push("transfer", "cash");
+
     const scheduleConfigSource =
       settingsData?.schedule_config && typeof settingsData.schedule_config === "object"
         ? (settingsData.schedule_config as Record<string, unknown>)
@@ -406,6 +415,7 @@ export const publicEnrollmentService = {
         publicProfile,
         scheduleConfig,
         enrollmentFee,
+        allowedPaymentMethods,
         availableClasses: [],
       };
     }
@@ -541,6 +551,7 @@ export const publicEnrollmentService = {
       publicProfile,
       scheduleConfig,
       enrollmentFee,
+      allowedPaymentMethods,
       availableClasses,
     };
   },
@@ -551,7 +562,7 @@ export const publicEnrollmentService = {
   async createEnrollment(
     tenantSlug: string,
     input: PublicEnrollmentInput
-  ): Promise<{ enrollmentId?: string; studentId?: string; waitlistCreated?: boolean; waitlistCount?: number; message?: string }> {
+  ): Promise<{ enrollmentId?: string; studentId?: string; tenantId?: string; waitlistCreated?: boolean; waitlistCount?: number; message?: string }> {
         if (isDemoTenantSlug(tenantSlug)) {
           throw Object.assign(new Error("Modo demo: las modificaciones están deshabilitadas."), { status: 403 });
         }
@@ -829,6 +840,7 @@ export const publicEnrollmentService = {
     return {
       enrollmentId: enrollments[0].id,
       studentId,
+      tenantId: tenant.id,
     };
   },
 

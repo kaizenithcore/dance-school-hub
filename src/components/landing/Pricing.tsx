@@ -90,22 +90,6 @@ const comparisonRows: ComparisonRow[] = [
     },
   },
   {
-    label: "Analítica avanzada de negocio",
-    values: {
-      starter: "Básica",
-      pro: "✓ Avanzada",
-      enterprise: "✓ Avanzada",
-    },
-  },
-  // {
-  //   label: "Dominio personalizado",
-  //   values: {
-  //     starter: "Add-on +19€/mes",
-  //     pro: "✓ Incluido",
-  //     enterprise: "✓ Incluido",
-  //   },
-  // },
-  {
     label: "Soporte",
     values: {
       starter: "Estándar",
@@ -141,7 +125,7 @@ const plans: Plan[] = planOrder.map((planType) => {
       ],
     },
     pro: {
-      desc: "Escala sin límites y toma decisiones con datos reales de tu negocio",
+      desc: "Escala sin límites con capacidad para más alumnos y soporte prioritario incluido",
       audience: "Escuelas de hasta 500 alumnos",
       automationLevel: "Completo",
       businessControl: "Estratégico",
@@ -149,9 +133,8 @@ const plans: Plan[] = planOrder.map((planType) => {
       features: [
         "Todo en Starter",
         "Hasta 500 alumnos activos",
-        "Analítica avanzada de negocio",
-        "Soporte prioritario incluido",
-        "Puesta a punto incluida",
+        "Bloques de 100 alumnos extra disponibles",
+        "Soporte prioritario por email incluido",
       ],
     },
     enterprise: {
@@ -369,7 +352,7 @@ export function Pricing() {
         >
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
             <div className="px-6 py-5 border-b border-border bg-muted/30">
-              <h3 className="text-base sm:text-lg font-semibold text-foreground">Comparativa rapida para decidir en menos de 30 segundos</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-foreground">Comparativa rápida para decidir en menos de 30 segundos</h3>
               <p className="mt-1 text-sm text-muted-foreground">Mismo sistema, distinto nivel de madurez operativa.</p>
             </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -30,13 +30,16 @@ export function DisciplineHoursConditionEditor({ conditions, onChange }: Props) 
     void loadDisciplines()
   }, [])
 
+  const onChangeRef = useRef(onChange)
+  useEffect(() => { onChangeRef.current = onChange })
+
   useEffect(() => {
-    onChange({
+    onChangeRef.current({
       discipline_id: disciplineId,
       hours_min: parseFloat(hoursMin) || 0,
       hours_max: parseFloat(hoursMax) || 0,
     })
-  }, [disciplineId, hoursMin, hoursMax, onChange])
+  }, [disciplineId, hoursMin, hoursMax])
 
   async function loadDisciplines() {
     try {
@@ -45,7 +48,7 @@ export function DisciplineHoursConditionEditor({ conditions, onChange }: Props) 
       if (error) throw error
       setDisciplines(data || [])
     } catch (error) {
-      console.error('Error loading disciplines:', error)
+      if (import.meta.env.DEV) console.error('Error loading disciplines:', error)
     }
   }
 

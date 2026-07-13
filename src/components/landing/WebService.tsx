@@ -60,7 +60,7 @@ export function WebService() {
               <p className="text-sm text-muted-foreground mb-4">
                 Una web profesional y autónoma para tu academia, sin atarla a ningún sistema de gestión. Conecta con Nexa cuando quieras.
               </p>
-              <p className="text-xs text-muted-foreground mb-4">Desde <span className="font-semibold text-foreground">349€</span> · Pago único</p>
+              <p className="text-xs text-muted-foreground mb-4">Desde <span className="font-semibold text-foreground">890€</span> · Pago único</p>
               <div className="flex flex-col gap-2">
                 <Button size="sm" variant="outline" className="w-full" asChild>
                   <a href="https://danzante.es" target="_blank" rel="noreferrer">

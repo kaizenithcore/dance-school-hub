@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, GraduationCap, Users, BookOpen, ClipboardList,
-  CreditCard, Settings, ChevronLeft, Music, Menu, X, DoorOpen, FileEdit, Tags,
+  CreditCard, Settings, ChevronLeft, Menu, X, DoorOpen, FileEdit, Tags,
   Megaphone, ListOrdered, Repeat, Building2, Wallet, ChevronDown, CalendarDays, Copy,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -445,9 +445,7 @@ export function AdminSidebar() {
           )}
         >
           <div className="flex items-center gap-3 px-4 h-16 border-b border-border shrink-0">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
-              <Music className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <img src="/nexa_graphics/icon_big_white.png" alt="Nexa" className="h-9 w-9 shrink-0 object-contain" />
             <div>
               <span className="text-base font-semibold text-foreground">Nexa</span>
               <p className="text-[11px] text-muted-foreground">Menos gestión. Más control.</p>
@@ -497,13 +495,11 @@ export function AdminSidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-border shrink-0">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
-          <Music className="h-5 w-5 text-primary-foreground" />
-        </div>
+        <img src="/nexa_graphics/icon_big_white.png" alt="Nexa" className="h-9 w-9 shrink-0 object-contain" />
         {!collapsed && (
           <div className="animate-fade-in overflow-hidden">
             <span className="text-base font-semibold text-foreground">Nexa</span>
-            <p className="text-[11px] text-muted-foreground truncate">El sistema que tu academia se merece</p>
+            <p className="text-[11px] text-muted-foreground truncate">El sistema que mereces</p>
           </div>
         )}
       </div>

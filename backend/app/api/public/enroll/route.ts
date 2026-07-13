@@ -5,6 +5,7 @@ import { StudentLimitError } from "@/lib/services/studentQuotaService";
 import { integrationWebhookService } from "@/lib/services/integrationWebhookService";
 import { publicEnrollmentSchema, jointEnrollmentSchema } from "@/lib/validators/publicEnrollmentSchemas";
 import { handleCorsPreFlight } from "@/lib/cors";
+import { sendEnrollmentConfirmation, sendAdminNewEnrollment } from "@/lib/emails/transactionalEmails";
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreFlight(request.headers.get("origin"));
@@ -113,6 +114,40 @@ export async function POST(request: NextRequest) {
             waitlistCreated: Boolean(result.waitlistCreated),
           },
         });
+
+        if (!result.waitlistCreated && result.studentId && result.enrollmentId) {
+          const classIds = Array.from(new Set(
+            parsed.data.class_ids?.length
+              ? parsed.data.class_ids
+              : parsed.data.class_id
+                ? [parsed.data.class_id]
+                : []
+          ));
+          const formValues = (parsed.data.form_values || {}) as Record<string, string>;
+          const firstName = formValues.first_name || formValues.student_first_name || "";
+          const lastName = formValues.last_name || formValues.student_last_name || "";
+          const studentName = [firstName, lastName].filter(Boolean).join(" ") ||
+            formValues.student_name || formValues.full_name || "Alumno";
+          const studentEmail = formValues.email || formValues.student_email || formValues.correo || "";
+          const studentPhone = formValues.phone || formValues.student_phone || formValues.telefono || "";
+          const submittedAt = new Date().toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" });
+
+          void sendEnrollmentConfirmation({
+            tenantId: result.tenantId ?? "",
+            studentName,
+            studentEmail,
+            classIds,
+          });
+          void sendAdminNewEnrollment({
+            tenantId: result.tenantId ?? "",
+            studentName,
+            studentEmail,
+            studentPhone,
+            classIds,
+            enrollmentId: result.enrollmentId,
+            submittedAt,
+          });
+        }
 
         if (result.waitlistCreated) {
           return ok(

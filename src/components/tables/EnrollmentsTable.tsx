@@ -303,7 +303,7 @@ export function EnrollmentsTable({ enrollments, isLoading = false, onViewDetail 
                     </TableCell>
                     <TableCell className="text-right">
                       <Tooltip><TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onViewDetail(enrollment); }}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Ver detalle de matrícula" onClick={(e) => { e.stopPropagation(); onViewDetail(enrollment); }}>
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger><TooltipContent side="bottom"><p>Ver detalle</p></TooltipContent></Tooltip>

@@ -19,7 +19,7 @@ import { AcademicYearProvider } from "@/contexts/AcademicYearContext";
 export function AdminLayout() {
   return (
     <AcademicYearProvider>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="flex min-h-screen w-full">
         {/* Left sidebar */}
         <AdminSidebar />
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Music, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,7 +43,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       toast.error("Error inesperado. Por favor, intenta de nuevo.");
-      console.error("Login error:", error);
+      if (import.meta.env.DEV) console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -58,9 +58,7 @@ export default function LoginPage() {
         className="w-full max-w-md space-y-8"
       >
         <div className="flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <Music className="h-6 w-6 text-primary-foreground" />
-          </div>
+          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-12 w-12 object-contain" />
           <h1 className="text-2xl font-bold text-foreground">Bienvenido a Nexa</h1>
           <p className="text-sm text-muted-foreground">Inicia sesión para gestionar tu escuela</p>
         </div>

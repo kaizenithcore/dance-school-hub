@@ -62,7 +62,7 @@ export default function FullSchedulePage() {
         });
         setClasses(mappedClasses);
       } catch (error) {
-        console.error("Error loading schedule:", error);
+        if (import.meta.env.DEV) console.error("Error loading schedule:", error);
         toast.error("Error cargando horario");
         setClasses([]);
       } finally {

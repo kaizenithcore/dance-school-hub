@@ -80,6 +80,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const room = await roomService.updateRoom(auth.context.tenantId, id, parsed.data);
     return ok(room, 200, origin);
   } catch (error) {
+    if (error instanceof Error && (error as NodeJS.ErrnoException & { code?: string }).code === "duplicate_name") {
+      return fail({ code: "duplicate_name", message: error.message }, 409, origin);
+    }
     const message = error instanceof Error ? error.message : "Failed to update room";
     return fail(
       {

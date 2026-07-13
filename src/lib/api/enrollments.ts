@@ -5,6 +5,7 @@ interface EnrollmentStatusUpdateResponse {
   id: string;
   status: EnrollmentStatus;
   unchanged: boolean;
+  emailSent?: boolean;
 }
 
 export async function getEnrollments(): Promise<EnrollmentRecord[]> {

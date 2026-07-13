@@ -30,6 +30,8 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
 
   const paymentMethodFormatted = enrollment.paymentMethod === "transfer" ? "Transferencia bancaria" :
     enrollment.paymentMethod === "cash" ? "Efectivo" :
+    enrollment.paymentMethod === "card" ? "Tarjeta" :
+    enrollment.paymentMethod === "sepa" ? "Domiciliación SEPA" :
     enrollment.paymentMethod;
 
   const isTransferPayment = (() => {
@@ -86,7 +88,7 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
               <InfoRow icon={Calendar} label="Fecha de nacimiento" value={formatMaybeDate(enrollment.studentBirthDate)} />
               <InfoRow icon={CreditCard} label="Método de pago" value={paymentMethodFormatted} />
               {isTransferPayment && (
-                <InfoRow icon={CreditCard} label="IBAN/CBU" value={enrollment.studentIban || "No disponible"} />
+                <InfoRow icon={CreditCard} label="IBAN" value={enrollment.studentIban || "No disponible"} />
               )}
             </div>
 
@@ -218,6 +220,10 @@ export function EnrollmentDetailDrawer({ open, onOpenChange, enrollment, onChang
                     Cancelar
                   </Button>
                 </div>
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                  <Mail className="h-3 w-3 shrink-0" />
+                  Al aceptar o rechazar se enviará una notificación al alumno por correo.
+                </p>
               </section>
             </>
           )}

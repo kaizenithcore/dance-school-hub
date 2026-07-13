@@ -66,14 +66,10 @@ export async function POST(request: NextRequest) {
     );
     return ok(classData, 201, origin);
   } catch (error) {
+    if (error instanceof Error && (error as NodeJS.ErrnoException & { code?: string }).code === "duplicate_name") {
+      return fail({ code: "duplicate_name", message: error.message }, 409, origin);
+    }
     const message = error instanceof Error ? error.message : "Failed to create class";
-    return fail(
-      {
-        code: "create_failed",
-        message,
-      },
-      500,
-      origin
-    );
+    return fail({ code: "create_failed", message }, 500, origin);
   }
 }

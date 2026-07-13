@@ -9,6 +9,10 @@ const envSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
+  STRIPE_WEBHOOK_SECRET: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
   STRIPE_PRICE_STARTER: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()

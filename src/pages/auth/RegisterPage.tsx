@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Music, ArrowLeft, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -132,7 +132,7 @@ export default function RegisterPage() {
       }
     } catch (error) {
       toast.error("Error inesperado. Por favor, intenta de nuevo.");
-      console.error("Registration error:", error);
+      if (import.meta.env.DEV) console.error("Registration error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -148,9 +148,7 @@ export default function RegisterPage() {
       >
         {/* Header */}
         <div className="flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <Music className="h-6 w-6 text-primary-foreground" />
-          </div>
+          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-12 w-12 object-contain" />
           <h1 className="text-2xl font-bold text-foreground">Registra tu escuela</h1>
           <div className="flex items-center gap-2">
             {[1, 2, 3].map((s) => (

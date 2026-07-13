@@ -4,6 +4,7 @@ import { studentQuotaService } from "@/lib/services/studentQuotaService";
 import { pricingService } from "@/lib/services/pricingService";
 import { communicationService } from "@/lib/services/communicationService";
 import { studentFieldService } from "@/lib/services/studentFieldService";
+import { getCurrentAcademicYearId } from "@/lib/services/academicYearService";
 import type { ClassSelection } from "@/lib/types/pricing";
 
 type Guardian = {
@@ -762,6 +763,8 @@ export const studentService = {
 
       const classesToInsert = toAdd.filter((classId) => !reusableByClassId.has(classId));
 
+      const academicYearId = await getCurrentAcademicYearId(tenantId);
+
       const rows = classesToInsert.map((classId) => ({
         tenant_id: tenantId,
         student_id: studentId,
@@ -769,6 +772,7 @@ export const studentService = {
         status: "confirmed",
         payment_method: student.preferred_payment_method || "cash",
         joint_enrollment_group_id: jointEnrollmentGroupId,
+        academic_year_id: academicYearId,
         student_snapshot: {
           first_name: String(student.name || "").split(" ")[0] || null,
           last_name: String(student.name || "").split(" ").slice(1).join(" ") || null,

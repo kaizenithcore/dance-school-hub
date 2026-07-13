@@ -2,7 +2,7 @@ export const defaultEnrollmentFormConfig = {
   sections: [
     {
       id: "student",
-      title: "Informacion del Alumno",
+      title: "Información del Alumno",
       description: "Datos personales del alumno que se inscribe.",
       fields: [
         {
@@ -25,7 +25,7 @@ export const defaultEnrollmentFormConfig = {
           id: "student_phone",
           type: "tel",
           label: "Telefono",
-          placeholder: "(011) 1234-5678",
+          placeholder: "+34 612 34 56 78",
           required: false,
           maxLength: 20,
         },
@@ -39,7 +39,7 @@ export const defaultEnrollmentFormConfig = {
     },
     {
       id: "guardian",
-      title: "Informacion del Tutor",
+      title: "Información del Tutor",
       description: "Requerido para alumnos menores de 18 anos.",
       fields: [
         {
@@ -54,7 +54,7 @@ export const defaultEnrollmentFormConfig = {
           id: "guardian_phone",
           type: "tel",
           label: "Telefono del tutor",
-          placeholder: "(011) 1234-5678",
+          placeholder: "+34 612 34 56 78",
           required: false,
           maxLength: 20,
         },
@@ -118,7 +118,7 @@ export const defaultEnrollmentFormConfig = {
           id: "payer_phone",
           type: "tel",
           label: "Telefono del pagador",
-          placeholder: "(011) 1234-5678",
+          placeholder: "+34 612 34 56 78",
           required: false,
           maxLength: 20,
           conditions: [
@@ -133,6 +133,7 @@ export const defaultEnrollmentFormConfig = {
           options: [
             { value: "transfer", label: "Transferencia bancaria" },
             { value: "cash", label: "Efectivo" },
+            { value: "card", label: "Tarjeta" },
           ],
         },
       ],

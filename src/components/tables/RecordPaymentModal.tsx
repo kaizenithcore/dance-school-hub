@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PaymentMethod, PAYMENT_METHODS } from "@/lib/data/mockPayments";
 import { getStudents } from "@/lib/api/students";
 import { getSchoolSettings } from "@/lib/api/settings";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 
 interface StudentOption {
   id: string;
@@ -65,7 +65,7 @@ export function RecordPaymentModal({
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [availableMethods, setAvailableMethods] = useState<PaymentMethod[]>(PAYMENT_METHODS);
-  const [currency, setCurrency] = useState("ARS");
+  const [currency, setCurrency] = useState("EUR");
 
   const activeStudents = students.filter((s) => s.status === "active");
   const selectedStudent = activeStudents.find((s) => s.id === studentId);
@@ -303,14 +303,20 @@ export function RecordPaymentModal({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          {onStartStripeCheckout ? (
-            <Button variant="secondary" size="sm" disabled={!isValid} onClick={handleStripeCheckout}>
-              Cobrar con Stripe
-            </Button>
-          ) : null}
-          <Button size="sm" disabled={!isValid} onClick={handleSave}>Registrar Pago</Button>
+        <DialogFooter className="flex-col items-start gap-2 sm:flex-row sm:items-center">
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground mr-auto">
+            <Mail className="h-3 w-3 shrink-0" />
+            Se enviará una confirmación de pago al alumno por correo.
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            {onStartStripeCheckout ? (
+              <Button variant="secondary" size="sm" disabled={!isValid} onClick={handleStripeCheckout}>
+                Cobrar con Stripe
+              </Button>
+            ) : null}
+            <Button size="sm" disabled={!isValid} onClick={handleSave}>Registrar Pago</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

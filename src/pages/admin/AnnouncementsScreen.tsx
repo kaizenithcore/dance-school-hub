@@ -40,7 +40,7 @@ export default function AnnouncementsScreen() {
       const data = await listSchoolAnnouncements();
       setAnnouncements(data);
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
       const message = "No se pudieron cargar los anuncios";
       setLoadError(message);
       toastErrorOnce("announcements-load", message);
@@ -100,7 +100,7 @@ export default function AnnouncementsScreen() {
       setIsUrgent(false);
       await loadAnnouncements();
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     } finally {
       setSaving(false);
     }

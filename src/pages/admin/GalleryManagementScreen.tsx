@@ -56,7 +56,7 @@ export default function GalleryManagementScreen() {
         setSelectedAlbumId(data[0].id);
       }
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
       const message = "No se pudieron cargar los álbumes";
       setLoadError(message);
       toastErrorOnce("gallery-albums-load", message);
@@ -70,7 +70,7 @@ export default function GalleryManagementScreen() {
       const data = await listPhotosByAlbum(albumId, { limit: 120 });
       setPhotos(data.items);
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
       toastErrorOnce("gallery-photos-load", "No se pudieron cargar las fotos del álbum");
     }
   }, []);
@@ -129,7 +129,7 @@ export default function GalleryManagementScreen() {
       setSelectedAlbumId(created.id);
       await loadAlbums();
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     }
   };
 
@@ -183,7 +183,7 @@ export default function GalleryManagementScreen() {
       setPhotoCaption("");
       await loadPhotos(selectedAlbumId);
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
     } finally {
       setUploading(false);
     }

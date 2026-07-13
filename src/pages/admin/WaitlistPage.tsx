@@ -18,6 +18,7 @@ import {
   type WaitlistEntry,
 } from "@/lib/api/waitlist";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
+import { useAcademicYearContext } from "@/contexts/AcademicYearContext";
 import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 import { runWithRetry } from "@/lib/reliability";
@@ -99,6 +100,8 @@ function readStoredClassesCache(): WaitlistClassQueue[] {
 export default function WaitlistPage() {
   const navigate = useNavigate();
   const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
+  const { refreshKey } = useAcademicYearContext();
+  const prevRefreshKey = useRef(refreshKey);
   const storedOverviewCache = readStoredOverviewCache();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -222,6 +225,13 @@ export default function WaitlistPage() {
     void loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (refreshKey !== prevRefreshKey.current) {
+      prevRefreshKey.current = refreshKey;
+      void loadData();
+    }
+  }, [refreshKey]);
 
   useEffect(() => {
     persistSelectedClassId(selectedClassId);

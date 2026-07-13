@@ -169,7 +169,8 @@ function renderField(
   setValues: Dispatch<SetStateAction<Record<string, unknown>>>,
   errors: Record<string, string>,
   setErrors: Dispatch<SetStateAction<Record<string, string>>>,
-  idPrefix = ""
+  idPrefix = "",
+  allowedPaymentMethods?: string[]
 ) {
   const fieldId = `${idPrefix}${field.id}`;
   const clearError = () => {
@@ -200,6 +201,9 @@ function renderField(
   }
 
   if (field.type === "select") {
+    const options = field.id === "payment_method" && allowedPaymentMethods && allowedPaymentMethods.length > 0
+      ? (field.options || []).filter((opt) => allowedPaymentMethods.includes(opt.value))
+      : (field.options || []);
     return (
       <Select
         value={(values[field.id] as string) || ""}
@@ -209,7 +213,7 @@ function renderField(
           <SelectValue placeholder="Seleccionar..." />
         </SelectTrigger>
         <SelectContent>
-          {(field.options || []).map((option) => (
+          {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>
@@ -255,6 +259,23 @@ function renderField(
         }}
         className={errors[field.id] ? "border-destructive" : ""}
       />
+    );
+  }
+
+  if (field.type === "file_download") {
+    if (!field.downloadUrl) return null;
+    return (
+      <a
+        href={field.downloadUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 rounded-md border border-border bg-muted/30 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Descargar documento
+      </a>
     );
   }
 
@@ -995,7 +1016,9 @@ export default function EnrollPage() {
               onStudentsChange={setJointStudents}
               onPayerChange={setPayerValues}
               onPayerErrorChange={setPayerErrors}
-              renderField={renderField}
+              renderField={(field, values, setValues, errors, setErrors, idPrefix) =>
+                renderField(field, values, setValues, errors, setErrors, idPrefix, formConfig.allowedPaymentMethods)
+              }
               isVisible={isVisible}
               maxStudents={formConfig.formConfig.jointEnrollment.maxStudents}
             />
@@ -1012,12 +1035,12 @@ export default function EnrollPage() {
                       .filter((field) => isVisible(field.conditions, values))
                       .map((field) => (
                         <div key={field.id} className="space-y-2">
-                          {field.type !== "checkbox" && field.type !== "info" ? (
+                          {field.type !== "checkbox" && field.type !== "info" && field.type !== "file_download" ? (
                             <Label htmlFor={field.id}>{`${field.label}${field.required ? " *" : ""}`}</Label>
                           ) : field.type === "checkbox" && field.placeholder ? (
                             <Label htmlFor={field.id}>{`${field.label}${field.required ? " *" : ""}`}</Label>
                           ) : null}
-                          {renderField(field, values, setValues, errors, setErrors)}
+                          {renderField(field, values, setValues, errors, setErrors, "", formConfig.allowedPaymentMethods)}
                           {errors[field.id] ? <p className="text-xs text-destructive">{errors[field.id]}</p> : null}
                         </div>
                       ))}

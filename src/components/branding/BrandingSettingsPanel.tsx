@@ -121,7 +121,7 @@ export function BrandingSettingsPanel() {
           styleVariant: branding.style_variant,
         });
       } catch (error) {
-        console.error(error);
+        if (import.meta.env.DEV) console.error(error);
         toast.error("No se pudo cargar tu branding");
       } finally {
         setLoading(false);
@@ -191,7 +191,7 @@ export function BrandingSettingsPanel() {
       await refreshBranding();
       toast.success("Branding actualizado al instante");
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) console.error(error);
       toast.error("No se pudo guardar el branding");
     } finally {
       setSaving(false);
@@ -311,7 +311,7 @@ export function BrandingSettingsPanel() {
 
             <div className="flex items-center justify-between rounded-lg border bg-muted/20 p-3">
               <p className="text-xs text-muted-foreground">
-                Cambios aplicados automaticamente en web publica, app interna y documentos compatibles.
+                Cambios aplicados automáticamente en web pública, app interna y documentos compatibles.
               </p>
               <Button type="button" variant="ghost" onClick={() => window.location.reload()}>
                 <RefreshCw className="mr-1 h-4 w-4" /> Recargar vista
@@ -352,7 +352,7 @@ export function BrandingSettingsPanel() {
 
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700">
               <CheckCircle2 className="mr-1 inline h-4 w-4" />
-              Resultado premium sin complejidad tecnica.
+              Resultado premium sin complejidad técnica.
             </div>
           </CardContent>
         </Card>

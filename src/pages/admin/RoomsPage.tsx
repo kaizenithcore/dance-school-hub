@@ -77,6 +77,8 @@ export default function RoomsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const pendingDeleteRef = useRef<{ room: Room; index: number } | null>(null);
   const pendingDeleteTimerRef = useRef<number | null>(null);
+  const submittingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const activeCount = useMemo(() => rooms.filter((r) => r.isActive).length, [rooms]);
   const totalCapacity = useMemo(() => rooms.reduce((sum, room) => sum + room.capacity, 0), [rooms]);
@@ -154,7 +156,7 @@ export default function RoomsPage() {
         const data = await getRooms();
         setRooms(data);
       } catch (error) {
-        console.error("Error loading rooms:", error);
+        if (import.meta.env.DEV) console.error("Error loading rooms:", error);
         toast.error("No se pudieron cargar las aulas");
       } finally {
         setLoading(false);
@@ -221,6 +223,7 @@ export default function RoomsPage() {
   };
 
   const handleSave = async () => {
+    if (submittingRef.current) return;
     if (!form.name.trim()) {
       toast.error("El nombre del aula es obligatorio");
       return;
@@ -234,6 +237,8 @@ export default function RoomsPage() {
       return;
     }
 
+    submittingRef.current = true;
+    setIsSaving(true);
     try {
       if (editingRoom) {
         const updated = await runWithSaveFeedback(
@@ -291,7 +296,11 @@ export default function RoomsPage() {
 
       setFormOpen(false);
     } catch (error) {
-      console.error("Error saving room:", error);
+      if (import.meta.env.DEV) console.error("Error saving room:", error);
+      toast.error(error instanceof Error ? error.message : "Error al guardar el aula");
+    } finally {
+      submittingRef.current = false;
+      setIsSaving(false);
     }
   };
 
@@ -368,7 +377,7 @@ export default function RoomsPage() {
           }
         }
       ).catch((error) => {
-        console.error("Error deleting room:", error);
+        if (import.meta.env.DEV) console.error("Error deleting room:", error);
         setRooms((prev) => {
           const next = [...prev];
           next.splice(Math.min(pending.index, next.length), 0, pending.room);
@@ -547,8 +556,8 @@ export default function RoomsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>{editingRoom ? "Guardar" : "Crear"}</Button>
+            <Button variant="outline" onClick={() => setFormOpen(false)} disabled={isSaving}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={isSaving}>{isSaving ? "Guardando..." : editingRoom ? "Guardar" : "Crear"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

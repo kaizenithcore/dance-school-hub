@@ -32,7 +32,7 @@ export function useAcademicYear(): UseAcademicYearResult {
       setAcademicYears(data.academicYears);
       setCurrentAcademicYearId(data.currentAcademicYearId);
     } catch (error) {
-      console.error("Failed to load academic years:", error);
+      if (import.meta.env.DEV) console.error("Failed to load academic years:", error);
       toast.error("No se pudieron cargar los años académicos");
     } finally {
       setLoading(false);
@@ -49,7 +49,7 @@ export function useAcademicYear(): UseAcademicYearResult {
       setCurrentAcademicYearId(result.academicYear.id);
       toast.success(`Año académico actualizado: ${result.academicYear.displayName}`);
     } catch (error) {
-      console.error("Failed to update current academic year:", error);
+      if (import.meta.env.DEV) console.error("Failed to update current academic year:", error);
       toast.error("No se pudo actualizar el año académico");
       throw error;
     }
@@ -61,7 +61,7 @@ export function useAcademicYear(): UseAcademicYearResult {
       toast.success("Curso creado correctamente");
       await loadAcademicYears();
     } catch (error) {
-      console.error("Failed to create academic year:", error);
+      if (import.meta.env.DEV) console.error("Failed to create academic year:", error);
       toast.error("No se pudo crear el curso");
       throw error;
     }

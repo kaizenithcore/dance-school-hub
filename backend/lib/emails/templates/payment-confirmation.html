@@ -1,0 +1,163 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html dir="ltr" lang="es">
+  <head>
+    <meta content="width=device-width" name="viewport" />
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta content="IE=edge" http-equiv="X-UA-Compatible" />
+    <meta content="telephone=no,address=no,email=no,date=no,url=no" name="format-detection" />
+    <title>Pago confirmado — {{{school_name}}}</title>
+  </head>
+
+  <!--
+    Nexa — Confirmación de pago recibido (payment-confirmation-v1)
+    Asunto sugerido: "Pago confirmado en {{{school_name}}}"
+
+    Variables: {{{student_name}}}, {{{school_name}}},
+               {{{payment_amount}}},   ← ej. "€52,00"
+               {{{payment_date}}},     ← ej. "10 de julio de 2026"
+               {{{payment_method}}},   ← ej. "Transferencia bancaria" / "Efectivo" / "Tarjeta"
+               {{{payment_concept}}},  ← ej. "Cuota mensual · Ballet Beginners · Julio 2026"
+               {{{payment_reference}}},← referencia/número de pago, opcional
+               {{{school_email}}}
+  -->
+
+  <body style="margin:0;padding:0;background-color:#0d0b1c;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Helvetica Neue',Arial,sans-serif">
+    <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation">
+      <tbody><tr><td align="center" style="padding:40px 16px 56px">
+
+        <!-- Card -->
+        <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation"
+          style="max-width:600px;background-color:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 0 0 1px rgba(109,62,196,0.12),0 32px 80px rgba(0,0,0,0.45)">
+          <tbody>
+
+            <tr><td height="3" style="background:linear-gradient(90deg,#059669 0%,#34d399 50%,#059669 100%);font-size:0;line-height:0">&nbsp;</td></tr>
+
+            <!-- HEADER -->
+            <tr><td style="padding:28px 36px 24px;border-bottom:1px solid #f0edf9">
+              <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:24px">
+                <tbody><tr>
+                  <td style="vertical-align:middle">
+                    <table border="0" cellpadding="0" cellspacing="0" role="presentation"><tbody><tr>
+                      <td style="background:#6d3ec4;border-radius:8px;width:30px;height:30px;text-align:center;vertical-align:middle">
+                        <span style="font-size:13px;font-weight:800;color:#fff;line-height:30px;display:inline-block;padding:0 7px">N</span>
+                      </td>
+                      <td style="padding-left:9px;vertical-align:middle">
+                        <span style="font-size:14px;font-weight:700;color:#1a1535">Nexa</span>
+                      </td>
+                    </tr></tbody></table>
+                  </td>
+                  <td align="right" style="vertical-align:middle">
+                    <table border="0" cellpadding="0" cellspacing="0" role="presentation"><tbody><tr>
+                      <td style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:100px;padding:4px 11px">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation"><tbody><tr>
+                          <td style="width:5px;height:5px;background:#059669;border-radius:50%;vertical-align:middle;font-size:0">&nbsp;</td>
+                          <td style="padding-left:5px;vertical-align:middle">
+                            <span style="font-size:10px;font-weight:600;color:#065f46;white-space:nowrap">Pago recibido</span>
+                          </td>
+                        </tr></tbody></table>
+                      </td>
+                    </tr></tbody></table>
+                  </td>
+                </tr></tbody>
+              </table>
+
+              <p style="margin:0 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9d8ec8">{{{school_name}}}</p>
+              <h1 style="margin:0 0 10px;font-size:25px;font-weight:800;color:#1a1535;letter-spacing:-0.4px;line-height:1.25">
+                Pago confirmado,<br />{{{student_name}}}.
+              </h1>
+              <p style="margin:0;font-size:14px;color:#6b6585;line-height:1.65">
+                Hemos registrado tu pago correctamente. Aquí tienes el resumen para tus archivos.
+              </p>
+            </td></tr>
+
+            <!-- RESUMEN DEL PAGO -->
+            <tr><td style="padding:24px 36px;border-bottom:1px solid #f0edf9">
+              <p style="margin:0 0 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9d8ec8">Detalle del pago</p>
+
+              <!-- Importe destacado -->
+              <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                style="background:#faf9ff;border:1.5px solid #ede9fe;border-radius:12px;margin-bottom:12px">
+                <tbody><tr><td style="padding:20px 24px;text-align:center">
+                  <p style="margin:0;font-size:12px;font-weight:600;color:#9d8ec8;text-transform:uppercase;letter-spacing:0.5px">Total pagado</p>
+                  <p style="margin:8px 0 0;font-size:36px;font-weight:800;color:#059669;letter-spacing:-1px">{{{payment_amount}}}</p>
+                </td></tr></tbody>
+              </table>
+
+              <!-- Tabla de detalles -->
+              <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                style="background:#f8f8fb;border-radius:12px">
+                <tbody>
+                  <tr>
+                    <td style="padding:11px 16px;border-bottom:1px solid #f0edf9;vertical-align:top;width:38%">
+                      <p style="margin:0;font-size:12px;font-weight:600;color:#9d8ec8">Concepto</p>
+                    </td>
+                    <td style="padding:11px 16px;border-bottom:1px solid #f0edf9;vertical-align:top">
+                      <p style="margin:0;font-size:12px;color:#1a1535">{{{payment_concept}}}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:11px 16px;border-bottom:1px solid #f0edf9;vertical-align:top">
+                      <p style="margin:0;font-size:12px;font-weight:600;color:#9d8ec8">Fecha</p>
+                    </td>
+                    <td style="padding:11px 16px;border-bottom:1px solid #f0edf9;vertical-align:top">
+                      <p style="margin:0;font-size:12px;color:#1a1535">{{{payment_date}}}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:11px 16px;{{{#if payment_reference}}}border-bottom:1px solid #f0edf9;{{{/if}}}vertical-align:top">
+                      <p style="margin:0;font-size:12px;font-weight:600;color:#9d8ec8">Método</p>
+                    </td>
+                    <td style="padding:11px 16px;{{{#if payment_reference}}}border-bottom:1px solid #f0edf9;{{{/if}}}vertical-align:top">
+                      <p style="margin:0;font-size:12px;color:#1a1535">{{{payment_method}}}</p>
+                    </td>
+                  </tr>
+                  {{{#if payment_reference}}}
+                  <tr>
+                    <td style="padding:11px 16px;vertical-align:top">
+                      <p style="margin:0;font-size:12px;font-weight:600;color:#9d8ec8">Referencia</p>
+                    </td>
+                    <td style="padding:11px 16px;vertical-align:top">
+                      <p style="margin:0;font-size:12px;color:#1a1535;font-family:monospace">{{{payment_reference}}}</p>
+                    </td>
+                  </tr>
+                  {{{/if}}}
+                </tbody>
+              </table>
+            </td></tr>
+
+            <!-- CONTACT -->
+            <tr><td style="padding:24px 36px 32px">
+              <p style="margin:0 0 12px;font-size:13px;color:#9d8ec8">¿Alguna duda sobre este pago?</p>
+              {{{#if school_email}}}
+              <table border="0" cellpadding="0" cellspacing="0" role="presentation"><tbody><tr>
+                <td style="background:#f5f3ff;border:1px solid #ede9fe;border-radius:8px;padding:7px 14px">
+                  <a href="mailto:{{{school_email}}}" style="font-size:13px;font-weight:500;color:#6d3ec4;text-decoration:none">✉ {{{school_email}}}</a>
+                </td>
+              </tr></tbody></table>
+              {{{/if}}}
+            </td></tr>
+
+          </tbody>
+        </table>
+
+        <!-- Footer -->
+        <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin-top:20px">
+          <tbody><tr>
+            <td style="padding:0 4px;vertical-align:middle">
+              <p style="margin:0;font-size:11px;color:#4a4268;line-height:1.6">
+                Recibo emitido por <strong style="color:#5e538a">{{{school_name}}}</strong>.
+                Guarda este mensaje como justificante.
+              </p>
+            </td>
+            <td align="right" style="vertical-align:middle;padding-left:16px;white-space:nowrap">
+              <p style="margin:0;font-size:10px;color:#3d3560;text-align:right">Gestionado por</p>
+              <span style="font-size:12px;font-weight:800;color:#6d3ec4;letter-spacing:-0.3px">Nexa</span>
+            </td>
+          </tr></tbody>
+        </table>
+
+      </td></tr></tbody>
+    </table>
+  </body>
+</html>

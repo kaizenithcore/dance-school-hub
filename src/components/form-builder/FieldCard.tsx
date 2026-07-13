@@ -1,5 +1,5 @@
 import { FormBuilderField, FIELD_TYPE_LABELS, FieldType } from "@/lib/types/formBuilder";
-import { GripVertical, Trash2, ChevronDown, ChevronUp, Asterisk, Type, Mail, Phone, AlignLeft, ListChecks, CheckSquare, FileUp, CalendarDays, Hash, Info } from "lucide-react";
+import { GripVertical, Trash2, ChevronDown, ChevronUp, Asterisk, Type, Mail, Phone, AlignLeft, ListChecks, CheckSquare, FileUp, CalendarDays, Hash, Info, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,7 @@ const FIELD_ICONS: Record<FieldType, React.ElementType> = {
   date: CalendarDays,
   number: Hash,
   info: Info,
+  file_download: Download,
 };
 
 interface FieldCardProps {
@@ -117,6 +118,10 @@ export function FieldCard({ field, index, totalFields, allSections, onUpdate, on
                 if (val === "file" && !updated.accept) {
                   updated.accept = ".pdf,.jpg,.jpeg,.png";
                 }
+                if (val === "file_download" && updated.downloadUrl === undefined) {
+                  updated.downloadUrl = "";
+                  updated.required = false;
+                }
                 onUpdate(updated);
               }}>
                 <SelectTrigger className="h-8 text-xs">
@@ -153,7 +158,7 @@ export function FieldCard({ field, index, totalFields, allSections, onUpdate, on
             </div>
           </div>
 
-          {field.type !== "info" && (
+          {field.type !== "info" && field.type !== "file_download" && (
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <Switch
@@ -197,6 +202,19 @@ export function FieldCard({ field, index, totalFields, allSections, onUpdate, on
                 placeholder=".pdf,.jpg,.png"
                 className="h-8 text-xs"
               />
+            </div>
+          )}
+
+          {field.type === "file_download" && (
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">URL del documento</Label>
+              <Input
+                value={field.downloadUrl || ""}
+                onChange={(e) => onUpdate({ ...field, downloadUrl: e.target.value })}
+                placeholder="https://... (Google Drive, Dropbox, enlace directo al PDF...)"
+                className="h-8 text-xs"
+              />
+              <p className="text-xs text-muted-foreground">El alumno verá un botón para descargar este documento desde el formulario.</p>
             </div>
           )}
 

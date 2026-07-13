@@ -33,6 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState(480);
   const [loginAlertsEnabled, setLoginAlertsEnabled] = useState(true);
   const lastActivityRef = useRef<number>(Date.now());
+  const authContextRef = useRef<AuthContextResponse | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   const loadSecuritySettings = useCallback(async () => {
     try {
@@ -47,19 +49,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshAuthContext = useCallback(async () => {
-    setIsLoading(true);
+    // On token refreshes (non-initial), don't show the global loading spinner.
+    // This prevents the UI from blanking every ~1h when Supabase refreshes the JWT.
+    const isInitial = isInitialLoadRef.current;
+    isInitialLoadRef.current = false;
+
+    if (isInitial) setIsLoading(true);
     try {
       const context = await getCurrentAuthContext();
+      authContextRef.current = context;
       setAuthContext(context);
       syncSelectedAdminContext(context);
       if (context) {
         await loadSecuritySettings();
       }
     } catch (error) {
-      console.error("Failed to refresh auth context:", error);
-      setAuthContext(null);
+      if (import.meta.env.DEV) console.error("Failed to refresh auth context:", error);
+      // On non-initial refresh failures (e.g. backend down during token refresh),
+      // keep the existing authContext so the UI stays visible.
+      if (isInitial) {
+        setAuthContext(null);
+      }
     } finally {
-      setIsLoading(false);
+      if (isInitial) setIsLoading(false);
     }
   }, [loadSecuritySettings]);
 
@@ -171,8 +183,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
         touchActivity();
+        // Only show the login toast for a real new sign-in, not for token refreshes.
+        // Supabase fires SIGNED_IN on token refresh in some versions, so we guard
+        // by checking if we already have an established auth context.
+        const isNewLogin = !authContextRef.current;
         void refreshAuthContext();
-        if (loginAlertsEnabled) {
+        if (loginAlertsEnabled && isNewLogin) {
           toast.info("Nuevo inicio de sesión detectado");
         }
       } else if (event === "SIGNED_OUT") {

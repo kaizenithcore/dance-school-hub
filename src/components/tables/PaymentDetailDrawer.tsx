@@ -146,6 +146,12 @@ export function PaymentDetailDrawer({ open, onOpenChange, payment, onMarkPaid, o
                     </Button>
                   )}
                 </div>
+                {canMarkPaid && (
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                    <Mail className="h-3 w-3 shrink-0" />
+                    Al marcar como pagado se enviará una confirmación al alumno por correo.
+                  </p>
+                )}
               </section>
             </>
           )}

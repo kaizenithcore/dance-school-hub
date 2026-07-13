@@ -6,9 +6,7 @@ export function LandingFooter() {
       <div className="container">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-              <span className="text-xs font-bold text-primary-foreground">N</span>
-            </div>
+            <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-7 w-7 object-contain" />
             <span className="text-sm font-medium text-foreground">Nexa</span>
           </div>
 

@@ -1,4 +1,4 @@
-export type FieldType = "text" | "email" | "tel" | "textarea" | "select" | "checkbox" | "file" | "date" | "number" | "info";
+export type FieldType = "text" | "email" | "tel" | "textarea" | "select" | "checkbox" | "file" | "date" | "number" | "info" | "file_download";
 
 export interface FieldOption {
   value: string;
@@ -22,6 +22,7 @@ export interface FormBuilderField {
   accept?: string;
   maxLength?: number;
   conditions?: FieldCondition[];
+  downloadUrl?: string;
 }
 
 export interface FormBuilderSection {
@@ -72,6 +73,7 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   date: "Fecha",
   number: "Número",
   info: "Texto informativo",
+  file_download: "Documento descargable",
 };
 
 export const OPERATOR_LABELS: Record<FieldCondition["operator"], string> = {
@@ -100,6 +102,10 @@ export function createDefaultField(type: FieldType = "text"): FormBuilderField {
   if (type === "file") {
     base.accept = ".pdf,.jpg,.jpeg,.png";
   }
+  if (type === "file_download") {
+    base.downloadUrl = "";
+    base.required = false;
+  }
   return base;
 }
 
@@ -122,7 +128,7 @@ export function getDefaultEnrollmentConfig(): EnrollmentFormConfig {
         fields: [
           { id: "student_name", type: "text", label: "Nombre completo", placeholder: "Ej: María López", required: true, maxLength: 100 },
           { id: "student_email", type: "email", label: "Correo electrónico", placeholder: "maria@ejemplo.com", required: true, maxLength: 255 },
-          { id: "student_phone", type: "tel", label: "Teléfono", placeholder: "(011) 1234-5678", required: true, maxLength: 20 },
+          { id: "student_phone", type: "tel", label: "Teléfono", placeholder: "+34 612 34 56 78", required: true, maxLength: 20 },
           { id: "student_birthdate", type: "date", label: "Fecha de nacimiento", required: true },
           { id: "student_level", type: "select", label: "Nivel de experiencia", required: true, options: [
             { value: "beginner", label: "Principiante" },
@@ -137,7 +143,7 @@ export function getDefaultEnrollmentConfig(): EnrollmentFormConfig {
         description: "Requerido para alumnos menores de 18 años.",
         fields: [
           { id: "guardian_name", type: "text", label: "Nombre del tutor", placeholder: "Nombre completo", required: false, maxLength: 100 },
-          { id: "guardian_phone", type: "tel", label: "Teléfono del tutor", placeholder: "(011) 1234-5678", required: false, maxLength: 20 },
+          { id: "guardian_phone", type: "tel", label: "Teléfono del tutor", placeholder: "+34 612 34 56 78", required: false, maxLength: 20 },
           { id: "guardian_email", type: "email", label: "Correo del tutor", placeholder: "tutor@ejemplo.com", required: false, maxLength: 255 },
         ],
         conditions: [

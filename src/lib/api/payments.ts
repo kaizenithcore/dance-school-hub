@@ -22,6 +22,7 @@ export interface PaymentRecord {
   metadata?: Record<string, any>;
   createdAt: string;
   amountChanged?: boolean;
+  emailSent?: boolean;
 }
 
 export async function getPayments(): Promise<PaymentRecord[]> {

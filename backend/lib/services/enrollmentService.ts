@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
+import { sendEnrollmentResult } from "@/lib/emails/transactionalEmails";
 
 export type EnrollmentStatus = "pending" | "confirmed" | "declined" | "cancelled";
 
@@ -151,6 +152,15 @@ export const enrollmentService = {
       },
     });
 
-    return { id: updated.id, status: updated.status, unchanged: false };
+    let emailSent: boolean | undefined;
+    if (nextStatus === "confirmed" || nextStatus === "declined") {
+      emailSent = await sendEnrollmentResult({
+        tenantId,
+        enrollmentId,
+        accepted: nextStatus === "confirmed",
+      });
+    }
+
+    return { id: updated.id, status: updated.status, unchanged: false, emailSent };
   },
 };

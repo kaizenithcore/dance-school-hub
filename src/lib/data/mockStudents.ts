@@ -100,7 +100,7 @@ export const MOCK_STUDENTS: StudentRecord[] = [
       { id: "3", name: "Hip Hop Niños", day: "Martes", time: "15:00–16:00", monthlyPrice: 65 },
     ],
     status: "active", joinDate: "2026-01-10", paymentType: "monthly",
-    guardian: { name: "Pedro Herrera", phone: "(011) 5555-0000", email: "pedro@ejemplo.com" },
+    guardian: { name: "Pedro Herrera", phone: "+34 612 34 56 78", email: "pedro@ejemplo.com" },
   },
   {
     id: "s10", name: "Nicolás Acosta", email: "nico@ejemplo.com", phone: "(011) 5555-0123", birthdate: "1999-06-20",

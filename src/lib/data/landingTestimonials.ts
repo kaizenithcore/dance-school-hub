@@ -23,7 +23,7 @@ export const landingTestimonials: LandingTestimonial[] = [
     personName: "Etna G.",
     personRole: "Directora",
     quote:
-      "Antes invertiamos demasiadas horas en matriculas y reorganizacion de grupos. Ahora el equipo puede centrarse en alumnos y calidad de clases.",
+      "Antes invertíamos demasiadas horas en matrículas y reorganización de grupos. Ahora el equipo puede centrarse en alumnos y calidad de clases.",
     metricLabel: "Tiempo administrativo semanal ahorrado",
     metricValue: "-14 h/semana",
     logoPlaceholderText: "ED",
@@ -31,7 +31,7 @@ export const landingTestimonials: LandingTestimonial[] = [
   },
   {
     id: "tu-escuela",
-    status: "published",
+    status: "placeholder",
     schoolName: "Tu escuela",
     location: "España",
     personName: "Tú",

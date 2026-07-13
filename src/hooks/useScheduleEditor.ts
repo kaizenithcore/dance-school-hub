@@ -243,7 +243,7 @@ export function useScheduleEditor() {
       setClassCatalog(mappedClasses);
       setBlocks(mappedBlocks);
     } catch (error) {
-      console.error("Error loading schedule editor data:", error);
+      if (import.meta.env.DEV) console.error("Error loading schedule editor data:", error);
     } finally {
       setLoading(false);
     }

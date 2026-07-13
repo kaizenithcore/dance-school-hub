@@ -33,7 +33,7 @@ export default function EnrollmentsPage() {
       const data = await getEnrollments();
       setEnrollments(data);
     } catch (error) {
-      console.error("Error loading enrollments:", error);
+      if (import.meta.env.DEV) console.error("Error loading enrollments:", error);
       toast.error("Error al cargar inscripciones");
       setEnrollments([]);
     } finally { setLoading(false); }
@@ -69,6 +69,11 @@ export default function EnrollmentsPage() {
       setEnrollments((prev) => prev.map((e) => (e.id === id ? { ...e, status: updated.status } : e)));
       setSelectedEnrollment((prev) => prev && prev.id === id ? { ...prev, status: updated.status } : prev);
       toast.success(`Inscripción marcada como ${STATUS_LABELS[updated.status]}`);
+      if (updated.emailSent === true) {
+        toast.info("Notificación enviada al alumno por correo ✓");
+      } else if (updated.emailSent === false) {
+        toast.warning("No se pudo enviar la notificación por correo. Avisa al alumno manualmente.");
+      }
     })();
   }, []);
 

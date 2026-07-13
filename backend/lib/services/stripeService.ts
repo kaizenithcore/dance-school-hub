@@ -25,6 +25,7 @@ export interface CreateSubscriptionCheckoutSessionInput {
   metadata?: Record<string, string>;
   customerEmail?: string;
   lineItems: SubscriptionCheckoutLineItem[];
+  couponId?: string;
 }
 
 export interface StripeCompletedCheckoutMatch {
@@ -138,6 +139,7 @@ export const stripeService = {
       line_items: lineItems,
       customer_email: input.customerEmail,
       metadata: sanitizeMetadata(input.metadata),
+      ...(input.couponId ? { discounts: [{ coupon: input.couponId }] } : {}),
     });
 
     return {

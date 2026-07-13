@@ -55,7 +55,7 @@ export function MarkInvoicePaidModal({
       setAccountNumber("");
       setPayerName(studentName);
     } catch (error) {
-      console.error("Error marking invoice as paid:", error);
+      if (import.meta.env.DEV) console.error("Error marking invoice as paid:", error);
     } finally {
       setLoading(false);
     }

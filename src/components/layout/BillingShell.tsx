@@ -143,7 +143,9 @@ export function BillingShell() {
   const [reserveFallbackSaved, setReserveFallbackSaved] = useState(false);
   const [checkoutTermsAccepted, setCheckoutTermsAccepted] = useState(true);
   const [planAdvisorStudents, setPlanAdvisorStudents] = useState(260);
-  const [trialLockDismissed, setTrialLockDismissed] = useState(false);
+  const [trialLockDismissed, setTrialLockDismissed] = useState(
+    () => sessionStorage.getItem("nexa:trial-dismissed") === "1"
+  );
   const [trialStatusSyncing, setTrialStatusSyncing] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
@@ -284,6 +286,12 @@ export function BillingShell() {
   const starterToProAnnualMonthlyDelta = getInterestFreeInstallment(
     Math.max(0, planCatalog.pro.billing.annualTotalEur - planCatalog.starter.billing.annualTotalEur), 12
   );
+  const setFoundersCodeCopied = useCallback((copied: boolean) => {
+    if (copied) {
+      toast.success("Código copiado al portapapeles");
+    }
+  }, []);
+  
   const segmentMiniCases = useMemo(() => SEGMENT_CASES.map((segment) => {
     const segmentPlan = planCatalog[segment.planType];
     const monthly = checkoutBillingCycle === "annual"
@@ -326,11 +334,17 @@ export function BillingShell() {
 
   // Trial lock reset when lock is resolved
   useEffect(() => {
-    if (!isTrialLocked && trialLockDismissed) setTrialLockDismissed(false);
+    if (!isTrialLocked && trialLockDismissed) {
+      sessionStorage.removeItem("nexa:trial-dismissed");
+      setTrialLockDismissed(false);
+    }
   }, [isTrialLocked, trialLockDismissed]);
 
   // Trial stripe sync
   useEffect(() => {
+    // Wait until billing data has loaded to avoid firing the sync when
+    // trialPaymentCompleted is still at its default (false) initial value.
+    if (billingLoading) return;
     if (!isTrialLocked || billing.trialPaymentCompleted) {
       trialStripeSyncAttemptedRef.current = false;
       setTrialStatusSyncing(false);
@@ -355,7 +369,7 @@ export function BillingShell() {
         if (import.meta.env.DEV) console.warn("[trial-sync] stripe reconciliation failed", error);
       } finally { setTrialStatusSyncing(false); }
     })();
-  }, [billing.trialPaymentCompleted, isTrialLocked, refresh]);
+  }, [billing.trialPaymentCompleted, billingLoading, isTrialLocked, refresh]);
 
   // Apply plan selected during registration to trial settings (runs once on first load)
   const trialPlanAppliedRef = useRef(false);
@@ -710,7 +724,7 @@ export function BillingShell() {
 
             {canDismissTrialLockInDev && (
               <div className="border-t border-border px-6 py-3">
-                <Button type="button" variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => setTrialLockDismissed(true)}>
+                <Button type="button" variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => { sessionStorage.setItem("nexa:trial-dismissed", "1"); setTrialLockDismissed(true); }}>
                   Cerrar (solo desarrollo)
                 </Button>
               </div>

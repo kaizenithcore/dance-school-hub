@@ -17,6 +17,7 @@ import { createPricingRule, updatePricingRule } from '@/lib/api/pricing'
 import { DisciplineHoursConditionEditor } from './DisciplineHoursConditionEditor'
 import { CategoryPackConditionEditor } from './CategoryPackConditionEditor'
 import { TotalHoursConditionEditor } from './TotalHoursConditionEditor'
+import { ConditionEditorBoundary } from './ConditionEditorBoundary'
 
 interface Props {
   rule?: PricingRule
@@ -115,28 +116,30 @@ export function PricingRuleForm({ rule, categories, onClose }: Props) {
       </div>
 
       {/* Condition Editors based on rule type */}
-      {ruleType === 'discipline_hours' && (
-        <DisciplineHoursConditionEditor
-          conditions={conditions}
-          onChange={setConditions}
-        />
-      )}
+      <ConditionEditorBoundary>
+        {ruleType === 'discipline_hours' && (
+          <DisciplineHoursConditionEditor
+            conditions={conditions}
+            onChange={setConditions}
+          />
+        )}
 
-      {ruleType === 'category_pack' && (
-        <CategoryPackConditionEditor
-          conditions={conditions}
-          categories={categories}
-          onChange={setConditions}
-        />
-      )}
+        {ruleType === 'category_pack' && (
+          <CategoryPackConditionEditor
+            conditions={conditions}
+            categories={categories}
+            onChange={setConditions}
+          />
+        )}
 
-      {ruleType === 'total_hours' && (
-        <TotalHoursConditionEditor
-          conditions={conditions}
-          categories={categories}
-          onChange={setConditions}
-        />
-      )}
+        {ruleType === 'total_hours' && (
+          <TotalHoursConditionEditor
+            conditions={conditions}
+            categories={categories}
+            onChange={setConditions}
+          />
+        )}
+      </ConditionEditorBoundary>
 
       <div>
         <Label htmlFor="price">Precio €</Label>

@@ -12,7 +12,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Music, Award, Loader2 } from "lucide-react";
+import { ArrowRight, BookOpen, Award, Loader2 } from "lucide-react";
 import { updateOwnPortalProfile } from "@/lib/api/portalFoundation";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
 
@@ -76,9 +76,7 @@ export default function OnboardingScreen() {
         className="mb-8 text-center"
       >
         <div className="flex justify-center mb-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <Music className="h-6 w-6 text-primary-foreground" />
-          </div>
+          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-12 w-12 object-contain" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">Bienvenido al portal</h1>
         <p className="mt-1 text-sm text-muted-foreground">Solo 3 pasos para empezar</p>

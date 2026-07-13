@@ -46,6 +46,16 @@ export const roomService = {
   },
 
   async createRoom(tenantId: string, input: CreateRoomInput): Promise<Room> {
+    const { data: existing } = await supabaseAdmin
+      .from("rooms")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .ilike("name", input.name.trim())
+      .maybeSingle();
+    if (existing) {
+      throw Object.assign(new Error(`Ya existe un aula con el nombre "${input.name}"`), { code: "duplicate_name" });
+    }
+
     const { data, error } = await supabaseAdmin
       .from("rooms")
       .insert({
@@ -66,6 +76,19 @@ export const roomService = {
   },
 
   async updateRoom(tenantId: string, roomId: string, input: UpdateRoomInput): Promise<Room> {
+    if (input.name !== undefined) {
+      const { data: existing } = await supabaseAdmin
+        .from("rooms")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .ilike("name", input.name.trim())
+        .neq("id", roomId)
+        .maybeSingle();
+      if (existing) {
+        throw Object.assign(new Error(`Ya existe un aula con el nombre "${input.name}"`), { code: "duplicate_name" });
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from("rooms")
       .update({
