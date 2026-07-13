@@ -57,6 +57,7 @@ const FullSchedulePage = lazy(() => import("@/pages/public/FullSchedulePage"));
 const StudentPortalLandingPage = lazy(() => import("@/pages/public/StudentPortalLandingPage"));
 
 const LeadQualificationPage = lazy(() => import("@/pages/public/LeadQualificationPage"));
+const LandingDemoPage = lazy(() => import("@/pages/public/LandingDemoPage"));
 const RenewalResponsePage = lazy(() => import("@/pages/public/RenewalResponsePage"));
 const PortalLoginPage = lazy(() => import("@/pages/portal/PortalLoginPage"));
 const SuperAdminDashboard = lazy(() => import("@/pages/superadmin/SuperAdminDashboard"));
@@ -210,6 +211,7 @@ const App = () => (
             <Route path="schedule" element={withSuspense(<FullSchedulePage />)} />
           </Route>
           <Route path="/cualificacion" element={withSuspense(<LeadQualificationPage />)} />
+          <Route path="/landing-demo" element={withSuspense(<LandingDemoPage />)} />
           <Route path="/renovar" element={withSuspense(<RenewalResponsePage />)} />
           <Route path="/portal/login" element={withSuspense(<PortalLoginPage />)} />
           {/* Super admin — protected by backend PLATFORM_OWNER_EMAIL check */}

@@ -1,0 +1,175 @@
+{
+  "meta": {
+    "schoolName": "Aurora",
+    "schoolFullName": "Aurora — Escuela de Danza",
+    "tagline": "Donde la técnica se encuentra con la pasión",
+    "location": "Chamberí, Madrid",
+    "primaryCtaLabel": "Matricúlate ahora",
+    "primaryCtaUrl": "/s/academia-demo/enroll",
+    "secondaryCtaLabel": "Ver horarios",
+    "secondaryCtaUrl": "/s/academia-demo/schedule",
+    "navLinks": [
+      { "label": "Quiénes somos", "href": "#quienes-somos" },
+      { "label": "Disciplinas", "href": "#disciplinas" },
+      { "label": "Horarios", "href": "#horarios" },
+      { "label": "Precios", "href": "#precios" },
+      { "label": "Contacto", "href": "#contacto" }
+    ]
+  },
+  "sections": [
+    {
+      "id": "hero",
+      "type": "hero",
+      "enabled": true,
+      "order": 1,
+      "content": {
+        "eyebrow": "Escuela de danza en Chamberí, Madrid",
+        "title": "Baila. Crece.\nEncuentra tu lugar en Aurora.",
+        "subtitle": "Más de 12 años formando bailarines de todas las edades con un método propio que combina rigor técnico, expresión artística y un ambiente humano y cercano.",
+        "image": {
+          "src": "https://images.unsplash.com/photo-1518834107812-67b0b7c58434?auto=format&fit=crop&w=1600&q=80",
+          "alt": "Bailarinas de ballet ensayando en un estudio luminoso"
+        },
+        "trustBadge": "+500 alumnos · +12 años de trayectoria · 6 disciplinas"
+      }
+    },
+    {
+      "id": "quienes-somos",
+      "type": "about",
+      "enabled": true,
+      "order": 2,
+      "content": {
+        "eyebrow": "Quiénes somos",
+        "title": "Una escuela donde se baila de verdad.",
+        "paragraphs": [
+          "Aurora nace en 2013 en el corazón de Chamberí con una idea sencilla: crear un espacio donde niños, adolescentes y adultos puedan formarse en danza con seriedad, sin perder nunca la alegría de bailar.\n\nNuestro equipo lo forman profesores titulados con trayectoria en compañías nacionales e internacionales. Cada nivel está pensado para acompañar el progreso real del alumno: desde el primer pliegue en ballet hasta la preparación para audiciones y exámenes oficiales.",
+          "Trabajamos en grupos reducidos, con seguimiento individual, dos salas equipadas con suelo técnico y un programa anual que culmina en festival de fin de curso en un teatro de Madrid."
+        ],
+        "images": [
+          { "src": "https://images.unsplash.com/photo-1547153760-18fc86324498?auto=format&fit=crop&w=800&q=80", "alt": "Clase de ballet con bailarinas en barra" },
+          { "src": "https://images.unsplash.com/photo-1535525153412-5a42439a210d?auto=format&fit=crop&w=800&q=80", "alt": "Bailarina de contemporáneo en pleno salto" },
+          { "src": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80", "alt": "Grupo de hip hop ensayando coreografía" },
+          { "src": "https://images.unsplash.com/photo-1504609813442-a8924e83f76e?auto=format&fit=crop&w=800&q=80", "alt": "Detalle de zapatillas de ballet sobre tarima" }
+        ],
+        "stats": [
+          { "value": "+500", "label": "Alumnos por curso" },
+          { "value": "12", "label": "Años formando bailarines" },
+          { "value": "14", "label": "Profesores titulados" },
+          { "value": "6", "label": "Disciplinas" }
+        ]
+      }
+    },
+    {
+      "id": "disciplinas",
+      "type": "disciplines",
+      "enabled": true,
+      "order": 3,
+      "content": {
+        "eyebrow": "Disciplinas",
+        "title": "Seis caminos. Una misma forma de bailar.",
+        "subtitle": "Programas estructurados por edad y nivel, con itinerarios claros desde iniciación hasta avanzado.",
+        "scheduleUrl": "/s/academia-demo/schedule",
+        "items": [
+          {
+            "name": "Ballet Clásico",
+            "description": "Técnica académica con metodología Vagánova. Preparación para exámenes oficiales y audiciones.",
+            "level": "Iniciación · Intermedio · Avanzado",
+            "image": { "src": "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80", "alt": "Bailarina de ballet clásico en arabesque" }
+          },
+          {
+            "name": "Contemporáneo",
+            "description": "Trabajo de suelo, peso, fluidez y composición coreográfica. Una danza que escucha al cuerpo.",
+            "level": "Intermedio · Avanzado",
+            "image": { "src": "https://images.unsplash.com/photo-1530653333484-8d063b65aada?auto=format&fit=crop&w=800&q=80", "alt": "Bailarina contemporánea en movimiento expresivo" }
+          },
+          {
+            "name": "Jazz",
+            "description": "Energía, líneas y musicalidad. Repertorio que va del jazz clásico al jazz funk actual.",
+            "level": "Iniciación · Intermedio",
+            "image": { "src": "https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?auto=format&fit=crop&w=800&q=80", "alt": "Grupo de bailarines de jazz en escena" }
+          },
+          {
+            "name": "Hip Hop",
+            "description": "Cultura urbana, fundamentos del freestyle y creación de coreografías para escenario y videoclip.",
+            "level": "Iniciación · Intermedio · Avanzado",
+            "image": { "src": "https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=800&q=80", "alt": "Bailarín de hip hop ejecutando un freeze" }
+          },
+          {
+            "name": "Flamenco",
+            "description": "Compás, braceo y zapateado. Una mirada profunda a la danza española desde la técnica.",
+            "level": "Iniciación · Intermedio",
+            "image": { "src": "https://images.unsplash.com/photo-1535525153412-5a42439a210d?auto=format&fit=crop&w=800&q=80", "alt": "Bailaora de flamenco con bata de cola" }
+          },
+          {
+            "name": "Danza Urbana Adultos",
+            "description": "Espacio adulto sin presión técnica. Bailar para disfrutar, mantenerse en forma y reconectar.",
+            "level": "Solo adultos · Todos los niveles",
+            "image": { "src": "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?auto=format&fit=crop&w=800&q=80", "alt": "Grupo de adultos en clase de danza urbana" }
+          }
+        ]
+      }
+    },
+    {
+      "id": "horarios",
+      "type": "schedule",
+      "enabled": true,
+      "order": 4,
+      "content": {
+        "eyebrow": "Horarios",
+        "title": "Un horario vivo, siempre actualizado.",
+        "subtitle": "El horario que ves aquí está conectado en tiempo real con el sistema de gestión de la escuela. Cuando una clase cambia de aula, hora o profesor, se actualiza al instante.",
+        "ctaLabel": "Ver horario completo y matricularme",
+        "ctaUrl": "/s/academia-demo/schedule",
+        "featuredClasses": [
+          { "name": "Ballet Clásico Infantil", "day": "Lunes y Miércoles", "time": "17:30 – 18:30", "teacher": "Lucía Hernández", "level": "Iniciación", "room": "Sala 1" },
+          { "name": "Contemporáneo Avanzado", "day": "Martes y Jueves", "time": "19:00 – 20:30", "teacher": "Daniel Ruiz", "level": "Avanzado", "room": "Sala 2" },
+          { "name": "Hip Hop Teen", "day": "Miércoles y Viernes", "time": "18:00 – 19:00", "teacher": "Carlos Méndez", "level": "Intermedio", "room": "Sala 1" },
+          { "name": "Flamenco Adultos", "day": "Jueves", "time": "20:30 – 22:00", "teacher": "Rocío Vargas", "level": "Iniciación", "room": "Sala 2" }
+        ]
+      }
+    },
+    {
+      "id": "precios",
+      "type": "pricing",
+      "enabled": true,
+      "order": 5,
+      "content": {
+        "eyebrow": "Tarifas",
+        "title": "Tarifas claras, sin sorpresas.",
+        "subtitle": "Todas las tarifas se gestionan desde el panel de la escuela y se actualizan automáticamente aquí.",
+        "ctaUrl": "/s/academia-demo/enroll",
+        "plans": [
+          {
+            "name": "1 clase / semana",
+            "price": "45€",
+            "period": "/ mes",
+            "description": "Ideal para empezar o complementar otra actividad.",
+            "features": ["Una disciplina a elegir", "Acceso a festival de fin de curso", "Material didáctico incluido"],
+            "ctaLabel": "Matricularme",
+            "highlighted": false
+          },
+          {
+            "name": "2 clases / semana",
+            "price": "75€",
+            "period": "/ mes",
+            "description": "La opción favorita. Progreso real con dos sesiones semanales.",
+            "features": ["Una o dos disciplinas", "Seguimiento individual del profesor", "Preparación para festival", "Descuento en talleres puntuales"],
+            "ctaLabel": "Matricularme",
+            "highlighted": true,
+            "badge": "Más elegida"
+          },
+          {
+            "name": "Bono multidisciplina",
+            "price": "115€",
+            "period": "/ mes",
+            "description": "Clases ilimitadas en todas las disciplinas. Para quien vive la danza.",
+            "features": ["Acceso a todas las disciplinas", "Sin límite de clases semanales", "Prioridad en talleres y masterclasses", "Preparación para audiciones"],
+            "ctaLabel": "Matricularme",
+            "highlighted": false
+          }
+        ],
+        "footnote": "Matrícula anual: 30€ · Hermanos: 10% de descuento · Pago domiciliado mensual."
+      }
+    }
+  ]
+}
