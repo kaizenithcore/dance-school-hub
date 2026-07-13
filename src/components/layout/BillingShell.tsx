@@ -13,7 +13,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useOutlet } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AnimatedPage } from "@/components/ui/animated";
-import { PlanDevOverlay } from "@/components/dev/PlanDevOverlay";
 import { useBillingEntitlements } from "@/hooks/useBillingEntitlements";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -593,7 +592,6 @@ export function BillingShell() {
         ) : null}
       </main>
 
-      <PlanDevOverlay />
 
       {/* Trial loading modal */}
       {showTrialLoadingModal ? (

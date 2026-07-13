@@ -2,6 +2,12 @@ import { motion } from "framer-motion";
 import { Globe, ExternalLink, ArrowRight, Layout, MonitorSmartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { professionalServicesCatalog } from "@/lib/commercialCatalog";
+
+type SimplePricing = { simplePricingEur: { landingBasic: number; fullWebsite: number } };
+const { landingBasic: landingPrice, fullWebsite: fullWebPrice } = (
+  professionalServicesCatalog["integratedWebsite"] as SimplePricing
+).simplePricingEur;
 
 export function WebService() {
   return (
@@ -36,15 +42,15 @@ export function WebService() {
               <p className="text-sm text-muted-foreground mb-4">
                 Captas alumnos y los matriculas directamente desde tu página. Todo conectado con Nexa desde el primer día.
               </p>
-              <p className="text-xs text-muted-foreground mb-4">Desde <span className="font-semibold text-foreground">490€</span> · Pago único</p>
+              <p className="text-xs text-muted-foreground mb-4">Desde <span className="font-semibold text-foreground">{landingPrice}€</span> · Pago único</p>
               <div className="flex flex-col gap-2">
                 <Button size="sm" className="w-full" asChild>
-                  <Link to="/landing-demo">
+                  <Link to="/landing-demo" target="_blank" rel="noreferrer">
                     Ver ejemplo <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
                   </Link>
                 </Button>
                 <Button size="sm" variant="outline" className="w-full" asChild>
-                  <a href="mailto:hola@nexa.es?subject=Quiero%20mi%20landing%20integrada">
+                  <a href="mailto:nexa@kaizenith.es?subject=Quiero%20mi%20landing%20integrada" target="_blank" rel="noreferrer noopener">
                     Contactar <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                   </a>
                 </Button>
@@ -60,7 +66,7 @@ export function WebService() {
               <p className="text-sm text-muted-foreground mb-4">
                 Una web profesional y autónoma para tu academia, sin atarla a ningún sistema de gestión. Conecta con Nexa cuando quieras.
               </p>
-              <p className="text-xs text-muted-foreground mb-4">Desde <span className="font-semibold text-foreground">890€</span> · Pago único</p>
+              <p className="text-xs text-muted-foreground mb-4">Desde <span className="font-semibold text-foreground">{fullWebPrice}€</span> · Pago único</p>
               <div className="flex flex-col gap-2">
                 <Button size="sm" variant="outline" className="w-full" asChild>
                   <a href="https://danzante.es" target="_blank" rel="noreferrer">
@@ -68,7 +74,7 @@ export function WebService() {
                   </a>
                 </Button>
                 <Button size="sm" variant="outline" className="w-full" asChild>
-                  <a href="mailto:hola@nexa.es?subject=Quiero%20una%20web%20independiente">
+                  <a href="mailto:nexa@kaizenith.es?subject=Quiero%20una%20web%20independiente" target="_blank" rel="noreferrer noopener">
                     Contactar <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                   </a>
                 </Button>

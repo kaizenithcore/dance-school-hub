@@ -84,7 +84,7 @@ export default function TermsOfServicePage() {
           <li>El SLA no aplica a interrupciones causadas por terceros (Supabase, Stripe, etc.) o por el usuario.</li>
         </ul>
         <p>
-          Para notificar incidencias: <strong>hola@nexa.es</strong>. Kaizenith no garantiza disponibilidad en casos de fuerza mayor
+          Para notificar incidencias: <strong>nexa@kaizenith.es</strong>. Kaizenith no garantiza disponibilidad en casos de fuerza mayor
           (desastres naturales, ciberataques externos, fallos de infraestructura de terceros).
         </p>
       </LegalSection>
@@ -131,7 +131,7 @@ export default function TermsOfServicePage() {
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-muted-foreground">Los precios pueden actualizarse con preaviso de 30 días. La versión actualizada se publicará en esta misma página y en <strong>hola@nexa.es</strong>.</p>
+        <p className="text-xs text-muted-foreground">Los precios pueden actualizarse con preaviso de 30 días. La versión actualizada se publicará en esta misma página y en <strong>nexa@kaizenith.es</strong>.</p>
         <ul className="list-disc space-y-1 pl-6 mt-3">
           <li>El pago es anticipado y se procesa a través de Stripe.</li>
           <li>Las facturas se emiten mensual o anualmente según el plan contratado.</li>
@@ -142,7 +142,7 @@ export default function TermsOfServicePage() {
 
       <LegalSection title="11. Cancelación y portabilidad de datos">
         <ul className="list-disc space-y-1 pl-6">
-          <li>La escuela puede cancelar en cualquier momento desde el panel de administración o escribiendo a hola@nexa.es.</li>
+          <li>La escuela puede cancelar en cualquier momento desde el panel de administración o escribiendo a nexa@kaizenith.es.</li>
           <li>La cancelación no implica devolución de importes ya abonados, salvo en caso de garantía de satisfacción activa.</li>
           <li>Tras la cancelación, los datos estarán disponibles para exportación durante 30 días en formato CSV/JSON. Pasado ese plazo, serán eliminados de forma irreversible.</li>
           <li>Kaizenith puede suspender cuentas por incumplimiento grave de estos Términos con aviso previo de 48 horas salvo urgencia.</li>
@@ -170,7 +170,7 @@ export default function TermsOfServicePage() {
       </LegalSection>
 
       <LegalSection title="15. Contacto">
-        <p>Para consultas: <strong>hola@nexa.es</strong></p>
+        <p>Para consultas: <strong>nexa@kaizenith.es</strong></p>
       </LegalSection>
     </LegalPage>
   );

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { registerSchool } from "@/lib/auth";
 import { defaultPlanType, freeTrialDays, planCatalog, planOrder, type PlanType } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
+import { useVerticalConfig } from "@/lib/vertical/context";
 
 const REGISTER_CHECKOUT_SELECTION_KEY = "nexa:register:checkout-selection:v1";
 const PRIMARY_PLAN = defaultPlanType;
@@ -37,6 +38,7 @@ function isNexaPlan(value: RegisterOfferId): value is PlanType {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { productName, logoPath, vocabulary } = useVerticalConfig();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -148,8 +150,8 @@ export default function RegisterPage() {
       >
         {/* Header */}
         <div className="flex flex-col items-center gap-3">
-          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-12 w-12 object-contain" />
-          <h1 className="text-2xl font-bold text-foreground">Registra tu escuela</h1>
+          <img src={logoPath} alt={productName} className="h-12 w-12 object-contain" />
+          <h1 className="text-2xl font-bold text-foreground">Registra tu {vocabulary.center}</h1>
           <div className="flex items-center gap-2">
             {[1, 2, 3].map((s) => (
               <div key={s} className={`h-2 w-8 rounded-full ${step >= s ? "bg-primary" : "bg-muted"}`} />

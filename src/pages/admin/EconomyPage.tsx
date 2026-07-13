@@ -342,7 +342,7 @@ export default function EconomyPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
-              <CardHeader><CardTitle className="text-sm">Breakdown ingresos</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm">Desglose ingresos</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex items-center justify-between"><span>Cuotas alumnos</span><span className="font-semibold">{euro(summary12.breakdownIncome.cuotas)}</span></div>
                 <div className="flex items-center justify-between"><span>Eventos</span><span className="font-semibold">{euro(summary12.breakdownIncome.eventos)}</span></div>
@@ -350,7 +350,7 @@ export default function EconomyPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-sm">Breakdown gastos</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm">Desglose gastos</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex items-center justify-between"><span>Profesores</span><span className="font-semibold">{euro(summary12.breakdownExpense.profesores)}</span></div>
                 <div className="flex items-center justify-between"><span>Otros</span><span className="font-semibold">{euro(summary12.breakdownExpense.otros)}</span></div>

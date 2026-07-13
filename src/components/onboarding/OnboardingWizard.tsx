@@ -2,7 +2,7 @@
  * OnboardingWizard — full-screen guided setup for new schools.
  * 7 steps, split layout, real API actions, skippable.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -24,6 +24,7 @@ import { createClass } from "@/lib/api/classes";
 import { createStudent } from "@/lib/api/students";
 import { useAcademicYearContext } from "@/contexts/AcademicYearContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useVocabulary, useVerticalConfig } from "@/lib/vertical/context";
 
 // ── Storage ────────────────────────────────────────────────────────────────────
 const KEY = "nexa:onboarding:v2";
@@ -46,23 +47,30 @@ function save(s: WizardState) { localStorage.setItem(KEY, JSON.stringify(s)); }
 export function resetOnboarding() { localStorage.removeItem(KEY); }
 
 // ── Step definitions ───────────────────────────────────────────────────────────
-const STEPS = [
-  { id: 1, title: "Tu escuela",        icon: Building2,      skippable: true,  hint: "La información básica de tu academia." },
-  { id: 2, title: "Año académico",     icon: CalendarRange,  skippable: true,  hint: "Organiza los datos por curso escolar." },
-  { id: 3, title: "Primera clase",     icon: GraduationCap,  skippable: true,  hint: "Añade al menos una clase para empezar." },
-  { id: 4, title: "Primer alumno",     icon: Users,          skippable: true,  hint: "Registra o importa alumnos." },
-  { id: 5, title: "Cobros",            icon: CreditCard,     skippable: true,  hint: "Configura cómo cobras a tus alumnos." },
-  { id: 6, title: "Portal del alumno", icon: Smartphone,     skippable: true,  hint: "El canal digital para tus alumnos." },
-  { id: 7, title: "¡Listo!",           icon: PartyPopper,    skippable: false, hint: "" },
-] as const;
+// Built at runtime so vocabulary terms can be injected per vertical.
+type StepDef = { id: number; title: string; icon: React.ElementType; skippable: boolean; hint: string };
 
-const TOTAL = STEPS.length;
+import type React from "react";
+
+function buildSteps(v: { student: string; students: string; classItem: string; center: string }): StepDef[] {
+  return [
+    { id: 1, title: `Tu ${v.center}`,              icon: Building2,     skippable: true,  hint: `La información básica de tu ${v.center}.` },
+    { id: 2, title: "Año académico",               icon: CalendarRange, skippable: true,  hint: "Organiza los datos por curso escolar." },
+    { id: 3, title: `Primera ${v.classItem}`,      icon: GraduationCap, skippable: true,  hint: `Añade al menos una ${v.classItem} para empezar.` },
+    { id: 4, title: `Primer ${v.student}`,         icon: Users,         skippable: true,  hint: `Registra o importa ${v.students}.` },
+    { id: 5, title: "Cobros",                      icon: CreditCard,    skippable: true,  hint: `Configura cómo cobras a tus ${v.students}.` },
+    { id: 6, title: `Portal del ${v.student}`,     icon: Smartphone,    skippable: true,  hint: `El canal digital para tus ${v.students}.` },
+    { id: 7, title: "¡Listo!",                     icon: PartyPopper,   skippable: false, hint: "" },
+  ];
+}
+
+const TOTAL_STEPS = 7;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function StepSidebar({ current, completed, skipped }: { current: number; completed: number[]; skipped: number[] }) {
+function StepSidebar({ steps, current, completed, skipped }: { steps: StepDef[]; current: number; completed: number[]; skipped: number[] }) {
   return (
     <div className="hidden lg:flex flex-col gap-1 w-52 shrink-0 py-2">
-      {STEPS.map((s) => {
+      {steps.map((s) => {
         const done = completed.includes(s.id);
         const skip = skipped.includes(s.id);
         const active = current === s.id;
@@ -92,7 +100,7 @@ function StepSidebar({ current, completed, skipped }: { current: number; complet
 }
 
 function ProgressBar({ current, completed }: { current: number; completed: number[] }) {
-  const pct = Math.round(((completed.length) / (TOTAL - 1)) * 100);
+  const pct = Math.round(((completed.length) / (TOTAL_STEPS - 1)) * 100);
   return (
     <div className="h-1 bg-muted rounded-full overflow-hidden">
       <motion.div className="h-full bg-primary rounded-full" animate={{ width: `${pct}%` }} transition={{ duration: 0.4 }} />
@@ -541,7 +549,7 @@ function Step6({ onNext, schoolSlug }: { onNext: (skip?: boolean) => void; schoo
 // ── Step 7 — ¡Listo! ───────────────────────────────────────────────────────────
 function Step7({ completed, skipped, onFinish }: { completed: number[]; skipped: number[]; onFinish: () => void }) {
   const navigate = useNavigate();
-  const done = completed.length; const total = STEPS.length - 1;
+  const done = completed.length; const total = TOTAL_STEPS - 1;
   const pct = Math.round((done / total) * 100);
 
   const NEXT_STEPS = [
@@ -591,6 +599,9 @@ interface OnboardingWizardProps {
 }
 
 export function OnboardingWizard({ open, onClose, schoolSlug }: OnboardingWizardProps) {
+  const voc = useVocabulary();
+  const { productName } = useVerticalConfig();
+  const steps = useMemo(() => buildSteps(voc), [voc]);
   const [state, setState] = useState<WizardState>(() => read());
 
   const updateState = useCallback((updates: Partial<WizardState>) => {
@@ -606,7 +617,7 @@ export function OnboardingWizard({ open, onClose, schoolSlug }: OnboardingWizard
       const current = prev.step;
       const completed = skip ? prev.completed : [...new Set([...prev.completed, current])];
       const skipped  = skip ? [...new Set([...prev.skipped, current])] : prev.skipped.filter((s) => s !== current);
-      const next = { ...prev, step: Math.min(current + 1, TOTAL), completed, skipped };
+      const next = { ...prev, step: Math.min(current + 1, TOTAL_STEPS), completed, skipped };
       save(next);
       return next;
     });
@@ -625,7 +636,7 @@ export function OnboardingWizard({ open, onClose, schoolSlug }: OnboardingWizard
     onClose();
   }, [updateState, onClose]);
 
-  const currentStep = STEPS.find((s) => s.id === state.step) ?? STEPS[0];
+  const currentStep = steps.find((s) => s.id === state.step) ?? steps[0];
 
   if (!open) return null;
 
@@ -660,7 +671,7 @@ export function OnboardingWizard({ open, onClose, schoolSlug }: OnboardingWizard
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold text-foreground">Configuración inicial</span>
-                <span className="text-xs text-muted-foreground">Paso {state.step} de {TOTAL}</span>
+                <span className="text-xs text-muted-foreground">Paso {state.step} de {TOTAL_STEPS}</span>
               </div>
               {state.step !== 7 && (
                 <button type="button" onClick={onClose}
@@ -678,7 +689,7 @@ export function OnboardingWizard({ open, onClose, schoolSlug }: OnboardingWizard
           <div className="flex flex-1 min-h-0 overflow-hidden">
             {/* Sidebar stepper */}
             <div className="hidden lg:block bg-muted/20 border-r border-border px-3 py-4 w-52 shrink-0 overflow-y-auto">
-              <StepSidebar current={state.step} completed={state.completed} skipped={state.skipped} />
+              <StepSidebar steps={steps} current={state.step} completed={state.completed} skipped={state.skipped} />
             </div>
 
             {/* Content */}
@@ -709,7 +720,7 @@ export function OnboardingWizard({ open, onClose, schoolSlug }: OnboardingWizard
                     Omitir este paso
                   </Button>
                 )}
-                {state.step < TOTAL - 1 && (
+                {state.step < TOTAL_STEPS - 1 && (
                   <Button variant="outline" size="sm" onClick={() => handleNext(true)}>
                     Siguiente <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>

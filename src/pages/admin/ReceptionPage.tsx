@@ -17,6 +17,7 @@ import { recordPayment } from "@/lib/api/payments";
 import { downloadAttendanceSheetPdf, downloadBulkAttendancePdf } from "@/lib/api/attendance";
 import { addWaitlistEntry } from "@/lib/api/waitlist";
 import { toastErrorOnce } from "@/lib/toastPremium";
+import { useVocabulary } from "@/lib/vertical/context";
 
 const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
   absence: "Ausencia",
@@ -26,6 +27,7 @@ const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
 };
 
 export default function ReceptionPage() {
+  const voc = useVocabulary();
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [students, setStudents] = useState<Awaited<ReturnType<typeof getStudents>>>([]);
@@ -119,7 +121,7 @@ export default function ReceptionPage() {
 
   const handleRecordPayment = async () => {
     if (!selectedStudentId) {
-      toast.error("Selecciona un alumno");
+      toast.error(`Selecciona un ${voc.student}`);
       return;
     }
 
@@ -149,7 +151,7 @@ export default function ReceptionPage() {
 
   const handleCreateIncident = async () => {
     if (!incidentStudentId) {
-      toast.error("Selecciona un alumno");
+      toast.error(`Selecciona un ${voc.student}`);
       return;
     }
 
@@ -202,14 +204,14 @@ export default function ReceptionPage() {
 
   const handleDownloadAttendance = async () => {
     if (!attendanceClassId) {
-      toast.error("Selecciona una clase");
+      toast.error(`Selecciona una ${voc.classItem}`);
       return;
     }
 
     setBusy(true);
     try {
       const blob = await downloadAttendanceSheetPdf(attendanceClassId, attendanceMonth);
-      const className = classes.find((cls) => cls.id === attendanceClassId)?.name || "clase";
+      const className = classes.find((cls) => cls.id === attendanceClassId)?.name || voc.classItem;
       triggerDownload(blob, `hoja-asistencia-${className.replace(/\s+/g, "-").toLowerCase()}-${attendanceMonth}.pdf`);
       toast.success("Hoja de asistencia descargada");
     } catch (error) {
@@ -224,7 +226,7 @@ export default function ReceptionPage() {
     try {
       const blob = await downloadBulkAttendancePdf(attendanceMonth);
       triggerDownload(blob, `listados-asistencia-${attendanceMonth}.pdf`);
-      toast.success("Listados de todas las clases descargados");
+      toast.success(`Listados de todas las ${voc.classItems} descargados`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudieron generar los listados");
     } finally {
@@ -234,7 +236,7 @@ export default function ReceptionPage() {
 
   const handleAddWaitlist = async () => {
     if (!waitlistClassId) {
-      toast.error("Selecciona una clase");
+      toast.error(`Selecciona una ${voc.classItem}`);
       return;
     }
     if (!waitlistName.trim() || !waitlistEmail.trim()) {
@@ -313,7 +315,7 @@ export default function ReceptionPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Search className="h-4 w-4" /> Buscar alumno</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Search className="h-4 w-4" /> Buscar {voc.student}</CardTitle>
             <CardDescription>Encuentra rápido por nombre, email o teléfono.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -363,7 +365,7 @@ export default function ReceptionPage() {
               <Label>Alumno</Label>
               <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un alumno" />
+                  <SelectValue placeholder={`Selecciona un ${voc.student}`} />
                 </SelectTrigger>
                 <SelectContent>
                   {students.map((student) => (
@@ -393,7 +395,7 @@ export default function ReceptionPage() {
               <Label>Alumno</Label>
               <Select value={incidentStudentId} onValueChange={setIncidentStudentId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un alumno" />
+                  <SelectValue placeholder={`Selecciona un ${voc.student}`} />
                 </SelectTrigger>
                 <SelectContent>
                   {students.map((student) => (
@@ -429,7 +431,7 @@ export default function ReceptionPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sin clase</SelectItem>
+                  <SelectItem value="none">Sin {voc.classItem}</SelectItem>
                   {classes.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
                   ))}
@@ -450,14 +452,14 @@ export default function ReceptionPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><CalendarClock className="h-4 w-4" /> Hoja de asistencia</CardTitle>
-            <CardDescription>Genera el PDF por clase y mes para imprimir.</CardDescription>
+            <CardDescription>Genera el PDF por {voc.classItem} y mes para imprimir.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <Label>Clase</Label>
               <Select value={attendanceClassId} onValueChange={setAttendanceClassId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una clase" />
+                  <SelectValue placeholder={`Selecciona una ${voc.classItem}`} />
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map((cls) => (
@@ -473,9 +475,9 @@ export default function ReceptionPage() {
             <div className="flex gap-2">
               <Button onClick={handleDownloadAttendance} disabled={busy || !attendanceClassId} className="flex-1">
                 {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                Descargar clase
+                Descargar {voc.classItem}
               </Button>
-              <Button variant="outline" onClick={handleDownloadBulkAttendance} disabled={busy} title="Descargar listados de todas las clases en un solo PDF">
+              <Button variant="outline" onClick={handleDownloadBulkAttendance} disabled={busy} title={`Descargar listados de todas las ${voc.classItems} en un solo PDF`}>
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 <span className="ml-1.5 hidden sm:inline">Todas</span>
               </Button>
@@ -493,7 +495,7 @@ export default function ReceptionPage() {
               <Label>Clase</Label>
               <Select value={waitlistClassId} onValueChange={setWaitlistClassId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una clase" />
+                  <SelectValue placeholder={`Selecciona una ${voc.classItem}`} />
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map((cls) => (
@@ -550,7 +552,7 @@ export default function ReceptionPage() {
                   <div>
                     <p className="font-medium">{incident.studentName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {INCIDENT_TYPE_LABELS[incident.type]} · {incident.className || "Sin clase"} · {incident.startDate}
+                      {INCIDENT_TYPE_LABELS[incident.type]} · {incident.className || `Sin ${voc.classItem}`} · {incident.startDate}
                     </p>
                     {incident.notes ? <p className="text-sm text-muted-foreground">{incident.notes}</p> : null}
                   </div>

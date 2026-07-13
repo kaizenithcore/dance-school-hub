@@ -126,7 +126,7 @@
       "highlighted": false,
       "cta": {
         "label": "Contactar",
-        "href": "mailto:hola@nexa.es?subject=Consulta%20plan%20Enterprise%20Nexa",
+        "href": "mailto:nexa@kaizenith.es?subject=Consulta%20plan%20Enterprise%20Nexa",
         "external": true
       },
       "billing": {
@@ -394,7 +394,7 @@
         ],
         "cta": {
           "label": "Solicitar acceso",
-          "href": "mailto:hola@nexa.es?subject=Consulta%20ExamSuit%20Asociaciones",
+          "href": "mailto:nexa@kaizenith.es?subject=Consulta%20ExamSuit%20Asociaciones",
           "external": true
         }
       },
@@ -413,7 +413,7 @@
         ],
         "cta": {
           "label": "Solicitar acceso",
-          "href": "mailto:hola@nexa.es?subject=Consulta%20Certifier%20Lite",
+          "href": "mailto:nexa@kaizenith.es?subject=Consulta%20Certifier%20Lite",
           "external": true
         }
       }

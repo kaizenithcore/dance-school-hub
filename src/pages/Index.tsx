@@ -27,7 +27,7 @@ const Index = () => (
     <div id="branding-service">
       <WeydiCreativeServices />
     </div>
-    <Credibility />
+    {/* <Credibility /> */}
     <div id="faq">
       <FAQ />
     </div>

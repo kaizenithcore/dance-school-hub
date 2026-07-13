@@ -76,7 +76,7 @@ export default function OnboardingScreen() {
         className="mb-8 text-center"
       >
         <div className="flex justify-center mb-3">
-          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-12 w-12 object-contain" />
+          <img src="/nexa_graphics/icon_big_trans.PNG" alt="Nexa" className="h-12 w-12 object-contain" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">Bienvenido al portal</h1>
         <p className="mt-1 text-sm text-muted-foreground">Solo 3 pasos para empezar</p>

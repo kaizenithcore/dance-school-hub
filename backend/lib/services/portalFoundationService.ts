@@ -2584,21 +2584,22 @@ export const portalFoundationService = {
   </div>
   <div style="padding:28px 32px;">
     <p style="margin:0 0 10px;font-size:15px;">Hola,</p>
-    <p style="margin:0 0 16px;font-size:14px;color:#475569;">${esc(schoolName)} te invita a acceder a <strong>Nexa Club</strong>, el portal del alumno donde puedes consultar tus clases, pagos y avisos de la escuela.</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#475569;">${esc(schoolName)} te invita a acceder a <strong>${esc(process.env.APP_PRODUCT_NAME || "Nexa")} Club</strong>, el portal del alumno donde puedes consultar tus clases, pagos y avisos de la escuela.</p>
     ${customMsg}
     <div style="text-align:center;margin:24px 0;">
-      <a href="${esc(portalUrl)}" style="display:inline-block;background:${esc(primary)};color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;">Acceder a Nexa Club →</a>
+      <a href="${esc(portalUrl)}" style="display:inline-block;background:${esc(primary)};color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;">Acceder al portal →</a>
     </div>
     <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;text-align:center;">Este acceso fue enviado por ${esc(schoolName)}. Si no esperabas este mensaje, ignóralo.</p>
   </div>
 </div>
 </body></html>`;
 
+        const portalProductName = `${process.env.APP_PRODUCT_NAME || "Nexa"} Club`;
         await emailService.send({
           to: email,
-          subject: `${schoolName} te invita a Nexa Club`,
+          subject: `${schoolName} te invita a ${portalProductName}`,
           html,
-          text: `Hola,\n\n${schoolName} te invita a acceder a Nexa Club, el portal del alumno.\n\nAccede aquí: ${portalUrl}\n\n${input.message || ""}`,
+          text: `Hola,\n\n${schoolName} te invita a acceder a ${portalProductName}, el portal del alumno.\n\nAccede aquí: ${portalUrl}\n\n${input.message || ""}`,
         });
       } catch (emailErr) {
         // Non-critical — invitation record was created; log but don't fail

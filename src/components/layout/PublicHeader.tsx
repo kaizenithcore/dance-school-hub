@@ -14,7 +14,7 @@ export function PublicHeader() {
           {branding.logoUrl ? (
             <img src={branding.logoUrl} alt="Logo academia" className="h-9 w-9 rounded-lg object-cover" />
           ) : (
-            <img src="/nexa_graphics/icon_big_white.png" alt="Nexa" className="h-9 w-9 object-contain" />
+            <img src="/nexa_graphics/icon_big_trans.PNG" alt="Nexa" className="h-9 w-9 object-contain" />
           )}
           <span className="text-base font-semibold text-foreground capitalize">
             {schoolSlug?.replace(/-/g, " ") || "Escuela de Danza"}

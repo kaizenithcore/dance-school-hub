@@ -125,7 +125,7 @@ tenants
 ## Equipo y contacto
 
 Desarrollado por **Kaizenith** (kaizenith.es).  
-Contacto: hola@nexa.es
+Contacto: nexa@kaizenith.es
 
 ---
 

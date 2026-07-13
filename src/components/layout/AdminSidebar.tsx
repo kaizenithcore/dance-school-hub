@@ -445,7 +445,7 @@ export function AdminSidebar() {
           )}
         >
           <div className="flex items-center gap-3 px-4 h-16 border-b border-border shrink-0">
-            <img src="/nexa_graphics/icon_big_white.png" alt="Nexa" className="h-9 w-9 shrink-0 object-contain" />
+            <img src="/nexa_graphics/icon_big_trans.PNG" alt="Nexa" className="h-9 w-9 shrink-0 object-contain" />
             <div>
               <span className="text-base font-semibold text-foreground">Nexa</span>
               <p className="text-[11px] text-muted-foreground">Menos gestión. Más control.</p>
@@ -495,7 +495,7 @@ export function AdminSidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-border shrink-0">
-        <img src="/nexa_graphics/icon_big_white.png" alt="Nexa" className="h-9 w-9 shrink-0 object-contain" />
+        <img src="/nexa_graphics/icon_big_trans.PNG" alt="Nexa" className="h-9 w-9 shrink-0 object-contain" />
         {!collapsed && (
           <div className="animate-fade-in overflow-hidden">
             <span className="text-base font-semibold text-foreground">Nexa</span>

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { isRememberMeEnabled, login } from "@/lib/auth";
+import { useVerticalConfig } from "@/lib/vertical/context";
 
 const LOGIN_WELCOME_KEY = "nexa:welcome-overlay-until";
 const LOGIN_WELCOME_DURATION_MS = 2000;
@@ -15,6 +16,7 @@ const FIRST_LOGIN_GUIDE_PENDING_KEY = "nexa:first-login-guide-pending";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { productName, logoPath, vocabulary } = useVerticalConfig();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -58,9 +60,9 @@ export default function LoginPage() {
         className="w-full max-w-md space-y-8"
       >
         <div className="flex flex-col items-center gap-3">
-          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-12 w-12 object-contain" />
-          <h1 className="text-2xl font-bold text-foreground">Bienvenido a Nexa</h1>
-          <p className="text-sm text-muted-foreground">Inicia sesión para gestionar tu escuela</p>
+          <img src={logoPath} alt={productName} className="h-12 w-12 object-contain" />
+          <h1 className="text-2xl font-bold text-foreground">Bienvenido a {productName}</h1>
+          <p className="text-sm text-muted-foreground">Inicia sesión para gestionar tu {vocabulary.center}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

@@ -9,17 +9,27 @@ import { toast } from "sonner";
 import { getSchoolSettings, updateSchoolSettings } from "@/lib/api/settings";
 import { FieldGroup, SectionHeader, SwitchRow } from "./_shared";
 
+const MONTHS = [
+  { n: 1, label: "Ene" }, { n: 2, label: "Feb" }, { n: 3, label: "Mar" },
+  { n: 4, label: "Abr" }, { n: 5, label: "May" }, { n: 6, label: "Jun" },
+  { n: 7, label: "Jul" }, { n: 8, label: "Ago" }, { n: 9, label: "Sep" },
+  { n: 10, label: "Oct" }, { n: 11, label: "Nov" }, { n: 12, label: "Dic" },
+];
+const DEFAULT_ACTIVE_MONTHS = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+
 interface PaymentConfig {
   currency: string; dueDayOfMonth: string; gracePeriodDays: string;
   enableTransfer: boolean; enableCash: boolean; transferAlias: string;
   transferCBU: string; autoReminders: boolean;
   enrollmentFeeEnabled: boolean; enrollmentFeeAmount: string; enrollmentFeeAllowCash: boolean;
+  activeMonths: number[];
 }
 
 const DEFAULT: PaymentConfig = {
   currency: "EUR", dueDayOfMonth: "10", gracePeriodDays: "5",
   enableTransfer: true, enableCash: true, transferAlias: "", transferCBU: "", autoReminders: true,
   enrollmentFeeEnabled: false, enrollmentFeeAmount: "", enrollmentFeeAllowCash: true,
+  activeMonths: DEFAULT_ACTIVE_MONTHS,
 };
 
 export default function CobrosSettingsPage() {
@@ -157,6 +167,40 @@ export default function CobrosSettingsPage() {
             </div>
           )}
         </div>
+
+        <Separator />
+        <SectionHeader
+          title="Meses de actividad"
+          description="Solo se generarán facturas en los meses seleccionados. Por defecto, de septiembre a junio."
+        />
+        <div className="grid grid-cols-6 gap-2">
+          {MONTHS.map(({ n, label }) => {
+            const active = payment.activeMonths.includes(n);
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => {
+                  const next = active
+                    ? payment.activeMonths.filter((m) => m !== n)
+                    : [...payment.activeMonths, n];
+                  setPayment({ ...payment, activeMonths: next });
+                }}
+                className={[
+                  "rounded-md border px-2 py-1.5 text-xs font-medium transition-colors",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-muted-foreground hover:border-primary/50",
+                ].join(" ")}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        {payment.activeMonths.length === 0 && (
+          <p className="text-xs text-destructive">Selecciona al menos un mes de actividad.</p>
+        )}
 
         <Separator />
         <SwitchRow

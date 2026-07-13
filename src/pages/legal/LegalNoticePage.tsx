@@ -13,11 +13,11 @@ export default function LegalNoticePage() {
           <li><strong>Domicilio social:</strong> [DIRECCIÓN FISCAL COMPLETA — obligatorio LSSI-CE Art. 10]</li>
           <li>
             <strong>Sitio web:</strong>{" "}
-            <a href="https://nexa.es" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-2 hover:underline">
-              nexa.es
+            <a href="https://nexa.kaizenith.es" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-2 hover:underline">
+              nexa.kaizenith.es
             </a>
           </li>
-          <li><strong>Correo electrónico:</strong> hola@nexa.es</li>
+          <li><strong>Correo electrónico:</strong> nexa@kaizenith.es</li>
           <li><strong>Actividad:</strong> Prestación de Nexa, plataforma SaaS de gestión para escuelas de danza, y servicios digitales asociados</li>
         </ul>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -129,7 +129,7 @@ export default function LegalNoticePage() {
 
       <LegalSection title="10. Reclamaciones y resolución de conflictos">
         <p>
-          Para cualquier reclamación relacionada con nuestros servicios, puede dirigirse a <strong>hola@nexa.es</strong>.
+          Para cualquier reclamación relacionada con nuestros servicios, puede dirigirse a <strong>nexa@kaizenith.es</strong>.
           Nos comprometemos a responder en un plazo máximo de 15 días hábiles.
         </p>
         <p>

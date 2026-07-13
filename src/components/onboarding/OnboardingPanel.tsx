@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type React from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import type { SchoolSettingsPayload } from "@/lib/api/settings";
 import { updateTenantBranding, getTenantBranding } from "@/lib/api/branding";
 import { createClass } from "@/lib/api/classes";
 import { createStudent } from "@/lib/api/students";
+import { useVocabulary } from "@/lib/vertical/context";
 
 // ── Storage keys ───────────────────────────────────────────────────────────────
 
@@ -42,13 +44,15 @@ interface OnboardingState {
 
 // ── Step metadata ──────────────────────────────────────────────────────────────
 
-const STEPS: Array<{ id: StepId; shortTitle: string; icon: React.ElementType }> = [
-  { id: 1, shortTitle: "Tu escuela", icon: Building2 },
-  { id: 2, shortTitle: "Primera clase", icon: GraduationCap },
-  { id: 3, shortTitle: "Alumnos", icon: Users },
-  { id: 4, shortTitle: "Cobros", icon: CreditCard },
-  { id: 5, shortTitle: "Portal", icon: Smartphone },
-];
+function buildSteps(v: { students: string; classItem: string }): Array<{ id: StepId; shortTitle: string; icon: React.ElementType }> {
+  return [
+    { id: 1, shortTitle: "Tu escuela", icon: Building2 },
+    { id: 2, shortTitle: `Primera ${v.classItem}`, icon: GraduationCap },
+    { id: 3, shortTitle: v.students.charAt(0).toUpperCase() + v.students.slice(1), icon: Users },
+    { id: 4, shortTitle: "Cobros", icon: CreditCard },
+    { id: 5, shortTitle: "Portal", icon: Smartphone },
+  ];
+}
 
 const WEEKDAYS = [
   { label: "Lunes", value: 1 },
@@ -209,6 +213,7 @@ function Step1({
 // ── Step 2 — Primera clase ─────────────────────────────────────────────────────
 
 function Step2({ onDone }: { onDone: () => void }) {
+  const voc = useVocabulary();
   const [className, setClassName] = useState("");
   const [weekday, setWeekday] = useState("1");
   const [startTime, setStartTime] = useState("09:00");
@@ -217,7 +222,7 @@ function Step2({ onDone }: { onDone: () => void }) {
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!className.trim()) { toast.error("El nombre de la clase es obligatorio"); return; }
+    if (!className.trim()) { toast.error(`El nombre de la ${voc.classItem} es obligatorio`); return; }
     setSaving(true);
     try {
       const result = await createClass({
@@ -226,11 +231,11 @@ function Step2({ onDone }: { onDone: () => void }) {
         price: 0,
         status: "active",
       });
-      if (!result) throw new Error("No se pudo crear la clase");
-      toast.success(`Clase "${className}" creada`);
+      if (!result) throw new Error(`No se pudo crear la ${voc.classItem}`);
+      toast.success(`${voc.classItem.charAt(0).toUpperCase() + voc.classItem.slice(1)} "${className}" creada`);
       onDone();
     } catch {
-      toast.error("No se pudo crear la clase. Inténtalo de nuevo.");
+      toast.error(`No se pudo crear la ${voc.classItem}. Inténtalo de nuevo.`);
     } finally {
       setSaving(false);
     }
@@ -239,7 +244,7 @@ function Step2({ onDone }: { onDone: () => void }) {
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Nombre de la clase <span className="text-destructive">*</span></Label>
+        <Label className="text-xs text-muted-foreground">Nombre de la {voc.classItem} <span className="text-destructive">*</span></Label>
         <Input value={className} onChange={(e) => setClassName(e.target.value)} placeholder="Ballet Adultos" className="h-8 text-sm" autoFocus />
       </div>
 
@@ -269,10 +274,10 @@ function Step2({ onDone }: { onDone: () => void }) {
         <Input value={teacher} onChange={(e) => setTeacher(e.target.value)} placeholder="Nombre del profesor" className="h-8 text-sm" />
       </div>
 
-      <p className="text-[10px] text-muted-foreground">El horario detallado se configura desde la sección Clases.</p>
+      <p className="text-[10px] text-muted-foreground">El horario detallado se configura desde la sección {voc.classItems.charAt(0).toUpperCase() + voc.classItems.slice(1)}.</p>
 
       <Button size="sm" className="w-full" onClick={() => void handleSave()} disabled={saving || !className.trim()}>
-        {saving ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Creando...</> : <>Crear clase <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></>}
+        {saving ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Creando...</> : <>Crear {voc.classItem} <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></>}
       </Button>
     </div>
   );
@@ -282,13 +287,14 @@ function Step2({ onDone }: { onDone: () => void }) {
 
 function Step3({ onDone }: { onDone: () => void; navigate: ReturnType<typeof useNavigate> }) {
   const navigate = useNavigate();
+  const voc = useVocabulary();
   const [mode, setMode] = useState<"choose" | "manual">("choose");
   const [studentName, setStudentName] = useState("");
   const [contact, setContact] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleManualSave = async () => {
-    if (!studentName.trim()) { toast.error("El nombre del alumno es obligatorio"); return; }
+    if (!studentName.trim()) { toast.error(`El nombre del ${voc.student} es obligatorio`); return; }
     setSaving(true);
     try {
       const id = await createStudent({
@@ -298,11 +304,11 @@ function Step3({ onDone }: { onDone: () => void; navigate: ReturnType<typeof use
         status: "active",
         paymentType: "monthly",
       });
-      if (!id) throw new Error("No se pudo crear el alumno");
-      toast.success(`Alumno "${studentName}" creado`);
+      if (!id) throw new Error(`No se pudo crear el ${voc.student}`);
+      toast.success(`${voc.student.charAt(0).toUpperCase() + voc.student.slice(1)} "${studentName}" creado`);
       onDone();
     } catch {
-      toast.error("No se pudo crear el alumno. Inténtalo de nuevo.");
+      toast.error(`No se pudo crear el ${voc.student}. Inténtalo de nuevo.`);
     } finally {
       setSaving(false);
     }
@@ -311,7 +317,7 @@ function Step3({ onDone }: { onDone: () => void; navigate: ReturnType<typeof use
   if (mode === "choose") {
     return (
       <div className="space-y-3">
-        <p className="text-xs text-muted-foreground">Añade al menos un alumno para configurar los cobros correctamente.</p>
+        <p className="text-xs text-muted-foreground">Añade al menos un {voc.student} para configurar los cobros correctamente.</p>
 
         <button
           type="button"
@@ -338,7 +344,7 @@ function Step3({ onDone }: { onDone: () => void; navigate: ReturnType<typeof use
           </div>
           <div>
             <p className="text-sm font-medium text-foreground">Importar desde Excel / CSV</p>
-            <p className="text-[10px] text-muted-foreground">Sube tu lista de alumnos en bloque</p>
+            <p className="text-[10px] text-muted-foreground">Sube tu lista de {voc.students} en bloque</p>
           </div>
           <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
         </button>
@@ -353,7 +359,7 @@ function Step3({ onDone }: { onDone: () => void; navigate: ReturnType<typeof use
       </button>
 
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Nombre del alumno <span className="text-destructive">*</span></Label>
+        <Label className="text-xs text-muted-foreground">Nombre del {voc.student} <span className="text-destructive">*</span></Label>
         <Input value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Ana García" className="h-8 text-sm" autoFocus />
       </div>
 
@@ -364,7 +370,7 @@ function Step3({ onDone }: { onDone: () => void; navigate: ReturnType<typeof use
       </div>
 
       <Button size="sm" className="w-full" onClick={() => void handleManualSave()} disabled={saving || !studentName.trim()}>
-        {saving ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Creando...</> : <>Añadir alumno <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></>}
+        {saving ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Creando...</> : <>Añadir {voc.student} <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></>}
       </Button>
     </div>
   );
@@ -472,6 +478,7 @@ function Step4({ onDone }: { onDone: () => void }) {
 // ── Step 5 — Portal ────────────────────────────────────────────────────────────
 
 function Step5({ onDone, schoolSlug }: { onDone: () => void; schoolSlug?: string }) {
+  const voc = useVocabulary();
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">
@@ -482,7 +489,7 @@ function Step5({ onDone, schoolSlug }: { onDone: () => void; schoolSlug?: string
           <p className="text-sm font-semibold text-foreground">Tu escuela está lista</p>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Tus alumnos pueden ver su horario, estado de pagos y avisos desde el portal.
+          Tus {voc.students} pueden ver su horario, estado de pagos y avisos desde el portal.
           Sin necesidad de llamarte ni enviarte mensajes.
         </p>
       </div>
@@ -506,7 +513,7 @@ function Step5({ onDone, schoolSlug }: { onDone: () => void; schoolSlug?: string
 
       <p className="text-center text-[10px] text-muted-foreground">
         Puedes personalizar el portal en cualquier momento desde{" "}
-        <span className="font-medium text-foreground">Portal del alumno</span>.
+        <span className="font-medium text-foreground">Portal del {voc.student}</span>.
       </p>
     </div>
   );
@@ -521,6 +528,8 @@ interface OnboardingPanelProps {
 
 export function OnboardingPanel({ onDismiss, schoolSlug }: OnboardingPanelProps) {
   const navigate = useNavigate();
+  const voc = useVocabulary();
+  const steps = buildSteps(voc);
   const [state, setStateRaw] = useState<OnboardingState>(readState);
   const [collapsed, setCollapsedRaw] = useState(readCollapsed);
   const [dismissConfirm, setDismissConfirm] = useState(false);
@@ -565,10 +574,10 @@ export function OnboardingPanel({ onDismiss, schoolSlug }: OnboardingPanelProps)
   // Step titles for header
   const STEP_TITLES: Record<StepId, { title: string; subtitle: string }> = {
     1: { title: "Tu escuela", subtitle: "Nombre, logo y ciudad" },
-    2: { title: "Tu primera clase", subtitle: "Crea una clase real" },
-    3: { title: "Tus primeros alumnos", subtitle: "Añade al menos uno" },
+    2: { title: `Tu primera ${voc.classItem}`, subtitle: `Crea una ${voc.classItem} real` },
+    3: { title: `Tus primeros ${voc.students}`, subtitle: "Añade al menos uno" },
     4: { title: "Cómo cobrar", subtitle: "Moneda y vencimiento" },
-    5: { title: "El portal de tus alumnos", subtitle: "Mira cómo lo verán" },
+    5: { title: `El portal de tus ${voc.students}`, subtitle: "Mira cómo lo verán" },
   };
 
   const current = STEP_TITLES[state.activeStep];
@@ -590,7 +599,7 @@ export function OnboardingPanel({ onDismiss, schoolSlug }: OnboardingPanelProps)
     return (
       <div className="space-y-0.5 pt-1">
         <div className="border-t border-border/50 my-2" />
-        {STEPS.map((step) => {
+        {steps.map((step) => {
           const done = isCompleted(step.id);
           const active = step.id === state.activeStep;
           return (

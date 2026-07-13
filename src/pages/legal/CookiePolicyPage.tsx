@@ -105,7 +105,7 @@ export default function CookiePolicyPage() {
 
       <LegalSection title="8. Contacto">
         <p>
-          Para consultas sobre cookies: <strong>hola@nexa.es</strong>
+          Para consultas sobre cookies: <strong>nexa@kaizenith.es</strong>
         </p>
       </LegalSection>
     </LegalPage>

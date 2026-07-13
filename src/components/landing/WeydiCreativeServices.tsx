@@ -98,7 +98,7 @@ export function WeydiCreativeServices() {
             Servicios premium opcionales para reforzar posicionamiento y conversion comercial.
           </p>
           <Button variant="outline" size="lg" className="h-11" asChild>
-            <a href="mailto:hola@nexa.es?subject=Consulta%20branding%20Kaizenith">
+            <a href="mailto:nexa@kaizenith.es?subject=Consulta%20branding%20Kaizenith">
               Consultar servicios creativos
               <ArrowRight className="ml-1 h-4 w-4" />
             </a>

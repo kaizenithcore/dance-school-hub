@@ -180,7 +180,7 @@ export default function DashboardPage() {
   const todaySchedules = useMemo(
     () => schedules
       .filter((s) => s.weekday === todayWeekday)
-      .sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? "")),
+      .sort((a, b) => (a.start_time ?? "").localeCompare(b.start_time ?? "")),
     [schedules, todayWeekday]
   );
 
@@ -398,10 +398,10 @@ export default function DashboardPage() {
                 <div key={i} className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 bg-primary/5">
                   <Clock className="h-3 w-3 text-primary shrink-0" />
                   <span className="text-xs font-medium text-foreground min-w-[80px]">
-                    {s.startTime?.slice(0, 5) ?? "—"}
-                    {s.endTime ? `–${s.endTime.slice(0, 5)}` : ""}
+                    {s.start_time?.slice(0, 5) ?? "—"}
+                    {s.end_time ? `–${s.end_time.slice(0, 5)}` : ""}
                   </span>
-                  <span className="text-xs text-foreground flex-1 truncate">{s.className ?? s.classId}</span>
+                  <span className="text-xs text-foreground flex-1 truncate">{s.className ?? s.class_id}</span>
                   {s.room && (
                     <span className="text-[10px] text-muted-foreground shrink-0">{s.room}</span>
                   )}
@@ -420,7 +420,7 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-1.5">
               {tomorrowSchedules.slice(0, 4).map((s, i) => (
                 <span key={i} className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-foreground">
-                  {s.startTime?.slice(0, 5) ?? "—"} {s.className ?? s.classId}
+                  {s.start_time?.slice(0, 5) ?? "—"} {s.className ?? s.class_id}
                 </span>
               ))}
               {tomorrowSchedules.length > 4 && (

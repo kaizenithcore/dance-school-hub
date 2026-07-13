@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
             kaizenith.es
           </a>
           <br />
-          Email: <strong>hola@nexa.es</strong>
+          Email: <strong>nexa@kaizenith.es</strong>
         </p>
         <p><strong>En el uso de Nexa:</strong></p>
         <ul className="list-disc space-y-1 pl-6">
@@ -133,11 +133,11 @@ export default function PrivacyPolicyPage() {
       <LegalSection title="11. Ejercicio de derechos">
         <p>
           Puede ejercer los derechos de acceso, rectificación, supresión, oposición, portabilidad y limitación del tratamiento
-          escribiendo a: <strong>hola@nexa.es</strong>. Responderemos en un plazo máximo de 30 días.
+          escribiendo a: <strong>nexa@kaizenith.es</strong>. Responderemos en un plazo máximo de 30 días.
         </p>
         <ul className="list-disc space-y-1 pl-6">
           <li>Usuarios finales (alumnos): pueden dirigirse a su escuela, que es responsable del tratamiento.</li>
-          <li>Clientes (escuelas): directamente a Kaizenith en hola@nexa.es.</li>
+          <li>Clientes (escuelas): directamente a Kaizenith en nexa@kaizenith.es.</li>
         </ul>
         <p>
           Si no obtiene respuesta satisfactoria, puede presentar una reclamación ante la{" "}

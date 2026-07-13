@@ -3,6 +3,9 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { fail, ok } from "@/lib/http";
 import { handleCorsPreFlight } from "@/lib/cors";
 import { invoiceService } from "@/lib/services/invoiceService";
+import { supabaseAdmin } from "@/lib/db/supabaseAdmin";
+
+const DEFAULT_ACTIVE_MONTHS = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreFlight(request.headers.get("origin"));
@@ -41,6 +44,32 @@ export async function POST(request: NextRequest) {
 
     if (!month) {
       return fail({ code: "invalid_input", message: "Month is required (format: YYYY-MM)" }, 400, origin);
+    }
+
+    // Check if the target month is within the school's configured active months
+    const { data: settingsRow } = await supabaseAdmin
+      .from("school_settings")
+      .select("payment_config")
+      .eq("tenant_id", auth.context.tenantId)
+      .maybeSingle();
+
+    const paymentConfig = (settingsRow?.payment_config as Record<string, unknown>) ?? {};
+    const activeMonths: number[] = Array.isArray(paymentConfig.activeMonths)
+      ? (paymentConfig.activeMonths as number[])
+      : DEFAULT_ACTIVE_MONTHS;
+
+    const targetMonthNum = parseInt(month.split("-")[1] ?? "0", 10);
+    if (!activeMonths.includes(targetMonthNum)) {
+      return ok(
+        {
+          created: 0,
+          invoices: [],
+          inactiveMonth: true,
+          message: `${month} no es un mes de actividad de la escuela. No se generaron facturas.`,
+        },
+        200,
+        origin
+      );
     }
 
     console.log(`[Invoice Generation] Starting for tenant ${auth.context.tenantId}, month ${month}`);

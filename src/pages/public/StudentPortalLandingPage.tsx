@@ -311,7 +311,7 @@ function SchoolFomo() {
           </p>
           <div className="mt-8">
             <Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
-              <a href="mailto:hola@nexa.es?subject=Un%20alumno%20sugiere%20Nexa&body=Hola%2C%20soy%20alumno%20de%20una%20escuela%20de%20danza%20y%20me%20gustar%C3%ADa%20sugerir%20Nexa.">
+              <a href="mailto:nexa@kaizenith.es?subject=Un%20alumno%20sugiere%20Nexa&body=Hola%2C%20soy%20alumno%20de%20una%20escuela%20de%20danza%20y%20me%20gustar%C3%ADa%20sugerir%20Nexa.">
                 Sugerir Nexa a mi escuela <ChevronRight className="ml-1 h-4 w-4" />
               </a>
             </Button>
@@ -364,7 +364,7 @@ function PortalHeader() {
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
       <div className="container flex h-14 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-7 w-7 object-contain" />
+          <img src="/nexa_graphics/icon_big_trans.PNG" alt="Nexa" className="h-7 w-7 object-contain" />
           <span className="text-sm font-semibold text-foreground">Nexa <span className="text-muted-foreground font-normal">Club</span></span>
         </Link>
         <div className="flex items-center gap-2">

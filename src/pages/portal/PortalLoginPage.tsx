@@ -48,7 +48,7 @@ export default function PortalLoginPage() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-8">
-        <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-10 w-10 object-contain" />
+        <img src="/nexa_graphics/icon_big_trans.PNG" alt="Nexa" className="h-10 w-10 object-contain" />
         <span className="text-xl font-bold text-foreground">
           Nexa <span className="font-normal text-muted-foreground">Club</span>
         </span>

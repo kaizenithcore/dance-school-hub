@@ -220,7 +220,7 @@ export default function DpaPage() {
       </LegalSection>
 
       <LegalSection title="13. Contacto">
-        <p>Para cuestiones de protección de datos: <strong>hola@nexa.es</strong></p>
+        <p>Para cuestiones de protección de datos: <strong>nexa@kaizenith.es</strong></p>
       </LegalSection>
     </LegalPage>
   );

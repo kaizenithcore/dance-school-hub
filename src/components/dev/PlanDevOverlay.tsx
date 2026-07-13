@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { getSchoolSettings, updateSchoolSettings, type SchoolSettingsPayload } from "@/lib/api/settings";
 import { toast } from "sonner";
 import { Settings2, Loader2 } from "lucide-react";
+import { setDevVertical, resolveVerticalId } from "@/lib/vertical/context";
+import type { VerticalId } from "@/lib/vertical/types";
 
 type PlanType = "starter" | "pro" | "enterprise";
 
@@ -16,11 +18,22 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
+const VERTICAL_LABELS: Record<VerticalId, string> = {
+  dance: "Dance",
+  sports: "Sport",
+  languages: "Idiomas",
+  tutoring: "Clases",
+};
+
+const VERTICAL_IDS: VerticalId[] = ["dance", "sports", "languages", "tutoring"];
+
 export function PlanDevOverlay() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SchoolSettingsPayload | null>(null);
+
+  const currentVertical = resolveVerticalId();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -145,13 +158,31 @@ export function PlanDevOverlay() {
     <div className="fixed bottom-4 right-4 z-[70]">
       <div className="flex justify-end">
         <Button size="sm" variant="secondary" onClick={() => setOpen((v) => !v)}>
-          <Settings2 className="h-4 w-4 mr-1" /> Dev plan
+          <Settings2 className="h-4 w-4 mr-1" /> Dev · {VERTICAL_LABELS[currentVertical]}
         </Button>
       </div>
 
       {open ? (
         <div className="mt-2 w-[320px] rounded-xl border border-border bg-card p-3 shadow-lg">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Overlay de pruebas</p>
+          {/* Vertical switcher */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vertical</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {VERTICAL_IDS.map((id) => (
+              <Button
+                key={id}
+                size="sm"
+                variant={currentVertical === id ? "default" : "outline"}
+                onClick={() => setDevVertical(id)}
+              >
+                {VERTICAL_LABELS[id]}
+              </Button>
+            ))}
+          </div>
+          <p className="mt-1 text-[10px] text-muted-foreground">Recarga automática al cambiar</p>
+
+          <div className="my-3 border-t border-border" />
+
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Plan</p>
 
           {loading ? (
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
@@ -159,10 +190,7 @@ export function PlanDevOverlay() {
             </div>
           ) : !settings ? (
             <div className="mt-3">
-              <p className="text-sm text-destructive">No se pudo cargar settings.</p>
-              <Button size="sm" variant="outline" className="mt-2" onClick={() => void load()}>
-                Reintentar
-              </Button>
+              <p className="text-sm text-muted-foreground">Sin sesión activa de admin.</p>
             </div>
           ) : (
             <div className="mt-3 space-y-3">

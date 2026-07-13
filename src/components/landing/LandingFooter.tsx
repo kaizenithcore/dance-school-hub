@@ -1,17 +1,19 @@
 import { Link } from "react-router-dom";
+import { useVerticalConfig } from "@/lib/vertical/context";
 
 export function LandingFooter() {
+  const { productName } = useVerticalConfig();
   return (
     <footer className="border-t border-border bg-card py-10">
       <div className="container">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-7 w-7 object-contain" />
-            <span className="text-sm font-medium text-foreground">Nexa</span>
+            <img src="/nexa_graphics/icon_big_trans.PNG" alt={productName} className="h-7 w-7 object-contain" />
+            <span className="text-sm font-medium text-foreground">{productName}</span>
           </div>
 
           <nav className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <a href="mailto:hola@nexa.es" className="hover:text-foreground">Contacto</a>
+            <a href="mailto:nexa@kaizenith.es" className="hover:text-foreground">Contacto</a>
             <span>·</span>
             <Link to="/legal/privacy" className="hover:text-foreground">Privacidad</Link>
             <span>·</span>

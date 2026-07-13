@@ -1,35 +1,28 @@
 import { motion } from "framer-motion";
-import { Layers, Zap, BarChart3, Smartphone } from "lucide-react";
+import { Link, Zap, BarChart2, Star, Users, Activity, BookOpen, FileText, Bell, Calendar, CreditCard, Smartphone } from "lucide-react";
+import type { LandingPillar } from "@/lib/vertical/landingContent";
 
-const pillars = [
-  {
-    icon: Layers,
-    title: "Todo conectado",
-    desc: "Alumnos, clases, pagos y comunicación en un solo sistema.",
-  },
-  {
-    icon: Zap,
-    title: "Menos trabajo manual",
-    desc: "Automatiza tareas repetitivas y ahorra horas cada semana.",
-  },
-  {
-    icon: BarChart3,
-    title: "Más control",
-    desc: "Visualiza tu academia en tiempo real con datos claros.",
-  },
-  {
-    icon: Smartphone,
-    title: "Mejor experiencia",
-    desc: "Portal del alumno incluido. Tus alumnos siempre conectados.",
-  },
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Link, Zap, BarChart2, Star, Users, Activity, BookOpen, FileText, Bell, Calendar, CreditCard, Smartphone,
+};
+
+const DEFAULT_PILLARS: LandingPillar[] = [
+  { icon: "Link", title: "Todo conectado", description: "Alumnos, clases, pagos y comunicación en un solo lugar. Sin saltar entre apps." },
+  { icon: "Zap", title: "Menos trabajo", description: "Automatiza cobros, listas de espera y recordatorios. Recupera horas cada semana." },
+  { icon: "BarChart2", title: "Más control", description: "Dashboards claros sobre ocupación, ingresos y asistencia en tiempo real." },
+  { icon: "Star", title: "Mejor experiencia", description: "Portal de familias para consultas, pagos y novedades. Menos llamadas, más satisfacción." },
 ];
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
-export function ValuePillars() {
+interface Props {
+  pillars?: LandingPillar[];
+}
+
+export function ValuePillars({ pillars = DEFAULT_PILLARS }: Props) {
   return (
-    <section className="py-24 sm:py-32">
+    <section id="features" className="py-24 sm:py-32">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -41,7 +34,7 @@ export function ValuePillars() {
             Menos gestión. Más control.
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Convierte tu academia en un sistema eficiente.
+            Convierte tu centro en un sistema eficiente.
           </p>
         </motion.div>
 
@@ -52,19 +45,22 @@ export function ValuePillars() {
           viewport={{ once: true }}
           className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto"
         >
-          {pillars.map((p) => (
-            <motion.div
-              key={p.title}
-              variants={item}
-              className="rounded-2xl bg-card border border-border p-7 text-center hover:shadow-md transition-shadow"
-            >
-              <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <p.icon className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-base font-semibold text-foreground">{p.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{p.desc}</p>
-            </motion.div>
-          ))}
+          {pillars.map((p) => {
+            const Icon = ICON_MAP[p.icon] ?? Zap;
+            return (
+              <motion.div
+                key={p.title}
+                variants={item}
+                className="rounded-2xl bg-card border border-border p-7 text-center hover:shadow-md transition-shadow"
+              >
+                <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                  <Icon className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-base font-semibold text-foreground">{p.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{p.description}</p>
+              </motion.div>
+            );
+          })}
         </motion.div>
       </div>
     </section>

@@ -6,8 +6,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { freeTrialDays } from "@/lib/commercialCatalog";
+import type { LandingFaq } from "@/lib/vertical/landingContent";
 
-const faqs = [
+const DEFAULT_FAQS: LandingFaq[] = [
   { q: "¿Puedo importar mis alumnos desde Excel?", a: "Sí. El importador mapea automáticamente las columnas de tu archivo y valida los datos antes de importar." },
   { q: "¿Necesito conocimientos técnicos?", a: "No. Cualquier persona de tu equipo puede usarlo desde el primer día. Está diseñado para directores de escuela, no para informáticos." },
   { q: "¿Hay periodo de prueba?", a: `Sí. ${freeTrialDays} días gratis, sin tarjeta de crédito y sin compromiso.` },
@@ -16,7 +17,11 @@ const faqs = [
   { q: "¿Funciona para escuelas pequeñas?", a: "Especialmente. Está pensado para academias de 50 a 500 alumnos que trabajan con Excel, papel o WhatsApp y quieren pasarse a un sistema sin complicarse." },
 ];
 
-export function FAQ() {
+interface Props {
+  faqs?: LandingFaq[];
+}
+
+export function FAQ({ faqs = DEFAULT_FAQS }: Props) {
   return (
     <section id="faq" className="py-24 sm:py-32">
       <div className="container">

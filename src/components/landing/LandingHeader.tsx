@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { buildRegisterHref } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
+import { useVerticalConfig } from "@/lib/vertical/context";
 
 const nav = [
+  { label: "Funciones", href: "#features" },
   { label: "Precios", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
 ];
@@ -15,6 +17,7 @@ const PRO_ANNUAL_CTA_HREF = buildRegisterHref("landing_header");
 
 export function LandingHeader() {
   const [open, setOpen] = useState(false);
+  const { productName } = useVerticalConfig();
 
   const handlePrimaryClick = (placement: "header_desktop" | "header_mobile") => {
     trackPortalEvent({
@@ -28,8 +31,8 @@ export function LandingHeader() {
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5">
-          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-8 w-8 object-contain" />
-          <span className="text-base font-semibold text-foreground">Nexa</span>
+          <img src="/nexa_graphics/icon_big_trans.PNG" alt={productName} className="h-8 w-8 object-contain" />
+          <span className="text-base font-semibold text-foreground">{productName}</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">

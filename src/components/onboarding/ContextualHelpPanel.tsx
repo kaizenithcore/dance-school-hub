@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useVocabulary } from "@/lib/vertical/context";
+import type { Vocabulary } from "@/lib/vertical/types";
 
 // ── Per-page help content ─────────────────────────────────────────────────────
 
@@ -30,276 +32,280 @@ interface PageHelp {
   actions: HelpAction[];
 }
 
-const HELP_MAP: Array<{ prefix: string; help: PageHelp }> = [
-  {
-    prefix: "/admin/students/import",
-    help: {
-      title: "Importar alumnos",
-      icon: Users,
-      summary: "Sube un Excel o CSV con tu lista de alumnos y el sistema los importa automáticamente.",
-      tips: [
-        "El fichero debe tener al menos las columnas: Nombre y Email o Teléfono.",
-        "Puedes descargar una plantilla de ejemplo antes de subir.",
-        "Los alumnos importados quedan en estado Activo por defecto.",
-      ],
-      actions: [{ label: "Ver todos los alumnos", url: "/admin/students" }],
+function buildHelpMap(v: Pick<Vocabulary, "student" | "students" | "classItem" | "classItems" | "teacher" | "teachers">): Array<{ prefix: string; help: PageHelp }> {
+  const S = v.student; const Ss = v.students;
+  const C = v.classItem; const Cs = v.classItems;
+  const T = v.teacher; const Ts = v.teachers;
+  return [
+    {
+      prefix: "/admin/students/import",
+      help: {
+        title: `Importar ${Ss}`,
+        icon: Users,
+        summary: `Sube un Excel o CSV con tu lista de ${Ss} y el sistema los importa automáticamente.`,
+        tips: [
+          "El fichero debe tener al menos las columnas: Nombre y Email o Teléfono.",
+          "Puedes descargar una plantilla de ejemplo antes de subir.",
+          `Los ${Ss} importados quedan en estado Activo por defecto.`,
+        ],
+        actions: [{ label: `Ver todos los ${Ss}`, url: "/admin/students" }],
+      },
     },
-  },
-  {
-    prefix: "/admin/students",
-    help: {
-      title: "Alumnos",
-      icon: Users,
-      summary: "Gestiona el listado completo de alumnos: fichas, contacto, inscripciones activas y estado de pagos.",
-      tips: [
-        "Usa el buscador para encontrar alumnos por nombre, email o DNI.",
-        "Desde la ficha del alumno puedes ver sus clases, pagos e historial.",
-        "El estado Inactivo oculta al alumno de las listas operativas.",
-      ],
-      actions: [
-        { label: "Importar desde Excel", url: "/admin/students/import" },
-        { label: "Ver inscripciones", url: "/admin/enrollments" },
-      ],
+    {
+      prefix: "/admin/students",
+      help: {
+        title: Ss.charAt(0).toUpperCase() + Ss.slice(1),
+        icon: Users,
+        summary: `Gestiona el listado completo de ${Ss}: fichas, contacto, inscripciones activas y estado de pagos.`,
+        tips: [
+          `Usa el buscador para encontrar ${Ss} por nombre, email o DNI.`,
+          `Desde la ficha del ${S} puedes ver sus ${Cs}, pagos e historial.`,
+          `El estado Inactivo oculta al ${S} de las listas operativas.`,
+        ],
+        actions: [
+          { label: "Importar desde Excel", url: "/admin/students/import" },
+          { label: "Ver inscripciones", url: "/admin/enrollments" },
+        ],
+      },
     },
-  },
-  {
-    prefix: "/admin/enrollments",
-    help: {
-      title: "Inscripciones (Matrículas)",
-      icon: ClipboardList,
-      summary: "Gestiona las solicitudes de matrícula: confirma, rechaza o cancela inscripciones de alumnos en clases.",
-      tips: [
-        "Una inscripción en estado Pendiente espera tu confirmación.",
-        "Al confirmar, el alumno aparece en el listado de la clase.",
-        "Puedes inscribir alumnos manualmente desde la ficha del alumno.",
-      ],
-      actions: [
-        { label: "Ver alumnos", url: "/admin/students" },
-        { label: "Ver clases", url: "/admin/classes" },
-      ],
+    {
+      prefix: "/admin/enrollments",
+      help: {
+        title: "Inscripciones (Matrículas)",
+        icon: ClipboardList,
+        summary: `Gestiona las solicitudes de matrícula: confirma, rechaza o cancela inscripciones de ${Ss} en ${Cs}.`,
+        tips: [
+          "Una inscripción en estado Pendiente espera tu confirmación.",
+          `Al confirmar, el ${S} aparece en el listado de la ${C}.`,
+          `Puedes inscribir ${Ss} manualmente desde la ficha del ${S}.`,
+        ],
+        actions: [
+          { label: `Ver ${Ss}`, url: "/admin/students" },
+          { label: `Ver ${Cs}`, url: "/admin/classes" },
+        ],
+      },
     },
-  },
-  {
-    prefix: "/admin/schedule",
-    help: {
-      title: "Horario semanal",
-      icon: CalendarDays,
-      summary: "Vista de semana completa con todos los bloques horarios. Arrastra para reorganizar, añade nuevas franjas.",
-      tips: [
-        "Cada bloque representa una clase en un día y hora concretos.",
-        "Los cambios de horario se reflejan inmediatamente en el portal del alumno.",
-        "Puedes exportar el horario completo como PDF desde el botón de descarga.",
-      ],
-      actions: [
-        { label: "Ver clases", url: "/admin/classes" },
-        { label: "Clonar curso", url: "/admin/course-clone" },
-      ],
+    {
+      prefix: "/admin/schedule",
+      help: {
+        title: "Horario semanal",
+        icon: CalendarDays,
+        summary: "Vista de semana completa con todos los bloques horarios. Arrastra para reorganizar, añade nuevas franjas.",
+        tips: [
+          `Cada bloque representa una ${C} en un día y hora concretos.`,
+          `Los cambios de horario se reflejan inmediatamente en el portal del ${S}.`,
+          "Puedes exportar el horario completo como PDF desde el botón de descarga.",
+        ],
+        actions: [
+          { label: `Ver ${Cs}`, url: "/admin/classes" },
+          { label: "Clonar curso", url: "/admin/course-clone" },
+        ],
+      },
     },
-  },
-  {
-    prefix: "/admin/classes",
-    help: {
-      title: "Clases",
-      icon: GraduationCap,
-      summary: "Catálogo de todas las clases de la escuela: nombre, disciplina, profesor, sala y número de alumnos.",
-      tips: [
-        "Crea clases aquí y configura sus horarios en la vista 'Horario semanal'.",
-        "Asigna un profesor a cada clase para que aparezca en el portal.",
-        "El precio de la clase se usa en las facturas y recibos.",
-      ],
-      actions: [
-        { label: "Ver horario semanal", url: "/admin/schedule" },
-        { label: "Gestionar profesores", url: "/admin/teachers" },
-      ],
+    {
+      prefix: "/admin/classes",
+      help: {
+        title: Cs.charAt(0).toUpperCase() + Cs.slice(1),
+        icon: GraduationCap,
+        summary: `Catálogo de todas las ${Cs} de la escuela: nombre, disciplina, ${T}, sala y número de ${Ss}.`,
+        tips: [
+          `Crea ${Cs} aquí y configura sus horarios en la vista 'Horario semanal'.`,
+          `Asigna un ${T} a cada ${C} para que aparezca en el portal.`,
+          `El precio de la ${C} se usa en las facturas y recibos.`,
+        ],
+        actions: [
+          { label: "Ver horario semanal", url: "/admin/schedule" },
+          { label: `Gestionar ${Ts}`, url: "/admin/teachers" },
+        ],
+      },
     },
-  },
-  {
-    prefix: "/admin/teachers",
-    help: {
-      title: "Profesores",
-      icon: BookOpen,
-      summary: "Directorio de profesores con sus clases asignadas, contacto y salario mensual.",
-      tips: [
-        "Asigna clases al profesor desde su ficha o desde la edición de la clase.",
-        "El salario mensual se usa en el módulo de Economía para calcular gastos.",
-        "Un profesor inactivo no aparece en los horarios del portal.",
-      ],
-      actions: [{ label: "Ver clases", url: "/admin/classes" }],
+    {
+      prefix: "/admin/teachers",
+      help: {
+        title: Ts.charAt(0).toUpperCase() + Ts.slice(1),
+        icon: BookOpen,
+        summary: `Directorio de ${Ts} con sus ${Cs} asignadas, contacto y salario mensual.`,
+        tips: [
+          `Asigna ${Cs} al ${T} desde su ficha o desde la edición de la ${C}.`,
+          "El salario mensual se usa en el módulo de Economía para calcular gastos.",
+          `Un ${T} inactivo no aparece en los horarios del portal.`,
+        ],
+        actions: [{ label: `Ver ${Cs}`, url: "/admin/classes" }],
+      },
     },
-  },
-  {
-    prefix: "/admin/rooms",
-    help: {
-      title: "Aulas",
-      icon: DoorOpen,
-      summary: "Gestiona las salas y espacios de la academia con su capacidad y disponibilidad.",
-      tips: [
-        "La capacidad de un aula limita el número de alumnos por clase.",
-        "Asigna aulas a las clases desde la edición de clase o del horario.",
-      ],
-      actions: [{ label: "Ver horario", url: "/admin/schedule" }],
+    {
+      prefix: "/admin/rooms",
+      help: {
+        title: "Aulas",
+        icon: DoorOpen,
+        summary: "Gestiona las salas y espacios de la academia con su capacidad y disponibilidad.",
+        tips: [
+          `La capacidad de un aula limita el número de ${Ss} por ${C}.`,
+          `Asigna aulas a las ${Cs} desde la edición de ${C} o del horario.`,
+        ],
+        actions: [{ label: "Ver horario", url: "/admin/schedule" }],
+      },
     },
-  },
-  {
-    prefix: "/admin/payments",
-    help: {
-      title: "Pagos",
-      icon: CreditCard,
-      summary: "Registro de cobros, facturas y recibos. Controla qué alumnos han pagado y cuáles están pendientes.",
-      tips: [
-        "Genera facturas mensuales con un clic para todos los alumnos activos.",
-        "Descarga recibos en PDF individuales o en lote para imprimir.",
-        "Registra pagos manuales (efectivo, transferencia) desde el botón 'Registrar pago'.",
-      ],
-      actions: [
-        { label: "Ver alumnos con deuda", url: "/admin/payments?filter=pending" },
-        { label: "Ver economía", url: "/admin/economia" },
-      ],
+    {
+      prefix: "/admin/payments",
+      help: {
+        title: "Pagos",
+        icon: CreditCard,
+        summary: `Registro de cobros, facturas y recibos. Controla qué ${Ss} han pagado y cuáles están pendientes.`,
+        tips: [
+          `Genera facturas mensuales con un clic para todos los ${Ss} activos.`,
+          "Descarga recibos en PDF individuales o en lote para imprimir.",
+          "Registra pagos manuales (efectivo, transferencia) desde el botón 'Registrar pago'.",
+        ],
+        actions: [
+          { label: `Ver ${Ss} con deuda`, url: "/admin/payments?filter=pending" },
+          { label: "Ver economía", url: "/admin/economia" },
+        ],
+      },
     },
-  },
-  {
-    prefix: "/admin/economia",
-    help: {
-      title: "Economía",
-      icon: Wallet,
-      summary: "Vista financiera rápida: ingresos, gastos (salarios + extras) y balance mensual.",
-      tips: [
-        "Los ingresos se calculan automáticamente de los pagos confirmados.",
-        "Los gastos incluyen los salarios de profesores que hayas configurado.",
-        "Añade ingresos o gastos manuales para eventos, materiales, etc.",
-      ],
-      actions: [{ label: "Ver pagos", url: "/admin/payments" }],
+    {
+      prefix: "/admin/economia",
+      help: {
+        title: "Economía",
+        icon: Wallet,
+        summary: "Vista financiera rápida: ingresos, gastos (salarios + extras) y balance mensual.",
+        tips: [
+          "Los ingresos se calculan automáticamente de los pagos confirmados.",
+          `Los gastos incluyen los salarios de ${Ts} que hayas configurado.`,
+          "Añade ingresos o gastos manuales para eventos, materiales, etc.",
+        ],
+        actions: [{ label: "Ver pagos", url: "/admin/payments" }],
+      },
     },
-  },
-  {
-    prefix: "/admin/pricing",
-    help: {
-      title: "Tarifas y paquetes",
-      icon: Tags,
-      summary: "Define los precios de clases individuales, bonos y paquetes combinados por disciplina.",
-      tips: [
-        "Las 'Tarifas' son precios por clase o tipo de servicio.",
-        "Los 'Paquetes' agrupan varias disciplinas para ofrecer descuento combinado.",
-        "Los precios configurados aquí se aplican automáticamente en las inscripciones.",
-      ],
-      actions: [{ label: "Ver clases", url: "/admin/classes" }],
+    {
+      prefix: "/admin/pricing",
+      help: {
+        title: "Tarifas y paquetes",
+        icon: Tags,
+        summary: `Define los precios de ${Cs} individuales, bonos y paquetes combinados por disciplina.`,
+        tips: [
+          `Las 'Tarifas' son precios por ${C} o tipo de servicio.`,
+          "Los 'Paquetes' agrupan varias disciplinas para ofrecer descuento combinado.",
+          "Los precios configurados aquí se aplican automáticamente en las inscripciones.",
+        ],
+        actions: [{ label: `Ver ${Cs}`, url: "/admin/classes" }],
+      },
     },
-  },
-  {
-    prefix: "/admin/waitlist",
-    help: {
-      title: "Lista de espera",
-      icon: ListOrdered,
-      summary: "Alumnos interesados en una clase que ya no tiene plazas disponibles.",
-      tips: [
-        "Cuando se libera una plaza, el primer alumno en lista recibe una notificación.",
-        "Puedes inscribir manualmente a cualquier alumno de la lista.",
-        "La lista de espera pública se activa desde el formulario de matrícula.",
-      ],
-      actions: [{ label: "Ver inscripciones", url: "/admin/enrollments" }],
+    {
+      prefix: "/admin/waitlist",
+      help: {
+        title: "Lista de espera",
+        icon: ListOrdered,
+        summary: `${Ss.charAt(0).toUpperCase() + Ss.slice(1)} interesados en una ${C} que ya no tiene plazas disponibles.`,
+        tips: [
+          `Cuando se libera una plaza, el primer ${S} en lista recibe una notificación.`,
+          `Puedes inscribir manualmente a cualquier ${S} de la lista.`,
+          "La lista de espera pública se activa desde el formulario de matrícula.",
+        ],
+        actions: [{ label: "Ver inscripciones", url: "/admin/enrollments" }],
+      },
     },
-  },
-  {
-    prefix: "/admin/renewals",
-    help: {
-      title: "Renovación de alumnos",
-      icon: Repeat,
-      summary: "Gestiona la renovación de plaza del curso actual al siguiente. Envía emails personalizados con el horario.",
-      tips: [
-        "Inicia la renovación indicando el curso de origen y el de destino.",
-        "El email incluye una tabla con el horario del próximo curso.",
-        "El alumno confirma o rechaza cada clase individualmente desde el enlace del email.",
-      ],
-      actions: [
-        { label: "Clonar curso", url: "/admin/course-clone" },
-        { label: "Ver alumnos", url: "/admin/students" },
-      ],
+    {
+      prefix: "/admin/renewals",
+      help: {
+        title: `Renovación de ${Ss}`,
+        icon: Repeat,
+        summary: "Gestiona la renovación de plaza del curso actual al siguiente. Envía emails personalizados con el horario.",
+        tips: [
+          "Inicia la renovación indicando el curso de origen y el de destino.",
+          "El email incluye una tabla con el horario del próximo curso.",
+          `El ${S} confirma o rechaza cada ${C} individualmente desde el enlace del email.`,
+        ],
+        actions: [
+          { label: "Clonar curso", url: "/admin/course-clone" },
+          { label: `Ver ${Ss}`, url: "/admin/students" },
+        ],
+      },
     },
-  },
-  {
-    prefix: "/admin/communications",
-    help: {
-      title: "Comunicados",
-      icon: Megaphone,
-      summary: "Envía emails o WhatsApp a segmentos de alumnos: toda la escuela, una clase específica o una disciplina.",
-      tips: [
-        "Usa 'Ver destinatarios' para comprobar a cuántos alumnos llegará antes de enviar.",
-        "El historial de envíos muestra el estado de entrega por destinatario.",
-        "'Enviar pendientes' procesa los mensajes que están en cola.",
-      ],
-      actions: [{ label: "Ver alumnos", url: "/admin/students" }],
+    {
+      prefix: "/admin/communications",
+      help: {
+        title: "Comunicados",
+        icon: Megaphone,
+        summary: `Envía emails o WhatsApp a segmentos de ${Ss}: toda la escuela, una ${C} específica o una disciplina.`,
+        tips: [
+          `Usa 'Ver destinatarios' para comprobar a cuántos ${Ss} llegará antes de enviar.`,
+          "El historial de envíos muestra el estado de entrega por destinatario.",
+          "'Enviar pendientes' procesa los mensajes que están en cola.",
+        ],
+        actions: [{ label: `Ver ${Ss}`, url: "/admin/students" }],
+      },
     },
-  },
-  {
-    prefix: "/admin/form-builder",
-    help: {
-      title: "Formulario de matrícula",
-      icon: FileEdit,
-      summary: "Diseña el formulario público de inscripción que verán los nuevos alumnos.",
-      tips: [
-        "Añade, elimina y reordena campos según la información que necesitas.",
-        "El enlace público del formulario se comparte en redes o web.",
-        "Las respuestas llegan como solicitudes de inscripción en 'Matrículas'.",
-      ],
-      actions: [
-        { label: "Ver inscripciones", url: "/admin/enrollments" },
-        { label: "Ver portal web", url: "/admin/website" },
-      ],
+    {
+      prefix: "/admin/form-builder",
+      help: {
+        title: "Formulario de matrícula",
+        icon: FileEdit,
+        summary: `Diseña el formulario público de inscripción que verán los nuevos ${Ss}.`,
+        tips: [
+          "Añade, elimina y reordena campos según la información que necesitas.",
+          "El enlace público del formulario se comparte en redes o web.",
+          "Las respuestas llegan como solicitudes de inscripción en 'Matrículas'.",
+        ],
+        actions: [
+          { label: "Ver inscripciones", url: "/admin/enrollments" },
+          { label: "Ver portal web", url: "/admin/website" },
+        ],
+      },
     },
-  },
-  {
-    prefix: "/admin/course-clone",
-    help: {
-      title: "Clonar curso",
-      icon: GraduationCap,
-      summary: "Duplica todas las clases y horarios de un curso académico al siguiente en un clic.",
-      tips: [
-        "Solo se copian clases y horarios — los alumnos y pagos no se duplican.",
-        "Las clases clonadas se crean en el año académico de destino.",
-        "Tras clonar, revisa los horarios del nuevo curso en 'Horario semanal'.",
-      ],
-      actions: [{ label: "Ver horario", url: "/admin/schedule" }],
+    {
+      prefix: "/admin/course-clone",
+      help: {
+        title: "Clonar curso",
+        icon: GraduationCap,
+        summary: `Duplica todas las ${Cs} y horarios de un curso académico al siguiente en un clic.`,
+        tips: [
+          `Solo se copian ${Cs} y horarios — los ${Ss} y pagos no se duplican.`,
+          `Las ${Cs} clonadas se crean en el año académico de destino.`,
+          "Tras clonar, revisa los horarios del nuevo curso en 'Horario semanal'.",
+        ],
+        actions: [{ label: "Ver horario", url: "/admin/schedule" }],
+      },
     },
-  },
-  {
-    prefix: "/admin/settings",
-    help: {
-      title: "Configuración",
-      icon: Settings,
-      summary: "Ajustes operativos de la escuela: datos, branding, cobros, acceso y plan de suscripción.",
-      tips: [
-        "En 'Branding' puedes subir tu logo y cambiar los colores de la escuela.",
-        "En 'Cobros' configura métodos de pago y día de vencimiento.",
-        "En 'Plan' puedes actualizar tu suscripción cuando el trial expire.",
-      ],
-      actions: [
-        { label: "Branding", url: "/admin/settings/branding" },
-        { label: "Plan", url: "/admin/settings/plan" },
-      ],
+    {
+      prefix: "/admin/settings",
+      help: {
+        title: "Configuración",
+        icon: Settings,
+        summary: "Ajustes operativos de la escuela: datos, branding, cobros, acceso y plan de suscripción.",
+        tips: [
+          "En 'Branding' puedes subir tu logo y cambiar los colores de la escuela.",
+          "En 'Cobros' configura métodos de pago y día de vencimiento.",
+          "En 'Plan' puedes actualizar tu suscripción cuando el trial expire.",
+        ],
+        actions: [
+          { label: "Branding", url: "/admin/settings/branding" },
+          { label: "Plan", url: "/admin/settings/plan" },
+        ],
+      },
     },
-  },
-  {
-    prefix: "/admin",
-    help: {
-      title: "Panel principal",
-      icon: BarChart2,
-      summary: "Vista operativa con el estado diario de tu escuela: clases de hoy, pagos pendientes y acciones rápidas.",
-      tips: [
-        "Las tarjetas de métricas muestran el estado actual de alumnos, pagos y clases.",
-        "Usa los accesos directos para las tareas más habituales del día.",
-        "El panel se actualiza con datos reales de tu escuela.",
-      ],
-      actions: [
-        { label: "Ver alumnos", url: "/admin/students" },
-        { label: "Ver pagos", url: "/admin/payments" },
-      ],
+    {
+      prefix: "/admin",
+      help: {
+        title: "Panel principal",
+        icon: BarChart2,
+        summary: `Vista operativa con el estado diario de tu escuela: ${Cs} de hoy, pagos pendientes y acciones rápidas.`,
+        tips: [
+          `Las tarjetas de métricas muestran el estado actual de ${Ss}, pagos y ${Cs}.`,
+          "Usa los accesos directos para las tareas más habituales del día.",
+          "El panel se actualiza con datos reales de tu escuela.",
+        ],
+        actions: [
+          { label: `Ver ${Ss}`, url: "/admin/students" },
+          { label: "Ver pagos", url: "/admin/payments" },
+        ],
+      },
     },
-  },
-];
+  ];
+}
 
-function getHelp(pathname: string): PageHelp | null {
-  // Match most-specific prefix first
-  const sorted = [...HELP_MAP].sort((a, b) => b.prefix.length - a.prefix.length);
+function getHelp(helpMap: Array<{ prefix: string; help: PageHelp }>, pathname: string): PageHelp | null {
+  const sorted = [...helpMap].sort((a, b) => b.prefix.length - a.prefix.length);
   return sorted.find((h) => pathname.startsWith(h.prefix))?.help ?? null;
 }
 
@@ -315,7 +321,9 @@ interface ContextualHelpPanelProps {
 
 export function ContextualHelpPanel({ open, onClose, pathname, onOpenWizard, wizardFinished }: ContextualHelpPanelProps) {
   const navigate = useNavigate();
-  const help = getHelp(pathname);
+  const voc = useVocabulary();
+  const helpMap = buildHelpMap(voc);
+  const help = getHelp(helpMap, pathname);
   const Icon = help?.icon ?? CircleHelp;
 
   return (

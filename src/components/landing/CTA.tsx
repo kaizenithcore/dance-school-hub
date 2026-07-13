@@ -4,15 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { buildRegisterHref, freeTrialDays } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
+import { useVerticalConfig } from "@/lib/vertical/context";
 
 const PRIMARY_CTA_HREF = buildRegisterHref("final_cta");
 
 export function CTA() {
+  const { productName } = useVerticalConfig();
+
   const handleClick = () => {
     trackPortalEvent({
       eventName: "click_cta_primary",
       category: "funnel",
-      metadata: { section: "final_cta", ctaLabel: "Probar Nexa gratis", destination: PRIMARY_CTA_HREF },
+      metadata: { section: "final_cta", ctaLabel: `Probar ${productName} gratis`, destination: PRIMARY_CTA_HREF },
     });
   };
 
@@ -28,7 +31,7 @@ export function CTA() {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/20" />
           <div className="relative">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-              Empieza a gestionar tu academia como un sistema
+              Empieza a gestionar tu centro como un sistema
             </h2>
             <p className="mt-5 text-lg text-muted-foreground max-w-md mx-auto">
               {freeTrialDays} días gratis. Sin tarjeta. Sin compromiso.
@@ -36,7 +39,7 @@ export function CTA() {
             <div className="mt-10">
               <Button size="lg" className="h-13 rounded-xl px-10 text-base font-semibold shadow-md hover:shadow-lg" asChild>
                 <Link to={PRIMARY_CTA_HREF} onClick={handleClick}>
-                  Probar Nexa gratis
+                  Probar {productName} gratis
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>

@@ -7,8 +7,22 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { BrandingProvider } from "@/providers/BrandingProvider";
-import Index from "@/pages/Index";
 import { CookieBanner } from "@/components/CookieBanner";
+import { PlanDevOverlay } from "@/components/dev/PlanDevOverlay";
+import { useVerticalConfig } from "@/lib/vertical/context";
+
+const _landingPages = {
+  dance:    lazy(() => import("@/verticals/dance/landing/LandingPage")),
+  sports:   lazy(() => import("@/verticals/sports/landing/LandingPage")),
+  languages: lazy(() => import("@/verticals/languages/landing/LandingPage")),
+  tutoring: lazy(() => import("@/verticals/tutoring/landing/LandingPage")),
+};
+
+function DynamicLandingPage() {
+  const { id } = useVerticalConfig();
+  const Page = _landingPages[id];
+  return <Page />;
+}
 
 const AdminLayout = lazy(() => import("@/components/layout/AdminLayout").then((module) => ({ default: module.AdminLayout })));
 const PublicLayout = lazy(() => import("@/components/layout/PublicLayout").then((module) => ({ default: module.PublicLayout })));
@@ -137,8 +151,9 @@ const App = () => (
       <BrowserRouter>
         <BrandingProvider>
           <CookieBanner />
+          <PlanDevOverlay />
           <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={withSuspense(<DynamicLandingPage />)} />
           <Route path="/auth/login" element={withSuspense(<LoginPage />)} />
           <Route path="/auth/register" element={withSuspense(<RegisterPage />)} />
           <Route path="/auth/forgot-password" element={withSuspense(<ForgotPasswordPage />)} />

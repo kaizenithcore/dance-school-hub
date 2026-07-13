@@ -6,7 +6,7 @@ export function PublicFooter() {
       <div className="container">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
           <div className="flex items-center gap-2">
-            <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-7 w-7 object-contain" />
+            <img src="/nexa_graphics/icon_big_trans.PNG" alt="Nexa" className="h-7 w-7 object-contain" />
             <span className="text-sm font-medium text-foreground">Nexa</span>
           </div>
           <nav className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">

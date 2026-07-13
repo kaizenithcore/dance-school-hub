@@ -77,7 +77,7 @@ export default function WebsitePage() {
             <div>
               <p className="text-xs text-muted-foreground mb-2">Desde <strong className="text-foreground text-base">{formatEuro(integratedPrice)}</strong> · pago único</p>
               <Button className="w-full" asChild>
-                <a href="mailto:hola@nexa.es?subject=Quiero%20mi%20web%20integrada%20con%20Nexa&body=Hola%2C%20me%20gustar%C3%ADa%20informaci%C3%B3n%20sobre%20la%20web%20integrada%20con%20Nexa%20para%20mi%20escuela%20de%20danza.">
+                <a href="mailto:nexa@kaizenith.es?subject=Quiero%20mi%20web%20integrada%20con%20Nexa&body=Hola%2C%20me%20gustar%C3%ADa%20informaci%C3%B3n%20sobre%20la%20web%20integrada%20con%20Nexa%20para%20mi%20escuela%20de%20danza.">
                   Solicitar diagnóstico gratuito <ArrowRight className="h-4 w-4 ml-1.5" />
                 </a>
               </Button>
@@ -110,7 +110,7 @@ export default function WebsitePage() {
             <div>
               <p className="text-xs text-muted-foreground mb-2">Desde <strong className="text-foreground text-base">{formatEuro(standaloneBasicPrice)}</strong> · pago único</p>
               <Button variant="outline" className="w-full" asChild>
-                <a href="mailto:hola@nexa.es?subject=Consulta%20web%20independiente%20para%20escuela%20de%20danza&body=Hola%2C%20me%20gustar%C3%ADa%20una%20propuesta%20para%20una%20web%20independiente.">
+                <a href="mailto:nexa@kaizenith.es?subject=Consulta%20web%20independiente%20para%20escuela%20de%20danza&body=Hola%2C%20me%20gustar%C3%ADa%20una%20propuesta%20para%20una%20web%20independiente.">
                   Pedir propuesta <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
                 </a>
               </Button>

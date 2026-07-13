@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { buildRegisterHref, formatEuro, planCatalog, planOrder, type PlanType } from "@/lib/commercialCatalog";
 import { trackPortalEvent } from "@/lib/portalTelemetry";
+import { useVocabulary } from "@/lib/vertical/context";
 
 interface Plan {
   planType: PlanType;
@@ -14,9 +15,6 @@ interface Plan {
   annualTotalEur: number;
   desc: string;
   audience: string;
-  automationLevel: string;
-  businessControl: string;
-  scalability: string;
   valueFeatures: string[];
   cta: string;
   ctaHref: string;
@@ -34,147 +32,26 @@ function getPlanCtaHref(planType: PlanType, annual: boolean) {
   return buildRegisterHref("pricing", { planType, billing: annual ? "annual" : "monthly" });
 }
 
-function getAdvisorRecommendation(students: number): { recommendedPlan: PlanType; studentsHint: string } {
-  if (students <= 220) return { recommendedPlan: "starter", studentsHint: "Hasta 220 alumnos" };
-  if (students <= 900) return { recommendedPlan: "pro", studentsHint: "Entre 221 y 900 alumnos" };
-  return { recommendedPlan: "enterprise", studentsHint: "Mas de 900 alumnos" };
+function cap(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-const comparisonRows: ComparisonRow[] = [
-  {
-    label: "Alumnos activos incluidos",
-    values: {
-      starter: "Hasta 200",
-      pro: "Hasta 500",
-      enterprise: "Hasta 2.000",
-    },
-  },
-  {
-    label: "Matrícula online + landing pública",
-    values: {
-      starter: "✓ Incluida",
-      pro: "✓ Incluida",
-      enterprise: "✓ Incluida",
-    },
-  },
-  {
-    label: "Renovaciones automáticas de matrícula",
-    values: {
-      starter: "✓ Incluida",
-      pro: "✓ Incluida",
-      enterprise: "✓ Incluida",
-    },
-  },
-  {
-    label: "Lista de espera inteligente",
-    values: {
-      starter: "✓ Incluida",
-      pro: "✓ Incluida",
-      enterprise: "✓ Incluida",
-    },
-  },
-  {
-    label: "Comunicación masiva por email",
-    values: {
-      starter: "✓ Incluida",
-      pro: "✓ Incluida",
-      enterprise: "✓ Incluida",
-    },
-  },
-  {
-    label: "Portal del alumno",
-    values: {
-      starter: "✓ Completo",
-      pro: "✓ Completo",
-      enterprise: "✓ Completo",
-    },
-  },
-  {
-    label: "Soporte",
-    values: {
-      starter: "Estándar",
-      pro: "✓ Prioritario incluido",
-      enterprise: "✓ Prioritario + puesta a punto",
-    },
-  },
-];
-
-const plans: Plan[] = planOrder.map((planType) => {
-  const plan = planCatalog[planType];
-  const valueDescriptions: Record<PlanType, {
-    desc: string;
-    audience: string;
-    automationLevel: string;
-    businessControl: string;
-    scalability: string;
-    features: string[];
-  }> = {
-    starter: {
-      desc: "Todo lo que necesitas para operar tu academia sin caos desde el primer día",
-      audience: "Escuelas de hasta 200 alumnos",
-      automationLevel: "Completo",
-      businessControl: "Operativo",
-      scalability: "Preparada para crecer",
-      features: [
-        "Alumnos, clases y horarios gestionados",
-        "Matrícula online con formulario configurable",
-        "Renovaciones y lista de espera automáticas",
-        "Comunicación masiva por email",
-        "Portal del alumno completo",
-        "Pagos, facturas y recibos",
-      ],
-    },
-    pro: {
-      desc: "Escala sin límites con capacidad para más alumnos y soporte prioritario incluido",
-      audience: "Escuelas de hasta 500 alumnos",
-      automationLevel: "Completo",
-      businessControl: "Estratégico",
-      scalability: "Escala sin fricción",
-      features: [
-        "Todo en Starter",
-        "Hasta 500 alumnos activos",
-        "Bloques de 100 alumnos extra disponibles",
-        "Soporte prioritario por email incluido",
-      ],
-    },
-    enterprise: {
-      desc: "Control total para estructuras complejas y multi-sede",
-      audience: "Centros con operación avanzada y gran volumen",
-      automationLevel: "Muy alto",
-      businessControl: "Total",
-      scalability: "Multi-sede y alta exigencia",
-      features: [
-        "Todo en Pro",
-        "Multi-sede",
-        "Roles avanzados",
-        "Analítica avanzada",
-        "Soporte prioritario",
-        "Puesta a punto incluida",
-      ],
-    },
-  };
-  return {
-    planType,
-    name: plan.name,
-    monthlyPriceEur: plan.billing.monthlyPriceEur,
-    annualTotalEur: plan.billing.annualTotalEur,
-    desc: valueDescriptions[planType].desc,
-    audience: valueDescriptions[planType].audience,
-    automationLevel: valueDescriptions[planType].automationLevel,
-    businessControl: valueDescriptions[planType].businessControl,
-    scalability: valueDescriptions[planType].scalability,
-    savings: plan.billing.annualSavingsLabel,
-    valueFeatures: valueDescriptions[planType].features,
-    cta: planType === "starter" ? "Empezar con Starter" : planType === "pro" ? "Empezar con Pro" : "Hablar con ventas",
-    ctaHref: planType === "enterprise" ? plan.cta.href : getPlanCtaHref(planType, true),
-    ctaExternal: planType === "enterprise" ? plan.cta.external : false,
-    highlighted: plan.highlighted,
-  };
-});
-
 export function Pricing() {
+  const vocabulary = useVocabulary();
+  const s = vocabulary.students;
+  const S = cap(s);
+  const centerS = vocabulary.center + "s";
+  const centerSCap = cap(centerS);
+
   const [annual, setAnnual] = useState(true);
   const [advisorStudents, setAdvisorStudents] = useState(320);
+
+  function getAdvisorRecommendation(students: number): { recommendedPlan: PlanType; studentsHint: string } {
+    if (students <= 220) return { recommendedPlan: "starter", studentsHint: `Hasta 220 ${s}` };
+    if (students <= 900) return { recommendedPlan: "pro", studentsHint: `Entre 221 y 900 ${s}` };
+    return { recommendedPlan: "enterprise", studentsHint: `Más de 900 ${s}` };
+  }
+
   const advisor = getAdvisorRecommendation(advisorStudents);
   const advisorPlan = planCatalog[advisor.recommendedPlan];
   const advisorMonthly = annual
@@ -183,6 +60,95 @@ export function Pricing() {
   const advisorCostPerStudent = advisorStudents > 0
     ? Math.round((advisorMonthly / advisorStudents) * 100) / 100
     : 0;
+
+  const comparisonRows: ComparisonRow[] = [
+    {
+      label: `${S} activos incluidos`,
+      values: { starter: "Hasta 200", pro: "Hasta 500", enterprise: "Hasta 2.000" },
+    },
+    {
+      label: "Matrícula online + landing pública",
+      values: { starter: "✓ Incluida", pro: "✓ Incluida", enterprise: "✓ Incluida" },
+    },
+    {
+      label: "Renovaciones automáticas de matrícula",
+      values: { starter: "✓ Incluida", pro: "✓ Incluida", enterprise: "✓ Incluida" },
+    },
+    {
+      label: "Lista de espera inteligente",
+      values: { starter: "✓ Incluida", pro: "✓ Incluida", enterprise: "✓ Incluida" },
+    },
+    {
+      label: "Comunicación masiva por email",
+      values: { starter: "✓ Incluida", pro: "✓ Incluida", enterprise: "✓ Incluida" },
+    },
+    {
+      label: `Portal del ${vocabulary.student}`,
+      values: { starter: "✓ Completo", pro: "✓ Completo", enterprise: "✓ Completo" },
+    },
+    {
+      label: "Soporte",
+      values: {
+        starter: "Estándar",
+        pro: "✓ Prioritario incluido",
+        enterprise: "✓ Prioritario + puesta a punto",
+      },
+    },
+  ];
+
+  const plans: Plan[] = planOrder.map((planType) => {
+    const plan = planCatalog[planType];
+    const valueDescriptions: Record<PlanType, { desc: string; audience: string; features: string[] }> = {
+      starter: {
+        desc: "Todo lo que necesitas para operar tu centro sin caos desde el primer día",
+        audience: `${centerSCap} de hasta 200 ${s}`,
+        features: [
+          `${S}, clases y horarios gestionados`,
+          "Matrícula online con formulario configurable",
+          "Renovaciones y lista de espera automáticas",
+          "Comunicación masiva por email",
+          `Portal del ${vocabulary.student} completo`,
+          "Pagos, facturas y recibos",
+        ],
+      },
+      pro: {
+        desc: `Escala sin límites con capacidad para más ${s} y soporte prioritario incluido`,
+        audience: `${centerSCap} de hasta 500 ${s}`,
+        features: [
+          "Todo en Starter",
+          `Hasta 500 ${s} activos`,
+          `Bloques de 100 ${s} extra disponibles`,
+          "Soporte prioritario por email incluido",
+        ],
+      },
+      enterprise: {
+        desc: "Control total para estructuras complejas y multi-sede",
+        audience: "Centros con operación avanzada y gran volumen",
+        features: [
+          "Todo en Pro",
+          "Multi-sede",
+          "Roles avanzados",
+          "Analítica avanzada",
+          "Soporte prioritario",
+          "Puesta a punto incluida",
+        ],
+      },
+    };
+    return {
+      planType,
+      name: plan.name,
+      monthlyPriceEur: plan.billing.monthlyPriceEur,
+      annualTotalEur: plan.billing.annualTotalEur,
+      desc: valueDescriptions[planType].desc,
+      audience: valueDescriptions[planType].audience,
+      savings: plan.billing.annualSavingsLabel,
+      valueFeatures: valueDescriptions[planType].features,
+      cta: planType === "starter" ? "Empezar con Starter" : planType === "pro" ? "Empezar con Pro" : "Hablar con ventas",
+      ctaHref: planType === "enterprise" ? plan.cta.href : getPlanCtaHref(planType, true),
+      ctaExternal: planType === "enterprise" ? plan.cta.external : false,
+      highlighted: plan.highlighted,
+    };
+  });
 
   const handlePlanClick = (plan: Plan) => {
     trackPortalEvent({
@@ -208,14 +174,14 @@ export function Pricing() {
           className="text-center max-w-xl mx-auto mb-10"
         >
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            El sistema que tu academia se merece
+            El sistema que tu centro se merece
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Tres planes, una decision clara: operar, escalar u optimizar. Sin addons infinitos, con una base solida para crecer.
+            Tres planes, una decisión clara: operar, escalar u optimizar. Sin addons infinitos, con una base sólida para crecer.
           </p>
         </motion.div>
 
-        {/* Plan advisor — above plans */}
+        {/* Plan advisor */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -225,12 +191,12 @@ export function Pricing() {
           <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
               <Calculator className="h-4 w-4 text-primary" />
-              <p className="text-sm font-semibold text-foreground">¿Cuántos alumnos tienes?</p>
+              <p className="text-sm font-semibold text-foreground">¿Cuántos {s} tienes?</p>
             </div>
             <div className="rounded-xl bg-muted/50 p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                  <Users className="h-4 w-4" /> Alumnos activos
+                  <Users className="h-4 w-4" /> {S} activos
                 </span>
                 <span className="text-lg font-bold text-primary">{advisorStudents}</span>
               </div>
@@ -239,7 +205,7 @@ export function Pricing() {
                 value={advisorStudents}
                 onChange={(e) => setAdvisorStudents(Number(e.target.value))}
                 className="w-full accent-primary h-2 cursor-pointer"
-                aria-label="Cantidad de alumnos"
+                aria-label={`Cantidad de ${s}`}
               />
               <div className="flex justify-between text-[11px] text-muted-foreground mt-1">
                 <span>50</span><span>300</span><span>600+</span>
@@ -251,7 +217,7 @@ export function Pricing() {
                 <p className="text-lg font-bold text-primary mt-1">{advisorPlan.name}</p>
               </div>
               <div className="rounded-xl bg-muted/40 px-4 py-3">
-                <p className="text-xs text-muted-foreground">Coste por alumno</p>
+                <p className="text-xs text-muted-foreground">Coste por {vocabulary.student}</p>
                 <p className="text-lg font-bold text-foreground mt-1">{formatEuro(advisorCostPerStudent)}<span className="text-xs font-normal text-muted-foreground">/mes</span></p>
               </div>
             </div>
@@ -281,7 +247,7 @@ export function Pricing() {
           </button>
         </div>
 
-        {/* Plan cards — 2 plans (Starter + Pro) */}
+        {/* Plan cards */}
         <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto items-start">
           {plans.map((plan, i) => {
             const displayPrice = annual
@@ -302,7 +268,6 @@ export function Pricing() {
                     : "border-border bg-card"
                 )}
               >
-                {/* Badges */}
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                   {plan.highlighted && (
                     <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground whitespace-nowrap">
@@ -343,7 +308,7 @@ export function Pricing() {
           })}
         </div>
 
-        {/* Impact comparison */}
+        {/* Comparison table */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -414,7 +379,6 @@ export function Pricing() {
             </div>
           </div>
         </motion.div>
-
       </div>
     </section>
   );

@@ -36,6 +36,7 @@ import { UpgradeFeatureAlert } from "@/components/billing/UpgradeFeatureAlert";
 import { FeatureLockDialog } from "@/components/billing/FeatureLockDialog";
 import ModuleDisabledPage from "@/pages/admin/ModuleDisabledPage";
 import { isModuleVisible } from "@/lib/moduleLifecyclePolicy";
+import { useVocabulary } from "@/lib/vertical/context";
 
 // ── constants ──────────────────────────────────────────────────────────────────
 
@@ -202,13 +203,13 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
         // Default: select all rows (full current schedule)
         setSelectedKeys(new Set(rows.map((r) => r.key)));
       })
-      .catch(() => toast.error("No se pudo cargar el horario de clases"))
+      .catch(() => toast.error(`No se pudo cargar el horario de ${voc.classItems}`))
       .finally(() => setLoadingSchedule(false));
   }, [open]);
 
   const handleGenerateTable = () => {
     const selected = scheduleRows.filter((r) => selectedKeys.has(r.key));
-    if (selected.length === 0) { toast.error("Selecciona al menos una clase"); return; }
+    if (selected.length === 0) { toast.error(`Selecciona al menos una ${voc.classItem}`); return; }
     setGeneratedHtml(buildScheduleEmailHtml(selected, primaryColor));
     toast.success("Tabla de horario generada");
   };
@@ -296,7 +297,7 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
         <div className="flex flex-wrap gap-2 text-xs shrink-0">
           <div className="rounded-md border border-border bg-muted/30 px-2.5 py-1.5 font-semibold">{fromCourse} → {toCourse}</div>
           <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400">
-            {pendingCount} alumno(s) pendientes
+            {pendingCount} {voc.student}(s) pendientes
           </div>
           {campaign.expiresAt && (
             <div className="rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-muted-foreground">
@@ -323,8 +324,8 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
                   <p className="text-sm font-medium text-foreground">Horario completo actual</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {loadingSchedule
-                      ? "Cargando clases…"
-                      : `${scheduleRows.length} clase(s) · ${selectedKeys.size} seleccionadas`}
+                      ? `Cargando ${voc.classItems}…`
+                      : `${scheduleRows.length} ${voc.classItem}(s) · ${selectedKeys.size} seleccionadas`}
                   </p>
                 </div>
                 <Button size="sm" onClick={handleGenerateTable}
@@ -368,7 +369,7 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setShowCustomize((s) => !s)}>
               <Expand className={cn("h-3.5 w-3.5 transition-transform", showCustomize && "rotate-180")} />
-              {showCustomize ? "Ocultar selección por clase" : "Personalizar selección de clases"}
+              {showCustomize ? `Ocultar selección por ${voc.classItem}` : `Personalizar selección de ${voc.classItems}`}
             </button>
 
             {showCustomize && (
@@ -466,7 +467,7 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
           <Button type="button" variant="outline" onClick={onClose} disabled={sending}>Cancelar</Button>
           <Button onClick={() => void handleSend()} disabled={sending || pendingCount === 0}>
             {sending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Send className="h-4 w-4 mr-1.5" />}
-            {useSchedule && scheduleSend ? "Programar envío" : `Enviar a ${pendingCount} alumno(s)`}
+            {useSchedule && scheduleSend ? "Programar envío" : `Enviar a ${pendingCount} ${voc.student}(s)`}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -479,6 +480,7 @@ function SendEmailModal({ open, onClose, campaign, pendingCount, onSent, locked,
 type SortKey = "name" | "status" | "email";
 
 export default function RenewalsPage() {
+  const voc = useVocabulary();
   const { billing, planLabel, startUpgrade, loading: billingLoading } = useBillingEntitlements();
   const { refreshKey } = useAcademicYearContext();
   const prevRefreshKeyRef = useRef(refreshKey);
@@ -577,7 +579,7 @@ export default function RenewalsPage() {
   const loadOffers = async (campaignId: string) => {
     setLoadingOffers(true);
     try { setOffers(await getRenewalOffers(campaignId)); }
-    catch (err) { toast.error(err instanceof Error ? err.message : "No se pudieron cargar los alumnos"); }
+    catch (err) { toast.error(err instanceof Error ? err.message : `No se pudieron cargar los ${voc.students}`); }
     finally { setLoadingOffers(false); }
   };
 
@@ -605,7 +607,7 @@ export default function RenewalsPage() {
         fromCourse: fromCourse.trim(),
         toCourse:   toCourse.trim(),
       });
-      toast.success(`Renovación creada con ${result.offersCount} alumno(s)`);
+      toast.success(`Renovación creada con ${result.offersCount} ${voc.student}(s)`);
       setExpiresAt("");
       const refreshed = await runWithRetry(async () => {
         const data = await getRenewalCampaigns();
@@ -638,7 +640,7 @@ export default function RenewalsPage() {
     try {
       const result = await sendRenewalNotifications({ campaignId: activeCampaign.id, offerIds: [offerId] });
       if (result.sent > 0)         toast.success("Email enviado correctamente");
-      else if (result.skipped > 0) toast.info("Este alumno no tiene email registrado");
+      else if (result.skipped > 0) toast.info(`Este ${voc.student} no tiene email registrado`);
       else toast.error("No se pudo enviar el email");
       await loadOffers(activeCampaign.id);
     } catch (err) {
@@ -665,7 +667,7 @@ export default function RenewalsPage() {
 
   return (
     <PageContainer
-      title="Renovación de alumnos"
+      title={`Renovación de ${voc.students}`}
       actions={
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading || loadingOffers}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -689,7 +691,7 @@ export default function RenewalsPage() {
             <div>
               <h2 className="text-sm font-semibold">Iniciar período de renovación</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Se generará una propuesta para cada alumno con matrícula confirmada. Podrás enviarles un email con el horario del próximo curso y un enlace para gestionar cada clase individualmente.
+                Se generará una propuesta para cada {voc.student} con matrícula confirmada. Podrás enviarles un email con el horario del próximo curso y un enlace para gestionar cada {voc.classItem} individualmente.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -730,7 +732,7 @@ export default function RenewalsPage() {
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium">Esta renovación fue creada con una versión anterior</p>
-                    <p className="text-xs mt-0.5">Es posible que no incluya todos los alumnos y que las clases aparezcan como IDs. Crea una nueva renovación para obtener datos correctos.</p>
+                    <p className="text-xs mt-0.5">Es posible que no incluya todos los {voc.students} y que las {voc.classItems} aparezcan como IDs. Crea una nueva renovación para obtener datos correctos.</p>
                   </div>
                 </div>
               )}
@@ -742,7 +744,7 @@ export default function RenewalsPage() {
                   </div>
                 )}
                 <div className="inline-flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 h-9 text-xs">
-                  <span className="text-muted-foreground">{counts.total} alumnos</span>
+                  <span className="text-muted-foreground">{counts.total} {voc.students}</span>
                   <span className="text-border">·</span>
                   <span className="text-amber-600 font-medium">{counts.pending} pendientes</span>
                   <span className="text-border">·</span>
@@ -897,7 +899,7 @@ export default function RenewalsPage() {
                     page={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize}
                     onPageChange={setPage}
                     onPageSizeChange={(s) => { setPageSize(s); setPage(0); localStorage.setItem(PAGE_SIZE_KEY, String(s)); }}
-                    itemLabel="alumnos"
+                    itemLabel={voc.students}
                   />
                 </>
               )}

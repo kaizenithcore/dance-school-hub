@@ -579,7 +579,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
       response: fail(
         {
           code: "account_suspended",
-          message: "Esta cuenta ha sido suspendida temporalmente. Contacta con soporte en hola@nexa.es",
+          message: "Esta cuenta ha sido suspendida temporalmente. Contacta con soporte en nexa@kaizenith.es",
         },
         403,
         origin

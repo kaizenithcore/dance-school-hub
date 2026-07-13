@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
         className="w-full max-w-md space-y-8"
       >
         <div className="flex flex-col items-center gap-3">
-          <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-12 w-12 object-contain" />
+          <img src="/nexa_graphics/icon_big_trans.PNG" alt="Nexa" className="h-12 w-12 object-contain" />
           <h1 className="text-2xl font-bold text-foreground">Nueva contraseña</h1>
           <p className="text-sm text-muted-foreground">Introduce tu nueva contraseña</p>
         </div>

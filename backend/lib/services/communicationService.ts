@@ -91,12 +91,13 @@ function asObject(value: unknown): Record<string, unknown> {
 }
 
 function renderCampaignEmail(studentName: string, message: string): string {
+  const productName = process.env.APP_PRODUCT_NAME || "Nexa";
   return `
     <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;">
       <p>Hola ${studentName || "familia"},</p>
       <p style="white-space: pre-wrap;">${message}</p>
       <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #64748b;">Mensaje enviado desde Nexa.</p>
+      <p style="font-size: 12px; color: #64748b;">Mensaje enviado desde ${productName}.</p>
     </div>
   `;
 }
@@ -356,7 +357,7 @@ export const communicationService = {
           to: String((delivery as any).recipient_email || ""),
           subject,
           html: renderCampaignEmail(String((delivery as any).recipient_name || "Alumno"), message),
-          text: `Hola ${String((delivery as any).recipient_name || "Alumno")},\n\n${message}\n\nMensaje enviado desde Nexa.`,
+          text: `Hola ${String((delivery as any).recipient_name || "Alumno")},\n\n${message}\n\nMensaje enviado desde ${process.env.APP_PRODUCT_NAME || "Nexa"}.`,
           metadata: {
             audience: input.audience,
             campaignId,
@@ -372,7 +373,7 @@ export const communicationService = {
       await recalculateCampaignStatus(input.tenantId, campaignId);
     } else {
       const deliveryRows = recipients.map((recipient) => {
-        const text = `Hola ${recipient.studentName || "familia"},\n\n${message}\n\nMensaje enviado desde Nexa.`;
+        const text = `Hola ${recipient.studentName || "familia"},\n\n${message}\n\nMensaje enviado desde ${process.env.APP_PRODUCT_NAME || "Nexa"}.`;
         const waLink = buildWaLink(recipient.phone || "", text);
         return {
           campaign_id: campaignId,

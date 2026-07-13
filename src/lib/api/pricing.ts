@@ -1,48 +1,11 @@
-import { supabase } from "@/lib/supabase";
+import { resolveAccessToken } from "@/lib/api/client";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-
-  if (typeof window !== "undefined") {
-    const authKey = Object.keys(window.localStorage).find(
-      (key) => key.startsWith("sb-") && key.endsWith("-auth-token")
-    );
-    if (authKey) {
-      try {
-        const raw = window.localStorage.getItem(authKey);
-        if (raw) {
-          const parsed = JSON.parse(raw) as { access_token?: string };
-          if (parsed.access_token) {
-            headers.Authorization = `Bearer ${parsed.access_token}`;
-            return headers;
-          }
-        }
-      } catch {
-        // Fall through to session API fallback.
-      }
-    }
-  }
-
-  try {
-    const sessionResult = await Promise.race([
-      supabase.auth.getSession(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200)),
-    ]);
-
-    if (sessionResult && "data" in sessionResult) {
-      const token = sessionResult.data.session?.access_token;
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-    }
-  } catch {
-    // Ignore token retrieval failures and continue without Authorization.
-  }
-
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = await resolveAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
 

@@ -16,7 +16,7 @@ export default function LegalLayout() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/nexa_graphics/icon_big_black.png" alt="Nexa" className="h-7 w-7 object-contain" />
+            <img src="/nexa_graphics/icon_big_trans.PNG" alt="Nexa" className="h-7 w-7 object-contain" />
             <span className="font-semibold text-foreground">Nexa</span>
           </Link>
           <Link to="/auth/login" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
