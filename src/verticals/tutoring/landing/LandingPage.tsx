@@ -342,14 +342,19 @@ function CTA() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function TutoringLandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <VerticalLandingShell id="tutoring">
       <Header />
       <Hero />
       <Features />
+      <Results />
+      <DecisionCompare />
       <div id="pricing"><Pricing /></div>
+      <div id="web-service"><WebService /></div>
+      <div id="branding-service"><WeydiCreativeServices /></div>
+      <Credibility />
       <FAQ />
       <CTA />
       <LandingFooter />
-    </div>
+    </VerticalLandingShell>
   );
 }
